@@ -1,0 +1,664 @@
+/* ============================================================
+ * 项目：元点Admin
+ * 安装程序：现代化UI样式（轻量 + 低饱和）
+ * 主题色：#2563eb
+ * ============================================================ */
+
+/* DaisyUI theme tokens */
+:root {
+  /* Primary = #2563eb */
+  --p: 222 82% 53%;
+  --pf: 222 82% 43%;
+  --pc: 0 0% 100%;
+
+  /* Installer design tokens */
+  --install-primary: #2563eb;
+  --install-bg: #f7f8fb;
+  --install-surface: #ffffff;
+  --install-border: #e5e7eb;
+  --install-text: #0f172a;
+  --install-muted: #475569;
+  --install-radius: 4px;     /* boxes: 2-4px target */
+  --install-radius-sm: 3px;
+  --install-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --install-shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.12);
+}
+
+html {
+  background: var(--install-bg);
+  font-size: 15px;
+}
+
+body {
+  font-family: "Noto Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--install-bg);
+  color: var(--install-text);
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+/* ---- Hero header gradient ---- */
+.install-hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 30%, #2563eb 65%, #3b82f6 100%);
+  position: relative;
+  overflow: visible;
+}
+
+/* Decorative light orbs */
+.install-hero-inner::before,
+.install-hero-inner::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.install-hero-inner::before {
+  width: 500px;
+  height: 500px;
+  top: -260px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(96,165,250,0.25) 0%, transparent 65%);
+}
+
+.install-hero-inner::after {
+  width: 380px;
+  height: 380px;
+  bottom: -120px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(147,197,253,0.15) 0%, transparent 65%);
+}
+
+.install-hero-inner {
+  position: relative;
+  z-index: 1;
+  padding-top: 2.5rem;
+  padding-bottom: 3.5rem;
+}
+
+/* Curved wave transition */
+.install-hero-wave {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  line-height: 0;
+  z-index: 2;
+}
+
+.install-hero-wave svg {
+  display: block;
+  width: 100%;
+  height: 60px;
+}
+
+/* Body below hero */
+.install-body {
+  margin-top: -1.5rem;
+  position: relative;
+  z-index: 3;
+  padding-bottom: 2rem;
+}
+
+/* ---- Steps on hero ---- */
+
+/* Pending step: semi-transparent white */
+.install-hero .steps .step {
+  --step-bg: rgba(255,255,255,0.2);
+  --step-fg: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,0.5);
+  font-weight: 400;
+}
+
+/* Pending dot: solid blue background + white border, visually distinct from line */
+.install-hero .steps .step::after {
+  z-index: 2 !important;
+  background-color: #2550b0 !important;
+  border-color: rgba(255,255,255,0.35) !important;
+}
+
+/* Completed / active step: white dot with blue number */
+.install-hero .steps .step-primary {
+  --step-bg: #ffffff;
+  --step-fg: #1e40af;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* Glow on completed/active dot */
+.install-hero .steps .step-primary::after {
+  box-shadow: 0 0 14px rgba(255,255,255,0.35) !important;
+}
+
+/* Connector between two completed steps: solid white */
+.install-hero .steps .step-primary + .step-primary::before {
+  --step-bg: rgba(255,255,255,0.6);
+}
+
+/* First step: no left connector */
+.install-hero .steps .step:first-child::before {
+  content: none !important;
+}
+
+/* Tailwind weight utilities are used in templates; tone them down */
+.font-bold { font-weight: 600 !important; }
+.font-semibold { font-weight: 500 !important; }
+.font-medium { font-weight: 400 !important; }
+
+/* ------------------------------------------------------------
+ * Utility fallbacks (Tailwind-lite)
+ * We no longer load tailwind via CDN/runtime; installer pages
+ * still use a small subset of utility classnames.
+ * ------------------------------------------------------------ */
+.min-h-screen { min-height: 100vh !important; }
+.w-full { width: 100% !important; }
+.h-auto { height: auto !important; }
+.max-w-4xl { max-width: 56rem !important; }
+.max-w-2xl { max-width: 42rem !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+.shrink-0 { flex-shrink: 0 !important; }
+
+.text-left { text-align: left !important; }
+.text-center { text-align: center !important; }
+
+.flex { display: flex !important; }
+.grid { display: grid !important; }
+.flex-row { flex-direction: row !important; }
+.flex-col { flex-direction: column !important; }
+.items-center { align-items: center !important; }
+.items-start { align-items: flex-start !important; }
+.items-baseline { align-items: baseline !important; }
+.justify-between { justify-content: space-between !important; }
+.justify-end { justify-content: flex-end !important; }
+.justify-start { justify-content: flex-start !important; }
+
+.gap-2 { gap: 0.5rem !important; }
+.gap-3 { gap: 0.75rem !important; }
+.gap-4 { gap: 1rem !important; }
+
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.sm\\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.md\\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+@media (min-width: 640px) {
+  .sm\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+@media (min-width: 768px) {
+  .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .md\\:p-10 { padding: 2.5rem !important; }
+  .md\\:py-12 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+}
+
+.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.py-8 { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+.p-4 { padding: 1rem !important; }
+.p-6 { padding: 1.5rem !important; }
+.py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.pt-2 { padding-top: 0.5rem !important; }
+.pl-3 { padding-left: 0.75rem !important; }
+.pb-2 { padding-bottom: 0.5rem !important; }
+
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-6 { margin-bottom: 1.5rem !important; }
+.mb-8 { margin-bottom: 2rem !important; }
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-3 { margin-top: 0.75rem !important; }
+.mt-4 { margin-top: 1rem !important; }
+.mt-6 { margin-top: 1.5rem !important; }
+.mt-8 { margin-top: 2rem !important; }
+.mt-10 { margin-top: 2.5rem !important; }
+.my-8 { margin-top: 2rem !important; margin-bottom: 2rem !important; }
+
+.space-y-2 > * + * { margin-top: 0.5rem !important; }
+.space-y-3 > * + * { margin-top: 0.75rem !important; }
+.space-y-6 > * + * { margin-top: 1.5rem !important; }
+
+.text-xs { font-size: 0.75rem !important; line-height: 1.25rem !important; }
+.text-sm { font-size: 0.875rem !important; line-height: 1.4rem !important; }
+.text-lg { font-size: 1.125rem !important; line-height: 1.7rem !important; }
+.text-xl { font-size: 1.25rem !important; line-height: 1.8rem !important; }
+.text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+.text-3xl { font-size: 1.875rem !important; line-height: 2.2rem !important; }
+.sm\\:text-3xl { font-size: 1.875rem !important; line-height: 2.2rem !important; }
+.text-4xl { font-size: 2.25rem !important; line-height: 2.5rem !important; }
+
+.text-slate-800 { color: #1f2937 !important; }
+.text-slate-700 { color: #334155 !important; }
+.text-slate-600 { color: #475569 !important; }
+.text-slate-500 { color: #64748b !important; }
+.text-slate-400 { color: #94a3b8 !important; }
+.text-gray-300 { color: #d1d5db !important; }
+.text-primary { color: var(--install-primary) !important; }
+.text-secondary { color: #0f766e !important; }
+.text-accent { color: #475569 !important; }
+.text-error { color: #dc2626 !important; }
+.text-success { color: #16a34a !important; }
+.text-warning { color: #d97706 !important; }
+
+.bg-white { background-color: #ffffff !important; }
+.bg-slate-100 { background-color: #f1f5f9 !important; }
+.bg-black { background-color: #0b1220 !important; }
+.text-white { color: #ffffff !important; }
+
+.shadow-lg { box-shadow: var(--install-shadow) !important; }
+
+.rounded-lg { border-radius: var(--install-radius) !important; }
+.rounded-2xl { border-radius: var(--install-radius) !important; }
+
+.hidden { display: none !important; }
+.mr-2 { margin-right: 0.5rem !important; }
+.ml-2 { margin-left: 0.5rem !important; }
+
+.overflow-y-auto { overflow-y: auto !important; }
+.max-h-96 { max-height: 24rem !important; }
+
+@media (min-width: 640px) {
+  .sm\\:p-6 { padding: 1.5rem !important; }
+  .sm\\:text-3xl { font-size: 1.875rem !important; line-height: 2.2rem !important; }
+  .sm\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .sm\\:flex-row { flex-direction: row !important; }
+  .sm\\:items-center { align-items: center !important; }
+}
+
+/* Tighten rounded corners used by tailwind utilities in templates */
+.rounded-2xl,
+.rounded-xl,
+.rounded-lg,
+.rounded-md,
+.rounded {
+  border-radius: var(--install-radius) !important;
+}
+
+/* --- Surfaces / "boxes" --- */
+main.bg-white {
+  background: var(--install-surface) !important;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow: var(--install-shadow);
+}
+
+/* Panels used in pages (e.g. config fieldsets) */
+.bg-slate-50 {
+  /* Keep panels bright and quiet (avoid large gray blocks). */
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.border-b {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+.border-l-4 { border-left-width: 4px !important; }
+.border-primary { border-color: var(--install-primary) !important; }
+
+fieldset {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: var(--install-radius);
+}
+
+/* License agreement box: gray background + higher readability */
+.license-box {
+  background: #f1f5f9 !important;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #334155;
+  line-height: 1.85;
+}
+
+.license-box p,
+.license-box li {
+  line-height: 1.85;
+}
+
+.card,
+.modal-box,
+.prose,
+.alert,
+.notice {
+  border-radius: var(--install-radius) !important;
+}
+
+.card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+}
+
+/* --- Steps (DaisyUI) — non-hero context --- */
+.steps .step-primary {
+  --step-bg: var(--install-primary);
+  --step-fg: #ffffff;
+  color: hsl(var(--p));
+}
+
+.steps .step-primary + .step-primary::before {
+  --step-bg: var(--install-primary);
+}
+
+.steps .step:first-child::before {
+  content: none !important;
+}
+
+.steps .step.step-current {
+  color: hsl(var(--p));
+}
+
+.steps .step.step-completed {
+  color: rgba(37, 99, 235, 0.85);
+}
+
+/* Hero context: override current step text to white */
+.install-hero .steps .step.step-current {
+  color: #ffffff !important;
+}
+
+/* --- Inputs --- */
+.input,
+.select,
+.textarea {
+  background: #f3f4f6 !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+  border-radius: var(--install-radius-sm) !important;
+  color: var(--install-text) !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+.input,
+.select {
+  min-height: 2.5rem !important;
+  height: 2.5rem !important;
+}
+
+.textarea {
+  padding-top: 0.55rem !important;
+  padding-bottom: 0.55rem !important;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus,
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: none !important;
+  border-color: rgba(37, 99, 235, 0.60) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
+  background: #ffffff !important;
+}
+
+/* --- Checkbox (smaller, clearer on/off) --- */
+input.checkbox {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 3px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #f3f4f6 !important;
+  position: relative;
+}
+
+input.checkbox:checked {
+  border-color: var(--install-primary) !important;
+  background: var(--install-primary) !important;
+}
+
+input.checkbox:checked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 65%, 44% 100%, 100% 20%, 80% 0, 43% 62%);
+}
+
+input.checkbox:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16) !important;
+}
+
+/* --- Buttons --- */
+.btn {
+  border-radius: var(--install-radius-sm);
+}
+
+/* Button padding fallback (in case component CSS is not applied/overridden) */
+:where(.btn) {
+  padding: 0.55rem 1.05rem;
+  min-height: 2.5rem;
+}
+
+:where(.btn).btn-sm {
+  padding: 0.35rem 0.8rem;
+  min-height: 2.1rem;
+}
+
+:where(.btn).btn-lg {
+  padding: 0.75rem 1.25rem;
+  min-height: 3rem;
+}
+
+.btn-primary {
+  background: var(--install-primary);
+  border: none;
+  color: #ffffff !important;
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.18);
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  color: #ffffff !important;
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.22);
+}
+
+/* Secondary button: keep neutral (avoid "color2" / secondary accent) */
+.btn-secondary {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid rgba(148, 163, 184, 0.45) !important;
+  box-shadow: none !important;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9 !important;
+  border-color: rgba(148, 163, 184, 0.65) !important;
+}
+
+/* Disabled buttons should look clearly disabled (neutral gray) */
+.btn.btn-disabled,
+.btn:disabled,
+.btn[disabled],
+.btn-primary.btn-disabled,
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  background: #e5e7eb !important;
+  color: #94a3b8 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+.btn.btn-disabled:hover,
+.btn-primary.btn-disabled:hover {
+  background: #e5e7eb !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Cancel / secondary button (e.g. "取消安装") */
+.btn.btn-ghost {
+  background: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #334155;
+  box-shadow: none;
+}
+.btn.btn-ghost:hover {
+  background: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+/* Form labels spacing / typography */
+.label {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.label .label-text {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+/* Config page: install options */
+.install-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.install-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--install-radius);
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.install-option:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.install-option .install-option-text {
+  padding-top: 1px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.install-option--danger .install-option-text {
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+/* Tailwind runtime can fail in some locked-down environments; keep critical utility fallbacks */
+.hidden {
+  display: none !important;
+}
+
+.mr-2 { margin-right: 0.5rem !important; }
+.ml-2 { margin-left: 0.5rem !important; }
+
+/* --- Notice blocks --- */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  border-width: 1px;
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.90);
+}
+
+.notice > i {
+  font-size: 1.25rem;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.notice-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.notice-text {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--install-muted);
+}
+
+.notice--info,
+.notice--success,
+.notice--warning {
+  border-color: rgba(37, 99, 235, 0.18);
+  color: var(--install-text);
+}
+
+.notice--error {
+  border-color: rgba(220, 38, 38, 0.25);
+  color: var(--install-text);
+}
+
+/* --- Toast (calm, not overly colorful) --- */
+#toast-container .alert {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: var(--install-shadow-lg);
+  color: var(--install-text);
+}
+
+#toast-container .alert-success,
+#toast-container .alert-info,
+#toast-container .alert-warning,
+#toast-container .alert-error {
+  border-left: 3px solid rgba(37, 99, 235, 0.55);
+}
+
+#toast-container .alert-error {
+  border-left-color: rgba(220, 38, 38, 0.65);
+}
+
+/* --- Scrollbar --- */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--p)) #e5e7eb;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: var(--install-radius);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--p));
+  border-radius: var(--install-radius);
+  border: 2px solid #e5e7eb;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--pf));
+}
+
+/* Install progress log: render each log line on its own line */
+#install-log {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Animations used by install.js toast --- */
+@keyframes animate-fade-in-down {
+  0% { opacity: 0; transform: translateY(-1rem); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-down {
+  animation: animate-fade-in-down 0.3s ease-out forwards;
+}
+
+@keyframes animate-fade-out-up {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-1rem); }
+}
+
+.animate-fade-out-up {
+  animation: animate-fade-out-up 0.3s ease-in forwards;
+}

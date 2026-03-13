@@ -1,0 +1,242 @@
+/* src/theme/tokens.css */
+/* 基础（默认主题：blue） */
+:root {
+  /* ===== 品牌/功能色（语义层） ===== */
+  --color-brand:          #0b51b7; /* 主色 */
+  --color-accent:         #0aa0b7; /* 辅助/强调色（可选用作次要主色） */
+
+  --color-success:        #18a058;
+  --color-warning:        #f0a020;
+  --color-danger:         #d03050;
+  --color-info:           #909399;
+  
+  --color-primary-hover: var(--el-color-primary-light-3, #5485cd);
+  --color-primary-active: var(--el-color-primary-dark-2, #094192);
+
+  /* ===== 中性色（灰阶 & 语义中性） ===== */
+  --gray-50:  #fafafa;
+  --gray-100: #f5f5f5;
+  --gray-200: #eeeeee;
+  --gray-300: #e5e5e5;
+  --gray-400: #cccccc;
+  --gray-500: #b3b3b3;
+  --gray-600: #8c8c8c;
+  --gray-700: #595959;
+  --gray-800: #303133;
+  --gray-900: #1f2937;
+
+  --color-bg:            #ffffff;        /* 页面背景 */
+  --color-surface:       #ffffff;        /* 卡片/容器背景 */
+  --color-border:        var(--gray-300);
+  --color-divider:       var(--gray-200);
+
+  --color-text-primary:   #1f2328;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary:  #6b7280;
+  --color-text-disabled:  #9ca3af;
+
+  /* ===== 交互状态派生（可按需再细化） ===== */
+  --color-brand-hover:        #5485cd;
+  --color-brand-active:       #094192;
+  --color-brand-ghost:        #e6eef9;   /* 轻量背景 */
+  --color-focus-ring:         #5b9dff;
+  --opacity-disabled:         0.5;
+
+  /* ===== 字体系统 ===== */
+  --font-family-sans:        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+  --font-size-display:       32px;
+  --font-size-title:         24px;
+  --font-size-subtitle:      18px;
+  --font-size-body:          14px;
+  --font-size-caption:       12px;
+  --font-size-small:         11px;
+
+  --line-height-tight:       1.2;
+  --line-height-default:     1.5;
+  --line-height-loose:       1.7;
+
+  --font-weight-regular:     400;
+  --font-weight-medium:      500;
+  --font-weight-semibold:    600;
+  --font-weight-bold:        700;
+
+  /* ===== 间距尺度（4px 基准） ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ===== 圆角 & 阴影 ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+
+  /* ===== 动画 & 过渡 ===== */
+  --motion-duration-fast:   .15s;
+  --motion-duration-base:   .2s;
+  --motion-duration-slow:   .35s;
+  --motion-easing:          cubic-bezier(.2,.8,.2,1);
+
+  /* ===== 层级（z-index） ===== */
+  --z-dropdown:   1000;
+  --z-sticky:     1020;
+  --z-fixed:      1030;
+  --z-modal:      2000;
+  --z-popover:    2100;
+  --z-tooltip:    2200;
+
+  /* ===== 断点（与 Uno/样式系统对齐） ===== */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* ===== 提供给 UnoCSS 的主色别名（方便 text-primary/bg-primary 等） ===== */
+  --color-primary: var(--color-brand);
+  --color-success-plain: var(--color-success);
+  --color-warning-plain: var(--color-warning);
+  --color-danger-plain:  var(--color-danger);
+  --color-info-plain:    var(--color-info);
+
+  /* ===== Element Plus 桥接（核心变量） ===== */
+  --el-color-primary: var(--color-brand);
+  --el-color-success: var(--color-success);
+  --el-color-warning: var(--color-warning);
+  --el-color-danger:  var(--color-danger);
+  --el-color-info:    var(--color-info);
+
+  /* 主色的派生（可以由脚本运行时改写，也可先给合理默认） */
+  --el-color-primary-dark-2:  #094192;
+  --el-color-primary-light-3: #5485cd;
+  --el-color-primary-light-5: #85a8db;
+  --el-color-primary-light-7: #b6cbe9;
+  --el-color-primary-light-8: #cedcf1;
+  --el-color-primary-light-9: #e7eef8;
+
+  /* Element Plus 其他通用变量（按需增补） */
+  --el-bg-color:            var(--color-bg);
+  --el-bg-color-overlay:    #fff;
+  --el-text-color-primary:  var(--color-text-primary);
+  --el-text-color-regular:  var(--color-text-secondary);
+  --el-text-color-secondary:var(--color-text-tertiary);
+  --el-text-color-disabled: var(--color-text-disabled);
+  --el-border-color:        var(--color-border);
+  --el-border-radius-base:  var(--radius-md);
+  --el-box-shadow:          var(--shadow-md);
+  --el-transition-duration: var(--motion-duration-base);
+  --el-transition-function: var(--motion-easing);
+}
+
+/* ========== 暗色模式 ========== */
+html.dark {
+  --color-bg: #0e0f11;
+  --color-surface: #1a1b1e;
+  --color-border: #2e2f33;
+  --color-divider: #252629;
+  --color-text-primary: #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-text-disabled: #4b5563;
+  --color-brand-ghost: rgba(59,130,246,0.15);
+
+  --gray-50:  #1a1b1e;
+  --gray-100: #222326;
+  --gray-200: #2e2f33;
+  --gray-300: #3a3b3f;
+  --gray-400: #4b4c50;
+  --gray-500: #6b6c70;
+  --gray-600: #8c8d91;
+  --gray-700: #b0b1b5;
+  --gray-800: #d0d1d5;
+  --gray-900: #e5e7eb;
+
+  --el-bg-color: var(--color-bg);
+  --el-bg-color-overlay: var(--color-surface);
+  --el-bg-color-page: var(--color-bg);
+  --el-text-color-primary: var(--color-text-primary);
+  --el-text-color-regular: var(--color-text-secondary);
+  --el-text-color-secondary: var(--color-text-tertiary);
+  --el-text-color-disabled: var(--color-text-disabled);
+  --el-border-color: var(--color-border);
+  --el-border-color-light: var(--color-divider);
+  --el-fill-color-blank: var(--color-surface);
+  --el-fill-color: #252629;
+  --el-fill-color-light: #1e1f22;
+  --el-fill-color-lighter: #1a1b1e;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.4);
+  --el-box-shadow: var(--shadow-md);
+}
+
+/* 暗色主题变体 */
+html.dark[data-dark-theme="mint"]   { --color-bg: rgb(10,16,20);  --color-surface: rgb(18,24,28); --el-bg-color: var(--color-bg); --el-bg-color-overlay: var(--color-surface); }
+html.dark[data-dark-theme="navy"]   { --color-bg: rgb(14,18,30);  --color-surface: rgb(22,26,38); --el-bg-color: var(--color-bg); --el-bg-color-overlay: var(--color-surface); }
+html.dark[data-dark-theme="mirage"] { --color-bg: rgb(5,10,22);   --color-surface: rgb(13,18,30); --el-bg-color: var(--color-bg); --el-bg-color-overlay: var(--color-surface); }
+html.dark[data-dark-theme="cinder"] { --color-bg: rgb(14,15,17);  --color-surface: rgb(22,23,25); --el-bg-color: var(--color-bg); --el-bg-color-overlay: var(--color-surface); }
+html.dark[data-dark-theme="black"]  { --color-bg: rgb(0,0,0);     --color-surface: rgb(10,10,10); --el-bg-color: var(--color-bg); --el-bg-color-overlay: var(--color-surface); }
+
+/* ========== 其他预置主题：通过 data-theme 切换 ========== */
+/* 主题：cyan */
+:root[data-theme="cyan"] {
+  --color-brand: #0aa0b7;
+  --color-accent: #0b51b7; /* 可对调 */
+  --el-color-primary: var(--color-brand);
+
+  --el-color-primary-dark-2:  #088092;
+  --el-color-primary-light-3: #54bccd;
+  --el-color-primary-light-5: #85d0db;
+  --el-color-primary-light-7: #b6e3e9;
+  --el-color-primary-light-8: #ceecf1;
+  --el-color-primary-light-9: #e7f6f8;
+}
+
+/* 主题：green */
+:root[data-theme="green"] {
+  --color-brand: #2da44e;
+  --el-color-primary: var(--color-brand);
+
+  --el-color-primary-dark-2:  #24833e;
+  --el-color-primary-light-3: #6cbf83;
+  --el-color-primary-light-5: #96d2a7;
+  --el-color-primary-light-7: #c0e4ca;
+  --el-color-primary-light-8: #d5eddc;
+  --el-color-primary-light-9: #eaf6ed;
+}
+
+/* 主题：orange */
+:root[data-theme="orange"] {
+  --color-brand: #ff6a00;
+  --el-color-primary: var(--color-brand);
+
+  --el-color-primary-dark-2:  #cc5500;
+  --el-color-primary-light-3: #ff974d;
+  --el-color-primary-light-5: #ffb580;
+  --el-color-primary-light-7: #ffd2b3;
+  --el-color-primary-light-8: #ffe0cc;
+  --el-color-primary-light-9: #fff0e6;
+}
+
+/* 主题：purple */
+:root[data-theme="purple"] {
+  --color-brand: #6f42c1;
+  --el-color-primary: var(--color-brand);
+
+  --el-color-primary-dark-2:  #59359a;
+  --el-color-primary-light-3: #9a7bd4;
+  --el-color-primary-light-5: #b7a0e0;
+  --el-color-primary-light-7: #d4c6ec;
+  --el-color-primary-light-8: #e2d9f3;
+  --el-color-primary-light-9: #f1ecf9;
+}

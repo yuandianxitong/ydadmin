@@ -1,0 +1,185 @@
+<?php
+declare(strict_types=1);
+
+namespace app\service\user;
+
+use app\repository\user\UserRepository;
+use core\auth\TokenManager;
+use core\base\Service;
+use core\exception\BusinessException;
+
+class UserService extends Service
+{
+    protected UserRepository $userRepository;
+    protected TokenManager $tokenManager;
+
+    /**
+     * 手机号+密码登录
+     */
+    public function loginByPassword(string $mobile, string $password, string $ip = ''): array
+    {
+        $user = $this->userRepository->findByMobile($mobile);
+        if (!$user) {
+            throw new BusinessException(lang('business.user_not_found'));
+        }
+
+        if ($user->status !== 1) {
+            throw new BusinessException(lang('business.user_account_disabled'));
+        }
+
+        if (!password_verify($password, $user->password)) {
+            throw new BusinessException(lang('business.user_password_error'));
+        }
+
+        return $this->loginSuccess($user, $ip);
+    }
+
+    /**
+     * 手机号+验证码登录（自动注册）
+     */
+    public function loginBySmsCode(string $mobile, string $ip = ''): array
+    {
+        $user = $this->userRepository->findByMobile($mobile);
+
+        if (!$user) {
+            // 自动注册
+            $this->userRepository->create([
+                'mobile'   => $mobile,
+                'nickname' => '用户' . substr($mobile, -4),
+                'status'   => 1,
+            ]);
+            $user = $this->userRepository->findByMobile($mobile);
+
+            $this->trigger('user.register', ['user_id' => $user->id, 'mobile' => $mobile]);
+        }
+
+        if ($user->status !== 1) {
+            throw new BusinessException(lang('business.user_account_disabled'));
+        }
+
+        return $this->loginSuccess($user, $ip);
+    }
+
+    /**
+     * 微信小程序登录
+     */
+    public function loginByMiniApp(string $openid, string $unionid = '', array $userInfo = [], string $ip = ''): array
+    {
+        $user = $this->userRepository->findByMiniOpenid($openid);
+
+        if (!$user && $unionid) {
+            // 尝试通过 unionid 关联已有账号
+            $user = $this->userRepository->findByUnionid($unionid);
+            if ($user) {
+                $user->mini_openid = $openid;
+                $user->save();
+            }
+        }
+
+        if (!$user) {
+            // 自动注册
+            $this->userRepository->create([
+                'mini_openid' => $openid,
+                'unionid'     => $unionid ?: null,
+                'nickname'    => $userInfo['nickname'] ?? '微信用户',
+                'avatar'      => $userInfo['avatar'] ?? '',
+                'status'      => 1,
+            ]);
+            $user = $this->userRepository->findByMiniOpenid($openid);
+
+            $this->trigger('user.register', ['user_id' => $user->id, 'channel' => 'miniapp']);
+        }
+
+        if ($user->status !== 1) {
+            throw new BusinessException(lang('business.user_account_disabled'));
+        }
+
+        return $this->loginSuccess($user, $ip);
+    }
+
+    /**
+     * 获取用户信息
+     */
+    public function getUserInfo(int $userId): array
+    {
+        $user = $this->userRepository->find($userId);
+        if (!$user) {
+            throw new BusinessException(lang('business.user_not_found'));
+        }
+
+        return $user;
+    }
+
+    /**
+     * 更新用户资料
+     */
+    public function updateProfile(int $userId, array $data): bool
+    {
+        $user = $this->userRepository->findModel($userId);
+        if (!$user) {
+            throw new BusinessException(lang('business.user_not_found'));
+        }
+
+        $allowFields = ['nickname', 'avatar', 'gender', 'birthday'];
+        $updateData = array_intersect_key($data, array_flip($allowFields));
+
+        if (empty($updateData)) {
+            throw new BusinessException(lang('business.no_updatable_fields'));
+        }
+
+        foreach ($updateData as $key => $value) {
+            $user->$key = $value;
+        }
+
+        return $user->save();
+    }
+
+    /**
+     * 修改密码
+     */
+    public function changePassword(int $userId, string $oldPassword, string $newPassword): bool
+    {
+        $user = $this->userRepository->findModelWithPassword($userId);
+        if (!$user) {
+            throw new BusinessException(lang('business.user_not_found'));
+        }
+
+        if ($user->password && !password_verify($oldPassword, $user->password)) {
+            throw new BusinessException(lang('business.user_old_password_error'));
+        }
+
+        $user->password = password_hash($newPassword, PASSWORD_DEFAULT);
+        return $user->save();
+    }
+
+    /**
+     * 登录成功处理
+     */
+    protected function loginSuccess($user, string $ip = ''): array
+    {
+        // 更新登录信息
+        $user->last_login_ip = $ip;
+        $user->last_login_time = date('Y-m-d H:i:s');
+        $user->login_count = $user->login_count + 1;
+        $user->save();
+
+        // 生成Token
+        $token = $this->tokenManager->generate([
+            'type'    => 'user',
+            'user_id' => $user->id,
+            'mobile'  => $user->mobile ?? '',
+        ]);
+
+        $this->trigger('user.login', ['user_id' => $user->id]);
+
+        return [
+            'token'     => $token,
+            'user_info' => [
+                'id'       => $user->id,
+                'nickname' => $user->nickname,
+                'avatar'   => $user->avatar,
+                'mobile'   => $user->mobile,
+            ],
+        ];
+    }
+}

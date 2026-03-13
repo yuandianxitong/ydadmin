@@ -1,0 +1,31 @@
+name: API Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/app/**/controller/**'
+      - 'server/core/base/Controller.php'
+
+jobs:
+  generate:
+    name: Generate API Documentation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, redis, gd, zip, intl, bcmath
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - name: Generate OpenAPI JSON
+        run: ./vendor/bin/openapi app/ core/base/Controller.php -o openapi.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-docs
+          path: server/openapi.json
+          retention-days: 30

@@ -1,0 +1,930 @@
+/*!
+ * 元点Admin 安装程序样式
+ */
+
+/* 基础样式重置 */
+* {
+    box-sizing: border-box;
+}
+
+/* 自定义CSS变量 */
+:root {
+    --install-primary: #2563eb;
+    --install-secondary: #0f766e;
+    --install-success: #16a34a;
+    --install-warning: #d97706;
+    --install-error: #dc2626;
+    --install-info: #0284c7;
+
+    --install-bg: #f7f8fb;
+    --install-surface: #ffffff;
+    --install-border: #e5e7eb;
+    --install-text: #0f172a;
+    --install-muted: #475569;
+
+    --install-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    --install-shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.12);
+
+    --install-transition: all 0.25s ease;
+    /* Keep corners tight (2-4px) */
+    --install-border-radius: 0.25rem;
+}
+
+/* DaisyUI theme tuning: keep a single primary accent, mute the rest */
+:root[data-theme="light"] {
+    --p: 221 83% 53%;
+    --pc: 0 0% 100%;
+    --s: 215 16% 46%;
+    --sc: 0 0% 100%;
+    --a: 215 16% 46%;
+    --ac: 0 0% 100%;
+    --in: 221 83% 53%;
+    --inc: 0 0% 100%;
+    --su: 221 83% 53%;
+    --suc: 0 0% 100%;
+    --wa: 221 83% 53%;
+    --wac: 0 0% 100%;
+    --er: 0 70% 55%;
+    --erc: 0 0% 100%;
+}
+
+/* Subtle system palette (avoid loud multi-color UI) */
+:root {
+    --notice-border: #e5e7eb;
+    --notice-bg: #ffffff;
+    --notice-text: #0f172a;
+    --notice-muted: #475569;
+    --notice-accent: rgba(37, 99, 235, 0.6);
+    --notice-accent-warn: rgba(217, 119, 6, 0.55);
+    --notice-accent-error: rgba(220, 38, 38, 0.55);
+    --notice-accent-success: rgba(22, 163, 74, 0.55);
+}
+
+
+/* 页面基础 */
+html {
+    background: var(--install-bg);
+}
+
+body {
+    font-family: "Noto Sans SC", "Sora", sans-serif;
+    background: var(--install-bg);
+    color: var(--install-text);
+    position: relative;
+    isolation: isolate;
+    font-weight: 400;
+}
+
+/* Header-to-mid backdrop band (adds depth without making the UI "colorful") */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 56vh;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(900px 520px at 18% -10%, rgba(37, 99, 235, 0.18), transparent 60%),
+        radial-gradient(780px 520px at 82% -18%, rgba(15, 118, 110, 0.12), transparent 62%),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(247, 248, 251, 0));
+}
+
+/* Subtle texture so the top doesn't feel flat white */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image:
+        repeating-linear-gradient(
+            135deg,
+            rgba(15, 23, 42, 0.02) 0px,
+            rgba(15, 23, 42, 0.02) 1px,
+            transparent 1px,
+            transparent 10px
+        );
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(0,0,0,0));
+}
+
+h1, h2, h3, .card-title {
+    font-family: "Sora", "Noto Sans SC", sans-serif;
+    font-weight: 500;
+}
+
+.notice .notice-title {
+    font-weight: 500;
+}
+
+/* Tailwind font-weight utilities are used heavily in templates; soften them. */
+.font-bold,
+.font-semibold {
+    font-weight: 500 !important;
+}
+
+.font-medium {
+    font-weight: 400 !important;
+}
+
+.container {
+    position: relative;
+}
+
+.card {
+    background: var(--install-surface);
+    border: 1px solid var(--install-border);
+    box-shadow: var(--install-shadow);
+    border-radius: var(--install-border-radius);
+}
+
+.card.shadow-xl {
+    box-shadow: var(--install-shadow-lg);
+}
+
+.input, .select, .textarea {
+    background-color: #f3f4f6 !important;
+    border-color: var(--install-border);
+    transition: var(--install-transition);
+    color: var(--install-text);
+    border-radius: 0.25rem !important;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    border-color: rgba(37, 99, 235, 0.5);
+    /* DaisyUI/Tailwind may add ring shadows; hard-disable to avoid "double border" */
+    outline: none !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    background-color: #ffffff !important;
+}
+
+.btn {
+    border-radius: 0.25rem;
+    transition: var(--install-transition);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none;
+    color: #fff;
+    box-shadow: 0 12px 20px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 28px rgba(37, 99, 235, 0.25);
+}
+
+/* Make badges calmer (outline style) */
+.badge {
+    background: transparent !important;
+    border: 1px solid var(--install-border) !important;
+    color: var(--install-muted) !important;
+}
+
+/* Small status pills for environment page */
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    border: 1px solid var(--install-border);
+    color: var(--install-muted);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.status-pill::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #94a3b8;
+}
+
+.status-ok {
+    border-color: rgba(22, 163, 74, 0.25);
+    color: #166534;
+}
+.status-ok::before { background: #16a34a; }
+
+.status-warn {
+    border-color: rgba(217, 119, 6, 0.25);
+    color: #92400e;
+}
+.status-warn::before { background: #d97706; }
+
+.status-err {
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #991b1b;
+}
+.status-err::before { background: #dc2626; }
+
+/* "Notice" blocks (replace DaisyUI alert for prompts/status) */
+.notice {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--notice-border);
+    background: var(--notice-bg);
+    color: var(--notice-text);
+    border-radius: 0.25rem;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.notice::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--notice-accent);
+}
+
+.notice .notice-title {
+    font-weight: 650;
+}
+
+.notice .notice-text {
+    color: var(--notice-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.notice--success::before { background: var(--notice-accent-success); }
+.notice--warning::before { background: var(--notice-accent-warn); }
+.notice--error::before { background: var(--notice-accent-error); }
+.notice--info::before { background: var(--notice-accent); }
+
+/* Toast */
+.install-toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: min(420px, calc(100vw - 32px));
+}
+
+.install-toast {
+    border: 1px solid var(--notice-border);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 0.95rem;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.14);
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    transform: translateY(-6px);
+    opacity: 0;
+    transition: 180ms ease;
+}
+
+.install-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.install-toast .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    margin-top: 6px;
+    background: var(--notice-accent);
+    flex: 0 0 auto;
+}
+
+.install-toast.toast-success .dot { background: var(--notice-accent-success); }
+.install-toast.toast-warning .dot { background: var(--notice-accent-warn); }
+.install-toast.toast-error .dot { background: var(--notice-accent-error); }
+.install-toast.toast-info .dot { background: var(--notice-accent); }
+
+.install-toast .msg {
+    color: var(--notice-text);
+    line-height: 1.45;
+    font-size: 0.95rem;
+}
+
+/* Modal confirm (no native confirm/alert) */
+.install-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.38);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 9998;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.install-modal {
+    width: min(520px, 100%);
+    background: var(--install-surface);
+    border: 1px solid var(--install-border);
+    border-radius: 1.1rem;
+    box-shadow: var(--install-shadow-lg);
+    padding: 1.1rem 1.1rem 1rem;
+}
+
+.install-modal .title {
+    font-family: "Sora", "Noto Sans SC", sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+}
+
+.install-modal .content {
+    color: var(--install-muted);
+    line-height: 1.6;
+    font-size: 0.96rem;
+    margin-bottom: 0.9rem;
+}
+
+.install-modal .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* License typography */
+.license-text {
+    color: #475569;
+}
+
+.license-text h3,
+.license-text h4 {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.license-text p,
+.license-text li {
+    color: #475569;
+}
+
+/* Smaller, clearer checkbox for license agreement */
+.install-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #cbd5e1;
+    background: #f3f4f6;
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-grid;
+    place-content: center;
+    transition: var(--install-transition);
+}
+
+.install-checkbox::before {
+    content: '';
+    width: 9px;
+    height: 9px;
+    transform: scale(0);
+    transition: 120ms ease;
+    box-shadow: inset 1em 1em #ffffff;
+    clip-path: polygon(14% 44%, 0 65%, 44% 100%, 100% 20%, 80% 0, 43% 62%);
+}
+
+.install-checkbox:checked {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.install-checkbox:checked::before {
+    transform: scale(1);
+}
+
+.install-checkbox:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--b2));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--bc) / 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--bc) / 0.5);
+}
+
+/* 安装步骤指示器动画 */
+.step-indicator {
+    position: relative;
+    transition: var(--install-transition);
+}
+
+.step-indicator.active .step-circle {
+    animation: pulse 2s infinite;
+}
+
+.step-indicator.completed .step-circle {
+    animation: bounceIn 0.5s ease-out;
+}
+
+/* 步骤连接线 */
+.step-indicator:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    width: calc(100% + 2rem);
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--b3)) 0%, hsl(var(--b3)) 100%);
+    transform: translateX(-50%);
+    z-index: -1;
+    transition: var(--install-transition);
+}
+
+.step-indicator.completed:not(:last-child)::after {
+    background: linear-gradient(90deg, var(--install-primary) 0%, var(--install-primary) 100%);
+}
+
+.step-indicator.active:not(:last-child)::after {
+    background: linear-gradient(90deg, var(--install-primary) 0%, var(--install-primary) 50%, hsl(var(--b3)) 50%, hsl(var(--b3)) 100%);
+}
+
+/* 卡片增强样式 */
+.card {
+    transition: var(--install-transition);
+    border: 1px solid hsl(var(--b3));
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--install-shadow-lg);
+}
+
+/* 表单样式增强 */
+.form-control {
+    position: relative;
+}
+
+.input, .select, .textarea {
+    transition: var(--install-transition);
+    border: 2px solid hsl(var(--b3));
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    border-color: var(--install-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-error {
+    border-color: var(--install-error) !important;
+    animation: shake 0.5s ease-in-out;
+}
+
+/* 字段错误样式 */
+.field-error {
+    color: var(--install-error);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.field-error::before {
+    content: "⚠";
+    margin-right: 0.25rem;
+}
+
+/* 密码强度指示器 */
+.password-strength-weak {
+    --progress-color: var(--install-error);
+}
+
+.password-strength-medium {
+    --progress-color: var(--install-warning);
+}
+
+.password-strength-strong {
+    --progress-color: var(--install-success);
+}
+
+/* 进度条增强 */
+.progress {
+    position: relative;
+    overflow: visible;
+}
+
+.progress::after {
+    content: attr(data-progress);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(var(--bc));
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 加载状态样式 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+.loading-content {
+    background: hsl(var(--b1));
+    padding: 2rem;
+    border-radius: var(--install-border-radius);
+    box-shadow: var(--install-shadow-lg);
+    text-align: center;
+    max-width: 400px;
+    margin: 1rem;
+}
+
+/* Toast通知样式 */
+.toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10000;
+    min-width: 300px;
+}
+
+.toast .alert {
+    animation: slideInRight 0.3s ease-out;
+    box-shadow: var(--install-shadow);
+}
+
+.toast .alert:hover {
+    transform: translateX(-4px);
+}
+
+/* 安装日志样式 */
+.install-log {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: #1a1a1a;
+    color: #e5e5e5;
+    border-radius: var(--install-border-radius);
+    padding: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.install-log .log-info {
+    color: #3b82f6;
+}
+
+.install-log .log-success {
+    color: #10b981;
+}
+
+.install-log .log-warning {
+    color: #f59e0b;
+}
+
+.install-log .log-error {
+    color: #ef4444;
+}
+
+/* 环境检测状态样式 */
+.env-check-item {
+    transition: var(--install-transition);
+    border-radius: var(--install-border-radius);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.env-check-item.passed {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.env-check-item.failed {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.env-check-item.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* 数据库连接测试样式 */
+.db-test-result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: var(--install-border-radius);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.db-test-success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #059669;
+}
+
+.db-test-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #dc2626;
+}
+
+/* 安装完成庆祝效果 */
+.celebration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9998;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: confettiFall 3s linear infinite;
+}
+
+/* 响应式设计增强 */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .step-indicator {
+        flex-direction: column;
+        margin-bottom: 1rem;
+    }
+
+    .step-indicator:not(:last-child)::after {
+        display: none;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
+
+/* 打印样式 */
+@media print {
+    .btn, .card-actions, .step-indicator {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
+
+/* 动画定义 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(4px);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes confettiFall {
+    0% {
+        opacity: 1;
+        transform: translateY(-100px) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg);
+    }
+}
+
+/* 工具类 */
+.text-gradient {
+    background: linear-gradient(135deg, var(--install-primary), var(--install-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hover-lift {
+    transition: var(--install-transition);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--install-shadow-lg);
+}
+
+.pulse-ring {
+    position: relative;
+}
+
+.pulse-ring::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--install-primary);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulseRing 2s infinite;
+    opacity: 0;
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.4);
+        opacity: 0;
+    }
+}
+
+/* 深色模式适配 */
+
+/* 高对比度模式适配 */
+@media (prefers-contrast: high) {
+    .card, .input, .select, .textarea {
+        border-width: 3px;
+    }
+
+    .btn {
+        border-width: 2px;
+        font-weight: 600;
+    }
+}
+
+/* 减少动画偏好适配 */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 可访问性增强 */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* 焦点样式增强 */
+.btn:focus-visible,
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+    outline: 2px solid var(--install-primary);
+    outline-offset: 2px;
+}
+
+/* 错误状态动画 */
+.error-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* 成功状态动画 */
+.success-bounce {
+    animation: bounceIn 0.6s ease-out;
+}
+
+/* 加载状态动画 */
+.loading-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* 自定义滚动条美化 */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--bc) / 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--bc) / 0.3);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--bc) / 0.5);
+}

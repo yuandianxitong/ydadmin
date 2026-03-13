@@ -1,0 +1,19 @@
+/* ------- 全局：统一 EP 的常用变量 ------- */
+:root {
+  --el-border-radius-base: var(--radius-md);
+  --el-box-shadow-light:   none !important;
+  --el-box-shadow:         var(--shadow-md);
+  --el-box-shadow-dark:    var(--shadow-lg);
+}
+
+/* ------- 组件级：el-card 默认样式规范 ------- */
+.el-card {
+  --el-card-border-radius: var(--radius-lg);
+  border: none !important;
+  border-radius: var(--el-card-border-radius);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.el-tabs__nav-wrap::after{
+  height: 1px !important;
+}

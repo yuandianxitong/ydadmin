@@ -1,0 +1,17 @@
+public/install/
+├── index.php          # 安装入口和控制器
+├── install.class.php  # 核心安装逻辑
+├── cleanup.php        # 安装后清理脚本
+├── css/install.css    # 样式文件
+├── js/install.js      # JavaScript功能
+└── steps/             # 安装步骤页面
+    ├── license.php    # 许可协议
+    ├── environment.php # 环境检测
+    ├── config.php     # 参数设置
+    ├── install.php    # 安装过程
+    └── complete.php   # 安装完成
+
+# 数据库文件（在项目根目录）
+database/
+├── schema.sql         # 数据表结构
+└── seed.sql           # 初始化数据（安装必选导入）

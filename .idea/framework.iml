@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="WEB_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/server/app" isTestSource="false" packagePrefix="app\" />
+      <sourceFolder url="file://$MODULE_DIR$/server/core" isTestSource="false" packagePrefix="core\" />
+      <sourceFolder url="file://$MODULE_DIR$/server/extend" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/spec" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/server/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/server/tests" isTestSource="true" packagePrefix="tests\" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/firebase/php-jwt" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/league/flysystem" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/league/flysystem-local" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/league/mime-type-detection" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/container" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/log" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/simple-cache" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/deprecation-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-mbstring" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/var-dumper" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/framework" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-container" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-dumper" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-filesystem" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-helper" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-multi-app" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-orm" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-trace" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/topthink/think-validate" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/adbario/php-dot-notation" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/credentials" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/darabonba" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/dysmsapi-20170525" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/gateway-spi" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/openapi-core" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/oss-v2" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/tea" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alibabacloud/tea-fileform" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/alipaysdk/easysdk" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/command" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/guzzle" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/guzzle-services" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/promises" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/guzzlehttp/uri-template" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/myclabs/php-enum" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/nyholm/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/nyholm/psr7-server" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/overtrue/socialite" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/psr/http-factory" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/qcloud/cos-sdk-v5" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/qiniu/php-sdk" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/ralouphie/getallheaders" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/cache-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/finder" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/http-client-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/http-foundation" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/mime" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-ctype" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-intl-idn" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-intl-normalizer" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-php80" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-php81" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/polyfill-php83" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/psr-http-message-bridge" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/service-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/var-exporter" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/symfony/yaml" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/tencentcloud/common" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/tencentcloud/sms" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/thenorthmemory/xml" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/w7corp/easywechat" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/wechatpay/wechatpay" />
+      <excludeFolder url="file://$MODULE_DIR$/server/vendor/zircote/swagger-php" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
