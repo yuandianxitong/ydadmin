@@ -510,3 +510,152 @@ CREATE TABLE IF NOT EXISTS `plugins` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件管理表';
+
+-- ============================================================
+-- 协议表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `agreements` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `code` varchar(50) NOT NULL COMMENT '协议编码',
+  `content` text COMMENT '内容',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='协议表';
+
+-- ============================================================
+-- 公告表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `announcements` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` text COMMENT '内容',
+  `type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '类型：1通知 2更新 3活动',
+  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0草稿 1已发布',
+  `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序',
+  `publish_at` datetime DEFAULT NULL COMMENT '发布时间',
+  `admin_id` int(10) unsigned NOT NULL COMMENT '管理员ID',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_type` (`type`),
+  KEY `idx_sort` (`sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公告表';
+
+-- ============================================================
+-- 用户反馈表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `feedbacks` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL COMMENT '用户ID',
+  `type` varchar(30) NOT NULL DEFAULT 'suggestion' COMMENT '类型：suggestion/bug/complaint/other',
+  `content` text COMMENT '反馈内容',
+  `images` text COMMENT '图片路径JSON数组',
+  `contact` varchar(100) DEFAULT NULL COMMENT '联系方式',
+  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0待处理 1处理中 2已回复 3已关闭',
+  `reply` text COMMENT '管理员回复',
+  `replied_at` datetime DEFAULT NULL COMMENT '回复时间',
+  `replied_by` int(10) unsigned DEFAULT NULL COMMENT '回复人ID',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户反馈表';
+
+-- ============================================================
+-- 地区表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `regions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `parent_id` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '父级ID',
+  `name` varchar(50) NOT NULL COMMENT '名称',
+  `code` varchar(20) NOT NULL DEFAULT '' COMMENT '编码',
+  `level` tinyint(1) NOT NULL DEFAULT 1 COMMENT '层级：1省 2市 3区',
+  `sort` int(11) NOT NULL DEFAULT 0 COMMENT '排序',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_level` (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='地区表';
+
+-- ============================================================
+-- APP版本表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `app_versions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `platform` varchar(20) NOT NULL COMMENT '平台',
+  `version` varchar(20) NOT NULL COMMENT '版本号',
+  `version_code` int(10) unsigned NOT NULL COMMENT '版本编码',
+  `download_url` varchar(500) NOT NULL DEFAULT '' COMMENT '下载地址',
+  `description` text COMMENT '版本描述',
+  `force_update` tinyint(1) NOT NULL DEFAULT 0 COMMENT '强制更新：0否 1是',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_platform_version` (`platform`, `version_code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='APP版本表';
+
+-- ============================================================
+-- 数据导入表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `data_imports` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `module` varchar(50) NOT NULL COMMENT '模块',
+  `filename` varchar(200) NOT NULL COMMENT '文件名',
+  `total_count` int(11) NOT NULL DEFAULT 0 COMMENT '总条数',
+  `success_count` int(11) NOT NULL DEFAULT 0 COMMENT '成功条数',
+  `fail_count` int(11) NOT NULL DEFAULT 0 COMMENT '失败条数',
+  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0处理中 1完成 2失败',
+  `errors` text COMMENT '错误信息JSON',
+  `admin_id` int(10) unsigned NOT NULL COMMENT '管理员ID',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_module` (`module`),
+  KEY `idx_admin_id` (`admin_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据导入表';
+
+-- ============================================================
+-- 用户站内通知表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `user_notifications` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL DEFAULT 0 COMMENT '用户ID，0为全体',
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` text COMMENT '内容',
+  `type` varchar(30) NOT NULL DEFAULT 'system' COMMENT '类型：system/order/payment/feedback',
+  `biz_id` int(11) DEFAULT NULL COMMENT '关联业务ID',
+  `extra` text COMMENT '额外数据JSON',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户站内通知表';
+
+-- ============================================================
+-- 用户通知已读记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `user_notification_reads` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `notification_id` int(10) unsigned NOT NULL COMMENT '通知ID',
+  `user_id` int(10) unsigned NOT NULL COMMENT '用户ID',
+  `read_at` datetime DEFAULT NULL COMMENT '阅读时间',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_notification_user_unique` (`notification_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户通知已读记录表';
