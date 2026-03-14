@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import type { PageResult } from '@/types/api'
 
 interface PagingOptions<T> {
@@ -10,47 +10,45 @@ interface PagingOptions<T> {
 export function usePaging<T = any>(options: PagingOptions<T>) {
   const { fetchFun, params = {}, size = 15 } = options
 
-  const pager = reactive({
-    page: 1,
-    size,
-    loading: false,
-    finished: false,
-    refreshing: false,
-    list: [] as T[],
-    total: 0,
-  })
+  const page = ref(1)
+  const pageSize = ref(size)
+  const loading = ref(false)
+  const finished = ref(false)
+  const refreshing = ref(false)
+  const list = ref<T[]>([])
+  const total = ref(0)
 
   async function getList() {
-    if (pager.loading || pager.finished) return
-    pager.loading = true
+    if (loading.value || finished.value) return
+    loading.value = true
 
     try {
       const result = await fetchFun({
-        page_no: pager.page,
-        page_size: pager.size,
+        page_no: page.value,
+        page_size: pageSize.value,
         ...params,
       })
-      if (pager.page === 1) {
-        pager.list = result.list
+      if (page.value === 1) {
+        list.value = result.list
       } else {
-        pager.list = [...pager.list, ...result.list]
+        list.value = [...list.value, ...result.list] as T[]
       }
-      pager.total = result.pagination.total
-      pager.finished = pager.page >= result.pagination.last_page
-      pager.page++
+      total.value = result.pagination.total
+      finished.value = page.value >= result.pagination.last_page
+      page.value++
     } finally {
-      pager.loading = false
-      pager.refreshing = false
+      loading.value = false
+      refreshing.value = false
     }
   }
 
   function refresh() {
-    pager.page = 1
-    pager.finished = false
-    pager.refreshing = true
-    pager.list = []
+    page.value = 1
+    finished.value = false
+    refreshing.value = true
+    list.value = []
     return getList()
   }
 
-  return { pager, getList, refresh }
+  return { list, loading, finished, refreshing, total, getList, refresh }
 }

@@ -1,14 +1,7 @@
 export function getPlatform(): string {
+  // UniApp 条件编译在构建时生效，TypeScript 静态分析看不到
+  // 使用 uni API 运行时判断平台
   const systemInfo = uni.getSystemInfoSync()
-  // #ifdef H5
-  return 'h5'
-  // #endif
-  // #ifdef MP-WEIXIN
-  return 'mp-weixin'
-  // #endif
-  // #ifdef APP-PLUS
-  return 'app'
-  // #endif
   if (systemInfo.uniPlatform) {
     return systemInfo.uniPlatform
   }

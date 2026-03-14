@@ -13,7 +13,8 @@ export function useUpload(options: UploadOptions = {}) {
         count: 1,
         sizeType: ['compressed'],
         success: async (res) => {
-          const file = res.tempFiles[0]
+          const files = res.tempFiles as Array<{ path: string; size: number }>
+          const file = files[0]
           if (file.size > maxSize * 1024 * 1024) {
             uni.showToast({ title: `文件不能超过${maxSize}MB`, icon: 'none' })
             return reject(new Error('文件过大'))
