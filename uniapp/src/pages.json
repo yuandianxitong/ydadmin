@@ -43,6 +43,19 @@
       "pages": [
         { "path": "pages/pay-result", "style": { "navigationBarTitleText": "支付结果" } }
       ]
+    },
+    {
+      "root": "modules/announcement",
+      "pages": [
+        { "path": "pages/announcement-list", "style": { "navigationBarTitleText": "公告列表", "enablePullDownRefresh": true } },
+        { "path": "pages/announcement-detail", "style": { "navigationBarTitleText": "公告详情" } }
+      ]
+    },
+    {
+      "root": "modules/agreement",
+      "pages": [
+        { "path": "pages/agreement", "style": { "navigationBarTitleText": "协议" } }
+      ]
     }
   ],
   "globalStyle": {

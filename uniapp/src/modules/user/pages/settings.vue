@@ -102,13 +102,11 @@ function handleClearCache() {
 }
 
 function openPrivacy() {
-  const url = '/modules/webview/pages/webview?url=' + encodeURIComponent('https://example.com/privacy') + '&title=' + encodeURIComponent('隐私政策')
-  uni.navigateTo({ url })
+  uni.navigateTo({ url: '/modules/agreement/pages/agreement?code=privacy_policy' })
 }
 
 function openTerms() {
-  const url = '/modules/webview/pages/webview?url=' + encodeURIComponent('https://example.com/terms') + '&title=' + encodeURIComponent('用户协议')
-  uni.navigateTo({ url })
+  uni.navigateTo({ url: '/modules/agreement/pages/agreement?code=user_agreement' })
 }
 </script>
 

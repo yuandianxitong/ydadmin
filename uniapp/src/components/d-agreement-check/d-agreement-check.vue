@@ -20,8 +20,8 @@ const props = withDefaults(defineProps<{
   termsUrl?: string
   privacyUrl?: string
 }>(), {
-  termsUrl: '',
-  privacyUrl: '',
+  termsUrl: '/modules/agreement/pages/agreement?code=user_agreement',
+  privacyUrl: '/modules/agreement/pages/agreement?code=privacy_policy',
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -32,7 +32,7 @@ function toggle() {
 
 function openUrl(url?: string) {
   if (url) {
-    uni.navigateTo({ url: `/modules/webview/pages/webview?url=${encodeURIComponent(url)}` })
+    uni.navigateTo({ url })
   }
 }
 </script>
