@@ -96,6 +96,16 @@ class AnnouncementService extends Service
     }
 
     /**
+     * 获取已发布的公告列表（C端）
+     */
+    public function getPublishedList(array $params): array
+    {
+        $page = (int) ($params['page_no'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? 20);
+        return $this->announcementRepository->getPublishedList($page, $limit);
+    }
+
+    /**
      * 删除公告
      */
     public function delete(int $id): bool
