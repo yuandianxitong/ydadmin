@@ -139,7 +139,21 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (124, 'system.plugin.enable', '启用插件', '开发工具', '启用插件', 'admin', 1, 124, NOW(), NOW()),
     (125, 'system.plugin.disable', '禁用插件', '开发工具', '禁用插件', 'admin', 1, 125, NOW(), NOW()),
     (126, 'system.plugin.upload', '上传插件', '开发工具', '上传插件包', 'admin', 1, 126, NOW(), NOW()),
-    (127, 'system.plugin.delete', '删除插件', '开发工具', '删除插件文件', 'admin', 1, 127, NOW(), NOW());
+    (127, 'system.plugin.delete', '删除插件', '开发工具', '删除插件文件', 'admin', 1, 127, NOW(), NOW()),
+    -- 文章栏目
+    (130, 'article_category', '文章栏目管理', '内容管理', '文章栏目管理权限', 'admin', 1, 130, NOW(), NOW()),
+    (131, 'article_category.list', '栏目列表', '内容管理', '查看文章栏目列表', 'admin', 1, 131, NOW(), NOW()),
+    (132, 'article_category.create', '创建栏目', '内容管理', '创建文章栏目', 'admin', 1, 132, NOW(), NOW()),
+    (133, 'article_category.update', '编辑栏目', '内容管理', '编辑文章栏目', 'admin', 1, 133, NOW(), NOW()),
+    (134, 'article_category.delete', '删除栏目', '内容管理', '删除文章栏目', 'admin', 1, 134, NOW(), NOW()),
+    -- 文章管理
+    (140, 'article', '文章管理', '内容管理', '文章管理权限', 'admin', 1, 140, NOW(), NOW()),
+    (141, 'article.list', '文章列表', '内容管理', '查看文章列表', 'admin', 1, 141, NOW(), NOW()),
+    (142, 'article.detail', '文章详情', '内容管理', '查看文章详情', 'admin', 1, 142, NOW(), NOW()),
+    (143, 'article.create', '创建文章', '内容管理', '创建新文章', 'admin', 1, 143, NOW(), NOW()),
+    (144, 'article.update', '编辑文章', '内容管理', '编辑文章', 'admin', 1, 144, NOW(), NOW()),
+    (145, 'article.delete', '删除文章', '内容管理', '删除文章', 'admin', 1, 145, NOW(), NOW()),
+    (146, 'article.status', '文章状态', '内容管理', '发布/下架文章', 'admin', 1, 146, NOW(), NOW());
 
 -- ============================================================
 -- 菜单数据
@@ -251,6 +265,17 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (721, 720, 3, '回复', NULL, NULL, NULL, NULL, NULL, 'feedback.reply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (722, 720, 3, '关闭', NULL, NULL, NULL, NULL, NULL, 'feedback.close', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (723, 720, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'feedback.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  -- 文章栏目
+  (730, 7, 2, '文章栏目', 'ContentArticleCategory', '/content/article-category', '/content/article-category/index', NULL, 'el-icon-Folder', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (731, 730, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article_category.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (732, 730, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article_category.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (733, 730, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article_category.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  -- 文章管理
+  (740, 7, 2, '文章管理', 'ContentArticle', '/content/article', '/content/article/index', NULL, 'el-icon-Document', 'article.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
+  (741, 740, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (742, 740, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (743, 740, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (744, 740, 3, '发布/下架', NULL, NULL, NULL, NULL, NULL, 'article.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
 
   -- ===== 应用管理 =====
   (8, 0, 1, '应用管理', 'Application', '/app', 'LAYOUT', '/app/region', 'el-icon-Monitor', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 650, NOW(), NOW()),
@@ -407,4 +432,6 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 ('wechat_mini_app_secret', '', 'wechat_mini', 'string', 'AppSecret', '微信小程序AppSecret', NULL, NULL, 11, 1, NOW(), NOW()),
 ('wechat_mini_msg_token', '', 'wechat_mini', 'string', 'Token', '消息推送校验Token', NULL, NULL, 20, 1, NOW(), NOW()),
 ('wechat_mini_msg_aes_key', '', 'wechat_mini', 'string', 'EncodingAESKey', '消息推送加解密密钥（43位字符）', NULL, NULL, 21, 1, NOW(), NOW()),
-('wechat_mini_msg_format', 'JSON', 'wechat_mini', 'select', '数据格式', '消息推送数据格式', '{"JSON":"JSON","XML":"XML"}', NULL, 22, 1, NOW(), NOW());
+('wechat_mini_msg_format', 'JSON', 'wechat_mini', 'select', '数据格式', '消息推送数据格式', '{"JSON":"JSON","XML":"XML"}', NULL, 22, 1, NOW(), NOW()),
+-- Banner 配置
+('banner_list', '[]', 'banner', 'json', '轮播图列表', '首页轮播图配置，JSON数组格式：[{"image":"图片地址","url":"跳转链接","title":"标题"}]', NULL, NULL, 1, 1, NOW(), NOW());
