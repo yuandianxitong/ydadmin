@@ -555,3 +555,102 @@ export interface AuthInfoRes {
     routes: MenuInfo[]
     permissions: string[]
 }
+
+// ========== 公告管理 ==========
+export interface AnnouncementInfo {
+    id: number
+    title: string
+    content: string
+    type: number
+    status: number
+    sort: number
+    publish_at?: string
+    admin_id?: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface AnnouncementReq {
+    title: string
+    content: string
+    type?: number
+    status?: number
+    sort?: number
+}
+
+export interface AnnouncementQuery extends PageQuery {
+    status?: number
+    type?: number
+}
+
+// ========== 协议管理 ==========
+export interface AgreementInfo {
+    id: number
+    title: string
+    code: string
+    content: string
+    status: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface AgreementReq {
+    title: string
+    code: string
+    content: string
+    status?: number
+}
+
+export interface AgreementQuery extends PageQuery {
+    status?: number
+}
+
+// ========== 地区数据 ==========
+export interface RegionInfo {
+    id: number
+    parent_id: number
+    name: string
+    code: string
+    level: number
+    sort: number
+    status: number
+    children?: RegionInfo[]
+}
+
+export interface RegionReq {
+    parent_id?: number
+    name: string
+    code: string
+    level?: number
+    sort?: number
+    status?: number
+}
+
+// ========== 版本管理 ==========
+export interface AppVersionInfo {
+    id: number
+    platform: string
+    version: string
+    version_code: number
+    download_url: string
+    description?: string
+    force_update: number
+    status: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface AppVersionReq {
+    platform: string
+    version: string
+    version_code: number
+    download_url: string
+    description?: string
+    force_update?: number
+    status?: number
+}
+
+export interface AppVersionQuery extends PageQuery {
+    platform?: string
+    status?: number
+}

@@ -1142,5 +1142,99 @@ export default {
             deleteSuccess: '菜单已删除',
             deleteFailed: '删除失败'
         }
+    },
+    // 公告管理
+    announcementMgmt: {
+        title: '公告管理',
+        addAnnouncement: '发布公告',
+        editAnnouncement: '编辑公告',
+        announcementTitle: '公告标题',
+        announcementType: '公告类型',
+        content: '公告内容',
+        publishAt: '发布时间',
+        published: '已发布',
+        draft: '草稿',
+        titlePlaceholder: '请输入公告标题',
+        typePlaceholder: '请选择类型',
+        contentPlaceholder: '请输入公告内容',
+        typeOptions: {
+            notice: '通知',
+            update: '更新',
+            activity: '活动'
+        },
+        validate: {
+            titleRequired: '请输入公告标题',
+            contentRequired: '请输入公告内容'
+        }
+    },
+    // 协议管理
+    agreementMgmt: {
+        title: '协议管理',
+        addAgreement: '新增协议',
+        editAgreement: '编辑协议',
+        agreementTitle: '协议标题',
+        agreementCode: '协议标识码',
+        content: '协议内容',
+        codePlaceholder: '如 user_agreement, privacy_policy',
+        titlePlaceholder: '请输入协议标题',
+        contentPlaceholder: '请输入协议内容',
+        codeDisabledTip: '协议标识码创建后不可修改',
+        validate: {
+            titleRequired: '请输入协议标题',
+            codeRequired: '请输入协议标识码',
+            codeFormat: '只能包含字母、数字和下划线，且以字母开头',
+            contentRequired: '请输入协议内容'
+        }
+    },
+    // 地区数据
+    regionMgmt: {
+        title: '地区数据',
+        addRegion: '新增地区',
+        addChildRegion: '新增下级',
+        editRegion: '编辑地区',
+        regionName: '地区名称',
+        regionCode: '地区编码',
+        level: '层级',
+        parentRegion: '上级地区',
+        topLevel: '顶级地区',
+        namePlaceholder: '请输入地区名称',
+        codePlaceholder: '请输入地区编码',
+        levelOptions: {
+            province: '省/直辖市',
+            city: '市',
+            district: '区/县',
+            street: '街道/镇'
+        },
+        validate: {
+            nameRequired: '请输入地区名称',
+            codeRequired: '请输入地区编码'
+        }
+    },
+    // 版本管理
+    versionMgmt: {
+        title: '版本管理',
+        addVersion: '新增版本',
+        editVersion: '编辑版本',
+        platform: '平台',
+        version: '版本号',
+        versionCode: '版本编号',
+        downloadUrl: '下载地址',
+        forceUpdate: '强制更新',
+        platformPlaceholder: '请选择平台',
+        versionPlaceholder: '如 1.0.0',
+        versionCodePlaceholder: '如 100',
+        downloadUrlPlaceholder: '请输入下载地址',
+        descriptionPlaceholder: '请输入版本描述',
+        platformOptions: {
+            android: 'Android',
+            ios: 'iOS',
+            harmony: 'HarmonyOS'
+        },
+        validate: {
+            platformRequired: '请选择平台',
+            versionRequired: '请输入版本号',
+            versionCodeRequired: '请输入版本编号',
+            downloadUrlRequired: '请输入下载地址'
+        }
     }
 }

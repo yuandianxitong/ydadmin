@@ -1148,5 +1148,99 @@ export default {
             deleteSuccess: 'Menu deleted',
             deleteFailed: 'Delete failed'
         }
+    },
+    // Announcement Management
+    announcementMgmt: {
+        title: 'Announcement Management',
+        addAnnouncement: 'Add Announcement',
+        editAnnouncement: 'Edit Announcement',
+        announcementTitle: 'Title',
+        announcementType: 'Type',
+        content: 'Content',
+        publishAt: 'Publish Time',
+        published: 'Published',
+        draft: 'Draft',
+        titlePlaceholder: 'Enter announcement title',
+        typePlaceholder: 'Select type',
+        contentPlaceholder: 'Enter announcement content',
+        typeOptions: {
+            notice: 'Notice',
+            update: 'Update',
+            activity: 'Activity'
+        },
+        validate: {
+            titleRequired: 'Please enter title',
+            contentRequired: 'Please enter content'
+        }
+    },
+    // Agreement Management
+    agreementMgmt: {
+        title: 'Agreement Management',
+        addAgreement: 'Add Agreement',
+        editAgreement: 'Edit Agreement',
+        agreementTitle: 'Title',
+        agreementCode: 'Code',
+        content: 'Content',
+        codePlaceholder: 'e.g. user_agreement, privacy_policy',
+        titlePlaceholder: 'Enter agreement title',
+        contentPlaceholder: 'Enter agreement content',
+        codeDisabledTip: 'Code cannot be modified after creation',
+        validate: {
+            titleRequired: 'Please enter title',
+            codeRequired: 'Please enter code',
+            codeFormat: 'Only letters, numbers and underscores, starting with a letter',
+            contentRequired: 'Please enter content'
+        }
+    },
+    // Region Data
+    regionMgmt: {
+        title: 'Region Data',
+        addRegion: 'Add Region',
+        addChildRegion: 'Add Child',
+        editRegion: 'Edit Region',
+        regionName: 'Region Name',
+        regionCode: 'Region Code',
+        level: 'Level',
+        parentRegion: 'Parent Region',
+        topLevel: 'Top Level',
+        namePlaceholder: 'Enter region name',
+        codePlaceholder: 'Enter region code',
+        levelOptions: {
+            province: 'Province',
+            city: 'City',
+            district: 'District',
+            street: 'Street'
+        },
+        validate: {
+            nameRequired: 'Please enter region name',
+            codeRequired: 'Please enter region code'
+        }
+    },
+    // Version Management
+    versionMgmt: {
+        title: 'Version Management',
+        addVersion: 'Add Version',
+        editVersion: 'Edit Version',
+        platform: 'Platform',
+        version: 'Version',
+        versionCode: 'Version Code',
+        downloadUrl: 'Download URL',
+        forceUpdate: 'Force Update',
+        platformPlaceholder: 'Select platform',
+        versionPlaceholder: 'e.g. 1.0.0',
+        versionCodePlaceholder: 'e.g. 100',
+        downloadUrlPlaceholder: 'Enter download URL',
+        descriptionPlaceholder: 'Enter version description',
+        platformOptions: {
+            android: 'Android',
+            ios: 'iOS',
+            harmony: 'HarmonyOS'
+        },
+        validate: {
+            platformRequired: 'Please select platform',
+            versionRequired: 'Please enter version',
+            versionCodeRequired: 'Please enter version code',
+            downloadUrlRequired: 'Please enter download URL'
+        }
     }
 }
