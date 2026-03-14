@@ -431,6 +431,12 @@ class Installer
         }
         $this->executeSqlFile($pdo, $initFile, $prefix);
 
+        // 导入区域数据
+        $regionsFile = INSTALL_PATH . 'data/regions.sql';
+        if (file_exists($regionsFile)) {
+            $this->executeSqlFile($pdo, $regionsFile, $prefix);
+        }
+
         $importSeed = !empty($config['import_seed']);
         if ($importSeed) {
             $demoFile = INSTALL_PATH . 'data/demo.sql';
