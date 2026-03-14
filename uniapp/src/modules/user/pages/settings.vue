@@ -14,6 +14,15 @@
               <wd-icon name="delete" size="40rpx" color="#fa3534" class="cell-icon" />
             </template>
           </wd-cell>
+          <wd-cell
+            title="检查更新"
+            is-link
+            @click="handleCheckUpdate"
+          >
+            <template #icon>
+              <wd-icon name="refresh" size="40rpx" color="#2979ff" class="cell-icon" />
+            </template>
+          </wd-cell>
         </wd-cell-group>
       </view>
 
@@ -45,6 +54,19 @@
           </wd-cell>
         </wd-cell-group>
       </view>
+
+      <!-- 退出登录 -->
+      <view v-if="userStore.isLoggedIn" class="logout-area">
+        <wd-button
+          type="error"
+          plain
+          block
+          class="logout-btn"
+          @click="handleLogout"
+        >
+          退出登录
+        </wd-button>
+      </view>
     </view>
   </d-page>
 </template>
@@ -52,8 +74,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/store/app.store'
+import { useUserStore } from '@/store/user.store'
 
 const appStore = useAppStore()
+const userStore = useUserStore()
 
 const version = ref('v1.0.0')
 const cacheSize = ref('计算中...')
@@ -101,6 +125,27 @@ function handleClearCache() {
   })
 }
 
+function handleCheckUpdate() {
+  uni.showLoading({ title: '检查中...' })
+  setTimeout(() => {
+    uni.hideLoading()
+    uni.showToast({ title: '已是最新版本', icon: 'success' })
+  }, 1500)
+}
+
+function handleLogout() {
+  uni.showModal({
+    title: '提示',
+    content: '确认退出登录？',
+    success: (res) => {
+      if (res.confirm) {
+        userStore.logout({ redirect: false })
+        uni.switchTab({ url: '/pages/index/index' })
+      }
+    },
+  })
+}
+
 function openPrivacy() {
   uni.navigateTo({ url: '/modules/agreement/pages/agreement?code=privacy_policy' })
 }
@@ -126,6 +171,16 @@ function openTerms() {
 
   .cell-icon {
     margin-right: 16rpx;
+  }
+}
+
+.logout-area {
+  padding: 40rpx 0;
+
+  .logout-btn {
+    border-radius: 16rpx !important;
+    height: 96rpx !important;
+    font-size: 32rpx !important;
   }
 }
 </style>

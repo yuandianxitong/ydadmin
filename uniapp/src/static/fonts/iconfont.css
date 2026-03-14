@@ -1,0 +1,26 @@
+@font-face {
+  font-family: "iconfont";
+  src: url('./iconfont.ttf') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Placeholder icon classes - user will replace with actual iconfont */
+.icon-home:before { content: "\e600"; }
+.icon-discover:before { content: "\e601"; }
+.icon-message:before { content: "\e602"; }
+.icon-user:before { content: "\e603"; }
+.icon-notice:before { content: "\e604"; }
+.icon-feedback:before { content: "\e605"; }
+.icon-bell:before { content: "\e606"; }
+.icon-document:before { content: "\e607"; }
+.icon-profile:before { content: "\e608"; }
+.icon-lock:before { content: "\e609"; }
+.icon-info:before { content: "\e60a"; }
+.icon-setting:before { content: "\e60b"; }
+.icon-arrow-right:before { content: "\e60c"; }

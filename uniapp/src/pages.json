@@ -1,7 +1,42 @@
 {
   "pages": [
-    { "path": "pages/index/index", "style": { "navigationBarTitleText": "首页" } }
+    { "path": "pages/index/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/discover/index", "style": { "navigationBarTitleText": "发现" } },
+    { "path": "pages/message/index", "style": { "navigationBarTitleText": "消息" } },
+    { "path": "pages/my/index", "style": { "navigationStyle": "custom" } }
   ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2979ff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/discover/index",
+        "text": "发现",
+        "iconPath": "static/tabbar/discover.png",
+        "selectedIconPath": "static/tabbar/discover-active.png"
+      },
+      {
+        "pagePath": "pages/message/index",
+        "text": "消息",
+        "iconPath": "static/tabbar/message.png",
+        "selectedIconPath": "static/tabbar/message-active.png"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "text": "我的",
+        "iconPath": "static/tabbar/my.png",
+        "selectedIconPath": "static/tabbar/my-active.png"
+      }
+    ]
+  },
   "subPackages": [
     {
       "root": "modules/login",
@@ -55,6 +90,18 @@
       "root": "modules/agreement",
       "pages": [
         { "path": "pages/agreement", "style": { "navigationBarTitleText": "协议" } }
+      ]
+    },
+    {
+      "root": "modules/article",
+      "pages": [
+        { "path": "pages/article-detail", "style": { "navigationBarTitleText": "文章详情" } }
+      ]
+    },
+    {
+      "root": "modules/about",
+      "pages": [
+        { "path": "pages/about", "style": { "navigationBarTitleText": "关于我们" } }
       ]
     }
   ],

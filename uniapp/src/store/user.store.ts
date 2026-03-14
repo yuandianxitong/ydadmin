@@ -34,12 +34,14 @@ export const useUserStore = defineStore('user', () => {
     return result
   }
 
-  function logout() {
+  function logout(options?: { redirect?: boolean }) {
     authApi.logout().catch(() => {})
     token.value = ''
     userInfo.value = null
     removeToken()
-    uni.reLaunch({ url: '/modules/login/pages/login' })
+    if (options?.redirect !== false) {
+      uni.reLaunch({ url: '/modules/login/pages/login' })
+    }
   }
 
   return { token, userInfo, isLoggedIn, nickname, avatar, login, smsLogin, getUserInfo, logout }
