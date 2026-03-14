@@ -1,0 +1,15 @@
+@import './variables.scss';
+
+page {
+  background-color: $bg-color;
+  font-size: 28rpx;
+  color: $text-color;
+}
+
+.container {
+  padding: $page-padding;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

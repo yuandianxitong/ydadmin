@@ -1,16 +1,41 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "uni-app"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	}
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "首页" } }
+  ],
+  "subPackages": [
+    {
+      "root": "modules/login",
+      "pages": [
+        { "path": "pages/login", "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" } },
+        { "path": "pages/register", "style": { "navigationBarTitleText": "注册" } }
+      ]
+    },
+    {
+      "root": "modules/user",
+      "pages": [
+        { "path": "pages/profile", "style": { "navigationBarTitleText": "个人中心" } },
+        { "path": "pages/edit-profile", "style": { "navigationBarTitleText": "编辑资料" } },
+        { "path": "pages/change-password", "style": { "navigationBarTitleText": "修改密码" } },
+        { "path": "pages/settings", "style": { "navigationBarTitleText": "设置" } }
+      ]
+    },
+    {
+      "root": "modules/webview",
+      "pages": [
+        { "path": "pages/webview", "style": { "navigationBarTitleText": "" } }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Dev007",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue"
+    }
+  }
 }

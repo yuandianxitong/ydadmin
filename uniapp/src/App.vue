@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-onLaunch(() => {
-  console.log("App Launch");
-});
-onShow(() => {
-  console.log("App Show");
-});
-onHide(() => {
-  console.log("App Hide");
-});
+import { onLaunch } from '@dcloudio/uni-app'
+import { useAppStore } from '@/store/app.store'
+
+onLaunch(async () => {
+  const appStore = useAppStore()
+  await appStore.getConfig().catch(() => {})
+})
 </script>
-<style></style>
+
+<style lang="scss">
+@import './styles/common.scss';
+</style>
