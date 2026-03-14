@@ -93,6 +93,8 @@ return [
     'log_delete_menu'       => 'Delete Menu',
     'log_delete_menu_desc'  => 'Delete menu',
 
+    'sms_send_too_frequent' => 'SMS sent too frequently, please try again later',
+    'sms_daily_limit'       => 'Daily SMS limit reached',
     'sms_code_sent'         => 'Verification code sent',
     'query_success'         => 'Query successful',
     'refund_success'        => 'Refund successful',

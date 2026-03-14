@@ -93,6 +93,8 @@ return [
     'log_delete_menu'       => '删除菜单',
     'log_delete_menu_desc'  => '删除菜单',
 
+    'sms_send_too_frequent' => '短信发送过于频繁，请稍后再试',
+    'sms_daily_limit'       => '今日短信发送次数已达上限',
     'sms_code_sent'         => '验证码已发送',
     'query_success'         => '查询成功',
     'refund_success'        => '退款成功',
