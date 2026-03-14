@@ -85,7 +85,7 @@ jobs:
           extensions: mbstring, pdo_mysql, redis, gd, zip, intl, bcmath
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist
-      - run: composer run-script lint --no-interaction 2>/dev/null || echo "No lint script configured"
+      - run: vendor/bin/php-cs-fixer fix --dry-run --diff || true
 
   backend-test:
     name: Backend Tests
@@ -124,4 +124,43 @@ jobs:
           tools: composer:v2
           coverage: xdebug
       - run: composer install --no-interaction --prefer-dist
-      - run: composer run-script test --no-interaction 2>/dev/null || echo "No test script configured yet"
+      - run: |
+          cp .env.example .env
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=dev007_test/' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+      - run: php think migrate:run
+      - run: vendor/bin/phpunit --coverage-text --colors=never
+
+  uniapp-check:
+    name: UniApp Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: uniapp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vue-tsc --noEmit
+
+  docs-build:
+    name: Documentation Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build

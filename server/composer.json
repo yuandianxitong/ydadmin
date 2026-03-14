@@ -40,7 +40,8 @@
     "require-dev": {
         "topthink/think-dumper": "^1.0",
         "topthink/think-trace": "^2.0@dev",
-        "phpunit/phpunit": "^10.0|^11.0"
+        "phpunit/phpunit": "^10.0|^11.0",
+        "friendsofphp/php-cs-fixer": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -64,6 +65,8 @@
             "@php think service:discover",
             "@php think vendor:publish"
         ],
+        "lint": "php-cs-fixer fix --dry-run --diff",
+        "lint:fix": "php-cs-fixer fix",
         "test": "phpunit --colors=always",
         "test:coverage": "phpunit --colors=always --coverage-text"
     }
