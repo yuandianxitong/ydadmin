@@ -155,6 +155,17 @@ Route::group('system', function () {
         Route::delete(':id', 'v1.system.CronJobController/delete');
     });
 
+    // 插件管理
+    Route::group('plugin', function () {
+        Route::get('', 'v1.system.PluginController/index');
+        Route::post('upload', 'v1.system.PluginController/upload');
+        Route::post(':name/install', 'v1.system.PluginController/install');
+        Route::post(':name/uninstall', 'v1.system.PluginController/uninstall');
+        Route::post(':name/enable', 'v1.system.PluginController/enable');
+        Route::post(':name/disable', 'v1.system.PluginController/disable');
+        Route::delete(':name', 'v1.system.PluginController/delete');
+    });
+
 })->middleware(['admin_auth', 'admin_permission', 'admin_log']);
 
 // API文档（无需认证）
