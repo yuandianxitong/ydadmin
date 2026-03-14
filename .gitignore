@@ -1,0 +1,34 @@
+# IDE
+.idea/
+.vscode/
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Documentation (maintained locally, not published via git)
+docs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+admin/dist/
+uniapp/dist/
+
+# Runtime
+server/runtime/
+server/public/storage/uploads/
+
+# Logs
+*.log
