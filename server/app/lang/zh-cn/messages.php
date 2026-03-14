@@ -16,6 +16,7 @@ return [
     'refresh_success'       => '刷新成功',
     'logout_success'        => '登出成功',
     'login_success'         => '登录成功',
+    'register_success'      => '注册成功',
     'status_update_success' => '状态更新成功',
     'password_reset_success' => '密码重置成功',
     'password_change_success' => '密码修改成功',

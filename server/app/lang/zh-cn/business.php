@@ -186,10 +186,12 @@ return [
     'wechat_miniapp_config_incomplete'  => '微信小程序配置不完整，请在系统配置中完善微信设置',
 
     // API端
-    'invalid_mobile_format'     => '请输入正确的手机号',
-    'sms_rate_limit'            => '发送过于频繁，请稍后再试',
-    'mobile_password_required'  => '请输入手机号和密码',
-    'mobile_code_required'      => '请输入手机号和验证码',
+    'invalid_mobile_format'         => '请输入正确的手机号',
+    'sms_rate_limit'                => '发送过于频繁，请稍后再试',
+    'mobile_password_required'      => '请输入手机号和密码',
+    'mobile_code_required'          => '请输入手机号和验证码',
+    'register_fields_required'      => '手机号、密码和验证码不能为空',
+    'mobile_already_registered'     => '该手机号已注册',
     'missing_code_param'        => '缺少code参数',
     'password_min_length'       => '新密码至少6位',
     'select_payment_channel'    => '请选择支付渠道',

@@ -98,6 +98,31 @@ class UserService extends Service
     }
 
     /**
+     * 手机号+密码注册
+     */
+    public function register(string $mobile, string $password, string $ip = ''): array
+    {
+        // 检查手机号是否已注册
+        $existing = $this->userRepository->findByMobile($mobile);
+        if ($existing) {
+            throw new BusinessException(lang('business.mobile_already_registered'));
+        }
+
+        $this->userRepository->create([
+            'mobile'   => $mobile,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'nickname' => '用户' . substr($mobile, -4),
+            'status'   => 1,
+        ]);
+
+        $user = $this->userRepository->findByMobile($mobile);
+
+        $this->trigger('user.register', ['user_id' => $user->id, 'mobile' => $mobile]);
+
+        return $this->loginSuccess($user, $ip);
+    }
+
+    /**
      * 获取用户信息
      */
     public function getUserInfo(int $userId): array

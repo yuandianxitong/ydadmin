@@ -16,6 +16,7 @@ return [
     'refresh_success'       => 'Refreshed successfully',
     'logout_success'        => 'Logged out successfully',
     'login_success'         => 'Logged in successfully',
+    'register_success'      => 'Registration successful',
     'status_update_success' => 'Status updated successfully',
     'password_reset_success' => 'Password reset successfully',
     'password_change_success' => 'Password changed successfully',

@@ -121,4 +121,50 @@ class AuthController extends Controller
             return $this->error($e->getMessage());
         }
     }
+
+    /**
+     * 注册
+     */
+    public function register(): Response
+    {
+        try {
+            $mobile = (string)$this->request->param('mobile', '');
+            $password = (string)$this->request->param('password', '');
+            $code = (string)$this->request->param('code', '');
+
+            if (empty($mobile) || empty($password) || empty($code)) {
+                return $this->error(lang('business.register_fields_required'));
+            }
+
+            // 验证短信验证码
+            $cacheKey = 'sms_code:register:' . $mobile;
+            $cachedCode = cache($cacheKey);
+            if (!$cachedCode || $cachedCode !== $code) {
+                return $this->error(lang('auth.captcha_invalid'));
+            }
+
+            $result = $this->userService->register($mobile, $password, $this->request->ip());
+
+            // 清除验证码
+            cache($cacheKey, null);
+
+            return $this->success(lang('messages.register_success'), $result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 刷新Token
+     */
+    public function refreshToken(): Response
+    {
+        try {
+            $token = $this->tokenManager->getTokenFromHeader();
+            $newToken = $this->tokenManager->refresh($token);
+            return $this->success(lang('messages.refresh_success'), ['token' => $newToken]);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
 }

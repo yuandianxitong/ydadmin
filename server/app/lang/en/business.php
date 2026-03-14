@@ -186,10 +186,12 @@ return [
     'wechat_miniapp_config_incomplete'  => 'WeChat Mini Program configuration is incomplete, please complete WeChat settings in system configuration',
 
     // API
-    'invalid_mobile_format'     => 'Please enter a valid phone number',
-    'sms_rate_limit'            => 'Sending too frequently, please try again later',
-    'mobile_password_required'  => 'Phone number and password are required',
-    'mobile_code_required'      => 'Phone number and verification code are required',
+    'invalid_mobile_format'         => 'Please enter a valid phone number',
+    'sms_rate_limit'                => 'Sending too frequently, please try again later',
+    'mobile_password_required'      => 'Phone number and password are required',
+    'mobile_code_required'          => 'Phone number and verification code are required',
+    'register_fields_required'      => 'Mobile, password and verification code are required',
+    'mobile_already_registered'     => 'This mobile number is already registered',
     'missing_code_param'        => 'Missing code parameter',
     'password_min_length'       => 'New password must be at least 6 characters',
     'select_payment_channel'    => 'Please select a payment channel',
