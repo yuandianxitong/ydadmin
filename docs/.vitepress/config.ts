@@ -31,6 +31,8 @@ export default defineConfig({
           text: '后端开发',
           items: [
             { text: '架构设计', link: '/backend/architecture' },
+            { text: '内置模块', link: '/backend/modules' },
+            { text: '代码生成器', link: '/backend/code-generator' },
           ],
         },
       ],
