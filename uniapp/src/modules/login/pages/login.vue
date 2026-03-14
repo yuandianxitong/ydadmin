@@ -1,5 +1,271 @@
 <template>
-  <view>
-    <text>Coming soon</text>
+  <view class="login-page">
+    <!-- 状态栏占位 -->
+    <view :style="{ height: statusBarHeight + 'px' }" />
+
+    <!-- Logo 区域 -->
+    <view class="logo-area">
+      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <text class="app-name">Dev007</text>
+      <text class="app-slogan">专业开发者的首选框架</text>
+    </view>
+
+    <!-- 登录表单卡片 -->
+    <view class="form-card">
+      <!-- Tab 切换 -->
+      <view class="tab-bar">
+        <view
+          class="tab-item"
+          :class="{ active: loginType === 'password' }"
+          @tap="loginType = 'password'"
+        >
+          密码登录
+        </view>
+        <view
+          class="tab-item"
+          :class="{ active: loginType === 'sms' }"
+          @tap="loginType = 'sms'"
+        >
+          验证码登录
+        </view>
+      </view>
+
+      <!-- 手机号输入 -->
+      <view class="input-group">
+        <wd-input
+          v-model="mobile"
+          type="number"
+          maxlength="11"
+          placeholder="请输入手机号"
+          prefix-icon="mobile"
+          clearable
+          no-border
+          class="custom-input"
+        />
+      </view>
+
+      <!-- 密码输入 -->
+      <view v-if="loginType === 'password'" class="input-group">
+        <wd-input
+          v-model="password"
+          :show-password="true"
+          placeholder="请输入密码（6-20位）"
+          prefix-icon="lock-on"
+          clearable
+          no-border
+          class="custom-input"
+        />
+      </view>
+
+      <!-- 验证码输入 -->
+      <view v-else class="input-group sms-group">
+        <wd-input
+          v-model="smsCode"
+          type="number"
+          maxlength="6"
+          placeholder="请输入验证码"
+          prefix-icon="secured"
+          no-border
+          class="custom-input sms-input"
+        />
+        <view
+          class="send-code-btn"
+          :class="{ disabled: countdown > 0 }"
+          @tap="handleSendCode"
+        >
+          {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+        </view>
+      </view>
+
+      <!-- 协议 -->
+      <d-agreement-check v-model="agreed" />
+
+      <!-- 登录按钮 -->
+      <wd-button
+        block
+        :loading="loading"
+        :disabled="loading"
+        class="login-btn"
+        @click="handleLogin"
+      >
+        登录
+      </wd-button>
+
+      <!-- 底部链接 -->
+      <view class="bottom-links">
+        <text class="link" @tap="goRegister">立即注册</text>
+      </view>
+    </view>
   </view>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useLogin } from '../composables/useLogin'
+
+const { loading, loginType, countdown, loginByPassword, loginBySms, sendCode } = useLogin()
+
+const mobile = ref('')
+const password = ref('')
+const smsCode = ref('')
+const agreed = ref(false)
+
+// 获取状态栏高度
+const statusBarHeight = ref(0)
+const systemInfo = uni.getSystemInfoSync()
+statusBarHeight.value = systemInfo.statusBarHeight || 0
+
+function checkAgreement(): boolean {
+  if (!agreed.value) {
+    uni.showToast({ title: '请先同意用户协议', icon: 'none' })
+    return false
+  }
+  return true
+}
+
+async function handleLogin() {
+  if (!checkAgreement()) return
+  if (loginType.value === 'password') {
+    await loginByPassword(mobile.value, password.value)
+  } else {
+    await loginBySms(mobile.value, smsCode.value)
+  }
+}
+
+async function handleSendCode() {
+  await sendCode(mobile.value)
+}
+
+function goRegister() {
+  uni.navigateTo({ url: '/modules/login/pages/register' })
+}
+</script>
+
+<style lang="scss" scoped>
+@import '@/styles/variables.scss';
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #e8f0ff 0%, #f5f7ff 40%, #ffffff 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 0 60rpx 60rpx;
+  box-sizing: border-box;
+}
+
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+
+  .logo {
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 36rpx;
+    box-shadow: 0 8rpx 24rpx rgba(41, 121, 255, 0.2);
+  }
+
+  .app-name {
+    font-size: 52rpx;
+    font-weight: 700;
+    color: $primary-color;
+    margin-top: 24rpx;
+    letter-spacing: 4rpx;
+  }
+
+  .app-slogan {
+    font-size: 26rpx;
+    color: $text-color-secondary;
+    margin-top: 12rpx;
+  }
+}
+
+.form-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  padding: 48rpx 40rpx;
+  box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
+}
+
+.tab-bar {
+  display: flex;
+  margin-bottom: 40rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 6rpx;
+  gap: 6rpx;
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    padding: 18rpx 0;
+    font-size: 28rpx;
+    color: $text-color-secondary;
+    border-radius: 12rpx;
+    transition: all 0.2s;
+
+    &.active {
+      background: #ffffff;
+      color: $primary-color;
+      font-weight: 600;
+      box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+.input-group {
+  margin-bottom: 24rpx;
+  background: #f8f9fc;
+  border-radius: 16rpx;
+  overflow: hidden;
+
+  &.sms-group {
+    display: flex;
+    align-items: center;
+  }
+
+  .custom-input {
+    flex: 1;
+    background: transparent;
+  }
+
+  .sms-input {
+    border-right: 2rpx solid $border-color;
+  }
+
+  .send-code-btn {
+    padding: 0 28rpx;
+    font-size: 26rpx;
+    color: $primary-color;
+    white-space: nowrap;
+    flex-shrink: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+
+    &.disabled {
+      color: $text-color-secondary;
+    }
+  }
+}
+
+.login-btn {
+  margin-top: 16rpx;
+  border-radius: 16rpx !important;
+  height: 96rpx !important;
+  font-size: 32rpx !important;
+}
+
+.bottom-links {
+  display: flex;
+  justify-content: center;
+  margin-top: 32rpx;
+
+  .link {
+    font-size: 28rpx;
+    color: $primary-color;
+    padding: 10rpx 20rpx;
+  }
+}
+</style>
