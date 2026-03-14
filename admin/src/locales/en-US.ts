@@ -701,6 +701,24 @@ export default {
         operationTime: 'Time',
         operator: 'Operator'
     },
+    // Import component
+    importData: {
+        title: 'Data Import',
+        importBtn: 'Import',
+        confirmImport: 'Confirm Import',
+        downloadTemplate: 'Download Import Template',
+        dragText: 'Drag file here, or ',
+        clickText: 'click to upload',
+        fileTip: 'Only .xlsx, .xls, .csv files are supported. Limited to 1 file.',
+        importing: 'Importing...',
+        importComplete: 'Import Complete',
+        successCount: '{count} succeeded',
+        failCount: '{count} failed',
+        errorList: 'Error Details',
+        selectFile: 'Please select a file to import',
+        exceedLimit: 'Only one file can be uploaded. Please remove the selected file first.',
+        importFailed: 'Import failed, please try again'
+    },
     // Export component
     exportData: {
         title: 'Export Settings',

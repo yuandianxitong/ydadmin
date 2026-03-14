@@ -695,6 +695,24 @@ export default {
         operationTime: '操作时间',
         operator: '操作人'
     },
+    // 导入组件
+    importData: {
+        title: '数据导入',
+        importBtn: '导入',
+        confirmImport: '确认导入',
+        downloadTemplate: '下载导入模板',
+        dragText: '将文件拖到此处，或',
+        clickText: '点击上传',
+        fileTip: '仅支持 .xlsx、.xls、.csv 格式文件，且只能上传一个文件',
+        importing: '正在导入中...',
+        importComplete: '导入完成',
+        successCount: '成功 {count} 条',
+        failCount: '失败 {count} 条',
+        errorList: '错误详情',
+        selectFile: '请先选择要导入的文件',
+        exceedLimit: '只能上传一个文件，请先移除已选文件',
+        importFailed: '导入失败，请重试'
+    },
     // 导出组件
     exportData: {
         title: '导出设置',
