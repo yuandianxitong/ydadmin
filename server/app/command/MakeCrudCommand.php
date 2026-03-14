@@ -29,7 +29,8 @@ class MakeCrudCommand extends Command
             ->addOption('model', null, Option::VALUE_REQUIRED, '模型名（大驼峰，如 Article），默认从表名推断')
             ->addOption('comment', 'c', Option::VALUE_REQUIRED, '模块中文说明（如 文章），默认取表注释')
             ->addOption('preview', 'p', Option::VALUE_NONE, '仅预览文件列表，不实际写入')
-            ->addOption('force', 'f', Option::VALUE_NONE, '覆盖已有文件');
+            ->addOption('force', 'f', Option::VALUE_NONE, '覆盖已有文件')
+            ->addOption('as-plugin', null, Option::VALUE_NONE, '以插件模式生成，文件输出到 plugins/ 目录');
     }
 
     protected function execute(Input $input, Output $output): int
@@ -40,6 +41,7 @@ class MakeCrudCommand extends Command
         $comment    = $input->getOption('comment');
         $preview    = $input->getOption('preview');
         $force      = $input->getOption('force');
+        $asPlugin   = $input->getOption('as-plugin');
 
         $service = new CodeGeneratorService();
 
@@ -76,6 +78,9 @@ class MakeCrudCommand extends Command
         $output->writeln("  模型名:  <info>{$modelName}</info>");
         $output->writeln("  说  明:  <info>{$comment}</info>");
         $output->writeln("  字段数:  <info>" . count($columns) . "</info>");
+        if ($asPlugin) {
+            $output->writeln("  模  式:  <comment>插件模式 (plugins/{$moduleName}/)</comment>");
+        }
         $output->writeln('');
 
         $config = [
@@ -86,7 +91,9 @@ class MakeCrudCommand extends Command
             'columns'       => $columns,
         ];
 
-        $files = $service->generate($config);
+        $files = $asPlugin
+            ? $service->generateAsPlugin($config)
+            : $service->generate($config);
 
         if ($preview) {
             $output->info('预览模式 — 以下文件将被生成:');
@@ -100,7 +107,9 @@ class MakeCrudCommand extends Command
         }
 
         // 写入文件
-        if ($force) {
+        if ($asPlugin) {
+            $results = $this->writePluginFiles($files);
+        } elseif ($force) {
             $results = $this->writeFilesForce($files, $service);
         } else {
             $results = $service->writeFiles($files);
@@ -146,9 +155,15 @@ class MakeCrudCommand extends Command
         }
 
         $output->info('生成完毕！请检查以下事项:');
-        $output->writeln('  1. 确认路由文件是否正确追加');
-        $output->writeln('  2. 在后台菜单中添加对应的菜单项');
-        $output->writeln('  3. 配置对应的权限标识');
+        if ($asPlugin) {
+            $output->writeln('  1. 运行安装脚本: php plugins/' . $moduleName . '/install.php');
+            $output->writeln('  2. 执行数据库迁移: php think migrate:run');
+            $output->writeln('  3. 在后台菜单中添加对应的菜单项');
+        } else {
+            $output->writeln('  1. 确认路由文件是否正确追加');
+            $output->writeln('  2. 在后台菜单中添加对应的菜单项');
+            $output->writeln('  3. 配置对应的权限标识');
+        }
         $output->writeln('');
 
         return 0;
@@ -213,8 +228,35 @@ class MakeCrudCommand extends Command
         try {
             $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE '{$tableName}'");
             return $tables[0]['Comment'] ?? '';
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return '';
         }
+    }
+
+    /**
+     * 插件模式写入 — 所有文件直接创建到 plugins/ 目录
+     */
+    protected function writePluginFiles(array $files): array
+    {
+        $written = [];
+        $basePath = dirname(root_path()) . '/'; // 项目根目录
+
+        foreach ($files as $file) {
+            $fullPath = $basePath . $file['path'];
+            $dir = dirname($fullPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            if (file_exists($fullPath)) {
+                $written[] = ['path' => $file['path'], 'status' => 'skipped', 'reason' => '文件已存在'];
+                continue;
+            }
+
+            file_put_contents($fullPath, $file['content']);
+            $written[] = ['path' => $file['path'], 'status' => 'created'];
+        }
+
+        return $written;
     }
 }
