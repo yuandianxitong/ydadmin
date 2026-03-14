@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return `
-            <li class="p-4 bg-slate-50 rounded-lg flex sm:flex-row items-start sm:items-center justify-between gap-4">
+            <li class="py-2 px-4 bg-slate-50 rounded-lg flex sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div class="flex-1">
                     <div class="font-bold text-slate-700">${item.name}</div>
                     <div class="text-sm text-slate-500 mt-1">

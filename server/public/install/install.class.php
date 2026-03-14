@@ -188,11 +188,6 @@ class Installer
                 return ['success' => false, 'message' => '数据表前缀仅允许字母、数字、下划线'];
             }
 
-            $dropExisting = !empty($config['drop_existing']);
-            if ($dropExisting && $prefix === '') {
-                return ['success' => false, 'message' => '清空数据表需要先填写数据表前缀（避免误删整库）'];
-            }
-
             $_SESSION['install_config'] = $config;
             $_SESSION['install_step'] = 0;
             $_SESSION['install_total'] = 6;
@@ -381,7 +376,6 @@ class Installer
     {
         $config = $_SESSION['install_config'];
         $prefix = trim((string)($config['db_prefix'] ?? ''));
-        $dropExisting = !empty($config['drop_existing']);
 
         $pdo = $this->createPdo($config);
 
@@ -394,12 +388,8 @@ class Installer
         // Guard against re-install on a dirty database.
         $existing = $this->listTablesWithPrefix($pdo, $prefix);
         if (!empty($existing)) {
-            if ($dropExisting) {
-                $this->dropTablesWithPrefix($pdo, $prefix);
-            } else {
-                $sample = array_slice($existing, 0, 8);
-                throw new Exception('检测到数据库中已存在同前缀的数据表（例如：' . implode(', ', $sample) . '）。请更换空数据库，或在安装选项中勾选“清空同前缀数据表后再安装”。');
-            }
+            $sample = array_slice($existing, 0, 8);
+            throw new Exception('检测到数据库中已存在同前缀的数据表（例如：' . implode(', ', $sample) . '）。请更换空数据库或使用新的表前缀。');
         }
 
         $this->executeSqlFile($pdo, $schemaFile, $prefix);
@@ -435,15 +425,6 @@ class Installer
         $regionsFile = INSTALL_PATH . 'data/regions.sql';
         if (file_exists($regionsFile)) {
             $this->executeSqlFile($pdo, $regionsFile, $prefix);
-        }
-
-        $importSeed = !empty($config['import_seed']);
-        if ($importSeed) {
-            $demoFile = INSTALL_PATH . 'data/demo.sql';
-            if (file_exists($demoFile)) {
-                $this->executeSqlFile($pdo, $demoFile, $prefix);
-            }
-            // demo.sql 不存在时静默跳过，不影响安装
         }
 
         $this->ensureBaseRole($pdo, $prefix);
@@ -884,20 +865,6 @@ class Installer
         $stmt->execute([$prefix . '%']);
         $rows = $stmt->fetchAll(PDO::FETCH_NUM);
         return array_values(array_filter(array_map(static fn($r) => (string)($r[0] ?? ''), $rows)));
-    }
-
-    private function dropTablesWithPrefix(PDO $pdo, string $prefix): void
-    {
-        $tables = $this->listTablesWithPrefix($pdo, $prefix);
-        if (empty($tables)) {
-            return;
-        }
-
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-        foreach ($tables as $t) {
-            $pdo->exec('DROP TABLE IF EXISTS `' . str_replace('`', '``', $t) . '`');
-        }
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function getAuthKey(bool $forceGenerate = false): string

@@ -66,22 +66,6 @@
         </div>
     </fieldset>
 
-    <!-- 安装选项 -->
-    <fieldset class="p-4 sm:p-6 bg-slate-50 rounded-lg">
-        <legend class="text-lg font-semibold text-slate-800 border-b pb-2 mb-4 w-full">
-             <i class="fa fa-cog text-accent mr-2"></i>安装选项
-        </legend>
-        <div class="install-options">
-            <div class="install-option" data-toggle="import_seed">
-                <input type="checkbox" id="opt_import_seed" name="import_seed" value="1" class="checkbox checkbox-primary">
-                <div class="install-option-text">导入演示数据 (方便快速体验系统)</div>
-            </div>
-            <div class="install-option install-option--danger" data-toggle="drop_existing">
-                <input type="checkbox" id="opt_drop_existing" name="drop_existing" value="1" class="checkbox">
-                <div class="install-option-text">清空同前缀的数据表 (危险操作!)</div>
-            </div>
-        </div>
-    </fieldset>
 </form>
 
 <div class="flex justify-between mt-10">
@@ -100,17 +84,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const ui = window.InstallUI;
     const form = document.getElementById('config-form');
-    // Make option rows clickable (avoid label layout quirks).
-    document.querySelectorAll('.install-option[data-toggle]').forEach(row => {
-        row.addEventListener('click', (e) => {
-            if (e.target && e.target.tagName === 'INPUT') return;
-            const name = row.getAttribute('data-toggle');
-            const input = form.querySelector(`input[name="${name}"]`);
-            if (!input) return;
-            input.checked = !input.checked;
-        });
-    });
-
     // DB Test Handler
     const testBtn = document.getElementById('test-db-btn');
     testBtn.addEventListener('click', () => {
@@ -135,17 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     installBtn.addEventListener('click', async () => {
         if (!validateForm()) return;
         
-        const dropExisting = form.querySelector('[name="drop_existing"]').checked;
-        if (dropExisting) {
-            const confirmed = await ui.confirm({
-                title: '危险操作确认',
-                message: '您勾选了“清空同前缀数据表”选项，这将删除现有数据。确定要继续吗？',
-                okText: '确定，清空数据',
-                danger: true,
-            });
-            if (!confirmed) return;
-        }
-
         ui.setLoading(installBtn, true, '正在启动...');
         
         ui.fetch('start_install', new FormData(form))
