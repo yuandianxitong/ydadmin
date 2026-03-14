@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { paymentApi } from '@/api/payment'
 import type { PayChannel, TradeType } from '@/api/payment'
-import { getPlatform, isWeixin, isApp } from '@/utils/platform'
+import { isWeixin, isApp } from '@/utils/platform'
 
 export interface PayOptions {
   order_no: string

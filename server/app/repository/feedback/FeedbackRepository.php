@@ -15,6 +15,14 @@ class FeedbackRepository extends Repository
     }
 
     /**
+     * 获取模型实例（用于更新操作）
+     */
+    public function findModel(int $id): ?Feedback
+    {
+        return Feedback::find($id);
+    }
+
+    /**
      * 搜索反馈列表（管理端）
      */
     public function getSearchList(array $params, int $page = 1, int $limit = 20): array

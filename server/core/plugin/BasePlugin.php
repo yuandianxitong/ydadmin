@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace core\plugin;
 
-use think\facade\Db;
 use think\facade\Log;
 use core\exception\BusinessException;
 

@@ -13,7 +13,7 @@ use Exception;
 
 class AuthException extends Exception
 {
-    public function __construct(string $message = '', int $code = ErrorCode::AUTH_TOKEN_INVALID, Exception $previous = null)
+    public function __construct(string $message = '', int $code = ErrorCode::AUTH_TOKEN_INVALID, ?Exception $previous = null)
     {
         parent::__construct($message ?: lang('auth.auth_error'), $code, $previous);
     }

@@ -37,7 +37,6 @@ class ListCommand extends Command
         }
 
         // 构建表格数据
-        $header = ['插件名称', '版本', '状态', '描述'];
         $rows = [];
 
         foreach ($plugins as $name => $info) {
@@ -57,8 +56,11 @@ class ListCommand extends Command
             ];
         }
 
-        $table = $this->table($header, $rows);
-        $table->render();
+        $output->writeln(str_pad('插件名称', 24) . str_pad('版本', 12) . str_pad('状态', 20) . '描述');
+        $output->writeln(str_repeat('-', 80));
+        foreach ($rows as $row) {
+            $output->writeln(str_pad($row[0], 20) . str_pad($row[1], 12) . str_pad($row[2], 24) . $row[3]);
+        }
 
         $output->writeln('');
         $output->writeln(sprintf('共 <info>%d</info> 个插件', count($plugins)));
