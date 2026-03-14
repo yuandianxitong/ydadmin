@@ -21,17 +21,7 @@
             </el-form-item>
 
             <el-form-item :label="$t('cronJob.cronExpression')" prop="expression">
-                <el-input
-                    v-model="form.expression"
-                    :placeholder="$t('cronJob.cronPlaceholder')"
-                    maxlength="100"
-                >
-                    <template #append>
-                        <el-tooltip :content="$t('cronJob.cronFormat')" placement="top">
-                            <el-icon><QuestionFilled /></el-icon>
-                        </el-tooltip>
-                    </template>
-                </el-input>
+                <CronBuilder v-model="form.expression" />
             </el-form-item>
 
             <el-form-item :label="$t('cronJob.taskDesc')" prop="description">
@@ -75,13 +65,13 @@
 </template>
 
 <script setup lang="ts">
-import { QuestionFilled } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { cronJobApi } from '@/api/cron-job'
+import CronBuilder from '@/components/CronBuilder/index.vue'
 
 const { t } = useI18n()
 
