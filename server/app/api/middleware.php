@@ -4,6 +4,4 @@
 // 因此需要在应用级中间件中重新加载语言包，确保多语言检测生效
 return [
     \think\middleware\LoadLangPack::class,
-    'api_auth' => \app\api\middleware\ApiAuthMiddleware::class,
-    'api_rate_limit' => \app\api\middleware\ApiRateLimitMiddleware::class,
 ];
