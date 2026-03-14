@@ -24,6 +24,25 @@
       "pages": [
         { "path": "pages/webview", "style": { "navigationBarTitleText": "" } }
       ]
+    },
+    {
+      "root": "modules/feedback",
+      "pages": [
+        { "path": "pages/feedback", "style": { "navigationBarTitleText": "意见反馈" } }
+      ]
+    },
+    {
+      "root": "modules/message",
+      "pages": [
+        { "path": "pages/message-list", "style": { "navigationBarTitleText": "消息中心" } },
+        { "path": "pages/message-detail", "style": { "navigationBarTitleText": "消息详情" } }
+      ]
+    },
+    {
+      "root": "modules/payment",
+      "pages": [
+        { "path": "pages/pay-result", "style": { "navigationBarTitleText": "支付结果" } }
+      ]
     }
   ],
   "globalStyle": {
