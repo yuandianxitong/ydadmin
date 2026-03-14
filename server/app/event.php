@@ -24,6 +24,9 @@ return [
 
         // ---- 支付事件 ----
         'payment.success' => [\app\listener\payment\PaymentSuccessListener::class],
+
+        // ---- 反馈事件 ----
+        'feedback.created' => [\app\listener\feedback\FeedbackCreatedListener::class],
     ],
 
     'subscribe' => [
