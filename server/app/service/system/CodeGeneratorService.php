@@ -111,7 +111,7 @@ class CodeGeneratorService extends Service
         // 7. 前端API
         $files['api'] = [
             'path'    => "admin/src/api/{$kebab}.ts",
-            'content' => $this->generateFrontendApi($moduleName, $modelName, $hasStatus),
+            'content' => $this->generateFrontendApi($moduleName, $modelName, $hasStatus, $columns),
         ];
 
         // 8. 前端列表页
@@ -124,6 +124,13 @@ class CodeGeneratorService extends Service
         $files['form'] = [
             'path'    => "admin/src/views/{$moduleName}/{$kebab}/components/{$modelName}Form.vue",
             'content' => $this->generateFrontendForm($moduleName, $modelName, $columns, $tableComment),
+        ];
+
+        // 10. Migration
+        $timestamp = date('YmdHis');
+        $files['migration'] = [
+            'path'    => "database/migrations/{$timestamp}_create_{$tableName}_table.php",
+            'content' => $this->generateMigration($tableName, $columns),
         ];
 
         return $files;
@@ -812,10 +819,12 @@ PHP;
 
     // ========== 前端代码生成 ==========
 
-    protected function generateFrontendApi(string $module, string $model, bool $hasStatus): string
+    protected function generateFrontendApi(string $module, string $model, bool $hasStatus, array $columns = []): string
     {
         $kebab = $this->toKebab($model);
         $apiName = lcfirst($model) . 'Api';
+
+        $interfaces = !empty($columns) ? $this->generateTypeScriptInterfaces($model, $columns) . "\n" : '';
 
         $statusApi = '';
         if ($hasStatus) {
@@ -833,7 +842,7 @@ TS;
         return <<<TS
 import { myRequest } from '@/utils/request'
 
-/**
+{$interfaces}/**
  * {$model} 管理API
  */
 export const {$apiName} = {
@@ -1457,6 +1466,187 @@ const handleClose = () => {
 }
 </style>
 VUE;
+    }
+
+    protected function generateTypeScriptInterfaces(string $model, array $columns): string
+    {
+        $createFields = [];
+        $updateFields = [];
+        $infoFields = [];
+
+        $tsTypeMap = [
+            'int' => 'number', 'bigint' => 'number', 'tinyint' => 'number',
+            'smallint' => 'number', 'decimal' => 'number', 'float' => 'number',
+            'double' => 'number', 'varchar' => 'string', 'char' => 'string',
+            'text' => 'string', 'longtext' => 'string', 'mediumtext' => 'string',
+            'json' => 'any', 'date' => 'string', 'datetime' => 'string',
+            'timestamp' => 'string',
+        ];
+
+        foreach ($columns as $col) {
+            $name = $col['name'];
+            $tsType = $tsTypeMap[$col['type']] ?? 'string';
+            $comment = $col['comment'] ?: '';
+            $commentStr = $comment ? "  /** {$comment} */\n" : '';
+
+            // Info interface: all fields
+            if ($name !== 'deleted_at') {
+                $infoFields[] = "{$commentStr}  {$name}: {$tsType}";
+            }
+
+            // Create interface: form fields (not id, not timestamps)
+            if ($col['in_form']) {
+                $optional = $col['nullable'] || $col['default'] !== null ? '?' : '';
+                $createFields[] = "{$commentStr}  {$name}{$optional}: {$tsType}";
+            }
+
+            // Update interface: form fields, all optional except id
+            if ($col['in_form']) {
+                $updateFields[] = "{$commentStr}  {$name}?: {$tsType}";
+            }
+        }
+
+        $createStr = implode("\n", $createFields);
+        $updateStr = "  id: number\n" . implode("\n", $updateFields);
+        $infoStr = implode("\n", $infoFields);
+
+        return <<<TS
+/** {$model} 创建请求 */
+export interface {$model}CreateReq {
+{$createStr}
+}
+
+/** {$model} 更新请求 */
+export interface {$model}UpdateReq {
+{$updateStr}
+}
+
+/** {$model} 详情 */
+export interface {$model}Info {
+{$infoStr}
+}
+TS;
+    }
+
+    protected function generateMigration(string $table, array $columns): string
+    {
+        $typeMap = [
+            'bigint'     => 'biginteger',
+            'int'        => 'integer',
+            'tinyint'    => 'boolean',
+            'smallint'   => 'smallinteger',
+            'varchar'    => 'string',
+            'char'       => 'char',
+            'text'       => 'text',
+            'longtext'   => 'text',
+            'mediumtext' => 'text',
+            'json'       => 'json',
+            'decimal'    => 'decimal',
+            'float'      => 'float',
+            'double'     => 'float',
+            'date'       => 'date',
+            'datetime'   => 'datetime',
+            'timestamp'  => 'timestamp',
+        ];
+
+        $className = str_replace(' ', '', ucwords(str_replace('_', ' ', "create_{$table}_table")));
+        $addColumns = [];
+        $indexes = [];
+
+        foreach ($columns as $col) {
+            $name = $col['name'];
+            if ($name === 'id') continue; // Phinx auto-creates id
+
+            $baseType = $col['type'];
+            $phinxType = $typeMap[$baseType] ?? 'string';
+
+            $options = [];
+
+            // Parse length from raw_type
+            if (preg_match('/\((\d+)\)/', $col['raw_type'], $m)) {
+                if ($phinxType === 'string' || $phinxType === 'char') {
+                    $options[] = "'limit' => {$m[1]}";
+                }
+            }
+
+            // Parse precision/scale for decimal
+            if (preg_match('/\((\d+),(\d+)\)/', $col['raw_type'], $m)) {
+                if ($phinxType === 'decimal' || $phinxType === 'float') {
+                    $options[] = "'precision' => {$m[1]}";
+                    $options[] = "'scale' => {$m[2]}";
+                }
+            }
+
+            // Unsigned for biginteger/integer
+            if (str_contains($col['raw_type'], 'unsigned') && in_array($phinxType, ['biginteger', 'integer', 'smallinteger'])) {
+                $options[] = "'signed' => false";
+            }
+
+            if ($col['nullable']) {
+                $options[] = "'null' => true";
+            }
+
+            if ($col['default'] !== null) {
+                $default = is_numeric($col['default']) ? $col['default'] : "'{$col['default']}'";
+                $options[] = "'default' => {$default}";
+            }
+
+            if (!empty($col['comment'])) {
+                $escapedComment = addslashes($col['comment']);
+                $options[] = "'comment' => '{$escapedComment}'";
+            }
+
+            $optStr = !empty($options) ? '[' . implode(', ', $options) . ']' : '[]';
+            $addColumns[] = "            ->addColumn('{$name}', '{$phinxType}', {$optStr})";
+
+            // Add indexes for common patterns
+            if ($col['key'] === 'MUL') {
+                $indexes[] = "            ->addIndex(['{$name}'])";
+            } elseif ($col['key'] === 'UNI') {
+                $indexes[] = "            ->addIndex(['{$name}'], ['unique' => true])";
+            }
+        }
+
+        $columnsStr = implode("\n", $addColumns);
+        $indexesStr = !empty($indexes) ? "\n" . implode("\n", $indexes) : '';
+
+        // Get table comment
+        $tableComment = '';
+        try {
+            $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE '{$table}'");
+            $tableComment = $tables[0]['Comment'] ?? '';
+        } catch (\Exception $e) {}
+
+        $tableOptions = "'engine' => 'InnoDB', 'collation' => 'utf8mb4_unicode_ci'";
+        if ($tableComment) {
+            $escapedTableComment = addslashes($tableComment);
+            $tableOptions .= ", 'comment' => '{$escapedTableComment}'";
+        }
+
+        return <<<PHP
+<?php
+
+use think\\migration\\Migrator;
+
+class {$className} extends Migrator
+{
+    public function up(): void
+    {
+        \$table = \$this->table('{$table}', [
+            {$tableOptions},
+        ]);
+
+        \$table
+{$columnsStr}{$indexesStr}
+            ->create();
+    }
+
+    public function down(): void
+    {
+        \$this->table('{$table}')->drop()->save();
+    }
+}
+PHP;
     }
 
     // ========== 辅助方法 ==========
