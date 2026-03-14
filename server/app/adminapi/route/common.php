@@ -7,6 +7,11 @@
  * ============================================================ */
 use think\facade\Route;
 
+// 公共接口（无需权限验证）
+Route::group('common', function () {
+    Route::get('regions', 'v1.region.RegionController/tree');
+})->middleware('admin_auth');
+
 // 上传相关
 Route::group('upload', function () {
     Route::post('image', 'v1.upload.UploadController/image');
