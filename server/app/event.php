@@ -27,6 +27,9 @@ return [
 
         // ---- 反馈事件 ----
         'feedback.created' => [\app\listener\feedback\FeedbackCreatedListener::class],
+
+        // ---- 消息推送事件 ----
+        'message.created' => [\app\listener\MessagePushListener::class],
     ],
 
     'subscribe' => [

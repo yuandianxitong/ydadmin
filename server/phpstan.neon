@@ -1,0 +1,16 @@
+includes:
+    - vendor/phpstan/phpstan/conf/bleedingEdge.neon
+
+parameters:
+    level: 5
+    paths:
+        - app
+        - core
+    excludePaths:
+        - app/command
+        - core/plugin/command
+    tmpDir: runtime/phpstan
+    ignoreErrors:
+        - '#Call to an undefined method think\\Model#'
+        - '#Access to an undefined property think\\Model#'
+    reportUnmatchedIgnoredErrors: false

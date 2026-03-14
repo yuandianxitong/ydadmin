@@ -1,0 +1,30 @@
+# 测试环境覆盖配置
+# 使用方式: docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+# 运行测试: docker-compose -f docker-compose.yml -f docker-compose.test.yml exec php vendor/bin/phpunit
+#
+# 特性:
+# - 独立测试数据库（dev007_test）
+# - 关闭持久化卷（每次全新数据库）
+# - 不暴露外部端口
+
+services:
+  php:
+    environment:
+      - APP_DEBUG=true
+      - DB_DATABASE=dev007_test
+
+  mysql:
+    environment:
+      MYSQL_DATABASE: dev007_test
+    ports: []
+    tmpfs:
+      - /var/lib/mysql
+    volumes: []
+
+  redis:
+    ports: []
+    command: redis-server --appendonly no
+    volumes: []
+
+  nginx:
+    ports: []

@@ -86,6 +86,9 @@ jobs:
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist
       - run: vendor/bin/php-cs-fixer fix --dry-run --diff || true
+      - name: Run PHPStan
+        working-directory: server
+        run: vendor/bin/phpstan analyse --no-progress
 
   backend-test:
     name: Backend Tests
