@@ -1533,7 +1533,7 @@ TS;
         $typeMap = [
             'bigint'     => 'biginteger',
             'int'        => 'integer',
-            'tinyint'    => 'boolean',
+            'tinyint'    => 'tinyinteger',
             'smallint'   => 'smallinteger',
             'varchar'    => 'string',
             'char'       => 'char',
@@ -1543,7 +1543,7 @@ TS;
             'json'       => 'json',
             'decimal'    => 'decimal',
             'float'      => 'float',
-            'double'     => 'float',
+            'double'     => 'double',
             'date'       => 'date',
             'datetime'   => 'datetime',
             'timestamp'  => 'timestamp',
@@ -1559,6 +1559,11 @@ TS;
 
             $baseType = $col['type'];
             $phinxType = $typeMap[$baseType] ?? 'string';
+
+            // tinyint(1) is boolean, others are tinyinteger
+            if ($baseType === 'tinyint' && preg_match('/tinyint\(1\)/', $col['raw_type'])) {
+                $phinxType = 'boolean';
+            }
 
             $options = [];
 
@@ -1587,8 +1592,8 @@ TS;
             }
 
             if ($col['default'] !== null) {
-                $default = is_numeric($col['default']) ? $col['default'] : "'{$col['default']}'";
-                $options[] = "'default' => {$default}";
+                $escapedDefault = is_numeric($col['default']) ? $col['default'] : "'" . addslashes($col['default']) . "'";
+                $options[] = "'default' => {$escapedDefault}";
             }
 
             if (!empty($col['comment'])) {
@@ -1613,7 +1618,7 @@ TS;
         // Get table comment
         $tableComment = '';
         try {
-            $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE '{$table}'");
+            $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE ?", [$table]);
             $tableComment = $tables[0]['Comment'] ?? '';
         } catch (\Exception $e) {}
 

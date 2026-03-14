@@ -161,6 +161,9 @@ class AuthController extends Controller
     {
         try {
             $token = $this->tokenManager->getTokenFromHeader();
+            if (!$token) {
+                return $this->error(lang('messages.token_not_provided'));
+            }
             $newToken = $this->tokenManager->refresh($token);
             return $this->success(lang('messages.refresh_success'), ['token' => $newToken]);
         } catch (\Exception $e) {

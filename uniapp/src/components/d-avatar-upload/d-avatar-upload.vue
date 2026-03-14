@@ -3,7 +3,7 @@
     <view class="avatar-wrap">
       <image
         class="avatar"
-        :src="modelValue || '/static/default-avatar.png'"
+        :src="displayUrl || '/static/default-avatar.png'"
         mode="aspectFill"
       />
       <view class="camera-overlay">
@@ -15,11 +15,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useUpload } from '@/hooks/useUpload'
+import { useAppStore } from '@/store/app.store'
 
 const props = defineProps<{
   modelValue: string
 }>()
+
+const appStore = useAppStore()
+const displayUrl = computed(() => appStore.getImageUrl(props.modelValue))
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 

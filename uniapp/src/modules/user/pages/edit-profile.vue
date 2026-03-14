@@ -91,7 +91,7 @@ function onGenderConfirm(val: { value: number }) {
 onMounted(async () => {
   try {
     const profile = await loadProfile()
-    form.avatar = appStore.getImageUrl(profile.avatar || '')
+    form.avatar = profile.avatar || ''
     form.nickname = profile.nickname || ''
     form.gender = profile.gender ?? 0
     form.birthday = profile.birthday || ''

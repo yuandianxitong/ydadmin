@@ -23,19 +23,20 @@ export function usePaging<T = any>(options: PagingOptions<T>) {
     loading.value = true
 
     try {
+      const currentPage = page.value
       const result = await fetchFun({
-        page_no: page.value,
+        page_no: currentPage,
         page_size: pageSize.value,
         ...params,
       })
-      if (page.value === 1) {
+      if (currentPage === 1) {
         list.value = result.list
       } else {
         list.value = [...list.value, ...result.list] as T[]
       }
       total.value = result.pagination.total
-      finished.value = page.value >= result.pagination.last_page
-      page.value++
+      finished.value = currentPage >= result.pagination.last_page
+      page.value = currentPage + 1
     } finally {
       loading.value = false
       refreshing.value = false

@@ -11,11 +11,15 @@ export const uploadApi = {
         name: 'file',
         header: { Authorization: `Bearer ${getToken()}` },
         success: (res) => {
-          const data = JSON.parse(res.data)
-          if (data.code === 200) {
-            resolve(data.data)
-          } else {
-            reject(new Error(data.message))
+          try {
+            const data = JSON.parse(res.data)
+            if (data.code === 200) {
+              resolve(data.data)
+            } else {
+              reject(new Error(data.message || '上传失败'))
+            }
+          } catch {
+            reject(new Error('上传响应解析失败'))
           }
         },
         fail: reject,

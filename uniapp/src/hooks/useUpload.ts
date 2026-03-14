@@ -22,7 +22,7 @@ export function useUpload(options: UploadOptions = {}) {
 
           try {
             const result = await uploadApi.uploadImage(file.path)
-            resolve(result.url)
+            resolve(result.path)
           } catch (e) {
             reject(e)
           }

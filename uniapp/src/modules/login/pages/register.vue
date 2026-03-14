@@ -161,8 +161,11 @@ async function handleRegister() {
       password: form.password,
       code: form.code,
     })
-    // Store token and user info
-    userStore.login({ mobile: form.mobile, password: form.password })
+    // Use register result directly (contains token + user)
+    if (result.token) {
+      const { setToken } = await import('@/utils/auth')
+      setToken(result.token)
+    }
     uni.showToast({ title: '注册成功' })
     setTimeout(() => {
       uni.reLaunch({ url: '/pages/index/index' })

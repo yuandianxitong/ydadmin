@@ -5,13 +5,19 @@ import { configApi } from '@/api/config'
 export const useAppStore = defineStore('app', () => {
   const config = ref<Record<string, any>>({})
   const isConfigLoaded = ref(false)
+  let configPromise: Promise<Record<string, any>> | null = null
 
   async function getConfig() {
     if (isConfigLoaded.value) return config.value
-    const result = await configApi.getGlobalConfig()
-    config.value = result
-    isConfigLoaded.value = true
-    return result
+    if (configPromise) return configPromise
+    configPromise = configApi.getGlobalConfig().then((result) => {
+      config.value = result
+      isConfigLoaded.value = true
+      return result
+    }).finally(() => {
+      configPromise = null
+    })
+    return configPromise
   }
 
   function getImageUrl(url: string): string {

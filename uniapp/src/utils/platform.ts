@@ -1,15 +1,15 @@
+let cachedPlatform: string | null = null
+
 export function getPlatform(): string {
-  // UniApp 条件编译在构建时生效，TypeScript 静态分析看不到
-  // 使用 uni API 运行时判断平台
+  if (cachedPlatform) return cachedPlatform
   const systemInfo = uni.getSystemInfoSync()
-  if (systemInfo.uniPlatform) {
-    return systemInfo.uniPlatform
-  }
-  return 'unknown'
+  cachedPlatform = systemInfo.uniPlatform || 'unknown'
+  return cachedPlatform
 }
 
 export function isH5(): boolean {
-  return getPlatform() === 'h5' || getPlatform() === 'web'
+  const p = getPlatform()
+  return p === 'h5' || p === 'web'
 }
 
 export function isWeixin(): boolean {

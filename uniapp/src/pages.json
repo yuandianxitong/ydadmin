@@ -35,7 +35,8 @@
   "easycom": {
     "autoscan": true,
     "custom": {
-      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue"
+      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
+      "^d-(.*)": "@/components/d-$1/d-$1.vue"
     }
   }
 }
