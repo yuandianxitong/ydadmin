@@ -15,7 +15,7 @@ class ValidationException extends Exception
 {
     protected $errors;
 
-    public function __construct($errors, string $message = '', int $code = 422, Exception $previous = null)
+    public function __construct($errors, string $message = '', int $code = ErrorCode::VALIDATE_FAILED, Exception $previous = null)
     {
         $this->errors = is_array($errors) ? $errors : [$errors];
         parent::__construct($message ?: lang('auth.validation_error'), $code, $previous);
