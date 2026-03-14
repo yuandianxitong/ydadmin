@@ -19,7 +19,7 @@ class CommonController extends Controller
             $configs = \app\model\system\SystemConfig::getConfigsByGroup('basic');
 
             // 只返回前端需要的公开配置
-            $publicKeys = ['site_name', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register'];
+            $publicKeys = ['site_name', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register', 'banner_list'];
             $result = array_intersect_key($configs, array_flip($publicKeys));
 
             return $this->success(lang('messages.get_success'), $result);
