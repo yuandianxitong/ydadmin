@@ -1,6 +1,34 @@
-# 元点Admin
+<p align="center">
+  <img src="https://erp.dev007.cn/oss/logo.png" alt="元点Admin" width="120">
+</p>
 
-一款基于 ThinkPHP 8 + Vue 3 + TypeScript 的通用后台管理系统，开箱即用，助力中小企业快速搭建专属管理后台。
+<h1 align="center">元点Admin — 开源通用后台管理系统</h1>
+
+<p align="center">
+  基于 ThinkPHP 8 + Vue 3 + TypeScript + Element Plus + UniApp 的前后端分离管理系统
+</p>
+
+<p align="center">
+  <a href="https://admin.dev007.cn">在线演示</a> · <a href="http://docs.dev007.cn/admin/">文档中心</a> · <a href="https://gitee.com/yuandianxitong/ydadmin/issues">问题反馈</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.x-blue?logo=php" alt="PHP">
+  <img src="https://img.shields.io/badge/ThinkPHP-8-green" alt="ThinkPHP">
+  <img src="https://img.shields.io/badge/Vue-3-brightgreen?logo=vue.js" alt="Vue 3">
+  <img src="https://img.shields.io/badge/Element%20Plus-latest-409eff" alt="Element Plus">
+  <img src="https://img.shields.io/badge/MySQL-5.7%2B-orange?logo=mysql" alt="MySQL">
+  <img src="https://img.shields.io/badge/uni--app-Vue%203-brightgreen?logo=vue.js" alt="uni-app">
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
+</p>
+
+---
+
+## 系统简介
+
+元点Admin 是一款开箱即用的通用后台管理系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。
+
+系统内置完善的 RBAC 权限体系、CRUD 代码生成器、插件化扩展机制和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
 ## 技术栈
 
@@ -153,5 +181,7 @@ php think plugin:enable plugin_name
 
 ## 链接
 
+- 在线演示: [https://admin.dev007.cn](https://admin.dev007.cn)
+- 文档中心: [http://docs.dev007.cn/admin/](http://docs.dev007.cn/admin/)
 - GitHub: [https://github.com/yuandianxitong/ydadmin](https://github.com/yuandianxitong/ydadmin)
 - Gitee: [https://gitee.com/yuandianxitong/ydadmin](https://gitee.com/yuandianxitong/ydadmin)
