@@ -7,9 +7,6 @@
 CLAUDE.md
 .superpowers/
 
-# Documentation (maintained locally, not published via git)
-docs/
-
 # OS
 .DS_Store
 Thumbs.db
@@ -26,6 +23,9 @@ vendor/
 # Build output
 admin/dist/
 uniapp/dist/
+
+# Documentation (internal, not published via git)
+docs/
 
 # Install lock
 server/config/install.lock
