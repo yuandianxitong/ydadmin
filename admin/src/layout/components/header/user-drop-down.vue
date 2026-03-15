@@ -1,7 +1,7 @@
 <template>
     <el-dropdown class="px-2" @command="handleCommand">
         <div class="flex items-center cursor-pointer">
-            <el-avatar :size="34" :src="appStore.getImageUrl(userInfo.avatar)">
+            <el-avatar :size="34" :src="appStore.getImageUrl(userInfo?.avatar ?? '')">
                 <Icon name="i-svg:user" :size="18" />
             </el-avatar>
             <div class="ml-3 mr-1">{{ userInfo.username }}</div>

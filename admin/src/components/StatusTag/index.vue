@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-type TagType = '' | 'success' | 'warning' | 'danger' | 'info'
+type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info'
 
 interface StatusConfig {
     label: string
@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Default status mapping
-const defaultMap: Record<number, StatusConfig> = {
+const defaultMap: Record<string | number, StatusConfig> = {
     0: { label: '禁用', type: 'danger' },
     1: { label: '启用', type: 'success' },
     2: { label: '待审核', type: 'warning' },
@@ -36,7 +36,7 @@ const defaultMap: Record<number, StatusConfig> = {
 
 const config = computed<StatusConfig>(() => {
     const map = props.map || defaultMap
-    return map[props.status] || { label: String(props.status), type: 'info' }
+    return map[props.status] || { label: String(props.status), type: 'info' as TagType }
 })
 
 const tagType = computed(() => config.value.type)

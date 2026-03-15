@@ -345,9 +345,13 @@ fieldset {
   color: rgba(37, 99, 235, 0.85);
 }
 
-/* Hero context: override current step text to white */
+/* Hero context: override step text to white (prevent blue-on-blue) */
 .install-hero .steps .step.step-current {
   color: #ffffff !important;
+}
+
+.install-hero .steps .step.step-completed {
+  color: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* --- Inputs --- */

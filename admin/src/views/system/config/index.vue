@@ -293,9 +293,10 @@ const loadConfigs = async (group: string) => {
     }
 }
 
-const handleTabChange = async (tabName: string) => {
-    if (!configsData[tabName]) {
-        await loadConfigs(tabName)
+const handleTabChange = async (tabName: string | number) => {
+    const group = String(tabName)
+    if (!configsData[group]) {
+        await loadConfigs(group)
     }
 }
 

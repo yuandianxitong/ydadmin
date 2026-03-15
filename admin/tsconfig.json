@@ -12,6 +12,7 @@
     "compilerOptions": {
         "ignoreDeprecations": "5.0",
         "isolatedModules": true,
+        "skipLibCheck": true,
         "baseUrl": ".",
         "paths": {
             "@/*": [
@@ -19,7 +20,6 @@
             ]
         },
         "strict": true,
-        "composite": true,
         "types": [
             "@types/node"
         ]

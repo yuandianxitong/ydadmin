@@ -10,8 +10,10 @@ import { clearAuthInfo, getToken } from '@/utils/auth'
 import { t } from '@/utils/i18n'
 
 // 创建axios实例
+// 开发环境：留空，通过 vite proxy 代理
+// 生产环境：读取 VITE_APP_API_URL，留空则请求当前域名（同域部署），填写则请求指定域名（跨域部署）
 const request: AxiosInstance = axios.create({
-    baseURL: import.meta.env.DEV ? '' : import.meta.env.VITE_APP_API_URL || '',
+    baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_APP_API_URL || ''),
     timeout: 30000,
     headers: {
         'Content-Type': 'application/json;charset=UTF-8'

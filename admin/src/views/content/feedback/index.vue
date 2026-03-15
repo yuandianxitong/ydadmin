@@ -174,7 +174,7 @@ const typeTextMap: Record<string, string> = {
     complaint: '投诉',
     other: '其他',
 }
-const typeTagMap: Record<string, string> = {
+const typeTagMap: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     suggestion: 'primary',
     bug: 'danger',
     complaint: 'warning',
@@ -186,11 +186,11 @@ const statusTextMap: Record<number, string> = {
     2: '已回复',
     3: '已关闭',
 }
-const statusTagMap: Record<number, string> = {
+const statusTagMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     0: 'info',
     1: 'warning',
     2: 'success',
-    3: '',
+    3: 'info',
 }
 
 const loading = ref(false)

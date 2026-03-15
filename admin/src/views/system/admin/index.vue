@@ -209,7 +209,7 @@ import { adminApi } from '@/api/admin'
 import { roleApi } from '@/api/role'
 import { useUserStore } from '@/store'
 import useAppStore from '@/store/modules/app.store'
-import type { AdminInfo, AdminQuery, RoleInfo } from '@/types/api'
+import type { AdminInfo, AdminQuery, RoleOption } from '@/types/api'
 
 import AdminForm from './components/AdminForm.vue'
 import ResetPasswordDialog from './components/ResetPasswordDialog.vue'
@@ -248,7 +248,7 @@ const resetPasswordVisible = ref(false)
 const currentAdmin = ref<AdminInfo | null>(null)
 
 // 角色选项
-const roleOptions = ref<Array<{ id: number; name: string; title: string }>>([])
+const roleOptions = ref<RoleOption[]>([])
 
 // 获取管理员列表
 const getAdminList = async () => {

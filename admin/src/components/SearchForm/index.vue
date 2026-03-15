@@ -29,6 +29,12 @@ export interface SearchFormContext {
     showCount: Ref<number>
 }
 
+export interface SearchFormProps {
+    modelValue: Record<string, any>
+    collapsible?: boolean
+    showCount?: number
+}
+
 export const searchFormContextKey: InjectionKey<SearchFormContext> = Symbol('searchFormContext')
 </script>
 
@@ -36,11 +42,7 @@ export const searchFormContextKey: InjectionKey<SearchFormContext> = Symbol('sea
 import { Fragment } from 'vue'
 import { Search, Refresh, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 
-interface Props {
-    modelValue: Record<string, any>
-    collapsible?: boolean
-    showCount?: number
-}
+type Props = SearchFormProps
 
 const props = withDefaults(defineProps<Props>(), {
     collapsible: true,

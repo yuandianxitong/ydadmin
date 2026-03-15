@@ -1,8 +1,13 @@
 import type { GeneratorColumnInfo, GeneratorConfig, GeneratorTableInfo } from '@/types/api'
 import { myRequest } from '@/utils/request'
 
+export interface GeneratorPreviewFile {
+    path: string
+    content: string
+}
+
 export interface GeneratorPreviewResult {
-    [filename: string]: string
+    [filename: string]: GeneratorPreviewFile
 }
 
 export const generatorApi = {
@@ -18,6 +23,6 @@ export const generatorApi = {
         return myRequest.post<GeneratorPreviewResult>('/adminapi/system/generator/preview', data)
     },
     generate(data: GeneratorConfig) {
-        return myRequest.post<{ files: string[] }>('/adminapi/system/generator/generate', data)
+        return myRequest.post<{ files: Array<{ path: string; status: string; reason?: string }>; route?: string }>('/adminapi/system/generator/generate', data)
     }
 }

@@ -39,20 +39,21 @@ export const useAppStore = defineStore('app', {
                 return url
             }
 
-            // 生产环境：拼接完整域名
+            // 生产环境：按优先级拼接域名
+            // 1. OSS 域名（后台配置）
             if (this.config.oss_domain) {
                 return `${this.config.oss_domain}${url}`
             }
-
+            // 2. 站点域名（后台配置）
             if (this.config.site_url) {
                 return `${this.config.site_url}${url}`
             }
-
-            const baseUrl = import.meta.env.VITE_APP_BASE_URL || ''
-            if (baseUrl) {
-                return `${baseUrl}${url}`
+            // 3. 环境变量 API 域名（跨域部署时配置）
+            const apiUrl = import.meta.env.VITE_APP_API_URL
+            if (apiUrl) {
+                return `${apiUrl}${url}`
             }
-
+            // 4. 当前访问域名（同域部署）
             return `${window.location.origin}${url}`
         },
 

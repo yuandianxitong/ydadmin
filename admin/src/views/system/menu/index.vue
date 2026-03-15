@@ -58,7 +58,7 @@
                     <el-button
                         v-has-perm="['system.menu.create']"
                         type="primary"
-                        @click="handleAdd"
+                        @click="handleAdd()"
                     >
                         <el-icon><Plus /></el-icon>
                         {{ $t('menu.addMenu') }}
@@ -246,7 +246,7 @@ const getMenuList = async () => {
 const getParentOptions = async (excludeId?: number) => {
     try {
         const response = await menuApi.getMenuOptions(excludeId)
-        parentOptions.value = response.data
+        parentOptions.value = response.data as Array<{ id: number; title: string; level: number }>
     } catch (error) {
         ElMessage.error(t('message.fetchFailed'))
     }
@@ -547,8 +547,8 @@ const getTypeText = (type: number) => {
 }
 
 // 获取类型标签类型
-const getTypeTagType = (type: number) => {
-    const typeMap: Record<number, string> = {
+const getTypeTagType = (type: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
         1: 'info',
         2: 'success',
         3: 'warning'

@@ -166,7 +166,7 @@ const serverUrl = computed(() => {
     return `${siteUrl}/api/wechat/serve`
 })
 
-const uploadUrl = computed(() => `${import.meta.env.VITE_APP_BASE_URL || ''}/adminapi/upload/image`)
+const uploadUrl = computed(() => `${import.meta.env.VITE_APP_API_URL || ''}/adminapi/upload/image`)
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${getToken()}` }))
 
 const getImageUrl = (path: string) => {

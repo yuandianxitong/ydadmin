@@ -89,9 +89,9 @@ const getVisibleProps = (): string[] => {
     return columnState.value.filter((col) => col.visible).map((col) => col.prop)
 }
 
-const handleCheckAllChange = (val: boolean) => {
+const handleCheckAllChange = (val: boolean | string | number) => {
     columnState.value.forEach((col) => {
-        col.visible = val
+        col.visible = !!val
     })
     indeterminate.value = false
     emit('change', getVisibleProps())

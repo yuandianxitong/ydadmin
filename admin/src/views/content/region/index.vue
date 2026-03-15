@@ -1,18 +1,26 @@
 <template>
     <div class="region-container">
-        <!-- 搜索区域 -->
+        <!-- 面包屑导航 -->
         <el-card class="search-card" shadow="never">
-            <el-form :model="searchForm" inline class="search-form">
-                <el-form-item :label="$t('regionMgmt.regionName')">
+            <div class="breadcrumb-bar">
+                <el-breadcrumb separator="/">
+                    <el-breadcrumb-item>
+                        <a @click.prevent="navigateTo(-1)">{{ $t('regionMgmt.title') }}</a>
+                    </el-breadcrumb-item>
+                    <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="item.id">
+                        <a v-if="index < breadcrumbs.length - 1" @click.prevent="navigateTo(index)">{{ item.name }}</a>
+                        <span v-else>{{ item.name }}</span>
+                    </el-breadcrumb-item>
+                </el-breadcrumb>
+                <div class="search-actions">
                     <el-input
                         v-model="searchForm.keyword"
                         :placeholder="$t('regionMgmt.namePlaceholder')"
                         clearable
                         style="width: 200px"
+                        @keyup.enter="handleSearch"
                     />
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="getTreeData">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -20,15 +28,27 @@
                         <el-icon><Refresh /></el-icon>
                         {{ $t('common.reset') }}
                     </el-button>
-                </el-form-item>
-            </el-form>
+                </div>
+            </div>
         </el-card>
 
-        <!-- 操作区域 -->
+        <!-- 表格区域 -->
         <el-card class="table-card" shadow="never">
             <div class="table-header">
-                <div class="table-title">{{ $t('regionMgmt.title') }}</div>
+                <div class="table-title">
+                    <el-tag v-if="currentParentId > 0" type="info" size="small" class="level-tag">
+                        {{ levelTextMap[currentLevel] || `Level ${currentLevel}` }}
+                    </el-tag>
+                    {{ currentParentId === 0 ? $t('regionMgmt.title') : breadcrumbs[breadcrumbs.length - 1]?.name }}
+                </div>
                 <div class="table-actions">
+                    <el-button
+                        v-if="currentParentId > 0"
+                        @click="goBack"
+                    >
+                        <el-icon><Back /></el-icon>
+                        返回上级
+                    </el-button>
                     <el-button
                         v-has-perm="['region.create']"
                         type="primary"
@@ -42,11 +62,8 @@
 
             <el-table
                 v-loading="loading"
-                :data="filteredTreeData"
-                row-key="id"
-                :tree-props="{ children: 'children' }"
+                :data="tableData"
                 border
-                default-expand-all
             >
                 <el-table-column :label="$t('regionMgmt.regionName')" prop="name" min-width="200" />
 
@@ -70,8 +87,16 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('common.operation')" width="220" fixed="right">
+                <el-table-column :label="$t('common.operation')" width="320" fixed="right">
                     <template #default="{ row }">
+                        <el-button
+                            type="primary"
+                            size="small"
+                            text
+                            @click="handleDrillDown(row)"
+                        >
+                            下级管理
+                        </el-button>
                         <el-button
                             v-has-perm="['region.create']"
                             type="primary"
@@ -102,15 +127,29 @@
                     </template>
                 </el-table-column>
             </el-table>
+
+            <!-- 分页 -->
+            <div class="pagination-wrap">
+                <el-pagination
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.pageSize"
+                    :total="pagination.total"
+                    :page-sizes="[20, 50, 100]"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    background
+                    @size-change="fetchList"
+                    @current-change="fetchList"
+                />
+            </div>
         </el-card>
 
         <!-- 表单弹窗 -->
-        <RegionForm v-model="formVisible" :form-data="formData" @success="getTreeData" />
+        <RegionForm v-model="formVisible" :form-data="formData" @success="fetchList" />
     </div>
 </template>
 
 <script setup lang="ts" name="RegionList">
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { Back, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -121,9 +160,25 @@ import RegionForm from './components/RegionForm.vue'
 
 const { t } = useI18n()
 
+interface BreadcrumbItem {
+    id: number
+    name: string
+    level: number
+}
+
 const searchForm = reactive({ keyword: '' })
-const treeData = ref<any[]>([])
+const tableData = ref<any[]>([])
 const loading = ref(false)
+
+const currentParentId = ref(0)
+const currentLevel = ref(0)
+const breadcrumbs = ref<BreadcrumbItem[]>([])
+
+const pagination = reactive({
+    page: 1,
+    pageSize: 20,
+    total: 0
+})
 
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
@@ -141,26 +196,20 @@ const levelTagMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | '
     4: 'info'
 }
 
-const filterTree = (nodes: any[], keyword: string): any[] => {
-    if (!keyword) return nodes
-    return nodes.reduce((acc: any[], node) => {
-        const children = node.children ? filterTree(node.children, keyword) : []
-        if (node.name.includes(keyword) || node.code?.includes(keyword) || children.length > 0) {
-            acc.push({ ...node, children: children.length > 0 ? children : node.children })
-        }
-        return acc
-    }, [])
-}
-
-const filteredTreeData = computed(() => {
-    return filterTree(treeData.value, searchForm.keyword?.trim() || '')
-})
-
-const getTreeData = async () => {
+const fetchList = async () => {
     try {
         loading.value = true
-        const res = await regionApi.getTree()
-        treeData.value = res.data
+        const params: Record<string, any> = {
+            page_no: pagination.page,
+            page_size: pagination.pageSize,
+            parent_id: currentParentId.value
+        }
+        if (searchForm.keyword?.trim()) {
+            params.keyword = searchForm.keyword.trim()
+        }
+        const res = await regionApi.getList(params)
+        tableData.value = res.data.list || []
+        pagination.total = res.data.pagination?.total || 0
     } catch {
         ElMessage.error(t('message.fetchFailed'))
     } finally {
@@ -168,13 +217,64 @@ const getTreeData = async () => {
     }
 }
 
+const handleSearch = () => {
+    pagination.page = 1
+    fetchList()
+}
+
 const resetSearch = () => {
-    Object.assign(searchForm, { keyword: '' })
-    getTreeData()
+    searchForm.keyword = ''
+    pagination.page = 1
+    fetchList()
+}
+
+const handleDrillDown = (row: any) => {
+    breadcrumbs.value.push({ id: row.id, name: row.name, level: row.level })
+    currentParentId.value = row.id
+    currentLevel.value = row.level
+    searchForm.keyword = ''
+    pagination.page = 1
+    fetchList()
+}
+
+const navigateTo = (index: number) => {
+    if (index === -1) {
+        // Navigate to root
+        breadcrumbs.value = []
+        currentParentId.value = 0
+        currentLevel.value = 0
+    } else {
+        // Navigate to specific breadcrumb level
+        const target = breadcrumbs.value[index]
+        breadcrumbs.value = breadcrumbs.value.slice(0, index + 1)
+        currentParentId.value = target.id
+        currentLevel.value = target.level
+    }
+    searchForm.keyword = ''
+    pagination.page = 1
+    fetchList()
+}
+
+const goBack = () => {
+    if (breadcrumbs.value.length > 1) {
+        breadcrumbs.value.pop()
+        const parent = breadcrumbs.value[breadcrumbs.value.length - 1]
+        currentParentId.value = parent.id
+        currentLevel.value = parent.level
+    } else {
+        breadcrumbs.value = []
+        currentParentId.value = 0
+        currentLevel.value = 0
+    }
+    searchForm.keyword = ''
+    pagination.page = 1
+    fetchList()
 }
 
 const handleAdd = () => {
-    formData.value = { parent_id: 0, level: 1, sort: 0, status: 1 }
+    const level = currentParentId.value === 0 ? 1 : currentLevel.value + 1
+    const parentName = breadcrumbs.value.length > 0 ? breadcrumbs.value[breadcrumbs.value.length - 1].name : ''
+    formData.value = { parent_id: currentParentId.value, parent_name: parentName, level, sort: 0, status: 1 }
     formVisible.value = true
 }
 
@@ -197,14 +297,14 @@ const handleDelete = async (row: any) => {
         })
         await regionApi.delete(row.id)
         ElMessage.success(t('message.deleteSuccess'))
-        getTreeData()
+        fetchList()
     } catch (error) {
         if (error !== 'cancel') ElMessage.error(t('common.error'))
     }
 }
 
 onMounted(() => {
-    getTreeData()
+    fetchList()
 })
 </script>
 
@@ -213,8 +313,31 @@ onMounted(() => {
     .search-card {
         margin-bottom: 16px;
 
-        .search-form {
-            margin: 0;
+        .breadcrumb-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+
+            :deep(.el-breadcrumb) {
+                font-size: 14px;
+
+                a {
+                    cursor: pointer;
+                    color: var(--el-color-primary);
+
+                    &:hover {
+                        text-decoration: underline;
+                    }
+                }
+            }
+
+            .search-actions {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }
         }
     }
 
@@ -229,12 +352,21 @@ onMounted(() => {
                 font-size: 16px;
                 font-weight: 600;
                 color: var(--el-text-color-primary);
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
 
             .table-actions {
                 display: flex;
                 gap: 8px;
             }
+        }
+
+        .pagination-wrap {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
         }
     }
 }

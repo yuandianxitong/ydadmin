@@ -15,7 +15,7 @@
                 <el-tooltip :content="translateRouteTitle(item.meta?.title, item.name)" placement="right">
                     <Icon
                         :name="item.meta?.icon ?? ''"
-                        :size="item.meta?.icon?.startsWith('i-svg:') ? 22 : 22"
+                        :size="item.meta?.icon?.startsWith('i-svg:') ? 20 : 22"
                         class="text-white"
                     />
                 </el-tooltip>

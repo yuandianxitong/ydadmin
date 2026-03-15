@@ -52,8 +52,7 @@ const handleChange = (fullPath: any) => {
     if (!tabItem) return
     router.push({
         path: tabItem.path,
-        query: tabItem.query,
-        params: tabItem.params
+        query: tabItem.query
     })
 }
 
@@ -61,7 +60,7 @@ const handleChange = (fullPath: any) => {
 const handleCommand = (command: string) => {
     switch (command) {
         case 'closeCurrent':
-            removeTab()
+            removeTab(currentTab.value)
             break
         case 'closeOther':
             removeOtherTab()

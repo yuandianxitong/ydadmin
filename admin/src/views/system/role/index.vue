@@ -340,8 +340,8 @@ const getDataScopeText = (dataScope: number) => {
 }
 
 // 获取数据权限标签类型
-const getDataScopeTagType = (dataScope: number) => {
-    const typeMap: Record<number, string> = {
+const getDataScopeTagType = (dataScope: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
         1: 'danger',
         2: 'warning',
         3: 'info',

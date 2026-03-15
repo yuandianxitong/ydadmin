@@ -54,7 +54,7 @@ const emit = defineEmits<{
 
 // 编辑器实例，必须用 shallowRef
 const editorRef = shallowRef()
-const materialPickerRef = shallowRef<InstanceType<typeof MaterialPicker>>()
+const materialPickerRef = shallowRef<InstanceType<any>>()
 const fileType = ref('')
 
 let insertFn: any

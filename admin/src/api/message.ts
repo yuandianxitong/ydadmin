@@ -33,10 +33,10 @@ export const messageTemplateApi = {
     getDetail(id: number) {
         return myRequest.get<MessageTemplateInfo>(`/adminapi/message/template/${id}`)
     },
-    create(data: MessageTemplateReq) {
+    create(data: MessageTemplateReq | Record<string, any>) {
         return myRequest.post<void>('/adminapi/message/template', data)
     },
-    update(id: number, data: Partial<MessageTemplateReq>) {
+    update(id: number, data: Partial<MessageTemplateReq> | Record<string, any>) {
         return myRequest.put<void>(`/adminapi/message/template/${id}`, data)
     },
     delete(id: number) {

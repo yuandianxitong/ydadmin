@@ -112,7 +112,7 @@ watch(
                 id: props.formData.id || undefined,
                 name: props.formData.name || '',
                 command: props.formData.command || '',
-                expression: props.formData.expression || '',
+                expression: props.formData.cron_expression || props.formData.expression || '',
                 description: props.formData.description || '',
                 status: props.formData.status ?? 1,
                 sort: props.formData.sort ?? 0
@@ -140,11 +140,13 @@ const handleSubmit = async () => {
 
     submitting.value = true
     try {
-        if (form.id) {
-            await cronJobApi.update(form.id, { ...form })
+        const { expression, id, ...rest } = form
+        const payload = { ...rest, cron_expression: expression }
+        if (id) {
+            await cronJobApi.update(id, payload)
             ElMessage.success(t('message.updateSuccess'))
         } else {
-            await cronJobApi.create({ ...form })
+            await cronJobApi.create(payload)
             ElMessage.success(t('message.createSuccess'))
         }
         emit('update:modelValue', false)

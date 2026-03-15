@@ -219,6 +219,7 @@ function goRegister() {
   background: #f8f9fc;
   border-radius: 16rpx;
   overflow: hidden;
+  min-height: 96rpx;
 
   &.sms-group {
     display: flex;
@@ -228,6 +229,15 @@ function goRegister() {
   .custom-input {
     flex: 1;
     background: transparent;
+
+    :deep(.wd-input) {
+      min-height: 96rpx;
+      padding: 0 24rpx;
+    }
+
+    :deep(.wd-input__inner) {
+      font-size: 30rpx;
+    }
   }
 
   .sms-input {

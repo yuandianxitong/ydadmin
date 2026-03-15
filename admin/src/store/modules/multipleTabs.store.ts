@@ -176,11 +176,10 @@ export const useMultipleTabsStore = defineStore('multipleTabs', {
                 toTab = this.tabList[index - 1]
             }
 
-            // 直接调用 router.push，用 tabItem 的 path、query、params
+            // 直接调用 router.push，用 tabItem 的 path、query
             push({
                 path: toTab.path,
-                query: toTab.query,
-                params: toTab.params
+                query: toTab.query
             })
         },
 

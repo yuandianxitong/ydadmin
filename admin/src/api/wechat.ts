@@ -29,10 +29,18 @@ export interface WechatTemplateSendReq {
     url?: string
 }
 
+// 微信返回的菜单查询结果
+export interface WechatMenuQueryResult {
+    selfmenu_info?: {
+        button: Array<Record<string, any>>
+    }
+    [key: string]: any
+}
+
 // 公众号管理
 export const officialAccountApi = {
     getMenu() {
-        return myRequest.get<WechatMenuData>('/adminapi/wechat/official/menu')
+        return myRequest.get<WechatMenuQueryResult>('/adminapi/wechat/official/menu')
     },
     createMenu(data: WechatMenuData) {
         return myRequest.post<void>('/adminapi/wechat/official/menu', data)
@@ -62,10 +70,10 @@ export const autoReplyApi = {
     getDetail(id: number) {
         return myRequest.get<AutoReplyInfo>(`/adminapi/wechat/auto-reply/${id}`)
     },
-    create(data: AutoReplyReq) {
+    create(data: AutoReplyReq | Record<string, any>) {
         return myRequest.post<void>('/adminapi/wechat/auto-reply', data)
     },
-    update(id: number, data: Partial<AutoReplyReq>) {
+    update(id: number, data: Partial<AutoReplyReq> | Record<string, any>) {
         return myRequest.put<void>(`/adminapi/wechat/auto-reply/${id}`, data)
     },
     delete(id: number) {

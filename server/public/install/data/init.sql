@@ -160,136 +160,138 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
 -- ============================================================
 INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
   -- 控制台
-  (1, 0, 2, '控制台', 'Workbench', '/workbench', 'workbench/index', NULL, 'el-icon-Odometer', NULL, 0, 1, 1, 0, NULL, 1, NULL, NULL, 1, 0, NOW(), NOW()),
+  (1, 0, 2, '控制台', 'Workbench', '/workbench', 'workbench/index', NULL, 'i-svg:gauge', NULL, 0, 1, 1, 0, NULL, 1, NULL, NULL, 1, 0, NOW(), NOW()),
 
   -- ===== 系统管理 =====
-  (2, 0, 1, '系统管理', 'System', '/system', 'LAYOUT', NULL, 'el-icon-Setting', 'system', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 900, NOW(), NOW()),
+  (2, 0, 1, '系统管理', 'System', '/system', 'LAYOUT', NULL, 'i-svg:settings', 'system', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 900, NOW(), NOW()),
 
   -- 管理员管理
-  (10, 2, 2, '管理员管理', 'SystemAdmin', '/system/admin', '/system/admin/index', NULL, 'el-icon-User', 'system.admin', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (10, 2, 2, '管理员管理', 'SystemAdmin', '/system/admin', '/system/admin/index', NULL, 'i-svg:user', 'system.admin', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (11, 10, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.admin.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (12, 10, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.admin.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (13, 10, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.admin.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 角色管理
-  (20, 2, 2, '角色管理', 'SystemRole', '/system/role', '/system/role/index', NULL, 'el-icon-UserFilled', 'system.role', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (20, 2, 2, '角色管理', 'SystemRole', '/system/role', '/system/role/index', NULL, 'i-svg:users', 'system.role', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (21, 20, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.role.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (22, 20, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.role.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (23, 20, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.role.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (24, 20, 3, '授权', NULL, NULL, NULL, NULL, NULL, 'system.role.permission', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
 
   -- 部门管理
-  (30, 2, 2, '部门管理', 'SystemDepartment', '/system/department', '/system/department/index', NULL, 'el-icon-OfficeBuilding', 'system.department', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (30, 2, 2, '部门管理', 'SystemDepartment', '/system/department', '/system/department/index', NULL, 'i-svg:network', 'system.department', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (31, 30, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.department.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (32, 30, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.department.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (33, 30, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.department.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 权限管理
-  (40, 2, 2, '权限管理', 'SystemPermission', '/system/permission', '/system/permission/index', NULL, 'el-icon-Lock', 'system.permission', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (40, 2, 2, '权限管理', 'SystemPermission', '/system/permission', '/system/permission/index', NULL, 'i-svg:lock', 'system.permission', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
 
   -- 菜单管理
-  (50, 2, 2, '菜单管理', 'SystemMenu', '/system/menu', '/system/menu/index', NULL, 'el-icon-Menu', 'system.menu', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
+  (50, 2, 2, '菜单管理', 'SystemMenu', '/system/menu', '/system/menu/index', NULL, 'i-svg:layout-grid', 'system.menu', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
   (51, 50, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.menu.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (52, 50, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.menu.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (53, 50, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.menu.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 数据字典
-  (60, 2, 2, '数据字典', 'SystemDictionary', '/system/dictionary', '/system/dictionary/index', NULL, 'el-icon-Collection', 'system.dictionary', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 6, NOW(), NOW()),
+  (60, 2, 2, '数据字典', 'SystemDictionary', '/system/dictionary', '/system/dictionary/index', NULL, 'i-svg:library-big', 'system.dictionary', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 6, NOW(), NOW()),
   (61, 60, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (62, 60, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (63, 60, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 文件管理
-  (70, 2, 2, '文件管理', 'SystemFile', '/system/file', '/system/file/index', NULL, 'el-icon-FolderOpened', 'system.file', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 7, NOW(), NOW()),
+  (70, 2, 2, '文件管理', 'SystemFile', '/system/file', '/system/file/index', NULL, 'i-svg:folder-open', 'system.file', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 7, NOW(), NOW()),
   (71, 70, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.file.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
   -- 通知管理
-  (80, 2, 2, '通知管理', 'SystemNotification', '/system/notification', '/system/notification/index', NULL, 'el-icon-Bell', 'system.notification', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 8, NOW(), NOW()),
+  (80, 2, 2, '通知管理', 'SystemNotification', '/system/notification', '/system/notification/index', NULL, 'i-svg:bell', 'system.notification', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 8, NOW(), NOW()),
   (81, 80, 3, '发布', NULL, NULL, NULL, NULL, NULL, 'system.notification.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (82, 80, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.notification.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (83, 80, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.notification.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 定时任务
-  (90, 2, 2, '定时任务', 'SystemCronJob', '/system/cron-job', '/system/cron-job/index', NULL, 'el-icon-Timer', 'system.cron_job', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 9, NOW(), NOW()),
+  (90, 2, 2, '定时任务', 'SystemCronJob', '/system/cron-job', '/system/cron-job/index', NULL, 'i-svg:bolt', 'system.cron_job', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 9, NOW(), NOW()),
   (91, 90, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (92, 90, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (93, 90, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (94, 90, 3, '执行', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.run', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
 
   -- 系统配置
-  (100, 2, 2, '系统配置', 'SystemConfig', '/system/config', '/system/config/index', NULL, 'el-icon-Tools', 'system.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 10, NOW(), NOW()),
+  (100, 2, 2, '系统配置', 'SystemConfig', '/system/config', '/system/config/index', NULL, 'i-svg:cog', 'system.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 10, NOW(), NOW()),
 
   -- 日志管理（目录）
-  (110, 2, 1, '日志管理', 'SystemLog', '/system/log', 'LAYOUT', NULL, 'el-icon-Document', 'system.log', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 11, NOW(), NOW()),
+  (110, 2, 1, '日志管理', 'SystemLog', '/system/log', 'LAYOUT', NULL, 'i-svg:scroll-text', 'system.log', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 11, NOW(), NOW()),
   (111, 110, 2, '登录日志', 'SystemLoginLog', '/system/log/login', '/system/log/login', NULL, NULL, 'system.log.login', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (112, 110, 2, '操作日志', 'SystemOperationLog', '/system/log/operation', '/system/log/operation', NULL, NULL, 'system.log.operation', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
 
   -- ===== 开发工具 =====
-  (3, 0, 1, '开发工具', 'DevTools', '/dev-tools', 'LAYOUT', NULL, 'el-icon-Cpu', NULL, 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 950, NOW(), NOW()),
+  (3, 0, 1, '开发工具', 'DevTools', '/dev-tools', 'LAYOUT', NULL, 'i-svg:cpu', NULL, 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 950, NOW(), NOW()),
 
   -- 代码生成器
-  (200, 3, 2, '代码生成器', 'DevGenerator', '/dev-tools/generator', '/system/generator/index', NULL, 'el-icon-MagicStick', 'system.generator', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (200, 3, 2, '代码生成器', 'DevGenerator', '/dev-tools/generator', '/system/generator/index', NULL, 'i-svg:file-sliders', 'system.generator', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
   -- API文档
-  (210, 3, 2, 'API文档', 'DevApiDoc', '/dev-tools/api-doc', '/system/api-doc/index', NULL, 'el-icon-Notebook', 'system.api_doc', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (210, 3, 2, 'API文档', 'DevApiDoc', '/dev-tools/api-doc', '/system/api-doc/index', NULL, 'i-svg:notebook-text', 'system.api_doc', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
 
   -- ===== 消息管理（系统管理子模块） =====
-  (120, 2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'el-icon-ChatDotRound', 'system.message', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
+  (120, 2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'i-svg:message-circle-more', 'system.message', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
   (121, 120, 2, '消息模板', 'SystemMessageTemplate', '/system/message/template', '/system/message/template/index', NULL, 'el-icon-Tickets', 'system.message.template', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (122, 120, 2, '发送记录', 'SystemMessageLog', '/system/message/log', '/system/message/log/index', NULL, 'el-icon-List', 'system.message.log', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
 
   -- ===== 渠道管理 =====
-  (4, 0, 1, '渠道管理', 'Channel', '/channel', 'LAYOUT', '/channel/official/config', 'el-icon-Promotion', 'channel', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 700, NOW(), NOW()),
+  (4, 0, 1, '渠道管理', 'Channel', '/channel', 'LAYOUT', '/channel/official/config', 'i-svg:send', 'channel', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 700, NOW(), NOW()),
 
   -- 公众号（目录）
-  (5, 4, 1, '公众号', 'ChannelOfficial', '/channel/official', 'LAYOUT', '/channel/official/config', 'el-icon-Service', 'channel.official', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (5, 4, 1, '公众号', 'ChannelOfficial', '/channel/official', 'LAYOUT', '/channel/official/config', 'i-svg:compass', 'channel.official', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (400, 5, 2, '公众号配置', 'ChannelOfficialConfig', '/channel/official/config', '/channel/official/config', NULL, 'el-icon-Setting', 'channel.official.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (410, 5, 2, '自定义菜单', 'ChannelOfficialMenu', '/channel/official/menu', '/channel/official/menu', NULL, 'el-icon-Grid', 'channel.official.menu', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (420, 5, 2, '自动回复', 'ChannelAutoReply', '/channel/official/auto-reply', '/channel/official/auto-reply', NULL, 'el-icon-ChatSquare', 'channel.official.auto_reply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- 小程序（目录）
-  (6, 4, 1, '小程序', 'ChannelMiniApp', '/channel/miniapp', 'LAYOUT', '/channel/miniapp/config', 'el-icon-Iphone', 'channel.miniapp', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (6, 4, 1, '小程序', 'ChannelMiniApp', '/channel/miniapp', 'LAYOUT', '/channel/miniapp/config', 'i-svg:smartphone', 'channel.miniapp', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (500, 6, 2, '小程序配置', 'ChannelMiniAppConfig', '/channel/miniapp/config', '/channel/miniapp/config', NULL, 'el-icon-Setting', 'channel.miniapp.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
   -- ===== 内容管理 =====
-  (7, 0, 1, '内容管理', 'Content', '/content', 'LAYOUT', '/content/agreement', 'el-icon-Document', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 600, NOW(), NOW()),
-  (700, 7, 2, '协议管理', 'ContentAgreement', '/content/agreement', '/content/agreement/index', NULL, 'el-icon-Tickets', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (7, 0, 1, '内容管理', 'Content', '/content', 'LAYOUT', '/content/agreement', 'i-svg:newspaper', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 600, NOW(), NOW()),
+  (700, 7, 2, '协议管理', 'ContentAgreement', '/content/agreement', '/content/agreement/index', NULL, 'i-svg:file-text', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (701, 700, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'agreement.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (702, 700, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'agreement.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (703, 700, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'agreement.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-  (710, 7, 2, '公告管理', 'ContentAnnouncement', '/content/announcement', '/content/announcement/index', NULL, 'el-icon-Bell', 'announcement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (710, 7, 2, '公告管理', 'ContentAnnouncement', '/content/announcement', '/content/announcement/index', NULL, 'i-svg:bell-ring', 'announcement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (711, 710, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'announcement.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (712, 710, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'announcement.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (713, 710, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'announcement.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-  (720, 7, 2, '反馈管理', 'ContentFeedback', '/content/feedback', '/content/feedback/index', NULL, 'el-icon-ChatLineSquare', 'feedback.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (720, 7, 2, '反馈管理', 'ContentFeedback', '/content/feedback', '/content/feedback/index', NULL, 'i-svg:message-square-text', 'feedback.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (721, 720, 3, '回复', NULL, NULL, NULL, NULL, NULL, 'feedback.reply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (722, 720, 3, '关闭', NULL, NULL, NULL, NULL, NULL, 'feedback.close', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (723, 720, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'feedback.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  -- 文章资讯（目录）
+  (725, 7, 1, '文章资讯', 'ContentArticleGroup', '/content/article-group', 'LAYOUT', '/content/article-category', 'i-svg:newspaper', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
   -- 文章栏目
-  (730, 7, 2, '文章栏目', 'ContentArticleCategory', '/content/article-category', '/content/article-category/index', NULL, 'el-icon-Folder', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (730, 725, 2, '文章栏目', 'ContentArticleCategory', '/content/article-category', '/content/article-category/index', NULL, 'i-svg:tag', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (731, 730, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article_category.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (732, 730, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article_category.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (733, 730, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article_category.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   -- 文章管理
-  (740, 7, 2, '文章管理', 'ContentArticle', '/content/article', '/content/article/index', NULL, 'el-icon-Document', 'article.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
+  (740, 725, 2, '文章管理', 'ContentArticle', '/content/article', '/content/article/index', NULL, 'i-svg:file-text', 'article.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (741, 740, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (742, 740, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (743, 740, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (744, 740, 3, '发布/下架', NULL, NULL, NULL, NULL, NULL, 'article.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
 
   -- ===== 应用管理 =====
-  (8, 0, 1, '应用管理', 'Application', '/app', 'LAYOUT', '/app/region', 'el-icon-Monitor', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 650, NOW(), NOW()),
-  (800, 8, 2, '区域管理', 'AppRegion', '/app/region', '/content/region/index', NULL, 'el-icon-MapLocation', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (8, 0, 1, '应用管理', 'Application', '/app', 'LAYOUT', '/app/region', 'i-svg:box', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 650, NOW(), NOW()),
+  (800, 8, 2, '区域管理', 'AppRegion', '/app/region', '/content/region/index', NULL, 'i-svg:map-pinned', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (801, 800, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'region.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (802, 800, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'region.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (803, 800, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'region.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-  (810, 8, 2, '应用版本', 'AppVersion', '/app/version', '/content/version/index', NULL, 'el-icon-Upload', 'version.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (810, 8, 2, '应用版本', 'AppVersion', '/app/version', '/content/version/index', NULL, 'i-svg:arrow-up-from-line', 'version.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (811, 810, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'version.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (812, 810, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'version.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
 
   -- ===== 插件管理（开发工具子菜单）=====
-  (220, 3, 2, '插件管理', 'DevPlugin', '/dev-tools/plugin', '/system/plugin/index', NULL, 'el-icon-Files', 'system.plugin.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+  (220, 3, 2, '插件管理', 'DevPlugin', '/dev-tools/plugin', '/system/plugin/index', NULL, 'i-svg:unplug', 'system.plugin.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
 
 -- ============================================================
 -- 为超级管理员角色分配所有权限和菜单

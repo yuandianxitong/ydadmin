@@ -203,7 +203,7 @@ const getAllMenuKeys = (tree: MenuInfo[]): number[] => {
 }
 
 // 菜单全选/取消全选
-const handleMenuCheckAllChange = (checked: boolean) => {
+const handleMenuCheckAllChange = (checked: boolean | string | number) => {
     const allKeys = getAllMenuKeys(menuTree.value)
     if (checked) {
         menuTreeRef.value?.setCheckedKeys(allKeys)
@@ -224,8 +224,8 @@ const getMenuTypeText = (type: number) => {
 }
 
 // 获取菜单类型标签
-const getMenuTypeTag = (type: number) => {
-    const typeMap: Record<number, string> = { 1: 'info', 2: 'success', 3: 'warning' }
+const getMenuTypeTag = (type: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = { 1: 'info', 2: 'success', 3: 'warning' }
     return typeMap[type] || 'info'
 }
 

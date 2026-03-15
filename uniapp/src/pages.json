@@ -1,121 +1,204 @@
 {
-  "pages": [
-    { "path": "pages/index/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/discover/index", "style": { "navigationBarTitleText": "发现" } },
-    { "path": "pages/message/index", "style": { "navigationBarTitleText": "消息" } },
-    { "path": "pages/my/index", "style": { "navigationStyle": "custom" } }
-  ],
-  "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#2979ff",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "white",
-    "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home-active.png"
-      },
-      {
-        "pagePath": "pages/discover/index",
-        "text": "发现",
-        "iconPath": "static/tabbar/discover.png",
-        "selectedIconPath": "static/tabbar/discover-active.png"
-      },
-      {
-        "pagePath": "pages/message/index",
-        "text": "消息",
-        "iconPath": "static/tabbar/message.png",
-        "selectedIconPath": "static/tabbar/message-active.png"
-      },
-      {
-        "pagePath": "pages/my/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/my.png",
-        "selectedIconPath": "static/tabbar/my-active.png"
-      }
-    ]
-  },
-  "subPackages": [
-    {
-      "root": "modules/login",
-      "pages": [
-        { "path": "pages/login", "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" } },
-        { "path": "pages/register", "style": { "navigationBarTitleText": "注册" } }
-      ]
-    },
-    {
-      "root": "modules/user",
-      "pages": [
-        { "path": "pages/profile", "style": { "navigationBarTitleText": "个人中心" } },
-        { "path": "pages/edit-profile", "style": { "navigationBarTitleText": "编辑资料" } },
-        { "path": "pages/change-password", "style": { "navigationBarTitleText": "修改密码" } },
-        { "path": "pages/settings", "style": { "navigationBarTitleText": "设置" } }
-      ]
-    },
-    {
-      "root": "modules/webview",
-      "pages": [
-        { "path": "pages/webview", "style": { "navigationBarTitleText": "" } }
-      ]
-    },
-    {
-      "root": "modules/feedback",
-      "pages": [
-        { "path": "pages/feedback", "style": { "navigationBarTitleText": "意见反馈" } }
-      ]
-    },
-    {
-      "root": "modules/message",
-      "pages": [
-        { "path": "pages/message-list", "style": { "navigationBarTitleText": "消息中心" } },
-        { "path": "pages/message-detail", "style": { "navigationBarTitleText": "消息详情" } }
-      ]
-    },
-    {
-      "root": "modules/payment",
-      "pages": [
-        { "path": "pages/pay-result", "style": { "navigationBarTitleText": "支付结果" } }
-      ]
-    },
-    {
-      "root": "modules/announcement",
-      "pages": [
-        { "path": "pages/announcement-list", "style": { "navigationBarTitleText": "公告列表", "enablePullDownRefresh": true } },
-        { "path": "pages/announcement-detail", "style": { "navigationBarTitleText": "公告详情" } }
-      ]
-    },
-    {
-      "root": "modules/agreement",
-      "pages": [
-        { "path": "pages/agreement", "style": { "navigationBarTitleText": "协议" } }
-      ]
-    },
-    {
-      "root": "modules/article",
-      "pages": [
-        { "path": "pages/article-detail", "style": { "navigationBarTitleText": "文章详情" } }
-      ]
-    },
-    {
-      "root": "modules/about",
-      "pages": [
-        { "path": "pages/about", "style": { "navigationBarTitleText": "关于我们" } }
-      ]
-    }
-  ],
-  "globalStyle": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Dev007",
-    "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f5f5f5"
-  },
-  "easycom": {
-    "autoscan": true,
-    "custom": {
-      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
-      "^d-(.*)": "@/components/d-$1/d-$1.vue"
-    }
-  }
+	"pages": [{
+			"path": "pages/index/index",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/discover/index",
+			"style": {
+				"navigationBarTitleText": "发现"
+			}
+		},
+		{
+			"path": "pages/message/index",
+			"style": {
+				"navigationBarTitleText": "消息"
+			}
+		},
+		{
+			"path": "pages/my/index",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		}
+	],
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#2979ff",
+		"backgroundColor": "#ffffff",
+		"borderStyle": "white",
+		"list": [{
+				"pagePath": "pages/index/index",
+				"text": "首页",
+				"iconPath": "static/tabbar/home.png",
+				"selectedIconPath": "static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/discover/index",
+				"text": "发现",
+				"iconPath": "static/tabbar/discover.png",
+				"selectedIconPath": "static/tabbar/discover-active.png"
+			},
+			{
+				"pagePath": "pages/message/index",
+				"text": "消息",
+				"iconPath": "static/tabbar/message.png",
+				"selectedIconPath": "static/tabbar/message-active.png"
+			},
+			{
+				"pagePath": "pages/my/index",
+				"text": "我的",
+				"iconPath": "static/tabbar/my.png",
+				"selectedIconPath": "static/tabbar/my-active.png"
+			}
+		]
+	},
+	"subPackages": [{
+			"root": "modules/login",
+			"pages": [{
+					"path": "pages/login",
+					"style": {
+						"navigationBarTitleText": "登录",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "pages/register",
+					"style": {
+						"navigationBarTitleText": "注册"
+					}
+				}
+			]
+		},
+		{
+			"root": "modules/user",
+			"pages": [{
+					"path": "pages/profile",
+					"style": {
+						"navigationBarTitleText": "个人中心"
+					}
+				},
+				{
+					"path": "pages/edit-profile",
+					"style": {
+						"navigationBarTitleText": "编辑资料"
+					}
+				},
+				{
+					"path": "pages/change-password",
+					"style": {
+						"navigationBarTitleText": "修改密码"
+					}
+				},
+				{
+					"path": "pages/settings",
+					"style": {
+						"navigationBarTitleText": "设置"
+					}
+				}
+			]
+		},
+		{
+			"root": "modules/webview",
+			"pages": [{
+				"path": "pages/webview",
+				"style": {
+					"navigationBarTitleText": ""
+				}
+			}]
+		},
+		{
+			"root": "modules/feedback",
+			"pages": [{
+				"path": "pages/feedback",
+				"style": {
+					"navigationBarTitleText": "意见反馈"
+				}
+			}]
+		},
+		{
+			"root": "modules/message",
+			"pages": [{
+					"path": "pages/message-list",
+					"style": {
+						"navigationBarTitleText": "消息中心"
+					}
+				},
+				{
+					"path": "pages/message-detail",
+					"style": {
+						"navigationBarTitleText": "消息详情"
+					}
+				}
+			]
+		},
+		{
+			"root": "modules/payment",
+			"pages": [{
+				"path": "pages/pay-result",
+				"style": {
+					"navigationBarTitleText": "支付结果"
+				}
+			}]
+		},
+		{
+			"root": "modules/announcement",
+			"pages": [{
+					"path": "pages/announcement-list",
+					"style": {
+						"navigationBarTitleText": "公告列表",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
+					"path": "pages/announcement-detail",
+					"style": {
+						"navigationBarTitleText": "公告详情"
+					}
+				}
+			]
+		},
+		{
+			"root": "modules/agreement",
+			"pages": [{
+				"path": "pages/agreement",
+				"style": {
+					"navigationBarTitleText": "协议"
+				}
+			}]
+		},
+		{
+			"root": "modules/article",
+			"pages": [{
+				"path": "pages/article-detail",
+				"style": {
+					"navigationBarTitleText": "文章详情"
+				}
+			}]
+		},
+		{
+			"root": "modules/about",
+			"pages": [{
+				"path": "pages/about",
+				"style": {
+					"navigationBarTitleText": "关于我们"
+				}
+			}]
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "Dev007",
+		"navigationBarBackgroundColor": "#ffffff",
+		"backgroundColor": "#f5f5f5"
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
+			"^d-(.*)": "@/components/d-$1/d-$1.vue"
+		}
+	}
 }

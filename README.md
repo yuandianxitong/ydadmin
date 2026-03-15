@@ -77,46 +77,54 @@
 - Node.js >= 16
 - Composer
 
-### 安装
+### 安装部署
 
 ```bash
 # 克隆项目
 git clone https://github.com/yuandianxitong/ydadmin.git
 cd ydadmin
 
-# 后端依赖
+# 安装后端依赖
 cd server
 composer install
+```
 
-# 前端依赖
-cd ../admin
+将 Web 服务器（Nginx / Apache）的站点根目录指向 `server/public/`，然后浏览器访问：
+
+```
+http://your-domain/install/
+```
+
+按照安装向导完成系统初始化（环境检测 → 数据库配置 → 管理员账号 → 自动建表和导入初始数据）。
+
+安装完成后，管理后台已预编译在 `server/public/admin/` 目录下，直接访问：
+
+```
+http://your-domain/admin/
+```
+
+即可使用后台管理系统。
+
+### 二次开发
+
+如需修改前端界面，进入 `admin/` 目录进行开发：
+
+```bash
+cd admin
 npm install
+npm run dev          # 本地开发服务器（热更新）
+npm run build        # 构建生产版本
 ```
 
-### 初始化
+构建产物会输出到 `server/public/admin/`，上传至服务器即可生效。
 
-访问 `http://your-domain/install` 进入安装向导，按步骤完成：
-
-1. 环境检测
-2. 数据库配置
-3. 管理员账号设置
-4. 自动创建数据表和初始数据
-
-### 开发
+移动端开发：
 
 ```bash
-# 前端开发服务器
-cd admin
-npm run dev
-
-# 后端（配置 Nginx/Apache 指向 server/public）
-```
-
-### 构建
-
-```bash
-cd admin
-npm run build
+cd uniapp
+pnpm install
+pnpm dev:h5          # H5 开发
+pnpm dev:mp-weixin   # 微信小程序开发
 ```
 
 ## 代码生成

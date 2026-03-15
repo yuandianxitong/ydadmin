@@ -4,11 +4,10 @@ import type {
     MenuInfo,
     PageResult,
     RoleInfo,
+    RoleOption,
     RoleQuery,
     RoleReq,
-    SelectOption,
-    StatusReq,
-    TreeOption
+    StatusReq
 } from '@/types/api'
 import { myRequest } from '@/utils/request'
 
@@ -76,14 +75,14 @@ export const roleApi = {
      * 获取角色选项（用于下拉选择）
      */
     getRoleOptions() {
-        return myRequest.get<SelectOption[]>('/adminapi/system/role/options')
+        return myRequest.get<RoleOption[]>('/adminapi/system/role/options')
     },
 
     /**
      * 获取角色已分配的权限
      */
     getRolePermissions(id: number) {
-        return myRequest.get<number[]>(`/adminapi/system/role/${id}/permissions`)
+        return myRequest.get<{ menu_ids: number[] }>(`/adminapi/system/role/${id}/permissions`)
     },
 
     /**

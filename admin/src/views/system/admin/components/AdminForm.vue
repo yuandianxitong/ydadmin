@@ -202,7 +202,7 @@ const rules = computed(() => ({
     ],
     email: [
         { required: true, message: t('admin.validate.emailRequired'), trigger: 'blur' },
-        { type: 'email', message: t('admin.validate.emailFormat'), trigger: 'blur' }
+        { type: 'email' as const, message: t('admin.validate.emailFormat'), trigger: 'blur' }
     ],
     mobile: [{ pattern: /^1[3-9]\d{9}$/, message: t('admin.validate.mobileFormat'), trigger: 'blur' }],
     password: isEdit.value

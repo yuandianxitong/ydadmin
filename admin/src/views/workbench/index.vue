@@ -326,7 +326,7 @@ const updateTime = () => {
     currentTime.value = new Date().toLocaleString('zh-CN')
 }
 
-let timer: number
+let timer: ReturnType<typeof setInterval> | null = null
 onMounted(async () => {
     updateTime()
     timer = setInterval(updateTime, 1000)
@@ -338,7 +338,7 @@ onMounted(async () => {
         console.error('Dashboard load error:', e)
     }
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
 
 <style lang="scss" scoped>

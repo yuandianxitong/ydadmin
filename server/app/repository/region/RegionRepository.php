@@ -71,14 +71,15 @@ class RegionRepository extends Repository
     {
         $where = [];
 
-        if (isset($params['parent_id']) && $params['parent_id'] !== '') {
-            $where[] = ['parent_id', '=', (int) $params['parent_id']];
+        // 有关键词搜索时跨所有层级查询，否则按 parent_id 分级查询
+        if (!empty($params['keyword'])) {
+            $where[] = ['name', 'like', "%{$params['keyword']}%"];
+        } else {
+            $parentId = (isset($params['parent_id']) && $params['parent_id'] !== '') ? (int) $params['parent_id'] : 0;
+            $where[] = ['parent_id', '=', $parentId];
         }
         if (isset($params['level']) && $params['level'] !== '') {
             $where[] = ['level', '=', (int) $params['level']];
-        }
-        if (!empty($params['keyword'])) {
-            $where[] = ['name', 'like', "%{$params['keyword']}%"];
         }
 
         return $this->getList($where, $page, $limit, 'sort asc, id asc');

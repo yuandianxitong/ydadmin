@@ -172,6 +172,7 @@ export interface MenuReq {
 export interface MenuQuery {
     status?: number
     type?: number
+    title?: string
 }
 
 // 系统配置
@@ -252,6 +253,13 @@ export interface TreeOption {
     id: number
     title: string
     children?: TreeOption[]
+}
+
+// 角色选项（用于下拉选择）
+export interface RoleOption {
+    id: number
+    name: string
+    title: string
 }
 
 // ========== 登录日志 ==========
@@ -475,10 +483,21 @@ export interface MessageTemplateInfo {
     id: number
     name: string
     code: string
-    channel: string
-    content: string
-    variables?: string
+    remark?: string
     status: number
+    sms_enabled?: number
+    sms_template_id?: string
+    sms_content?: string
+    wechat_official_enabled?: number
+    wechat_official_template_id?: string
+    wechat_official_url?: string
+    wechat_mini_enabled?: number
+    wechat_mini_template_id?: string
+    wechat_mini_page?: string
+    // Legacy fields
+    channel?: string
+    content?: string
+    variables?: string
     description?: string
     created_at?: string
     updated_at?: string
@@ -487,10 +506,21 @@ export interface MessageTemplateInfo {
 export interface MessageTemplateReq {
     name: string
     code: string
-    channel: string
-    content: string
-    variables?: string
+    remark?: string
     status?: number
+    sms_enabled?: number
+    sms_template_id?: string
+    sms_content?: string
+    wechat_official_enabled?: number
+    wechat_official_template_id?: string
+    wechat_official_url?: string
+    wechat_mini_enabled?: number
+    wechat_mini_template_id?: string
+    wechat_mini_page?: string
+    // Legacy fields
+    channel?: string
+    content?: string
+    variables?: string
     description?: string
 }
 
@@ -509,20 +539,22 @@ export interface MessageLogInfo {
 // ========== 微信管理 ==========
 export interface AutoReplyInfo {
     id: number
+    type: string
     keyword: string
     match_type: string
-    reply_type: string
-    reply_content: string
+    content: string
+    sort_order?: number
     status: number
     created_at?: string
     updated_at?: string
 }
 
 export interface AutoReplyReq {
-    keyword: string
-    match_type: string
-    reply_type: string
-    reply_content: string
+    type: string
+    keyword?: string
+    match_type?: string
+    content: string
+    sort_order?: number
     status?: number
 }
 
@@ -545,8 +577,8 @@ export interface ConfigGroup {
 }
 
 export interface ConfigBatchUpdateItem {
-    id: number
-    value: string | number | boolean
+    config_key: string
+    config_value: string | number | boolean
 }
 
 // ========== 用户认证信息（含路由和权限） ==========

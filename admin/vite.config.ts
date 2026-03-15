@@ -26,6 +26,8 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     const env = loadEnv(mode, process.cwd());
 
     return {
+        // 生产环境部署到 /admin/ 子目录
+        base: "/admin/",
         resolve: {
             alias: {
                 "@": pathSrc
@@ -35,7 +37,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         css: {
             preprocessorOptions: {
                 scss: {
-                    
+
                 },
             },
         },
@@ -126,6 +128,9 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         },
 
         build: {
+            // 构建产物输出到 server/public/admin/，部署时无需手动复制
+            outDir: resolve(__dirname, '../server/public/admin'),
+            emptyOutDir: true,
             chunkSizeWarningLimit: 2000,
             minify: "terser",
             terserOptions: {

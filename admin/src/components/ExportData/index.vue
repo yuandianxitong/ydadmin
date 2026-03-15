@@ -91,7 +91,7 @@ const formData = reactive({
 const formRules = {
     page_start: [
         { required: true, message: t('exportData.validate.startPageRequired') },
-        { type: 'number', message: t('exportData.validate.pageInteger') },
+        { type: 'number' as const, message: t('exportData.validate.pageInteger') },
         {
             validator: (rule: any, value: any, callback: any) => {
                 if (value <= 0) return callback(new Error(t('exportData.validate.pageMin')))
@@ -101,7 +101,7 @@ const formRules = {
     ],
     page_end: [
         { required: true, message: t('exportData.validate.endPageRequired') },
-        { type: 'number', message: t('exportData.validate.pageInteger') },
+        { type: 'number' as const, message: t('exportData.validate.pageInteger') },
         {
             validator: (rule: any, value: any, callback: any) => {
                 if (value <= 0) return callback(new Error(t('exportData.validate.pageMin')))

@@ -66,7 +66,7 @@ export const dictionaryApi = {
 
     /** 获取字典项列表 */
     getItems(dictionaryId: number) {
-        return myRequest.get<DictionaryItemInfo[]>(
+        return myRequest.get<DictionaryItemInfo[] | { list: DictionaryItemInfo[] }>(
             `/adminapi/system/dictionary/${dictionaryId}/items`
         )
     },
