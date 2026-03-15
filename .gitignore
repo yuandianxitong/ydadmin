@@ -26,7 +26,6 @@ vendor/
 # Build output
 admin/dist/
 uniapp/dist/
-server/public/admin/
 
 # Install lock
 server/config/install.lock

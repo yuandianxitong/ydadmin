@@ -1,0 +1,1 @@
+import{_ as r}from"./AgreementForm.vue_vue_type_script_setup_true_lang.DkGbHWG1.js";import"./index.B87z4Eiu.js";/* empty css               *//* empty css                *//* empty css             *//* empty css                    *//* empty css              */import"./form-item.l0sNRNKZ.js";/* empty css              */export{r as default};
