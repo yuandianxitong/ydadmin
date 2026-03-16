@@ -76,7 +76,22 @@
 - Node.js >= 16
 - Composer
 
-### 安装部署
+### Docker 部署（推荐）
+
+```bash
+git clone https://github.com/yuandianxitong/ydadmin.git
+cd ydadmin/docker
+cp .env.docker .env
+docker-compose up -d
+```
+
+启动后访问 `http://localhost/install/` 完成安装向导。
+
+安装完成后访问 `http://localhost/admin/` 进入管理后台。
+
+> 默认管理员账号：`admin`，密码：`admin123456`
+
+### 手动安装
 
 ```bash
 # 克隆项目
@@ -102,7 +117,7 @@ http://your-domain/install/
 http://your-domain/admin/
 ```
 
-即可使用后台管理系统。
+> 默认管理员账号：`admin`，密码：`admin123456`
 
 ### 二次开发
 
