@@ -1,9 +1,8 @@
 # 开发环境覆盖配置
-# 使用方式: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# 使用方式: cd docker && docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 #
 # 特性:
 # - PHP 源码挂载（热更新）
-# - 前端开发服务器代理
 # - 开启 Xdebug
 # - 暴露调试端口
 
@@ -11,11 +10,11 @@ services:
   php:
     environment:
       - APP_DEBUG=true
-      - PHP_IDE_CONFIG=serverName=dev007
+      - PHP_IDE_CONFIG=serverName=yd-admin
       - XDEBUG_MODE=debug,develop
       - XDEBUG_CONFIG=client_host=host.docker.internal client_port=9003
     volumes:
-      - ./server:/var/www/html
+      - ../server:/var/www/html
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -23,8 +22,8 @@ services:
     ports:
       - "${NGINX_PORT:-80}:80"
     volumes:
-      - ./docker/nginx/dev.conf:/etc/nginx/conf.d/default.conf
-      - ./server/public:/var/www/html/public
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ../server/public:/var/www/html/public
 
   mysql:
     ports:
