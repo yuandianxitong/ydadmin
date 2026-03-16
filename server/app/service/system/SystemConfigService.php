@@ -28,8 +28,6 @@ class SystemConfigService extends Service
             'sms'              => lang('messages.config_group_sms'),
             'storage'          => lang('messages.config_group_storage'),
             'payment'          => lang('messages.config_group_payment'),
-            'wechat_official'  => lang('messages.config_group_wechat_official'),
-            'wechat_mini'      => lang('messages.config_group_wechat_mini'),
         ];
     }
 
