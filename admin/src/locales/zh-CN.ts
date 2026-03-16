@@ -31,7 +31,19 @@ export default {
         ChannelOfficialMenu: '自定义菜单',
         ChannelAutoReply: '自动回复',
         ChannelMiniApp: '小程序',
-        ChannelMiniAppConfig: '小程序配置'
+        ChannelMiniAppConfig: '小程序配置',
+        // 内容管理
+        Content: '内容管理',
+        ContentAgreement: '协议管理',
+        ContentAnnouncement: '公告管理',
+        ContentFeedback: '反馈管理',
+        ContentArticleGroup: '文章资讯',
+        ContentArticleCategory: '文章栏目',
+        ContentArticle: '文章管理',
+        // 应用管理
+        Application: '应用管理',
+        AppRegion: '区域管理',
+        AppVersion: '应用版本'
     },
     // 登录页面国际化
     login: {

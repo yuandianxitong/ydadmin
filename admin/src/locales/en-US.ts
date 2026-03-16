@@ -31,7 +31,19 @@ export default {
         ChannelOfficialMenu: 'Custom Menu',
         ChannelAutoReply: 'Auto Reply',
         ChannelMiniApp: 'Mini Program',
-        ChannelMiniAppConfig: 'Mini Program Config'
+        ChannelMiniAppConfig: 'Mini Program Config',
+        // Content Management
+        Content: 'Content',
+        ContentAgreement: 'Agreements',
+        ContentAnnouncement: 'Announcements',
+        ContentFeedback: 'Feedback',
+        ContentArticleGroup: 'Articles',
+        ContentArticleCategory: 'Categories',
+        ContentArticle: 'Article Management',
+        // Application
+        Application: 'Application',
+        AppRegion: 'Regions',
+        AppVersion: 'App Versions'
     },
     // Login page
     login: {
