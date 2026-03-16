@@ -127,6 +127,50 @@
                     />
                     <div class="form-tip">{{ $t('channel.official.aesKeyTip') }}</div>
                 </el-form-item>
+                <el-form-item label="消息加密方式">
+                    <el-radio-group v-model="formData.wechat_official_encrypt_type">
+                        <el-radio value="1">明文模式</el-radio>
+                        <el-radio value="2">兼容模式</el-radio>
+                        <el-radio value="3">安全模式</el-radio>
+                    </el-radio-group>
+                    <div class="form-tip">需与微信公众号后台「开发 > 基本配置」中的加密方式保持一致</div>
+                </el-form-item>
+            </el-form>
+        </el-card>
+
+        <!-- 域名信息（只读） -->
+        <el-card shadow="never" class="config-card">
+            <template #header>
+                <div class="card-header">
+                    <el-icon><Link /></el-icon>
+                    <span>域名信息</span>
+                </div>
+            </template>
+            <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 16px">
+                <template #title>请将以下域名配置到微信公众号后台对应位置</template>
+            </el-alert>
+            <el-form label-width="150px" label-position="left" style="max-width: 600px">
+                <el-form-item label="业务域名">
+                    <el-input :model-value="siteDomain" disabled>
+                        <template #append>
+                            <el-button @click="copyText(siteDomain)">复制</el-button>
+                        </template>
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="JS接口安全域名">
+                    <el-input :model-value="siteDomain" disabled>
+                        <template #append>
+                            <el-button @click="copyText(siteDomain)">复制</el-button>
+                        </template>
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="网页授权域名">
+                    <el-input :model-value="siteDomain" disabled>
+                        <template #append>
+                            <el-button @click="copyText(siteDomain)">复制</el-button>
+                        </template>
+                    </el-input>
+                </el-form-item>
             </el-form>
         </el-card>
 
@@ -138,7 +182,7 @@
 </template>
 
 <script setup lang="ts" name="ChannelOfficialConfig">
-import { InfoFilled, Key, Monitor, Plus } from '@element-plus/icons-vue'
+import { InfoFilled, Key, Link, Monitor, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -158,13 +202,29 @@ const formData = reactive<Record<string, string>>({
     wechat_official_app_id: '',
     wechat_official_app_secret: '',
     wechat_official_token: '',
-    wechat_official_aes_key: ''
+    wechat_official_aes_key: '',
+    wechat_official_encrypt_type: '1'
 })
 
 const serverUrl = computed(() => {
     const siteUrl = appStore.config?.site_url || window.location.origin
     return `${siteUrl}/api/wechat/serve`
 })
+
+const siteDomain = computed(() => {
+    const siteUrl = appStore.config?.site_url || window.location.origin
+    try {
+        return new URL(siteUrl).hostname
+    } catch {
+        return siteUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+    }
+})
+
+const copyText = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+        ElMessage.success(t('message.copySuccess'))
+    })
+}
 
 const uploadUrl = computed(() => `${import.meta.env.VITE_APP_API_URL || ''}/adminapi/upload/image`)
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${getToken()}` }))

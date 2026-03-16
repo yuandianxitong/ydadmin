@@ -30,6 +30,26 @@
                 <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
             </el-form-item>
 
+            <el-divider content-position="left">模板变量</el-divider>
+
+            <el-form-item label="变量定义">
+                <div class="variables-editor">
+                    <div v-for="(item, index) in variablesList" :key="index" class="variable-row">
+                        <el-input v-model="item.key" placeholder="变量名 (如 code)" style="width: 150px" />
+                        <el-input v-model="item.name" placeholder="变量说明 (如 验证码)" style="width: 180px" />
+                        <el-input v-model="item.example" placeholder="示例值 (如 6789)" style="width: 150px" />
+                        <el-button type="danger" text @click="removeVariable(index)">
+                            <el-icon><Delete /></el-icon>
+                        </el-button>
+                    </div>
+                    <el-button type="primary" text @click="addVariable">
+                        <el-icon><Plus /></el-icon>
+                        添加变量
+                    </el-button>
+                    <div class="form-tip">变量在模板内容中以 ${变量名} 格式引用，如 ${code}</div>
+                </div>
+            </el-form-item>
+
             <el-divider content-position="left">{{ $t('messageTemplate.channelConfig') }}</el-divider>
 
             <!-- 短信通道 -->
@@ -102,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import { Delete, Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { reactive, ref, watch } from 'vue'
@@ -138,6 +159,16 @@ const form = reactive<Record<string, any>>({
     wechat_mini_page: ''
 })
 
+const variablesList = ref<Array<{ key: string; name: string; example: string }>>([])
+
+const addVariable = () => {
+    variablesList.value.push({ key: '', name: '', example: '' })
+}
+
+const removeVariable = (index: number) => {
+    variablesList.value.splice(index, 1)
+}
+
 const rules: FormRules = {
     name: [{ required: true, message: t('messageTemplate.validate.nameRequired'), trigger: 'blur' }],
     code: [
@@ -149,7 +180,15 @@ const rules: FormRules = {
 watch(
     () => props.formData,
     (val) => {
-        if (val) Object.assign(form, val)
+        if (val) {
+            Object.assign(form, val)
+            try {
+                const vars = typeof val.variables === 'string' ? JSON.parse(val.variables) : val.variables
+                variablesList.value = Array.isArray(vars) ? vars : []
+            } catch {
+                variablesList.value = []
+            }
+        }
     },
     { immediate: true }
 )
@@ -158,6 +197,10 @@ const handleSubmit = async () => {
     try {
         await formRef.value?.validate()
         submitting.value = true
+
+        // 将变量列表同步到表单
+        const validVars = variablesList.value.filter((v) => v.key.trim())
+        form.variables = validVars.length > 0 ? JSON.stringify(validVars) : null
 
         if (form.id) {
             await messageTemplateApi.update(form.id, form)
@@ -177,5 +220,23 @@ const handleSubmit = async () => {
 
 const handleClose = () => {
     formRef.value?.resetFields()
+    variablesList.value = []
 }
 </script>
+
+<style lang="scss" scoped>
+.variables-editor {
+    width: 100%;
+    .variable-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .form-tip {
+        font-size: 12px;
+        color: var(--el-text-color-placeholder);
+        margin-top: 4px;
+    }
+}
+</style>

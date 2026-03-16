@@ -55,12 +55,21 @@ class WechatManager
             throw new BusinessException(lang('business.wechat_official_config_incomplete'));
         }
 
-        return [
+        $token = (string)SystemConfig::getConfigValue('wechat_official_token', '');
+        $encryptType = (string)SystemConfig::getConfigValue('wechat_official_encrypt_type', '1');
+
+        $config = [
             'app_id'  => $appId,
             'secret'  => $appSecret,
-            'token'   => (string)SystemConfig::getConfigValue('wechat_official_token', ''),
-            'aes_key' => (string)SystemConfig::getConfigValue('wechat_official_aes_key', ''),
+            'token'   => $token,
         ];
+
+        // 仅在兼容模式(2)或安全模式(3)下传入 aes_key
+        if ($encryptType !== '1') {
+            $config['aes_key'] = (string)SystemConfig::getConfigValue('wechat_official_aes_key', '');
+        }
+
+        return $config;
     }
 
     /**
@@ -75,10 +84,22 @@ class WechatManager
             throw new BusinessException(lang('business.wechat_miniapp_config_incomplete'));
         }
 
-        return [
+        $config = [
             'app_id'  => $appId,
             'secret'  => $appSecret,
         ];
+
+        // 如果配置了消息推送 Token 和加密方式
+        $token = (string)SystemConfig::getConfigValue('wechat_mini_msg_token', '');
+        if (!empty($token)) {
+            $config['token'] = $token;
+            $encryptType = (string)SystemConfig::getConfigValue('wechat_mini_encrypt_type', '1');
+            if ($encryptType !== '1') {
+                $config['aes_key'] = (string)SystemConfig::getConfigValue('wechat_mini_msg_aes_key', '');
+            }
+        }
+
+        return $config;
     }
 
     /**
