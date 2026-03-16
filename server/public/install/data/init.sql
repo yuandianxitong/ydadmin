@@ -424,7 +424,7 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 ('wechat_mini_msg_token', '', 'wechat_mini', 'string', 'Token', '消息推送校验Token', NULL, NULL, 20, 1, NOW(), NOW()),
 ('wechat_mini_msg_aes_key', '', 'wechat_mini', 'string', 'EncodingAESKey', '消息推送加解密密钥（43位字符）', NULL, NULL, 21, 1, NOW(), NOW()),
 ('wechat_mini_msg_format', 'JSON', 'wechat_mini', 'select', '数据格式', '消息推送数据格式', '{"JSON":"JSON","XML":"XML"}', NULL, 22, 1, NOW(), NOW()),
-('wechat_mini_encrypt_type', '1', 'wechat_mini', 'select', '消息加密方式', '1=明文模式 2=兼容模式 3=安全模式，需与微信后台保持一致', '{"1":"明文模式","2":"兼容模式","3":"安全模式"}', NULL, 23, 1, NOW(), NOW()),
+('wechat_mini_encrypt_type', '1', 'wechat_mini', 'select', '消息加密方式', '1=明文模式 2=兼容模式 3=安全模式，需与微信后台保持一致', '{"1":"明文模式","2":"兼容模式","3":"安全模式"}', NULL, 23, 1, NOW(), NOW());
 
 -- ===== 预置消息模板 =====
 INSERT INTO `message_templates` (`name`, `code`, `sms_enabled`, `sms_template_id`, `sms_content`, `wechat_official_enabled`, `wechat_official_template_id`, `wechat_official_url`, `wechat_mini_enabled`, `wechat_mini_template_id`, `wechat_mini_page`, `variables`, `remark`, `status`, `created_at`, `updated_at`) VALUES
@@ -433,5 +433,7 @@ INSERT INTO `message_templates` (`name`, `code`, `sms_enabled`, `sms_template_id
 ('找回密码', 'reset_password', 1, '', '您正在找回密码，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"5678"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户找回密码时发送的验证码通知', 1, NOW(), NOW()),
 ('绑定手机', 'bind_mobile', 1, '', '您正在绑定手机号，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"9012"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户绑定手机号时发送的验证码通知', 1, NOW(), NOW()),
 ('变更手机', 'change_mobile', 1, '', '您正在变更手机号，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"3456"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户变更手机号时发送的验证码通知', 1, NOW(), NOW());
+
 -- Banner 配置
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES
 ('banner_list', '[]', 'banner', 'json', '轮播图列表', '首页轮播图配置，JSON数组格式：[{"image":"图片地址","url":"跳转链接","title":"标题"}]', NULL, NULL, 1, 1, NOW(), NOW());
