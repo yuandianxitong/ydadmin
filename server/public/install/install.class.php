@@ -505,6 +505,12 @@ class Installer
         $table = $this->wrapTable('system_configs', $prefix);
         $siteName = trim((string)($config['site_name'] ?? ''));
         $siteUrl = trim((string)($config['site_url'] ?? ''));
+        // 如果未传入 site_url，自动从当前请求获取
+        if ($siteUrl === '') {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+            $siteUrl = $scheme . '://' . rtrim($host, '/');
+        }
         $now = date('Y-m-d H:i:s');
 
         if ($siteName !== '') {
