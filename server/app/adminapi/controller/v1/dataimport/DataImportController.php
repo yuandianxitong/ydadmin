@@ -13,7 +13,9 @@ use core\base\Controller;
 use core\attribute\Permission;
 use app\service\dataimport\DataImportService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '数据导入', description: '文件上传导入及导入历史记录')]
 class DataImportController extends Controller
 {
     protected DataImportService $dataImportService;
@@ -22,6 +24,29 @@ class DataImportController extends Controller
      * 上传并导入数据
      */
     #[Permission('dataimport.upload')]
+    #[OA\Post(
+        path: '/dataimport/upload',
+        summary: '上传并导入数据',
+        security: [['bearerAuth' => []]],
+        tags: ['数据导入'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['file', 'module'],
+                    properties: [
+                        new OA\Property(property: 'file', type: 'string', format: 'binary', description: '导入文件'),
+                        new OA\Property(property: 'module', type: 'string', description: '导入模块'),
+                        new OA\Property(property: 'field_map', type: 'string', description: '字段映射(JSON字符串)'),
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '导入成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse'))
+        ]
+    )]
     public function upload(): Response
     {
         $file = $this->request->file('file');
@@ -57,6 +82,20 @@ class DataImportController extends Controller
      * 导入历史记录
      */
     #[Permission('dataimport.history')]
+    #[OA\Get(
+        path: '/dataimport/history',
+        summary: '获取数据导入历史记录',
+        security: [['bearerAuth' => []]],
+        tags: ['数据导入'],
+        parameters: [
+            new OA\Parameter(name: 'page_no', in: 'query', description: '页码', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'page_size', in: 'query', description: '每页数量', schema: new OA\Schema(type: 'integer', default: 20)),
+            new OA\Parameter(name: 'module', in: 'query', description: '导入模块', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/PaginatedResponse'))
+        ]
+    )]
     public function history(): Response
     {
         $params = $this->getRequestData([
