@@ -134,9 +134,6 @@ return [
     'sort_data_required'        => '排序数据不能为空',
     'permission_data_required'  => '权限数据不能为空',
 
-    // 插件
-    'plugin_dependency_failed'  => '插件依赖检查失败',
-
     // 支付驱动
     'alipay_not_enabled'                    => '支付宝支付未启用',
     'wechat_pay_not_enabled'                => '微信支付未启用',

@@ -20,7 +20,6 @@ return [
         'tags' => [
             'user' => 'user_cache',
             'system' => 'system_cache',
-            'plugin' => 'plugin_cache',
         ],
     ],
 

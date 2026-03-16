@@ -494,24 +494,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ============================================================
--- 插件管理表
--- ============================================================
-CREATE TABLE IF NOT EXISTS `plugins` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL COMMENT '插件标识',
-  `title` varchar(200) NOT NULL DEFAULT '' COMMENT '插件名称',
-  `version` varchar(50) NOT NULL DEFAULT '1.0.0' COMMENT '版本号',
-  `author` varchar(100) NOT NULL DEFAULT '' COMMENT '作者',
-  `description` text COMMENT '插件描述',
-  `status` tinyint(1) unsigned NOT NULL DEFAULT 0 COMMENT '状态 0禁用 1启用',
-  `installed_at` datetime DEFAULT NULL COMMENT '安装时间',
-  `created_at` datetime DEFAULT NULL,
-  `updated_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='插件管理表';
-
--- ============================================================
 -- 协议表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `agreements` (

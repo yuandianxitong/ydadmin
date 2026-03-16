@@ -131,15 +131,6 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (109, 'version.create', '创建版本', '应用管理', '创建版本', 'admin', 1, 109, NOW(), NOW()),
     (110, 'version.update', '编辑版本', '应用管理', '编辑版本', 'admin', 1, 110, NOW(), NOW()),
     (111, 'version.delete', '删除版本', '应用管理', '删除版本', 'admin', 1, 111, NOW(), NOW()),
-    -- 插件管理
-    (120, 'system.plugin', '插件管理', '开发工具', '插件管理权限', 'admin', 1, 120, NOW(), NOW()),
-    (121, 'system.plugin.list', '插件列表', '开发工具', '查看插件列表', 'admin', 1, 121, NOW(), NOW()),
-    (122, 'system.plugin.install', '安装插件', '开发工具', '安装插件', 'admin', 1, 122, NOW(), NOW()),
-    (123, 'system.plugin.uninstall', '卸载插件', '开发工具', '卸载插件', 'admin', 1, 123, NOW(), NOW()),
-    (124, 'system.plugin.enable', '启用插件', '开发工具', '启用插件', 'admin', 1, 124, NOW(), NOW()),
-    (125, 'system.plugin.disable', '禁用插件', '开发工具', '禁用插件', 'admin', 1, 125, NOW(), NOW()),
-    (126, 'system.plugin.upload', '上传插件', '开发工具', '上传插件包', 'admin', 1, 126, NOW(), NOW()),
-    (127, 'system.plugin.delete', '删除插件', '开发工具', '删除插件文件', 'admin', 1, 127, NOW(), NOW()),
     -- 文章栏目
     (130, 'article_category', '文章栏目管理', '内容管理', '文章栏目管理权限', 'admin', 1, 130, NOW(), NOW()),
     (131, 'article_category.list', '栏目列表', '内容管理', '查看文章栏目列表', 'admin', 1, 131, NOW(), NOW()),
@@ -288,10 +279,7 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (810, 8, 2, '应用版本', 'AppVersion', '/app/version', '/content/version/index', NULL, 'i-svg:arrow-up-from-line', 'version.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (811, 810, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'version.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (812, 810, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'version.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
-  (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-
-  -- ===== 插件管理（开发工具子菜单）=====
-  (220, 3, 2, '插件管理', 'DevPlugin', '/dev-tools/plugin', '/system/plugin/index', NULL, 'i-svg:unplug', 'system.plugin.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+  (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
 
 -- ============================================================
 -- 为超级管理员角色分配所有权限和菜单

@@ -134,9 +134,6 @@ return [
     'sort_data_required'        => 'Sort data is required',
     'permission_data_required'  => 'Permission data is required',
 
-    // Plugin
-    'plugin_dependency_failed'  => 'Plugin dependency check failed',
-
     // Payment drivers
     'alipay_not_enabled'                    => 'Alipay is not enabled',
     'wechat_pay_not_enabled'                => 'WeChat Pay is not enabled',
