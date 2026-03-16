@@ -49,7 +49,7 @@
                         <!-- 底部菜单栏 -->
                         <div class="phone-menu-bar">
                             <div class="menu-btn keyboard-btn">
-                                <el-icon :size="18"><ChatRound /></el-icon>
+                                <i class="i-svg:keyboard" style="font-size: 18px" />
                             </div>
                             <div
                                 v-for="(menu, idx) in menuData"
@@ -109,7 +109,7 @@
 </template>
 
 <script setup lang="ts" name="WechatOfficialMenu">
-import { ChatRound, Close, Plus } from '@element-plus/icons-vue'
+import { Close, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
