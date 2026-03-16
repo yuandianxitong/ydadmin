@@ -26,7 +26,7 @@
                         <div class="phone-header">{{ $t('channel.menu.title') }}</div>
                         <div class="phone-body">
                             <!-- 子菜单区域（悬浮在一级菜单上方） -->
-                            <div v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]?.sub_button?.length" class="sub-menu-popup">
+                            <div v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]" class="sub-menu-popup">
                                 <div
                                     v-for="(sub, sIdx) in menuData[activeIndex[0]].sub_button"
                                     :key="sIdx"
@@ -303,17 +303,20 @@ onMounted(async () => {
         }
         .del-icon {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
             font-size: 10px;
             background: var(--el-color-danger);
             color: #fff;
             border-radius: 50%;
-            padding: 2px;
             display: none;
+            align-items: center;
+            justify-content: center;
         }
         &:hover .del-icon {
-            display: block;
+            display: flex;
         }
     }
     .phone-menu-bar {
@@ -357,17 +360,20 @@ onMounted(async () => {
         }
         .del-icon {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
             font-size: 10px;
             background: var(--el-color-danger);
             color: #fff;
             border-radius: 50%;
-            padding: 2px;
             display: none;
+            align-items: center;
+            justify-content: center;
         }
         &:hover .del-icon {
-            display: block;
+            display: flex;
         }
     }
     .menu-form {
