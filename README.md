@@ -28,7 +28,7 @@
 
 元点Admin 是一款开箱即用的通用后台管理系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。
 
-系统内置完善的 RBAC 权限体系、CRUD 代码生成器、插件化扩展机制和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
+系统内置完善的 RBAC 权限体系、CRUD 代码生成器和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
 ## 技术栈
 
@@ -48,7 +48,6 @@
 - **渠道管理** — 微信公众号（菜单/自动回复）、小程序配置
 - **消息系统** — 多通道消息模板（短信/微信/站内信）、发送记录
 - **支付集成** — 微信支付 / 支付宝（APP/小程序/H5）
-- **插件系统** — 插件生命周期管理，后台可视化安装/卸载/启用/禁用，支持 ZIP 上传
 - **代码生成** — 可视化 CRUD 代码生成器，一键生成前后端完整代码
 - **API 文档** — 内置 OpenAPI 文档自动生成
 
@@ -139,20 +138,6 @@ php think make:crud table_name --module=模块名 --model=模型名
 
 自动生成：Model、Repository、Service、Controller、Validate、Route、前端 API、列表页、表单组件。
 
-## 插件开发
-
-```bash
-# 生成插件骨架
-php think make:crud table_name --module=模块名 --model=模型名 --as-plugin
-
-# CLI 管理
-php think plugin:list
-php think plugin:install plugin_name
-php think plugin:enable plugin_name
-```
-
-或在管理后台「开发工具 → 插件管理」进行可视化管理。
-
 ## 项目结构
 
 ```
@@ -173,8 +158,7 @@ php think plugin:enable plugin_name
 │   │   ├── service/       # 业务逻辑层
 │   │   ├── listener/      # 事件监听器
 │   │   └── event.php      # 事件注册
-│   ├── core/              # 框架核心（基类 / 插件系统 / 中间件）
-│   ├── plugins/           # 插件目录
+│   ├── core/              # 框架核心（基类 / 认证 / 支付 / 存储）
 │   └── public/
 │       └── install/       # 安装程序
 ├── uniapp/                # 移动端（UniApp）

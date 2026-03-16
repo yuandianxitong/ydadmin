@@ -27,7 +27,7 @@ class TokenManager
         $this->key = Config::get('jwt.key', 'your-secret-key');
         $this->algorithm = Config::get('jwt.algorithm', 'HS256');
         $this->expire = Config::get('jwt.expire', 7200);
-        $this->issuer = Config::get('jwt.issuer', 'thinkphp8');
+        $this->issuer = Config::get('jwt.issuer', 'yd-admin');
     }
 
     /**
