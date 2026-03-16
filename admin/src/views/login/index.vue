@@ -3,25 +3,11 @@
         <!-- 左侧品牌区 -->
         <div class="login-brand">
             <div class="brand-content">
-                <div class="brand-logo">
-                    <el-icon :size="48"><Monitor /></el-icon>
+                <div class="brand-image">
+                    <img src="@/assets/images/login_image.png" alt="元点Admin" />
                 </div>
-                <h1 class="brand-title">{{ $t('login.title') }}</h1>
-                <p class="brand-slogan">{{ $t('login.subtitle') }}</p>
-                <div class="brand-features">
-                    <div class="feature-item">
-                        <el-icon :size="18"><CircleCheck /></el-icon>
-                        <span>{{ $t('login.feature1') }}</span>
-                    </div>
-                    <div class="feature-item">
-                        <el-icon :size="18"><CircleCheck /></el-icon>
-                        <span>{{ $t('login.feature2') }}</span>
-                    </div>
-                    <div class="feature-item">
-                        <el-icon :size="18"><CircleCheck /></el-icon>
-                        <span>{{ $t('login.feature3') }}</span>
-                    </div>
-                </div>
+                <h1 class="text-4xl font-bold leading-tight mb-4">{{ $t('login.title') }}</h1>
+                <p class="text-lg text-gray-200">{{ $t('login.subtitle') }}</p>
             </div>
             <div class="brand-footer">
                 <span>&copy; {{ new Date().getFullYear() }} Dev007.cn</span>
@@ -108,7 +94,7 @@
 </template>
 
 <script setup lang="ts" name="Login">
-import { CircleCheck, Key, Loading, Lock, Monitor, User } from '@element-plus/icons-vue'
+import { Key, Loading, Lock, User } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -194,7 +180,7 @@ onMounted(() => {
 .login-page {
     display: flex;
     min-height: 100vh;
-    background-color: #f0f2f5;
+    background-color: var(--color-bg);
 }
 
 /* ===== 左侧品牌区 ===== */
@@ -241,42 +227,12 @@ onMounted(() => {
     text-align: center;
 }
 
-.brand-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    margin-bottom: 24px;
-}
-
-.brand-title {
-    font-size: 32px;
-    font-weight: 700;
-    margin: 0 0 8px;
-    letter-spacing: 2px;
-}
-
-.brand-slogan {
-    font-size: 15px;
-    margin: 0 0 40px;
-    opacity: 0.8;
-}
-
-.brand-features {
-    text-align: left;
-    display: inline-block;
-
-    .feature-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 16px;
-        font-size: 14px;
-        opacity: 0.9;
+.brand-image {
+    margin-bottom: 32px;
+    img {
+        max-width: 380px;
+        width: 100%;
+        height: auto;
     }
 }
 
@@ -295,6 +251,7 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     padding: 40px;
+    background-color: var(--color-bg);
 }
 
 .login-card {
@@ -308,13 +265,13 @@ onMounted(() => {
     .login-title {
         font-size: 26px;
         font-weight: 700;
-        color: #1d2129;
+        color: var(--color-text-primary);
         margin: 0 0 8px;
     }
 
     .login-desc {
         font-size: 14px;
-        color: #86909c;
+        color: var(--color-text-secondary);
         margin: 0;
     }
 }
@@ -327,11 +284,11 @@ onMounted(() => {
     :deep(.el-input__wrapper) {
         border-radius: 8px;
         padding: 4px 12px;
-        box-shadow: 0 0 0 1px #e5e6eb;
+        box-shadow: 0 0 0 1px var(--color-border);
         transition: all 0.2s;
 
         &:hover {
-            box-shadow: 0 0 0 1px #c9cdd4;
+            box-shadow: 0 0 0 1px var(--gray-400);
         }
 
         &.is-focus {
@@ -358,8 +315,8 @@ onMounted(() => {
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    border: 1px solid #e5e6eb;
-    background: #f7f8fa;
+    border: 1px solid var(--color-border);
+    background: var(--gray-100);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -377,7 +334,7 @@ onMounted(() => {
 }
 
 .captcha-loading {
-    color: #c9cdd4;
+    color: var(--color-text-disabled);
 }
 
 /* 登录按钮 */
@@ -397,7 +354,7 @@ onMounted(() => {
     }
 
     .login-main {
-        background: linear-gradient(180deg, #f0f2f5 0%, #e8eaf6 100%);
+        background: var(--color-bg);
     }
 }
 

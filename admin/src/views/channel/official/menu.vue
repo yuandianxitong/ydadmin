@@ -20,51 +20,50 @@
             </el-alert>
 
             <div class="menu-editor">
-                <!-- 左侧：菜单列表 -->
-                <div class="menu-list">
-                    <div class="menu-tabs">
-                        <div
-                            v-for="(menu, idx) in menuData"
-                            :key="idx"
-                            class="menu-tab"
-                            :class="{ active: activeIndex[0] === idx && activeIndex[1] === -1 }"
-                            @click="selectMenu(idx, -1)"
-                        >
-                            {{ menu.name || $t('channel.menu.menuPrefix') + (idx + 1) }}
-                            <el-icon class="del-icon" @click.stop="removeMenu(idx)"
-                                ><Close
-                            /></el-icon>
+                <!-- 左侧：手机模拟器 -->
+                <div class="phone-mockup">
+                    <div class="phone-screen">
+                        <div class="phone-header">{{ $t('channel.menu.title') }}</div>
+                        <div class="phone-body">
+                            <!-- 子菜单区域（悬浮在一级菜单上方） -->
+                            <div v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]?.sub_button?.length" class="sub-menu-popup">
+                                <div
+                                    v-for="(sub, sIdx) in menuData[activeIndex[0]].sub_button"
+                                    :key="sIdx"
+                                    class="sub-menu-btn"
+                                    :class="{ active: activeIndex[1] === sIdx }"
+                                    @click="selectMenu(activeIndex[0], sIdx)"
+                                >
+                                    <span>{{ sub.name || $t('channel.menu.subMenuPrefix') + (sIdx + 1) }}</span>
+                                    <el-icon class="del-icon" @click.stop="removeSubMenu(activeIndex[0], sIdx)"><Close /></el-icon>
+                                </div>
+                                <div
+                                    v-if="(menuData[activeIndex[0]].sub_button || []).length < 5"
+                                    class="sub-menu-btn add"
+                                    @click="addSubMenu(activeIndex[0])"
+                                >
+                                    <el-icon :size="14"><Plus /></el-icon>
+                                </div>
+                            </div>
                         </div>
-                        <div v-if="menuData.length < 3" class="menu-tab add" @click="addMenu">
-                            <el-icon><Plus /></el-icon>
-                        </div>
-                    </div>
-
-                    <!-- 二级菜单 -->
-                    <div
-                        v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]"
-                        class="sub-menu-list"
-                    >
-                        <div
-                            v-for="(sub, sIdx) in menuData[activeIndex[0]].sub_button || []"
-                            :key="sIdx"
-                            class="sub-menu-item"
-                            :class="{ active: activeIndex[1] === sIdx }"
-                            @click="selectMenu(activeIndex[0], sIdx)"
-                        >
-                            {{ sub.name || $t('channel.menu.subMenuPrefix') + (sIdx + 1) }}
-                            <el-icon
-                                class="del-icon"
-                                @click.stop="removeSubMenu(activeIndex[0], sIdx)"
-                                ><Close
-                            /></el-icon>
-                        </div>
-                        <div
-                            v-if="(menuData[activeIndex[0]].sub_button || []).length < 5"
-                            class="sub-menu-item add"
-                            @click="addSubMenu(activeIndex[0])"
-                        >
-                            <el-icon><Plus /></el-icon> {{ $t('channel.menu.addSubMenu') }}
+                        <!-- 底部菜单栏 -->
+                        <div class="phone-menu-bar">
+                            <div class="menu-btn keyboard-btn">
+                                <el-icon :size="18"><Keyboard /></el-icon>
+                            </div>
+                            <div
+                                v-for="(menu, idx) in menuData"
+                                :key="idx"
+                                class="menu-btn"
+                                :class="{ active: activeIndex[0] === idx }"
+                                @click="selectMenu(idx, -1)"
+                            >
+                                <span class="menu-btn-text">{{ menu.name || $t('channel.menu.menuPrefix') + (idx + 1) }}</span>
+                                <el-icon class="del-icon" @click.stop="removeMenu(idx)"><Close /></el-icon>
+                            </div>
+                            <div v-if="menuData.length < 3" class="menu-btn add" @click="addMenu">
+                                <el-icon :size="14"><Plus /></el-icon>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -110,7 +109,7 @@
 </template>
 
 <script setup lang="ts" name="WechatOfficialMenu">
-import { Close, Plus } from '@element-plus/icons-vue'
+import { Close, Keyboard, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -239,81 +238,136 @@ onMounted(async () => {
         gap: 24px;
         min-height: 400px;
     }
-    .menu-list {
-        width: 320px;
+    .phone-mockup {
+        width: 340px;
         flex-shrink: 0;
-        border: 1px solid var(--el-border-color);
-        border-radius: 6px;
-        padding: 12px;
     }
-    .menu-tabs {
+    .phone-screen {
+        border: 1px solid var(--el-border-color);
+        border-radius: 8px;
+        overflow: hidden;
         display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
+        flex-direction: column;
+        height: 540px;
+        background: #f5f5f5;
     }
-    .menu-tab {
-        padding: 8px 16px;
-        border: 1px solid var(--el-border-color);
-        border-radius: 4px;
+    .phone-header {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 600;
+        background: #ededed;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+        color: var(--el-text-color-primary);
+    }
+    .phone-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 8px;
+    }
+    .sub-menu-popup {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px;
+        margin-bottom: 4px;
+        background: #fff;
+        border-radius: 6px;
+        border: 1px solid var(--el-border-color-lighter);
+    }
+    .sub-menu-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+        text-align: center;
         cursor: pointer;
-        font-size: 14px;
+        border-radius: 4px;
         position: relative;
+        transition: background 0.15s;
+        &:hover {
+            background: var(--el-fill-color-light);
+        }
         &.active {
-            border-color: var(--el-color-primary);
             color: var(--el-color-primary);
             background: var(--el-color-primary-light-9);
         }
         &.add {
-            border-style: dashed;
-            color: #999;
+            border: 1px dashed var(--el-border-color);
+            color: var(--el-text-color-placeholder);
             display: flex;
             align-items: center;
-            gap: 4px;
-        }
-        .del-icon {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            font-size: 12px;
-            background: #f56c6c;
-            color: #fff;
-            border-radius: 50%;
-            padding: 2px;
-        }
-    }
-    .sub-menu-list {
-        border-top: 1px solid var(--el-border-color-light);
-        padding-top: 12px;
-    }
-    .sub-menu-item {
-        padding: 6px 12px;
-        margin-bottom: 6px;
-        border: 1px solid var(--el-border-color-lighter);
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        &.active {
-            border-color: var(--el-color-primary);
-            color: var(--el-color-primary);
-        }
-        &.add {
-            border-style: dashed;
-            color: #999;
+            justify-content: center;
         }
         .del-icon {
             position: absolute;
             top: -4px;
             right: -4px;
             font-size: 10px;
-            background: #f56c6c;
+            background: var(--el-color-danger);
             color: #fff;
             border-radius: 50%;
             padding: 2px;
+            display: none;
+        }
+        &:hover .del-icon {
+            display: block;
+        }
+    }
+    .phone-menu-bar {
+        display: flex;
+        border-top: 1px solid var(--el-border-color);
+        background: #fafafa;
+    }
+    .menu-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 4px;
+        font-size: 14px;
+        cursor: pointer;
+        position: relative;
+        border-right: 1px solid var(--el-border-color-lighter);
+        transition: background 0.15s;
+        &:last-child {
+            border-right: none;
+        }
+        &:hover {
+            background: var(--el-fill-color-light);
+        }
+        &.active {
+            color: var(--el-color-primary);
+            background: var(--el-color-primary-light-9);
+            font-weight: 500;
+        }
+        &.add {
+            color: var(--el-text-color-placeholder);
+            max-width: 50px;
+        }
+        &.keyboard-btn {
+            max-width: 50px;
+            cursor: default;
+            color: var(--el-text-color-secondary);
+            &:hover {
+                background: transparent;
+            }
+        }
+        .del-icon {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            font-size: 10px;
+            background: var(--el-color-danger);
+            color: #fff;
+            border-radius: 50%;
+            padding: 2px;
+            display: none;
+        }
+        &:hover .del-icon {
+            display: block;
         }
     }
     .menu-form {
