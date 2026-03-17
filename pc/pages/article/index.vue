@@ -16,7 +16,7 @@
               全部
               <span
                 v-if="activeCategoryId === 0"
-                class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--color-primary)] rounded-full"
+                class="absolute bottom-0 left-0 right-0 mx-auto w-6 h-0.5 bg-[var(--color-primary)]"
               />
             </button>
             <button
@@ -31,7 +31,7 @@
               {{ cat.name }}
               <span
                 v-if="activeCategoryId === cat.id"
-                class="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[var(--color-primary)] rounded-full"
+                class="absolute bottom-0 left-0 right-0 mx-auto w-6 h-0.5 bg-[var(--color-primary)]"
               />
             </button>
           </div>
