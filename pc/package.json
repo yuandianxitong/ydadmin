@@ -1,0 +1,27 @@
+{
+  "name": "yd-admin-pc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "postgenerate": "rm -rf ../server/public/pc && cp -r .output/public ../server/public/pc",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "nuxt": "^3.16.2",
+    "vue": "^3.5.30",
+    "pinia": "^2.3.1",
+    "@pinia/nuxt": "^0.9.0"
+  },
+  "devDependencies": {
+    "unocss": "^66.6.6",
+    "@unocss/nuxt": "^66.6.6",
+    "@unocss/preset-wind3": "^66.6.6",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

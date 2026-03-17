@@ -23,6 +23,7 @@ vendor/
 # Build output
 admin/dist/
 uniapp/dist/
+pc/dist/
 
 # Documentation (internal, not published via git)
 docs/
