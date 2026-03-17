@@ -10,16 +10,17 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
+    "@pinia/nuxt": "^0.9.0",
     "nuxt": "^3.16.2",
-    "vue": "^3.5.30",
     "pinia": "^2.3.1",
-    "@pinia/nuxt": "^0.9.0"
+    "swiper": "^12.1.2",
+    "vue": "^3.5.30"
   },
   "devDependencies": {
-    "unocss": "^66.6.6",
     "@unocss/nuxt": "^66.6.6",
     "@unocss/preset-wind3": "^66.6.6",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unocss": "^66.6.6"
   },
   "engines": {
     "node": ">=18.0.0"
