@@ -4,7 +4,7 @@
       <!-- 左栏 -->
       <div class="flex-1 min-w-0">
         <!-- 分类筛选 -->
-        <div class="bg-white rounded-lg px-4 pt-3">
+        <div class="bg-white rounded-sm px-4 pt-3">
           <div class="flex items-center gap-1 border-b border-gray-100">
             <button
               class="px-4 py-2.5 text-sm transition-colors relative"
@@ -38,7 +38,7 @@
         </div>
 
         <!-- 文章列表 -->
-        <div class="bg-white rounded-lg mt-3 px-4">
+        <div class="bg-white rounded-sm mt-3 px-4">
           <div v-if="loading" class="text-center py-16 text-gray-400">加载中...</div>
           <template v-else>
             <ArticleCard v-for="item in articles" :key="item.id" :article="item" />
@@ -48,7 +48,7 @@
           <!-- 分页 -->
           <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 py-5">
             <button
-              class="px-3 py-1.5 text-sm rounded border transition-colors"
+              class="px-3 py-1.5 text-sm rounded-sm border transition-colors"
               :class="currentPage <= 1 ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-600 border-gray-300 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]'"
               :disabled="currentPage <= 1"
               @click="changePage(currentPage - 1)"
@@ -58,7 +58,7 @@
             <button
               v-for="p in visiblePages"
               :key="p"
-              class="w-8 h-8 text-sm rounded transition-colors"
+              class="w-8 h-8 text-sm rounded-sm transition-colors"
               :class="currentPage === p
                 ? 'bg-[var(--color-primary)] text-white'
                 : 'text-gray-600 hover:text-[var(--color-primary)]'"
@@ -67,7 +67,7 @@
               {{ p }}
             </button>
             <button
-              class="px-3 py-1.5 text-sm rounded border transition-colors"
+              class="px-3 py-1.5 text-sm rounded-sm border transition-colors"
               :class="currentPage >= totalPages ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-600 border-gray-300 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]'"
               :disabled="currentPage >= totalPages"
               @click="changePage(currentPage + 1)"

@@ -14,18 +14,18 @@
               <input
                 v-model="profileForm.nickname"
                 type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                class="form-input"
               />
             </div>
             <div>
               <label class="block text-sm text-gray-600 mb-1">手机号</label>
-              <input :value="profile.mobile" type="text" disabled class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 text-gray-400" />
+              <input :value="profile.mobile" type="text" disabled class="form-input bg-gray-50 text-gray-400 !border-gray-200" />
             </div>
             <div>
               <label class="block text-sm text-gray-600 mb-1">性别</label>
               <select
                 v-model="profileForm.gender"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                class="form-input"
               >
                 <option :value="0">未知</option>
                 <option :value="1">男</option>
@@ -37,7 +37,7 @@
               <input
                 v-model="profileForm.birthday"
                 type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                class="form-input"
               />
             </div>
           </div>
@@ -59,7 +59,7 @@
               <input
                 v-model="passwordForm.old_password"
                 type="password"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                class="form-input"
               />
             </div>
             <div>
@@ -67,7 +67,7 @@
               <input
                 v-model="passwordForm.new_password"
                 type="password"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+                class="form-input"
               />
             </div>
           </div>

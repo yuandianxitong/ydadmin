@@ -1,7 +1,10 @@
 export default defineNuxtConfig({
   ssr: false,
 
-  css: ['~/assets/css/main.css'],
+  css: [
+    '@unocss/reset/tailwind.css',
+    '~/assets/css/main.css',
+  ],
 
   app: {
     baseURL: '/pc/',

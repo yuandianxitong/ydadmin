@@ -10,7 +10,7 @@
             type="text"
             maxlength="11"
             placeholder="请输入手机号"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            class="form-input"
           />
         </div>
         <div class="mb-4">
@@ -21,7 +21,7 @@
               type="text"
               maxlength="6"
               placeholder="请输入验证码"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
+              class="form-input flex-1"
             />
             <button
               type="button"
@@ -39,7 +39,7 @@
             v-model="form.password"
             type="password"
             placeholder="请设置密码"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            class="form-input"
           />
         </div>
         <button
@@ -52,7 +52,7 @@
         </button>
       </form>
       <p class="text-center text-sm text-gray-400 mt-6">
-        已有账号？<NuxtLink to="/login" class="text-blue-600 hover:text-blue-700">立即登录</NuxtLink>
+        已有账号？<NuxtLink to="/login" class="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">立即登录</NuxtLink>
       </p>
     </div>
   </div>

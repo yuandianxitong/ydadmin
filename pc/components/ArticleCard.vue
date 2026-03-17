@@ -4,7 +4,7 @@
       v-if="article.cover"
       :src="article.cover"
       :alt="article.title"
-      class="w-44 h-28 object-cover rounded flex-shrink-0"
+      class="w-44 h-28 object-cover rounded-sm flex-shrink-0"
     />
     <div class="flex flex-col justify-between flex-1 min-w-0 py-0.5">
       <div>
@@ -14,7 +14,7 @@
       <div class="flex items-center gap-4 text-xs text-gray-400">
         <span v-if="article.author" class="text-[var(--color-primary)]">{{ article.author }}</span>
         <span>{{ article.published_at }}</span>
-        <span v-if="article.category_name" class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500">{{ article.category_name }}</span>
+        <span v-if="article.category_name" class="px-1.5 py-0.5 bg-gray-100 rounded-sm text-gray-500">{{ article.category_name }}</span>
         <span class="ml-auto">{{ article.views }} 阅读</span>
       </div>
     </div>

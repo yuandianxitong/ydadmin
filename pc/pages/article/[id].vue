@@ -38,7 +38,7 @@ onMounted(async () => {
 <style scoped>
 .prose :deep(img) {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: 2px;
 }
 .prose :deep(p) {
   margin-bottom: 1em;

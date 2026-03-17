@@ -10,7 +10,7 @@
             type="text"
             maxlength="11"
             placeholder="请输入手机号"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            class="form-input"
           />
         </div>
         <div class="mb-6">
@@ -19,7 +19,7 @@
             v-model="form.password"
             type="password"
             placeholder="请输入密码"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500 transition-colors"
+            class="form-input"
           />
         </div>
         <button
@@ -32,7 +32,7 @@
         </button>
       </form>
       <p class="text-center text-sm text-gray-400 mt-6">
-        还没有账号？<NuxtLink to="/register" class="text-blue-600 hover:text-blue-700">立即注册</NuxtLink>
+        还没有账号？<NuxtLink to="/register" class="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">立即注册</NuxtLink>
       </p>
     </div>
   </div>

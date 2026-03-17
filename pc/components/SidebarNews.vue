@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg p-4">
+  <div class="bg-white rounded-sm p-4">
     <div class="section-title">
       <h3>新闻快讯</h3>
     </div>

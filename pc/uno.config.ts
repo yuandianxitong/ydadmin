@@ -10,7 +10,7 @@ import presetWind3 from '@unocss/preset-wind3'
 
 export default defineConfig({
   presets: [
-    presetWind3(),
+    presetWind3({ preflight: false }),
     presetAttributify(),
     presetIcons({
       extraProperties: {
@@ -23,10 +23,12 @@ export default defineConfig({
   ],
 
   shortcuts: [
-    ['btn', 'px-4 py-2 inline-flex items-center justify-center rounded-md transition-all duration-200 cursor-pointer'],
-    ['btn-primary', 'btn bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'],
-    ['btn-outline', 'btn border border-gray-300 text-gray-700 hover:bg-gray-50'],
-    ['card', 'bg-white border border-gray-200 rounded-lg shadow-sm'],
+    ['btn', 'px-4 py-2 inline-flex items-center justify-center rounded-sm transition-all duration-200 cursor-pointer text-sm'],
+    ['btn-primary', 'btn bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]'],
+    ['btn-outline', 'btn border border-gray-300 text-gray-600 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)]'],
+    ['card', 'bg-white border border-gray-200 rounded-sm'],
+    ['form-input', 'w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:border-[var(--color-primary)] focus:outline-none transition-colors'],
+    ['form-select', 'w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:border-[var(--color-primary)] focus:outline-none transition-colors'],
   ],
 
   transformers: [transformerDirectives(), transformerVariantGroup()],

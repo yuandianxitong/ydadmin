@@ -1,0 +1,1 @@
+import{_ as s,o as t,c,N as n}from"./oSMufJuN.js";const r={},o={class:"min-h-screen flex items-center justify-center bg-gray-50"};function a(e,l){return t(),c("div",o,[n(e.$slots,"default")])}const f=s(r,[["render",a]]);export{f as default};

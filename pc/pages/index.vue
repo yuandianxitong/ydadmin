@@ -3,7 +3,7 @@
     <!-- Banner 区域 -->
     <div class="mt-5 flex gap-4">
       <!-- 左侧大 Swiper Banner -->
-      <div class="flex-1 rounded-lg overflow-hidden h-72">
+      <div class="flex-1 rounded-sm overflow-hidden h-72">
         <Swiper
           :modules="[SwiperAutoplay, SwiperPagination]"
           :autoplay="{ delay: 4000, disableOnInteraction: false }"
@@ -41,7 +41,7 @@
           v-for="item in sideCards"
           :key="item.id"
           :to="`/article/${item.id}`"
-          class="relative rounded-lg overflow-hidden group"
+          class="relative rounded-sm overflow-hidden group"
         >
           <img
             :src="item.cover || '/pc/placeholder.svg'"
@@ -52,7 +52,7 @@
           <span class="absolute bottom-2 left-2 right-2 text-white text-xs line-clamp-2 leading-snug font-medium">{{ item.title }}</span>
         </NuxtLink>
         <!-- Empty placeholders -->
-        <div v-for="i in Math.max(0, 4 - sideCards.length)" :key="`empty-${i}`" class="rounded-lg bg-gray-200 flex items-center justify-center">
+        <div v-for="i in Math.max(0, 4 - sideCards.length)" :key="`empty-${i}`" class="rounded-sm bg-gray-200 flex items-center justify-center">
           <span class="text-xs text-gray-400">暂无</span>
         </div>
       </div>
@@ -63,7 +63,7 @@
       <!-- 左栏：分类 Tab + 文章列表 -->
       <div class="flex-1 min-w-0">
         <!-- 分类 Tab -->
-        <div class="bg-white rounded-lg px-4 pt-3">
+        <div class="bg-white rounded-sm px-4 pt-3">
           <div class="flex items-center gap-1 border-b border-gray-100">
             <button
               v-for="cat in categoryTabs"
@@ -84,7 +84,7 @@
         </div>
 
         <!-- 文章列表 -->
-        <div class="bg-white rounded-lg mt-3 px-4">
+        <div class="bg-white rounded-sm mt-3 px-4">
           <div v-if="loading" class="text-center py-16 text-gray-400">加载中...</div>
           <template v-else>
             <ArticleCard v-for="item in articles" :key="item.id" :article="item" />
@@ -94,7 +94,7 @@
           <!-- 加载更多 -->
           <div v-if="hasMore && articles.length" class="py-4 text-center">
             <button
-              class="text-sm text-gray-500 hover:text-[var(--color-primary)] border border-gray-200 rounded-full px-8 py-2 transition-colors"
+              class="btn-outline px-8"
               :disabled="loadingMore"
               @click="loadMore"
             >
