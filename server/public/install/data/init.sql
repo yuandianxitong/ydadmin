@@ -144,7 +144,19 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (143, 'article.create', '创建文章', '内容管理', '创建新文章', 'admin', 1, 143, NOW(), NOW()),
     (144, 'article.update', '编辑文章', '内容管理', '编辑文章', 'admin', 1, 144, NOW(), NOW()),
     (145, 'article.delete', '删除文章', '内容管理', '删除文章', 'admin', 1, 145, NOW(), NOW()),
-    (146, 'article.status', '文章状态', '内容管理', '发布/下架文章', 'admin', 1, 146, NOW(), NOW());
+    (146, 'article.status', '文章状态', '内容管理', '发布/下架文章', 'admin', 1, 146, NOW(), NOW()),
+    -- 用户管理
+    (150, 'user', '用户管理', '用户管理', '用户管理权限', 'admin', 1, 150, NOW(), NOW()),
+    (151, 'user.list', '用户列表', '用户管理', '查看用户列表', 'admin', 1, 151, NOW(), NOW()),
+    (152, 'user.detail', '用户详情', '用户管理', '查看用户详情', 'admin', 1, 152, NOW(), NOW()),
+    (153, 'user.adjust-balance', '调整余额', '用户管理', '调整用户余额', 'admin', 1, 153, NOW(), NOW()),
+    (154, 'user.adjust-points', '调整积分', '用户管理', '调整用户积分', 'admin', 1, 154, NOW(), NOW()),
+    (155, 'user.status', '用户状态', '用户管理', '启用/禁用用户', 'admin', 1, 155, NOW(), NOW()),
+    (156, 'user.balance-logs', '余额记录', '用户管理', '查看余额记录', 'admin', 1, 156, NOW(), NOW()),
+    (157, 'user.points-logs', '积分记录', '用户管理', '查看积分记录', 'admin', 1, 157, NOW(), NOW()),
+    -- 开放平台
+    (160, 'channel.open', '开放平台', '渠道管理', '开放平台管理权限', 'admin', 1, 160, NOW(), NOW()),
+    (161, 'channel.open.config', '开放平台配置', '渠道管理', '开放平台配置管理', 'admin', 1, 161, NOW(), NOW());
 
 -- ============================================================
 -- 菜单数据
@@ -279,7 +291,24 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (810, 8, 2, '应用版本', 'AppVersion', '/app/version', '/content/version/index', NULL, 'i-svg:arrow-up-from-line', 'version.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (811, 810, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'version.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (812, 810, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'version.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
-  (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+  (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+
+  -- ===== 用户管理 =====
+  (9, 0, 1, '用户管理', 'User', '/user', 'LAYOUT', '/user/user', 'i-svg:users', 'user', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 500, NOW(), NOW()),
+  -- 用户列表
+  (900, 9, 2, '用户列表', 'UserList', '/user/user', '/user/user/index', NULL, 'i-svg:user', 'user.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (901, 900, 3, '查看详情', NULL, NULL, NULL, NULL, NULL, 'user.detail', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (902, 900, 3, '调整余额', NULL, NULL, NULL, NULL, NULL, 'user.adjust-balance', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (903, 900, 3, '调整积分', NULL, NULL, NULL, NULL, NULL, 'user.adjust-points', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (904, 900, 3, '更新状态', NULL, NULL, NULL, NULL, NULL, 'user.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  -- 余额记录
+  (910, 9, 2, '余额记录', 'UserBalanceLog', '/user/balance-log', '/user/balance-log/index', NULL, 'i-svg:wallet', 'user.balance-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  -- 积分记录
+  (920, 9, 2, '积分记录', 'UserPointsLog', '/user/points-log', '/user/points-log/index', NULL, 'i-svg:star', 'user.points-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+
+  -- ===== 开放平台（渠道管理子菜单） =====
+  (10, 4, 1, '开放平台', 'ChannelOpen', '/channel/open', 'LAYOUT', '/channel/open/config', 'i-svg:globe', 'channel.open', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (600, 10, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
 
 -- ============================================================
 -- 为超级管理员角色分配所有权限和菜单

@@ -35,7 +35,7 @@
               v-if="!item.disabled"
               :to="item.path"
               class="flex items-center px-5 py-3 text-sm transition-colors"
-              :class="isActive(item.path) ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/5 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
+              :class="isActive(item.path) ? 'text-white bg-[var(--color-primary)] font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'"
             >
               {{ item.label }}
             </NuxtLink>

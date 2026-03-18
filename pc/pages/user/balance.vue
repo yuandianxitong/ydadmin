@@ -84,7 +84,7 @@
             :key="amt"
             class="py-3 rounded-lg border-2 text-center font-medium transition-colors"
             :class="selectedAmount === amt && !useCustom
-              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 text-[var(--color-primary)]'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
               : 'border-gray-200 text-gray-700 hover:border-gray-300'"
             @click="selectPreset(amt)"
           >

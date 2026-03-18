@@ -147,13 +147,13 @@ class UserManageService extends Service
     public function getUserBalance(int $userId): array
     {
         $user = $this->userRepository->find($userId);
-        return ['balance' => $user ? $user['balance'] : '0.00'];
+        return ['balance' => $user['balance'] ?? '0.00'];
     }
 
     public function getUserPoints(int $userId): array
     {
         $user = $this->userRepository->find($userId);
-        return ['points' => $user ? $user['points'] : 0];
+        return ['points' => $user['points'] ?? 0];
     }
 
     public function getUserBalanceLogs(int $userId, array $params): array
