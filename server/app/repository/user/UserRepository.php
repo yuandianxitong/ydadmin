@@ -73,4 +73,32 @@ class UserRepository extends Repository
         }
         return $user;
     }
+
+    /**
+     * 用户列表（admin 后台用）
+     */
+    public function getSearchList(array $params, int $page = 1, int $limit = 20): array
+    {
+        $query = User::order('id', 'desc');
+        if (!empty($params['keyword'])) {
+            $query->where('nickname|mobile', 'like', "%{$params['keyword']}%");
+        }
+        if (isset($params['status']) && $params['status'] !== '') {
+            $query->where('status', $params['status']);
+        }
+        $total = $query->count();
+        $list = $query->page($page, $limit)
+            ->field('id,nickname,avatar,mobile,balance,points,status,last_login_ip,last_login_time,login_count,created_at')
+            ->select()->toArray();
+        return ['list' => $list, 'total' => $total];
+    }
+
+    /**
+     * 查找用户并加行锁（FOR UPDATE）
+     * 注意：返回 Model 实例（非数组），调用方使用 $user->balance 而非 $user['balance']
+     */
+    public function findForUpdate(int $id): ?User
+    {
+        return User::where('id', $id)->lock(true)->find();
+    }
 }
