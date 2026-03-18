@@ -41,7 +41,7 @@
                 <div class="table-title">用户列表</div>
             </div>
 
-            <el-table v-loading="loading" :data="userList">
+            <el-table v-loading="loading" :data="userList" style="width: 100%">
                 <el-table-column label="ID" prop="id" width="80" />
 
                 <el-table-column label="头像" width="80">
@@ -61,7 +61,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="昵称" prop="nickname" width="120" show-overflow-tooltip />
+                <el-table-column label="昵称" prop="nickname" min-width="120" show-overflow-tooltip />
 
                 <el-table-column label="账号" prop="mobile" width="140" />
 

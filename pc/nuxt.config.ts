@@ -31,15 +31,17 @@ export default defineNuxtConfig({
     port: 5175,
   },
 
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: 'http://localhost',
-        changeOrigin: true,
-      },
-      '/storage': {
-        target: 'http://localhost',
-        changeOrigin: true,
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost',
+          changeOrigin: true,
+        },
+        '/storage': {
+          target: 'http://localhost',
+          changeOrigin: true,
+        },
       },
     },
   },
