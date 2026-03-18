@@ -10,6 +10,8 @@ use think\Response;
 class UserController extends Controller
 {
     protected UserService $userService;
+    protected \app\service\user\UserManageService $userManageService;
+    protected \app\service\payment\PaymentService $paymentService;
 
     /**
      * 获取个人信息
@@ -56,5 +58,72 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }
+    }
+
+    /**
+     * 获取余额
+     */
+    public function balance(): Response
+    {
+        $userId = $this->getUserId();
+        $result = $this->userManageService->getUserBalance($userId);
+        return $this->success('ok', $result);
+    }
+
+    /**
+     * 获取余额记录
+     */
+    public function balanceLogs(): Response
+    {
+        $userId = $this->getUserId();
+        $params = $this->getRequestData();
+        $result = $this->userManageService->getUserBalanceLogs($userId, $params);
+        return $this->success('ok', $result);
+    }
+
+    /**
+     * 获取积分
+     */
+    public function points(): Response
+    {
+        $userId = $this->getUserId();
+        $result = $this->userManageService->getUserPoints($userId);
+        return $this->success('ok', $result);
+    }
+
+    /**
+     * 获取积分记录
+     */
+    public function pointsLogs(): Response
+    {
+        $userId = $this->getUserId();
+        $params = $this->getRequestData();
+        $result = $this->userManageService->getUserPointsLogs($userId, $params);
+        return $this->success('ok', $result);
+    }
+
+    /**
+     * 余额充值
+     */
+    public function recharge(): Response
+    {
+        $amount = (float) $this->request->post('amount');
+        $channel = $this->request->post('channel', 'wechat');
+
+        if ($amount < 1 || $amount > 10000) {
+            return $this->error('充值金额范围为 1.00 ~ 10000.00 元');
+        }
+
+        $userId = $this->getUserId();
+
+        $result = $this->paymentService->createOrder($channel, [
+            'subject'      => '余额充值',
+            'body'         => '账户余额充值 ' . $amount . ' 元',
+            'total_amount' => $amount,
+            'user_id'      => $userId,
+            'biz_type'     => 'recharge',
+        ]);
+
+        return $this->success('ok', $result);
     }
 }

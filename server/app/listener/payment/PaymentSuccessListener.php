@@ -1,27 +1,11 @@
 <?php
-/* ============================================================
- * 项目：元点Admin
- * 官网：https://www.dev007.cn
- * Slogan：提供高质量行业系统源码，帮助中小企业快速搭建专属应用
- * Author：mashanglai Team
- * ============================================================ */
 declare(strict_types=1);
-
 namespace app\listener\payment;
 
+use app\model\user\BalanceLog;
+use app\service\user\UserManageService;
 use think\facade\Log;
 
-/**
- * 支付成功监听器
- *
- * 事件数据：
- * - order_no: string   商户订单号
- * - trade_no: string   第三方交易号
- * - amount: string     支付金额
- * - channel: string    支付渠道 alipay / wechat
- *
- * 扩展点：可在此添加发货、通知、积分奖励等后续业务逻辑
- */
 class PaymentSuccessListener
 {
     public function handle(array $event): void
@@ -33,8 +17,39 @@ class PaymentSuccessListener
             'channel'  => $event['channel'],
         ]);
 
-        // TODO: 更新业务订单状态
-        // TODO: 发送支付成功通知
-        // TODO: 赠送积分/优惠券
+        $bizType = $event['biz_type'] ?? '';
+
+        switch ($bizType) {
+            case 'recharge':
+                $this->handleRecharge($event);
+                break;
+            default:
+                Log::info('未处理的业务类型', ['biz_type' => $bizType]);
+                break;
+        }
+    }
+
+    protected function handleRecharge(array $event): void
+    {
+        $userId = (int) ($event['user_id'] ?? 0);
+        $amount = (float) ($event['amount'] ?? 0);
+        $orderNo = $event['order_no'] ?? '';
+
+        if (!$userId || !$amount || !$orderNo) {
+            Log::error('充值回调参数不完整', $event);
+            return;
+        }
+
+        try {
+            $service = app(UserManageService::class);
+            $service->adjustBalance(
+                $userId, $amount, '在线充值',
+                BalanceLog::TYPE_RECHARGE,
+                'payment:' . $orderNo
+            );
+            Log::info('充值成功', ['user_id' => $userId, 'amount' => $amount, 'order_no' => $orderNo]);
+        } catch (\Throwable $e) {
+            Log::error('充值处理失败: ' . $e->getMessage(), ['user_id' => $userId, 'order_no' => $orderNo]);
+        }
     }
 }

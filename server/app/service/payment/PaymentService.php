@@ -34,6 +34,8 @@ class PaymentService extends Service
             'body'         => $params['body'] ?? '',
             'total_amount' => $params['total_amount'],
             'status'       => PaymentOrder::STATUS_PENDING,
+            'user_id'      => $params['user_id'] ?? null,
+            'biz_type'     => $params['biz_type'] ?? null,
         ]);
 
         // 调用支付驱动
@@ -165,6 +167,8 @@ class PaymentService extends Service
                 'trade_no' => $data['trade_no'],
                 'amount'   => $data['total_amount'],
                 'channel'  => $channel,
+                'user_id'  => $paymentOrder->user_id,
+                'biz_type' => $paymentOrder->biz_type,
             ]);
         }
 
