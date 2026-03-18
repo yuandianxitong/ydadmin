@@ -125,6 +125,44 @@ class UserService extends Service
     }
 
     /**
+     * 微信开放平台网页登录（PC端扫码）
+     */
+    public function loginByWechatWeb(string $openid, string $unionid = '', array $userInfo = [], string $ip = ''): array
+    {
+        // 优先通过 openid 查找
+        $user = $this->userRepository->findByOpenid($openid);
+
+        // 通过 unionid 尝试关联已有账号
+        if (!$user && $unionid) {
+            $user = $this->userRepository->findByUnionid($unionid);
+            if ($user && empty($user->openid)) {
+                $user->openid = $openid;
+                $user->save();
+            }
+        }
+
+        if (!$user) {
+            // 自动注册
+            $this->userRepository->create([
+                'openid'   => $openid,
+                'unionid'  => $unionid ?: null,
+                'nickname' => $userInfo['nickname'] ?: '微信用户',
+                'avatar'   => $userInfo['avatar'] ?? '',
+                'status'   => 1,
+            ]);
+            $user = $this->userRepository->findByOpenid($openid);
+
+            $this->trigger('user.register', ['user_id' => $user->id, 'channel' => 'wechat_web']);
+        }
+
+        if ($user->status !== 1) {
+            throw new BusinessException(lang('business.user_account_disabled'));
+        }
+
+        return $this->loginSuccess($user, $ip);
+    }
+
+    /**
      * 获取用户信息
      */
     public function getUserInfo(int $userId): array

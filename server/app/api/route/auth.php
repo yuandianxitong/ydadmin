@@ -6,6 +6,7 @@ Route::group('auth', function () {
     Route::post('login', 'v1.auth.AuthController/login');
     Route::post('sms-login', 'v1.auth.AuthController/smsLogin');
     Route::post('wechat-login', 'v1.auth.AuthController/wechatLogin');
+    Route::post('wechat-web-login', 'v1.auth.AuthController/wechatWebLogin');
     Route::post('register', 'v1.auth.AuthController/register');
 });
 

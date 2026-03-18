@@ -18,9 +18,15 @@ class CommonController extends Controller
         try {
             $configs = \app\model\system\SystemConfig::getConfigsByGroup('basic');
 
+            // 合并开放平台的公开配置（仅 AppID，不暴露 Secret）
+            $wechatOpenConfigs = \app\model\system\SystemConfig::getConfigsByGroup('wechat_open');
+
             // 只返回前端需要的公开配置
             $publicKeys = ['site_name', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register', 'banner_list'];
             $result = array_intersect_key($configs, array_flip($publicKeys));
+            if (!empty($wechatOpenConfigs['wechat_open_app_id'])) {
+                $result['wechat_open_app_id'] = $wechatOpenConfigs['wechat_open_app_id'];
+            }
 
             return $this->success(lang('messages.get_success'), $result);
         } catch (\Exception $e) {

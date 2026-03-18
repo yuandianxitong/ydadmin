@@ -106,5 +106,6 @@ return [
     'config_group_storage'          => '存储配置',
     'config_group_payment'          => '支付配置',
     'config_group_wechat_official'  => '公众号配置',
+    'config_group_wechat_open'      => '开放平台配置',
     'config_group_wechat_mini'      => '小程序配置',
 ];

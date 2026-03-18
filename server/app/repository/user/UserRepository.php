@@ -31,6 +31,14 @@ class UserRepository extends Repository
     }
 
     /**
+     * 根据公众号/开放平台 openid 查找用户
+     */
+    public function findByOpenid(string $openid): ?Model
+    {
+        return User::findByOpenid($openid);
+    }
+
+    /**
      * 根据小程序 openid 查找用户
      */
     public function findByMiniOpenid(string $openid): ?Model

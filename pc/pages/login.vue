@@ -144,6 +144,7 @@ const route = useRoute()
 const submitting = ref(false)
 const loginType = ref<'password' | 'sms'>('password')
 const countdown = ref(0)
+const wechatAppId = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
 const passwordForm = reactive({ account: '', password: '' })
@@ -213,10 +214,12 @@ async function handleSendCode() {
 
 // 微信登录
 function handleWechatLogin() {
-  // 构造微信 OAuth 授权 URL，跳转后微信会回调到当前页面带 code 参数
+  if (!wechatAppId.value) {
+    message.warning('微信登录未配置，请联系管理员')
+    return
+  }
   const redirectUri = encodeURIComponent(window.location.origin + '/pc/login')
-  const appId = 'wx_appid' // TODO: 从系统配置获取
-  const url = `https://open.weixin.qq.com/connect/qrconnect?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_login&state=pc_login#wechat_redirect`
+  const url = `https://open.weixin.qq.com/connect/qrconnect?appid=${wechatAppId.value}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_login&state=pc_login#wechat_redirect`
   window.location.href = url
 }
 
@@ -240,8 +243,17 @@ async function handleWechatCallback(code: string) {
   }
 }
 
-// 页面加载时检查微信回调 code
-onMounted(() => {
+// 页面加载时获取配置 + 检查微信回调 code
+onMounted(async () => {
+  // 获取微信开放平台 AppID
+  try {
+    const res = await commonApi.getConfig()
+    if (res.code === 1 && res.data.wechat_open_app_id) {
+      wechatAppId.value = res.data.wechat_open_app_id
+    }
+  } catch { /* ignore */ }
+
+  // 微信回调处理
   const code = route.query.code as string
   if (code) {
     handleWechatCallback(code)
