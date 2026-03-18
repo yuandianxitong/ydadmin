@@ -113,7 +113,7 @@ async function fetchArticles() {
     const params: Record<string, any> = { page_no: currentPage.value, page_size: pageSize }
     if (activeCategoryId.value) params.category_id = activeCategoryId.value
     const res = await articleApi.getList(params)
-    if (res.code === 1) {
+    if (res.code === 200) {
       articles.value = res.data.list
       total.value = res.data.total
     }

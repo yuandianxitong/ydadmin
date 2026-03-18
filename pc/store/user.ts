@@ -15,7 +15,7 @@ export const useUserStore = defineStore('user', {
   actions: {
     async login(data: { account: string; password: string }) {
       const res = await authApi.login(data)
-      if (res.code === 1) {
+      if (res.code === 200) {
         this.token = res.data.token
         setToken(res.data.token)
       }
@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
 
     async smsLogin(data: { mobile: string; code: string }) {
       const res = await authApi.smsLogin(data)
-      if (res.code === 1) {
+      if (res.code === 200) {
         this.token = res.data.token
         setToken(res.data.token)
       }
@@ -34,7 +34,7 @@ export const useUserStore = defineStore('user', {
     async fetchUserInfo() {
       if (!this.token) return
       const res = await authApi.getUserInfo()
-      if (res.code === 1) {
+      if (res.code === 200) {
         this.userInfo = res.data
       }
       return res

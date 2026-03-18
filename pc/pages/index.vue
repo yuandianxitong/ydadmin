@@ -159,7 +159,7 @@ async function fetchArticles(append = false) {
     const params: Record<string, any> = { page_no: currentPage.value, page_size: pageSize }
     if (activeCategoryId.value) params.category_id = activeCategoryId.value
     const res = await articleApi.getList(params)
-    if (res.code === 1) {
+    if (res.code === 200) {
       if (append) {
         articles.value.push(...res.data.list)
       } else {

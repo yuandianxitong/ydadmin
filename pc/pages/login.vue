@@ -156,11 +156,11 @@ async function handlePasswordLogin() {
   submitting.value = true
   try {
     const res = await userStore.login(passwordForm)
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('登录成功')
       router.push('/')
     } else {
-      message.error(res.msg || '登录失败')
+      message.error(res.message || '登录失败')
     }
   } catch {
     message.error('网络错误，请重试')
@@ -175,11 +175,11 @@ async function handleSmsLogin() {
   submitting.value = true
   try {
     const res = await userStore.smsLogin(smsForm)
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('登录成功')
       router.push('/')
     } else {
-      message.error(res.msg || '登录失败')
+      message.error(res.message || '登录失败')
     }
   } catch {
     message.error('网络错误，请重试')
@@ -194,7 +194,7 @@ async function handleSendCode() {
   if (countdown.value > 0) return
   try {
     const res = await commonApi.sendSmsCode({ mobile: smsForm.mobile })
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('验证码已发送')
       countdown.value = 60
       timer = setInterval(() => {
@@ -205,7 +205,7 @@ async function handleSendCode() {
         }
       }, 1000)
     } else {
-      message.error(res.msg || '发送失败')
+      message.error(res.message || '发送失败')
     }
   } catch {
     message.error('网络错误')
@@ -228,13 +228,13 @@ async function handleWechatCallback(code: string) {
   submitting.value = true
   try {
     const res = await authApi.wechatLogin({ code })
-    if (res.code === 1) {
+    if (res.code === 200) {
       userStore.$patch({ token: res.data.token })
       setToken(res.data.token)
       message.success('登录成功')
       router.push('/')
     } else {
-      message.error(res.msg || '微信登录失败')
+      message.error(res.message || '微信登录失败')
     }
   } catch {
     message.error('微信登录失败，请重试')
@@ -248,7 +248,7 @@ onMounted(async () => {
   // 获取微信开放平台 AppID
   try {
     const res = await commonApi.getConfig()
-    if (res.code === 1 && res.data.wechat_open_app_id) {
+    if (res.code === 200 && res.data.wechat_open_app_id) {
       wechatAppId.value = res.data.wechat_open_app_id
     }
   } catch { /* ignore */ }

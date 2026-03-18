@@ -101,7 +101,7 @@ const passwordForm = reactive({ old_password: '', new_password: '' })
 onMounted(async () => {
   try {
     const res = await userApi.getProfile()
-    if (res.code === 1) {
+    if (res.code === 200) {
       profile.value = res.data
       profileForm.nickname = res.data.nickname || ''
       profileForm.gender = res.data.gender || 0
@@ -116,10 +116,10 @@ async function handleUpdateProfile() {
   saving.value = true
   try {
     const res = await userApi.updateProfile(profileForm)
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('保存成功')
     } else {
-      message.error(res.msg || '保存失败')
+      message.error(res.message || '保存失败')
     }
   } finally {
     saving.value = false
@@ -131,12 +131,12 @@ async function handleChangePassword() {
   changingPwd.value = true
   try {
     const res = await userApi.changePassword(passwordForm)
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('密码修改成功')
       passwordForm.old_password = ''
       passwordForm.new_password = ''
     } else {
-      message.error(res.msg || '修改失败')
+      message.error(res.message || '修改失败')
     }
   } finally {
     changingPwd.value = false

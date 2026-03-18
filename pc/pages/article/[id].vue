@@ -28,7 +28,7 @@ const loading = ref(true)
 onMounted(async () => {
   try {
     const res = await articleApi.getDetail(route.params.id as string)
-    if (res.code === 1) article.value = res.data
+    if (res.code === 200) article.value = res.data
   } finally {
     loading.value = false
   }

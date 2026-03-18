@@ -68,13 +68,13 @@ async function handleRegister() {
   submitting.value = true
   try {
     const res = await authApi.register(form)
-    if (res.code === 1) {
+    if (res.code === 200) {
       message.success('注册成功')
       userStore.$patch({ token: res.data.token })
       setToken(res.data.token)
       router.push('/')
     } else {
-      message.error(res.msg || '注册失败')
+      message.error(res.message || '注册失败')
     }
   } catch {
     message.error('网络错误，请重试')

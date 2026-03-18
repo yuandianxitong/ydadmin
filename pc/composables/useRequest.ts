@@ -36,10 +36,10 @@ export const request = ofetch.create({
   },
 })
 
-// Typed helpers matching backend response format: { code, msg, data }
+// Typed helpers matching backend response format: { code, message, data, timestamp }
 interface ApiResponse<T = any> {
   code: number
-  msg: string
+  message: string
   data: T
 }
 
