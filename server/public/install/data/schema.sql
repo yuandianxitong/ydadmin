@@ -368,6 +368,8 @@ CREATE TABLE IF NOT EXISTS `cron_job_logs` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `payment_orders` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned DEFAULT NULL COMMENT '用户ID',
+  `biz_type` varchar(30) DEFAULT NULL COMMENT '业务类型',
   `order_no` varchar(64) NOT NULL COMMENT '商户订单号',
   `trade_no` varchar(128) DEFAULT NULL COMMENT '第三方交易号',
   `channel` varchar(20) NOT NULL COMMENT '支付渠道：alipay/wechat',
@@ -389,7 +391,9 @@ CREATE TABLE IF NOT EXISTS `payment_orders` (
   KEY `idx_trade_no` (`trade_no`),
   KEY `idx_channel` (`channel`),
   KEY `idx_status` (`status`),
-  KEY `idx_created_at` (`created_at`)
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_biz_type` (`biz_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付订单表';
 
 -- ============================================================
@@ -482,6 +486,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `last_login_time` datetime DEFAULT NULL COMMENT '最后登录时间',
   `login_count` int(11) NOT NULL DEFAULT 0 COMMENT '登录次数',
   `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：1正常 0禁用',
+  `balance` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT '余额',
+  `points` int(11) NOT NULL DEFAULT 0 COMMENT '积分',
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
@@ -680,3 +686,41 @@ CREATE TABLE IF NOT EXISTS `articles` (
   KEY `idx_publish_at` (`publish_at`),
   KEY `idx_admin_id` (`admin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章表';
+
+-- ============================================================
+-- 余额变动记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `balance_logs` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL COMMENT '用户ID',
+  `amount` decimal(10,2) NOT NULL COMMENT '变动金额',
+  `before_balance` decimal(10,2) NOT NULL COMMENT '变动前余额',
+  `after_balance` decimal(10,2) NOT NULL COMMENT '变动后余额',
+  `type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '类型:1充值,2消费,3退款,4后台调整',
+  `source` varchar(50) NOT NULL DEFAULT '' COMMENT '来源标识',
+  `remark` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
+  `operator_id` int(10) unsigned DEFAULT NULL COMMENT '操作管理员ID',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='余额变动记录';
+
+-- ============================================================
+-- 积分变动记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `points_logs` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL COMMENT '用户ID',
+  `points` int(11) NOT NULL COMMENT '变动积分',
+  `before_points` int(11) NOT NULL COMMENT '变动前积分',
+  `after_points` int(11) NOT NULL COMMENT '变动后积分',
+  `type` tinyint(4) NOT NULL DEFAULT 1 COMMENT '类型:1后台调整,2注册赠送,3签到,4消费赠送,5消费扣减',
+  `source` varchar(50) NOT NULL DEFAULT '' COMMENT '来源标识',
+  `remark` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
+  `operator_id` int(10) unsigned DEFAULT NULL COMMENT '操作管理员ID',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='积分变动记录';
