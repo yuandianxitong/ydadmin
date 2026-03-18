@@ -1,14 +1,14 @@
 <template>
     <!-- 一级菜单 -->
-    <aside class="flex-shrink-0 w-[60px] h-full bg-primary flex flex-col items-center pt-2">
+    <aside class="flex-shrink-0 w-[60px] h-full bg-sidebar flex flex-col items-center pt-2">
         <Logo />
         <ul class="w-full space-y-4 text-white px-2 pt-4">
             <li
                 v-for="item in topRoutes"
                 :key="item.path"
                 :class="[
-                    'menu-item relative w-full h-[50px] flex justify-center items-center cursor-pointer rounded-lg transition-all duration-500 ease-in-out bg-primary-active',
-                    selectedFirst === item.path ? 'is-active' : 'hover:bg-white/10'
+                    'menu-item relative w-full h-[50px] flex justify-center items-center cursor-pointer rounded-lg transition-all duration-500 ease-in-out',
+                    selectedFirst === item.path ? 'is-active bg-white/15' : 'hover:bg-white/10'
                 ]"
                 @click="onFirstSelect(item.path)"
             >
@@ -44,7 +44,7 @@
                 unique-opened
                 class="h-full !border-none"
                 background-color="transparent"
-                text-color="#333"
+                text-color="var(--color-text-primary)"
                 @select="onSecondSelect"
             >
                 <template v-for="item in secondRoutes">

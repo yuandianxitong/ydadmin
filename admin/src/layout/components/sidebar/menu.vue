@@ -9,7 +9,7 @@
                 v-bind="config"
                 :default-active="activeMenu"
                 :collapse="isCollapsed"
-                background-color="var(--color-primary, var(--color-brand))"
+                background-color="var(--color-sidebar-bg)"
                 text-color="#fff"
                 mode="vertical"
                 :unique-opened="uniqueOpened"

@@ -267,7 +267,7 @@ onMounted(async () => {
         }
         &.add {
             border-style: dashed;
-            color: #999;
+            color: var(--color-text-tertiary);
             display: flex;
             align-items: center;
             gap: 4px;
@@ -277,7 +277,7 @@ onMounted(async () => {
             top: -6px;
             right: -6px;
             font-size: 12px;
-            background: #f56c6c;
+            background: var(--color-danger);
             color: #fff;
             border-radius: 50%;
             padding: 2px;
@@ -304,14 +304,14 @@ onMounted(async () => {
         }
         &.add {
             border-style: dashed;
-            color: #999;
+            color: var(--color-text-tertiary);
         }
         .del-icon {
             position: absolute;
             top: -4px;
             right: -4px;
             font-size: 10px;
-            background: #f56c6c;
+            background: var(--color-danger);
             color: #fff;
             border-radius: 50%;
             padding: 2px;

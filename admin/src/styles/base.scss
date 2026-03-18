@@ -25,6 +25,8 @@ body {
   margin: 0;
   font-family: "Inter", sans-serif;
   line-height: inherit;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizelegibility;
@@ -66,5 +68,5 @@ div:focus {
 }
 
 .main-wrap{
-  background-color: #F4F7FB;
+  background-color: var(--color-bg-page);
 }

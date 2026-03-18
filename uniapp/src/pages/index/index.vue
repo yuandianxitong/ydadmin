@@ -1,17 +1,6 @@
 <template>
   <view class="home-page">
-    <!-- Custom Header -->
-    <view class="header">
-      <view class="header__content">
-        <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
-        <view class="header__info">
-          <text class="header__title">元点Admin</text>
-          <text class="header__subtitle">高效全栈管理框架</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="home-body" :style="{ paddingTop: headerHeight + 'px' }">
+    <view class="home-body">
       <!-- Banner -->
       <view v-if="bannerList.length > 0" class="banner-section">
         <swiper
@@ -114,22 +103,10 @@ import { articleApi, type ArticleItem } from '@/api/article'
 
 const appStore = useAppStore()
 
-const statusBarHeight = ref(0)
-const headerHeight = ref(0)
 const latestNotice = ref<AnnouncementItem | null>(null)
 const articles = ref<ArticleItem[]>([])
 
 const bannerList = ref<{ image: string; url?: string }[]>([])
-
-// Get system info for status bar
-try {
-  const sysInfo = uni.getSystemInfoSync()
-  statusBarHeight.value = sysInfo.statusBarHeight || 0
-  headerHeight.value = statusBarHeight.value + 88
-} catch {
-  statusBarHeight.value = 44
-  headerHeight.value = 132
-}
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''

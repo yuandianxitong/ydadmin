@@ -367,7 +367,7 @@ const handleClose = () => {
 
 .avatar-uploader-icon {
     font-size: 28px;
-    color: #8c939d;
+    color: var(--color-text-disabled);
     text-align: center;
 }
 

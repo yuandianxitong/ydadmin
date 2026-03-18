@@ -35,11 +35,11 @@ export default defineNuxtConfig({
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost',
+          target: 'http://localhost:8005',
           changeOrigin: true,
         },
         '/storage': {
-          target: 'http://localhost',
+          target: 'http://localhost:8005',
           changeOrigin: true,
         },
       },

@@ -1,0 +1,1 @@
+import{_ as t}from"./DictForm.vue_vue_type_script_setup_true_lang.C_UlyJyx.js";import"./index.UoZ5_Cjm.js";/* empty css                *//* empty css               *//* empty css               *//* empty css              *//* empty css                     *//* empty css                  */import"./dictionary.Cm7iZzRG.js";export{t as default};

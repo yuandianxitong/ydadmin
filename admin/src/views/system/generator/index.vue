@@ -272,8 +272,8 @@ onMounted(fetchTables)
 }
 
 .code-block {
-    background: #f5f7fa;
-    border: 1px solid #e4e7ed;
+    background: var(--gray-100);
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     padding: 16px;
     max-height: 500px;

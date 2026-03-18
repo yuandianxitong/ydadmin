@@ -3,7 +3,7 @@
         <template #reference>
             <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="mr-4">
                 <div
-                    class="bg-[#f5f5f9] text-[#384a65] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer"
+                    class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer"
                 >
                     <el-tooltip effect="dark" :content="$t('notification.title')" placement="bottom">
                         <Icon name="i-svg:bell" />
@@ -156,7 +156,7 @@ onMounted(() => {
         }
 
         &.unread {
-            background-color: #f0f5ff;
+            background-color: var(--color-brand-ghost);
         }
 
         .item-dot {

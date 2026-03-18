@@ -4,6 +4,9 @@
 use think\App;
 
 // 命令行入口文件
+// 屏蔽第三方库的 E_DEPRECATED 警告（如 qiniu/php-sdk 在 PHP 8.4 下的隐式 nullable 参数）
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 // 加载基础文件
 require __DIR__ . '/vendor/autoload.php';
 

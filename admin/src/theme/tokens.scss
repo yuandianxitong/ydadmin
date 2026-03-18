@@ -26,6 +26,7 @@
   --gray-900: #1f2937;
 
   --color-bg:            #ffffff;        /* 页面背景 */
+  --color-bg-page:       #f4f7fb;        /* 内容区背景（浅灰蓝） */
   --color-surface:       #ffffff;        /* 卡片/容器背景 */
   --color-border:        var(--gray-300);
   --color-divider:       var(--gray-200);
@@ -39,6 +40,8 @@
   --color-brand-hover:        #5485cd;
   --color-brand-active:       #094192;
   --color-brand-ghost:        #e6eef9;   /* 轻量背景 */
+  --color-sidebar-bg:         var(--color-brand);  /* 一级菜单背景 */
+  --color-sidebar-active:     var(--color-brand-active); /* 一级菜单选中 */
   --color-focus-ring:         #5b9dff;
   --opacity-disabled:         0.5;
 
@@ -140,6 +143,7 @@
 /* ========== 暗色模式 ========== */
 html.dark {
   --color-bg: #0e0f11;
+  --color-bg-page: #141517;           /* 暗色模式内容区背景，略亮于页面底色 */
   --color-surface: #1a1b1e;
   --color-border: #2e2f33;
   --color-divider: #252629;
@@ -148,6 +152,8 @@ html.dark {
   --color-text-tertiary: #6b7280;
   --color-text-disabled: #4b5563;
   --color-brand-ghost: rgba(59,130,246,0.15);
+  --color-sidebar-bg: #1a1d2e;        /* 深色模式下一级菜单背景（品牌色调暗化） */
+  --color-sidebar-active: #252a40;    /* 深色模式下一级菜单选中 */
 
   --gray-50:  #1a1b1e;
   --gray-100: #222326;

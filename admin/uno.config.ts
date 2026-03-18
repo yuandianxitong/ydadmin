@@ -29,7 +29,7 @@ const generateSafeList = () => {
 };
 
 const staticSafeList = [
-  'text-primary','bg-primary','border-primary',
+  'text-primary','bg-primary','border-primary','bg-sidebar','bg-sidebar-active',
   'text-success','bg-success','border-success',
   'text-warning','bg-warning','border-warning',
   'text-danger','bg-danger','border-danger',
@@ -92,6 +92,8 @@ export default defineConfig({
         'divider':        'var(--color-divider)',
         'bg':             'var(--color-bg)',
         'surface':        'var(--color-surface)',
+        'sidebar':        'var(--color-sidebar-bg)',
+        'sidebar-active': 'var(--color-sidebar-active)',
         },
         fontFamily: {
         sans: 'var(--font-family-sans)',
@@ -112,6 +114,7 @@ export default defineConfig({
         ['card',         'bg-surface border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-md)]'],
 
         // 帮助类
+        ['bg-body',      'bg-[var(--color-bg)]'],
         ['disabled',     'opacity-[var(--opacity-disabled)] pointer-events-none'],
         ['divider',      'h-[1px] bg-[var(--color-divider)]'],
     ],

@@ -37,6 +37,9 @@ if (!file_exists($installLockFile)) {
     }
 }
 
+// 屏蔽第三方库的 E_DEPRECATED 警告（如 qiniu/php-sdk 在 PHP 8.4 下的隐式 nullable 参数）
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 // 执行HTTP应用并响应

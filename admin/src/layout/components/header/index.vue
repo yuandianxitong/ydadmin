@@ -1,6 +1,6 @@
 <template>
     <header class="header">
-        <div class="navbar flex items-center border-b border-b-solid border-b-gray-200 px-4 py-2.5">
+        <div class="navbar flex items-center border-b border-b-solid border-b-[var(--color-divider)] px-4 py-2.5">
             <div class="flex-1 flex">
                 <div v-if="!isMobile && settingStore.showCrumb" class="flex items-center px-2">
                     <breadcrumb />
@@ -9,7 +9,7 @@
             <div class="flex items-center">
                 <div
                     v-if="!isMobile"
-                    class="bg-[#f5f5f9] text-[#384a65] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
+                    class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
                     @click="toggleFullscreen"
                 >
                     <el-tooltip
@@ -23,7 +23,7 @@
                 <lang-select />
                 <notification-bell />
                 <div
-                    class="bg-[#f5f5f9] text-[#384a65] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
+                    class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
                     @click="appStore.refreshView()"
                 >
                     <el-tooltip class="box-item" effect="dark" :content="$t('header.refresh')" placement="bottom">
@@ -31,7 +31,7 @@
                     </el-tooltip>
                 </div>
                 <div
-                    class="bg-[#f5f5f9] text-[#384a65] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
+                    class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
                     @click="openSetting"
                 >
                     <el-tooltip effect="dark" :content="$t('header.settings')" placement="bottom">

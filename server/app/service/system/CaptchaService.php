@@ -164,7 +164,13 @@ class CaptchaService
      */
     protected function getFont(): string
     {
-        // 常见系统字体路径
+        // 优先使用项目内置字体（避免 open_basedir 限制）
+        $projectFont = public_path() . 'static/fonts/DejaVuSans-Bold.ttf';
+        if (file_exists($projectFont)) {
+            return $projectFont;
+        }
+
+        // 回退：常见系统字体路径
         $candidates = [
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
             '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',

@@ -133,7 +133,7 @@ const handleCommand = (command: string) => {
                 box-sizing: border-box;
 
                 &.is-active {
-                    background-color: #dbdfff;
+                    background-color: var(--color-brand-ghost);
 
                     &::before {
                         content: '';

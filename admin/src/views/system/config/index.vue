@@ -392,7 +392,7 @@ const handleReset = () => {
 
         .config-desc {
             font-size: 12px;
-            color: #999;
+            color: var(--color-text-tertiary);
             margin-top: 4px;
             margin-left: 10px;
         }
@@ -400,7 +400,7 @@ const handleReset = () => {
         .form-actions {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--color-divider);
             text-align: center;
         }
     }
@@ -408,7 +408,7 @@ const handleReset = () => {
     // 图片上传器样式
     .image-uploader {
         :deep(.el-upload) {
-            border: 1px dashed #d9d9d9;
+            border: 1px dashed var(--color-border);
             border-radius: 6px;
             cursor: pointer;
             position: relative;
@@ -434,13 +434,13 @@ const handleReset = () => {
 
         .image-uploader-icon {
             font-size: 28px;
-            color: #8c939d;
+            color: var(--color-text-disabled);
         }
     }
 
     .upload-tip {
         font-size: 12px;
-        color: #999;
+        color: var(--color-text-tertiary);
         margin-top: 8px;
         line-height: 1.4;
         margin-left: 10px;

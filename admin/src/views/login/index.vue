@@ -230,7 +230,7 @@ onMounted(() => {
 .brand-image {
     margin-bottom: 32px;
     img {
-        max-width: 380px;
+        max-width: 320px;
         width: 100%;
         height: auto;
     }
