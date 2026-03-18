@@ -21,6 +21,8 @@ class User extends Model
         'gender'      => 'integer',
         'login_count' => 'integer',
         'status'      => 'integer',
+        'balance'     => 'float',
+        'points'      => 'integer',
     ];
 
     /**
