@@ -25,6 +25,20 @@
 
     <!-- Menu Groups -->
     <view class="menu-body" :style="{ paddingTop: (statusBarHeight + 180) + 'px' }">
+      <!-- Balance & Points Card -->
+      <view v-if="userStore.isLoggedIn" class="assets-card" @tap.stop>
+        <view class="assets-item" @tap="goAuthPage('/modules/user/pages/balance')">
+          <text class="assets-label">余额</text>
+          <text class="assets-value">{{ balanceInfo.balance }}</text>
+          <text class="assets-action">去充值</text>
+        </view>
+        <view class="assets-divider" />
+        <view class="assets-item" @tap="goAuthPage('/modules/user/pages/points')">
+          <text class="assets-label">积分</text>
+          <text class="assets-value">{{ balanceInfo.points }}</text>
+          <text class="assets-action">积分明细</text>
+        </view>
+      </view>
       <!-- Group 1: Profile -->
       <view class="menu-card">
         <wd-cell-group>
@@ -90,12 +104,14 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.store'
 import { useAppStore } from '@/store/app.store'
 import { messageApi } from '@/api/message'
+import { userApi } from '@/api/user'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
 
 const statusBarHeight = ref(0)
 const unreadCount = ref(0)
+const balanceInfo = ref({ balance: '0.00', points: 0 })
 
 try {
   const sysInfo = uni.getSystemInfoSync()
@@ -155,11 +171,28 @@ function loadUnreadCount() {
     })
 }
 
+function loadAssets() {
+  if (!userStore.isLoggedIn) {
+    balanceInfo.value = { balance: '0.00', points: 0 }
+    return
+  }
+  Promise.all([
+    userApi.getBalance(),
+    userApi.getPoints(),
+  ]).then(([balRes, ptsRes]) => {
+    balanceInfo.value.balance = balRes.balance || '0.00'
+    balanceInfo.value.points = ptsRes.points || 0
+  }).catch(() => {
+    // ignore
+  })
+}
+
 onShow(() => {
   if (userStore.isLoggedIn && !userStore.userInfo) {
     userStore.getUserInfo().catch(() => {})
   }
   loadUnreadCount()
+  loadAssets()
 })
 </script>
 
@@ -217,6 +250,51 @@ onShow(() => {
       font-size: 26rpx;
       color: rgba(255, 255, 255, 0.8);
     }
+  }
+}
+
+.assets-card {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx 0;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+
+  .assets-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .assets-label {
+    font-size: 24rpx;
+    color: $text-color-secondary;
+    margin-bottom: 8rpx;
+  }
+
+  .assets-value {
+    font-size: 40rpx;
+    font-weight: 700;
+    color: $text-color;
+    margin-bottom: 12rpx;
+  }
+
+  .assets-action {
+    font-size: 24rpx;
+    color: $primary-color;
+    background: rgba(41, 121, 255, 0.08);
+    padding: 6rpx 24rpx;
+    border-radius: 20rpx;
+  }
+
+  .assets-divider {
+    width: 1rpx;
+    height: 80rpx;
+    background: $border-color;
+    flex-shrink: 0;
   }
 }
 
