@@ -22,6 +22,7 @@ class BalanceLog extends Model
         'type'           => 'integer',
         'operator_id'    => 'integer',
     ];
+    protected $append = ['type_text'];
 
     const TYPE_RECHARGE     = 1;
     const TYPE_CONSUME      = 2;

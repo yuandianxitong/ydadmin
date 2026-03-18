@@ -30,9 +30,11 @@ export const userApi = {
 /** 余额明细项 */
 export interface BalanceLogItem {
   id: number
-  type: string
+  type: number
+  type_text: string
   amount: string
-  balance: string
+  before_balance: string
+  after_balance: string
   remark: string
   created_at: string
 }
@@ -40,9 +42,11 @@ export interface BalanceLogItem {
 /** 积分明细项 */
 export interface PointsLogItem {
   id: number
-  type: string
+  type: number
+  type_text: string
   points: number
-  balance: number
+  before_points: number
+  after_points: number
   remark: string
   created_at: string
 }

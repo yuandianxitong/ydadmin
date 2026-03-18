@@ -94,6 +94,14 @@ class UserRepository extends Repository
     }
 
     /**
+     * 根据昵称或手机号模糊搜索用户ID
+     */
+    public function searchIdsByKeyword(string $keyword): array
+    {
+        return User::where('nickname|mobile', 'like', "%{$keyword}%")->column('id');
+    }
+
+    /**
      * 查找用户并加行锁（FOR UPDATE）
      * 注意：返回 Model 实例（非数组），调用方使用 $user->balance 而非 $user['balance']
      */

@@ -19,8 +19,8 @@ class UserManageService extends Service
 
     public function getUserList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
         return $this->userRepository->getSearchList($params, $page, $limit);
     }
 
@@ -122,12 +122,11 @@ class UserManageService extends Service
 
     public function getBalanceLogs(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
 
         if (!empty($params['keyword'])) {
-            $userIds = \app\model\user\User::where('nickname|mobile', 'like', "%{$params['keyword']}%")->column('id');
-            $params['user_ids'] = $userIds ?: [0];
+            $params['user_ids'] = $this->userRepository->searchIdsByKeyword($params['keyword']) ?: [0];
         }
 
         return $this->balanceLogRepository->getSearchList($params, $page, $limit);
@@ -135,12 +134,11 @@ class UserManageService extends Service
 
     public function getPointsLogs(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
 
         if (!empty($params['keyword'])) {
-            $userIds = \app\model\user\User::where('nickname|mobile', 'like', "%{$params['keyword']}%")->column('id');
-            $params['user_ids'] = $userIds ?: [0];
+            $params['user_ids'] = $this->userRepository->searchIdsByKeyword($params['keyword']) ?: [0];
         }
 
         return $this->pointsLogRepository->getSearchList($params, $page, $limit);
@@ -160,15 +158,15 @@ class UserManageService extends Service
 
     public function getUserBalanceLogs(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 10);
+        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 10);
         return $this->balanceLogRepository->getUserLogs($userId, $page, $limit);
     }
 
     public function getUserPointsLogs(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 10);
+        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
+        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 10);
         return $this->pointsLogRepository->getUserLogs($userId, $page, $limit);
     }
 }

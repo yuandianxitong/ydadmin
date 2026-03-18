@@ -22,6 +22,7 @@ class PointsLog extends Model
         'type'          => 'integer',
         'operator_id'   => 'integer',
     ];
+    protected $append = ['type_text'];
 
     const TYPE_ADMIN_ADJUST  = 1;
     const TYPE_REGISTER      = 2;

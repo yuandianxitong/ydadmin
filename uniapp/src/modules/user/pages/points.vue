@@ -21,7 +21,7 @@
             class="log-item"
           >
             <view class="log-item__left">
-              <text class="log-item__type">{{ item.type }}</text>
+              <text class="log-item__type">{{ item.type_text }}</text>
               <text class="log-item__remark">{{ item.remark || '无备注' }}</text>
             </view>
             <view class="log-item__right">
