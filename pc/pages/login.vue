@@ -39,10 +39,12 @@
 </template>
 
 <script setup lang="ts">
+import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
 
 definePageMeta({ layout: 'blank' })
 
+const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
 const form = reactive({ mobile: '', password: '' })
@@ -54,12 +56,13 @@ async function handleLogin() {
   try {
     const res = await userStore.login(form)
     if (res.code === 1) {
+      message.success('登录成功')
       router.push('/')
     } else {
-      alert(res.msg || '登录失败')
+      message.error(res.msg || '登录失败')
     }
   } catch {
-    alert('网络错误，请重试')
+    message.error('网络错误，请重试')
   } finally {
     submitting.value = false
   }

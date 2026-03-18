@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
 import { setToken } from '~/composables/useRequest'
 import { commonApi } from '~/api/common'
@@ -66,6 +67,7 @@ import { authApi } from '~/api/auth'
 
 definePageMeta({ layout: 'blank' })
 
+const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
 const form = reactive({ mobile: '', password: '', code: '' })
@@ -74,10 +76,11 @@ const countdown = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
 async function handleSendCode() {
-  if (!form.mobile) return alert('请输入手机号')
+  if (!form.mobile) { message.warning('请输入手机号'); return }
   try {
     const res = await commonApi.sendSmsCode({ mobile: form.mobile })
     if (res.code === 1) {
+      message.success('验证码已发送')
       countdown.value = 60
       timer = setInterval(() => {
         countdown.value--
@@ -87,10 +90,10 @@ async function handleSendCode() {
         }
       }, 1000)
     } else {
-      alert(res.msg || '发送失败')
+      message.error(res.msg || '发送失败')
     }
   } catch {
-    alert('网络错误')
+    message.error('网络错误')
   }
 }
 
@@ -100,14 +103,15 @@ async function handleRegister() {
   try {
     const res = await authApi.register(form)
     if (res.code === 1) {
+      message.success('注册成功')
       userStore.$patch({ token: res.data.token })
       setToken(res.data.token)
       router.push('/')
     } else {
-      alert(res.msg || '注册失败')
+      message.error(res.msg || '注册失败')
     }
   } catch {
-    alert('网络错误，请重试')
+    message.error('网络错误，请重试')
   } finally {
     submitting.value = false
   }

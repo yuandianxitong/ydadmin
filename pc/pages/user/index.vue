@@ -83,11 +83,13 @@
 </template>
 
 <script setup lang="ts">
+import { useMessage } from 'naive-ui'
 import { userApi } from '~/api/user'
 import type { UserInfo } from '~/api/auth'
 
 definePageMeta({ middleware: 'auth' })
 
+const message = useMessage()
 const profile = ref<UserInfo | null>(null)
 const loading = ref(true)
 const saving = ref(false)
@@ -115,9 +117,9 @@ async function handleUpdateProfile() {
   try {
     const res = await userApi.updateProfile(profileForm)
     if (res.code === 1) {
-      alert('保存成功')
+      message.success('保存成功')
     } else {
-      alert(res.msg || '保存失败')
+      message.error(res.msg || '保存失败')
     }
   } finally {
     saving.value = false
@@ -130,11 +132,11 @@ async function handleChangePassword() {
   try {
     const res = await userApi.changePassword(passwordForm)
     if (res.code === 1) {
-      alert('密码修改成功')
+      message.success('密码修改成功')
       passwordForm.old_password = ''
       passwordForm.new_password = ''
     } else {
-      alert(res.msg || '修改失败')
+      message.error(res.msg || '修改失败')
     }
   } finally {
     changingPwd.value = false
