@@ -9,38 +9,16 @@
 
       <!-- 注册表单 -->
       <view class="form-card">
-        <!-- 手机号 -->
+        <!-- 手机号/账号 -->
         <view class="input-group">
           <wd-input
-            v-model="form.mobile"
-            type="number"
-            maxlength="11"
-            placeholder="请输入手机号"
+            v-model="form.account"
+            placeholder="请输入手机号或账号"
             prefix-icon="mobile"
             clearable
             no-border
             class="custom-input"
           />
-        </view>
-
-        <!-- 验证码 -->
-        <view class="input-group sms-group">
-          <wd-input
-            v-model="form.code"
-            type="number"
-            maxlength="6"
-            placeholder="请输入验证码"
-            prefix-icon="secured"
-            no-border
-            class="custom-input sms-input"
-          />
-          <view
-            class="send-code-btn"
-            :class="{ disabled: countdown > 0 }"
-            @tap="handleSendCode"
-          >
-            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
-          </view>
         </view>
 
         <!-- 密码 -->
@@ -96,49 +74,20 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { authApi } from '@/api/auth'
-import { useUserStore } from '@/store/user.store'
-import { isMobile, isPassword, isVerifyCode } from '@/utils/validate'
-
-const userStore = useUserStore()
+import { isPassword } from '@/utils/validate'
 
 const loading = ref(false)
-const countdown = ref(0)
 const agreed = ref(false)
 
 const form = reactive({
-  mobile: '',
-  code: '',
+  account: '',
   password: '',
   confirmPassword: '',
 })
 
-async function handleSendCode() {
-  if (!isMobile(form.mobile)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-    return
-  }
-  if (countdown.value > 0) return
-
-  try {
-    await authApi.sendSmsCode({ mobile: form.mobile })
-    uni.showToast({ title: '验证码已发送', icon: 'none' })
-    countdown.value = 60
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) clearInterval(timer)
-    }, 1000)
-  } catch {
-    // error handled by request interceptor
-  }
-}
-
 async function handleRegister() {
-  if (!isMobile(form.mobile)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-    return
-  }
-  if (!isVerifyCode(form.code)) {
-    uni.showToast({ title: '请输入正确的验证码', icon: 'none' })
+  if (!form.account) {
+    uni.showToast({ title: '请输入手机号或账号', icon: 'none' })
     return
   }
   if (!isPassword(form.password)) {
@@ -157,11 +106,10 @@ async function handleRegister() {
   loading.value = true
   try {
     const result = await authApi.register({
-      mobile: form.mobile,
+      account: form.account,
       password: form.password,
-      code: form.code,
+      password_confirmation: form.confirmPassword,
     })
-    // Use register result directly (contains token + user)
     if (result.token) {
       const { setToken } = await import('@/utils/auth')
       setToken(result.token)
@@ -218,11 +166,6 @@ function goLogin() {
   overflow: hidden;
   min-height: 96rpx;
 
-  &.sms-group {
-    display: flex;
-    align-items: center;
-  }
-
   .custom-input {
     flex: 1;
     background: transparent;
@@ -234,25 +177,6 @@ function goLogin() {
 
     :deep(.wd-input__inner) {
       font-size: 30rpx;
-    }
-  }
-
-  .sms-input {
-    border-right: 2rpx solid $border-color;
-  }
-
-  .send-code-btn {
-    padding: 0 28rpx;
-    font-size: 26rpx;
-    color: $primary-color;
-    white-space: nowrap;
-    flex-shrink: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-
-    &.disabled {
-      color: $text-color-secondary;
     }
   }
 }

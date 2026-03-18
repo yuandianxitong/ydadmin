@@ -2,6 +2,12 @@ import { get, post } from '~/composables/useRequest'
 
 export interface LoginResult {
   token: string
+  user_info: {
+    id: number
+    nickname: string
+    avatar: string
+    mobile: string
+  }
 }
 
 export interface UserInfo {
@@ -14,11 +20,17 @@ export interface UserInfo {
 }
 
 export const authApi = {
-  login: (data: { mobile: string; password: string }) =>
+  login: (data: { account: string; password: string }) =>
     post<LoginResult>('/api/auth/login', data),
 
-  register: (data: { mobile: string; password: string; code: string }) =>
+  smsLogin: (data: { mobile: string; code: string }) =>
+    post<LoginResult>('/api/auth/sms-login', data),
+
+  register: (data: { account: string; password: string; password_confirmation: string }) =>
     post<LoginResult>('/api/auth/register', data),
+
+  wechatLogin: (data: { code: string }) =>
+    post<LoginResult>('/api/auth/wechat-login', data),
 
   getUserInfo: () =>
     get<UserInfo>('/api/auth/info'),

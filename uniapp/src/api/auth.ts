@@ -14,7 +14,7 @@ export const authApi = {
   wechatMiniLogin: (data: { code: string }) =>
     http.post<LoginResult>('/api/auth/wechat-login', data),
 
-  register: (data: { mobile: string; password: string; code: string }) =>
+  register: (data: { account: string; password: string; password_confirmation: string }) =>
     http.post<LoginResult>('/api/auth/register', data),
 
   refreshToken: () =>

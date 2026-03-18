@@ -4,41 +4,29 @@
       <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">注册</h2>
       <form @submit.prevent="handleRegister">
         <div class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">手机号</label>
+          <label class="block text-sm text-gray-600 mb-1">手机号/账号</label>
           <input
-            v-model="form.mobile"
+            v-model="form.account"
             type="text"
-            maxlength="11"
-            placeholder="请输入手机号"
+            placeholder="请输入手机号或账号"
             class="form-input"
           />
         </div>
         <div class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">验证码</label>
-          <div class="flex gap-2">
-            <input
-              v-model="form.code"
-              type="text"
-              maxlength="6"
-              placeholder="请输入验证码"
-              class="form-input flex-1"
-            />
-            <button
-              type="button"
-              :disabled="countdown > 0"
-              class="btn-outline text-sm flex-shrink-0 !px-3"
-              @click="handleSendCode"
-            >
-              {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
-            </button>
-          </div>
-        </div>
-        <div class="mb-6">
           <label class="block text-sm text-gray-600 mb-1">密码</label>
           <input
             v-model="form.password"
             type="password"
-            placeholder="请设置密码"
+            placeholder="请设置密码（6-20位）"
+            class="form-input"
+          />
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm text-gray-600 mb-1">确认密码</label>
+          <input
+            v-model="form.password_confirmation"
+            type="password"
+            placeholder="请再次输入密码"
             class="form-input"
           />
         </div>
@@ -62,7 +50,6 @@
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
 import { setToken } from '~/composables/useRequest'
-import { commonApi } from '~/api/common'
 import { authApi } from '~/api/auth'
 
 definePageMeta({ layout: 'blank' })
@@ -70,35 +57,14 @@ definePageMeta({ layout: 'blank' })
 const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
-const form = reactive({ mobile: '', password: '', code: '' })
+const form = reactive({ account: '', password: '', password_confirmation: '' })
 const submitting = ref(false)
-const countdown = ref(0)
-let timer: ReturnType<typeof setInterval> | null = null
-
-async function handleSendCode() {
-  if (!form.mobile) { message.warning('请输入手机号'); return }
-  try {
-    const res = await commonApi.sendSmsCode({ mobile: form.mobile })
-    if (res.code === 1) {
-      message.success('验证码已发送')
-      countdown.value = 60
-      timer = setInterval(() => {
-        countdown.value--
-        if (countdown.value <= 0 && timer) {
-          clearInterval(timer)
-          timer = null
-        }
-      }, 1000)
-    } else {
-      message.error(res.msg || '发送失败')
-    }
-  } catch {
-    message.error('网络错误')
-  }
-}
 
 async function handleRegister() {
-  if (!form.mobile || !form.password || !form.code) return
+  if (!form.account) { message.warning('请输入手机号或账号'); return }
+  if (!form.password || form.password.length < 6) { message.warning('密码长度至少6位'); return }
+  if (form.password !== form.password_confirmation) { message.warning('两次密码输入不一致'); return }
+
   submitting.value = true
   try {
     const res = await authApi.register(form)
@@ -116,8 +82,4 @@ async function handleRegister() {
     submitting.value = false
   }
 }
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
 </script>

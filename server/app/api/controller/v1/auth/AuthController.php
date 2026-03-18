@@ -16,19 +16,23 @@ class AuthController extends Controller
     protected TokenManager $tokenManager;
 
     /**
-     * 手机号+密码登录
+     * 账号+密码登录（账号可以是手机号或用户名）
      */
     public function login(): Response
     {
         try {
-            $mobile = (string)$this->request->param('mobile', '');
+            $account = (string)$this->request->param('account', '');
+            // 兼容旧版 mobile 参数
+            if (empty($account)) {
+                $account = (string)$this->request->param('mobile', '');
+            }
             $password = (string)$this->request->param('password', '');
 
-            if (empty($mobile) || empty($password)) {
+            if (empty($account) || empty($password)) {
                 return $this->error(lang('business.mobile_password_required'));
             }
 
-            $result = $this->userService->loginByPassword($mobile, $password, $this->request->ip());
+            $result = $this->userService->loginByPassword($account, $password, $this->request->ip());
             return $this->success(lang('messages.login_success'), $result);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -123,30 +127,28 @@ class AuthController extends Controller
     }
 
     /**
-     * 注册
+     * 注册（账号可以是手机号或用户名，无需验证码）
      */
     public function register(): Response
     {
         try {
-            $mobile = (string)$this->request->param('mobile', '');
+            $account = (string)$this->request->param('account', '');
+            // 兼容旧版 mobile 参数
+            if (empty($account)) {
+                $account = (string)$this->request->param('mobile', '');
+            }
             $password = (string)$this->request->param('password', '');
-            $code = (string)$this->request->param('code', '');
+            $passwordConfirmation = (string)$this->request->param('password_confirmation', '');
 
-            if (empty($mobile) || empty($password) || empty($code)) {
+            if (empty($account) || empty($password)) {
                 return $this->error(lang('business.register_fields_required'));
             }
 
-            // 验证短信验证码
-            $cacheKey = 'sms_code:register:' . $mobile;
-            $cachedCode = cache($cacheKey);
-            if (!$cachedCode || $cachedCode !== $code) {
-                return $this->error(lang('auth.captcha_invalid'));
+            if ($password !== $passwordConfirmation) {
+                return $this->error('两次输入的密码不一致');
             }
 
-            $result = $this->userService->register($mobile, $password, $this->request->ip());
-
-            // 清除验证码
-            cache($cacheKey, null);
+            $result = $this->userService->register($account, $password, $this->request->ip());
 
             return $this->success(lang('messages.register_success'), $result);
         } catch (\Exception $e) {

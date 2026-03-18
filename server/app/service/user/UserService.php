@@ -14,11 +14,11 @@ class UserService extends Service
     protected TokenManager $tokenManager;
 
     /**
-     * 手机号+密码登录
+     * 账号+密码登录（账号可以是手机号或用户名）
      */
-    public function loginByPassword(string $mobile, string $password, string $ip = ''): array
+    public function loginByPassword(string $account, string $password, string $ip = ''): array
     {
-        $user = $this->userRepository->findByMobile($mobile);
+        $user = $this->userRepository->findByAccount($account);
         if (!$user) {
             throw new BusinessException(lang('business.user_not_found'));
         }
@@ -98,26 +98,28 @@ class UserService extends Service
     }
 
     /**
-     * 手机号+密码注册
+     * 注册（账号可以是手机号或用户名）
      */
-    public function register(string $mobile, string $password, string $ip = ''): array
+    public function register(string $account, string $password, string $ip = ''): array
     {
-        // 检查手机号是否已注册
-        $existing = $this->userRepository->findByMobile($mobile);
+        $isMobile = preg_match('/^1[3-9]\d{9}$/', $account);
+
+        // 检查账号是否已注册
+        $existing = $this->userRepository->findByAccount($account);
         if ($existing) {
-            throw new BusinessException(lang('business.mobile_already_registered'));
+            throw new BusinessException($isMobile ? lang('business.mobile_already_registered') : '该账号已被注册');
         }
 
         $this->userRepository->create([
-            'mobile'   => $mobile,
+            'mobile'   => $account,
             'password' => password_hash($password, PASSWORD_DEFAULT),
-            'nickname' => '用户' . substr($mobile, -4),
+            'nickname' => $isMobile ? '用户' . substr($account, -4) : $account,
             'status'   => 1,
         ]);
 
-        $user = $this->userRepository->findByMobile($mobile);
+        $user = $this->userRepository->findByAccount($account);
 
-        $this->trigger('user.register', ['user_id' => $user->id, 'mobile' => $mobile]);
+        $this->trigger('user.register', ['user_id' => $user->id, 'account' => $account]);
 
         return $this->loginSuccess($user, $ip);
     }

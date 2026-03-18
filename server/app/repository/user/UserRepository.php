@@ -23,6 +23,14 @@ class UserRepository extends Repository
     }
 
     /**
+     * 根据账号查找用户（手机号或用户名，统一查 mobile 字段）
+     */
+    public function findByAccount(string $account): ?Model
+    {
+        return User::findByMobile($account);
+    }
+
+    /**
      * 根据小程序 openid 查找用户
      */
     public function findByMiniOpenid(string $openid): ?Model
