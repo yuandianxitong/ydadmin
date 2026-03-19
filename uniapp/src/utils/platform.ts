@@ -16,6 +16,17 @@ export function isWeixin(): boolean {
   return getPlatform() === 'mp-weixin'
 }
 
+/**
+ * 判断是否在微信浏览器内（H5 环境）
+ */
+export function isWeixinBrowser(): boolean {
+  if (!isH5()) return false
+  if (typeof navigator !== 'undefined') {
+    return /MicroMessenger/i.test(navigator.userAgent)
+  }
+  return false
+}
+
 export function isApp(): boolean {
   return getPlatform() === 'app'
 }

@@ -53,9 +53,14 @@ export function createRouteRecord(route: MenuInfo, firstRoute: boolean): RouteRe
               ? `/${route.path.replace(/^\//, '')}`
               : route.path,
         // 使用稳定字符串 name，避免 Symbol 带来的 hasRoute/removeRoute 不匹配
-        name:
-            (route.name || route.path || '').replace(/^\//, '').replace(/\//g, '_') ||
-            'route_' + Math.random().toString(36).slice(2),
+        name: (() => {
+            const raw = (route.name || route.path || '').replace(/^\//, '').replace(/\//g, '_')
+            if (!raw) {
+                console.warn(`[Router] Route missing name and path, using id fallback:`, route)
+                return `route_${route.id || 'unknown'}`
+            }
+            return raw
+        })(),
         meta: {
             hidden: route.meta?.hidden,
             keepAlive: route.meta?.cache,

@@ -228,12 +228,21 @@ function goPage(p: number) {
   fetchLogs()
 }
 
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollTimeout: ReturnType<typeof setTimeout> | null = null
+
+function clearPollTimers() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+  if (pollTimeout) { clearTimeout(pollTimeout); pollTimeout = null }
+}
+
 function pollPayment(orderNo: string) {
-  const timer = setInterval(async () => {
+  clearPollTimers()
+  pollTimer = setInterval(async () => {
     try {
       const res = await get('/api/payment/query', { order_no: orderNo })
       if (res.code === 200 && res.data.status === 'paid') {
-        clearInterval(timer)
+        clearPollTimers()
         showRechargeDialog.value = false
         recharging.value = false
         fetchBalance()
@@ -244,8 +253,10 @@ function pollPayment(orderNo: string) {
     } catch { /* ignore polling errors */ }
   }, 2000)
   // Clear after 5 minutes timeout
-  setTimeout(() => clearInterval(timer), 300000)
+  pollTimeout = setTimeout(() => clearPollTimers(), 300000)
 }
+
+onUnmounted(clearPollTimers)
 
 async function handleRecharge() {
   if (finalAmount.value <= 0) return

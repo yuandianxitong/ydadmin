@@ -1,7 +1,7 @@
 import { getToken } from '~/composables/useRequest'
 
-export default defineNuxtRouteMiddleware(() => {
+export default defineNuxtRouteMiddleware((to) => {
   if (!getToken()) {
-    return navigateTo('/login', { replace: true })
+    return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`, { replace: true })
   }
 })

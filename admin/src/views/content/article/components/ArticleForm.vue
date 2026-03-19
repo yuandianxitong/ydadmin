@@ -25,23 +25,25 @@
             </el-form-item>
 
             <el-form-item label="封面图片" prop="cover">
-                <el-upload
-                    class="cover-uploader"
-                    :show-file-list="false"
-                    action="/adminapi/upload/image"
-                    :headers="uploadHeaders"
-                    :on-success="handleCoverSuccess"
-                    :before-upload="beforeCoverUpload"
-                >
-                    <img
-                        v-if="form.cover"
-                        :src="appStore.getImageUrl(form.cover)"
-                        class="cover-image"
-                        alt="封面"
-                    />
-                    <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
-                </el-upload>
-                <div class="upload-tip">建议尺寸 800x450，支持 jpg/png/gif，不超过 2MB</div>
+                <div>
+                    <el-upload
+                        class="cover-uploader"
+                        :show-file-list="false"
+                        action="/adminapi/upload/image"
+                        :headers="uploadHeaders"
+                        :on-success="handleCoverSuccess"
+                        :before-upload="beforeCoverUpload"
+                    >
+                        <img
+                            v-if="form.cover"
+                            :src="appStore.getImageUrl(form.cover)"
+                            class="cover-image"
+                            alt="封面"
+                        />
+                        <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
+                    </el-upload>
+                    <div class="upload-tip">建议尺寸 800x450，支持 jpg/png/gif，不超过 2MB</div>
+                </div>
             </el-form-item>
 
             <el-form-item label="文章摘要" prop="summary">
@@ -152,10 +154,10 @@ const emit = defineEmits<{
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 
-// 上传请求头
-const uploadHeaders = {
+// 上传请求头（computed 确保 Token 刷新后仍有效）
+const uploadHeaders = computed(() => ({
     Authorization: `Bearer ${getToken()}`
-}
+}))
 
 const form = reactive({
     id: undefined as number | undefined,
@@ -188,17 +190,21 @@ watch(
     () => props.modelValue,
     (val) => {
         if (val && props.formData) {
-            Object.assign(form, {
-                id: props.formData.id || undefined,
-                title: props.formData.title || '',
-                category_id: props.formData.category_id || undefined,
-                cover: props.formData.cover || '',
-                summary: props.formData.summary || '',
-                content: props.formData.content || '',
-                tags: props.formData.tags || [],
-                author: props.formData.author || '',
-                status: props.formData.status ?? 0,
-                publish_at: props.formData.publish_at || ''
+            // 先重置为初始状态，再赋新值，确保编辑→新增时旧数据被清空
+            resetForm()
+            nextTick(() => {
+                Object.assign(form, {
+                    id: props.formData.id || undefined,
+                    title: props.formData.title || '',
+                    category_id: props.formData.category_id || undefined,
+                    cover: props.formData.cover || '',
+                    summary: props.formData.summary || '',
+                    content: props.formData.content || '',
+                    tags: Array.isArray(props.formData.tags) ? [...props.formData.tags] : [],
+                    author: props.formData.author || '',
+                    status: props.formData.status ?? 0,
+                    publish_at: props.formData.publish_at || ''
+                })
             })
         }
     }

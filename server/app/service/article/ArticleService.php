@@ -28,11 +28,11 @@ class ArticleService extends Service
     }
 
     /**
-     * 获取文章详情
+     * 获取文章详情（带分类名称）
      */
     public function getArticleDetail(int $id): ?array
     {
-        $article = $this->articleRepository->find($id);
+        $article = $this->articleRepository->findWithCategory($id);
         if (!$article) {
             $this->throwBusinessException(lang('business.record_not_found'));
         }

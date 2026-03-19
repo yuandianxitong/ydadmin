@@ -427,6 +427,15 @@ class Installer
             $this->executeSqlFile($pdo, $regionsFile, $prefix);
         }
 
+        // 导入演示数据（文章等），替换 {{SITE_URL}} 为实际安装域名
+        $demoFile = INSTALL_PATH . 'data/demo.sql';
+        if (file_exists($demoFile)) {
+            $siteUrl = $this->detectSiteUrl($config);
+            $this->executeSqlFileWithReplace($pdo, $demoFile, $prefix, [
+                '{{SITE_URL}}' => rtrim($siteUrl, '/'),
+            ]);
+        }
+
         $this->ensureBaseRole($pdo, $prefix);
         $this->upsertAdminAccount($pdo, $config, $prefix);
         $this->upsertSystemConfig($pdo, $config, $prefix);
@@ -547,6 +556,12 @@ class Installer
             }
         }
 
+        // 复制演示资源（文章封面图片等）
+        $demoAssetsDir = INSTALL_PATH . 'data/demo-assets';
+        if (is_dir($demoAssetsDir)) {
+            $this->copyDirectory($demoAssetsDir, $this->rootPath . 'public/storage');
+        }
+
         // 创建安全文件
         $indexContent = "<?php\n// Silence is golden.";
         foreach ($directories as $dir) {
@@ -664,6 +679,27 @@ class Installer
     }
 
     /**
+     * 递归复制目录
+     */
+    private function copyDirectory(string $src, string $dst): void
+    {
+        if (!is_dir($dst)) {
+            mkdir($dst, 0755, true);
+        }
+        $items = scandir($src);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+            $srcPath = $src . '/' . $item;
+            $dstPath = $dst . '/' . $item;
+            if (is_dir($srcPath)) {
+                $this->copyDirectory($srcPath, $dstPath);
+            } else {
+                copy($srcPath, $dstPath);
+            }
+        }
+    }
+
+    /**
      * 递归删除目录
      */
     private function deleteDirectory($dir)
@@ -698,6 +734,43 @@ class Installer
             'upload_max_filesize' => ini_get('upload_max_filesize'),
             'post_max_size' => ini_get('post_max_size')
         ];
+    }
+
+    /**
+     * 获取安装时的站点URL
+     */
+    private function detectSiteUrl(array $config): string
+    {
+        $siteUrl = trim((string)($config['site_url'] ?? ''));
+        if ($siteUrl !== '') {
+            return $siteUrl;
+        }
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        return $scheme . '://' . rtrim($host, '/');
+    }
+
+    /**
+     * 执行SQL文件并替换占位符
+     */
+    private function executeSqlFileWithReplace(PDO $pdo, string $sqlFile, string $prefix, array $replacements): void
+    {
+        $sql = file_get_contents($sqlFile);
+        if ($sql === false) {
+            throw new Exception('SQL文件读取失败: ' . $sqlFile);
+        }
+        // 替换占位符
+        foreach ($replacements as $placeholder => $value) {
+            $sql = str_replace($placeholder, $value, $sql);
+        }
+        // 写入临时文件后用标准流程执行（复用前缀替换和语句拆分）
+        $tmpFile = sys_get_temp_dir() . '/demo_' . md5($sqlFile) . '.sql';
+        file_put_contents($tmpFile, $sql);
+        try {
+            $this->executeSqlFile($pdo, $tmpFile, $prefix);
+        } finally {
+            @unlink($tmpFile);
+        }
     }
 
     private function executeSqlFile(PDO $pdo, string $sqlFile, string $prefix = '')

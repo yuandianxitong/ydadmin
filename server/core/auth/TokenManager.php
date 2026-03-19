@@ -24,10 +24,16 @@ class TokenManager
 
     public function __construct()
     {
-        $this->key = Config::get('jwt.key', 'your-secret-key');
-        $this->algorithm = Config::get('jwt.algorithm', 'HS256');
-        $this->expire = Config::get('jwt.expire', 7200);
-        $this->issuer = Config::get('jwt.issuer', 'yd-admin');
+        $this->key = Config::get('auth.jwt.key', '');
+        if (empty($this->key)) {
+            throw new \RuntimeException('JWT key 未配置，请在 config/auth.php 的 jwt.key 中设置密钥或配置 JWT_SECRET 环境变量');
+        }
+        if ($this->key === 'your-secret-key') {
+            \think\facade\Log::warning('JWT 使用了默认密钥 your-secret-key，生产环境请务必更换');
+        }
+        $this->algorithm = Config::get('auth.jwt.algorithm', 'HS256');
+        $this->expire = (int) Config::get('auth.jwt.expire', 7200);
+        $this->issuer = Config::get('auth.jwt.issuer', 'yd-admin');
     }
 
     /**

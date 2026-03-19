@@ -61,12 +61,14 @@ class PaymentService extends Service
         // 如果状态变化，同步更新本地记录
         $paymentOrder = $this->orderRepository->findByOrderNo($orderNo);
         if ($paymentOrder && $paymentOrder->status !== $result['status'] && $result['status'] !== 'unknown') {
-            $paymentOrder->status = $result['status'];
-            $paymentOrder->trade_no = $result['trade_no'] ?? '';
+            $updateData = [
+                'status'   => $result['status'],
+                'trade_no' => $result['trade_no'] ?? '',
+            ];
             if ($result['status'] === 'paid') {
-                $paymentOrder->paid_at = date('Y-m-d H:i:s');
+                $updateData['paid_at'] = date('Y-m-d H:i:s');
             }
-            $paymentOrder->save();
+            $this->orderRepository->updateByOrderNo($orderNo, $updateData);
         }
 
         return $result;
@@ -105,10 +107,11 @@ class PaymentService extends Service
 
         // 更新订单状态
         if ($result['status'] === 'success') {
-            $paymentOrder->status = PaymentOrder::STATUS_REFUNDED;
-            $paymentOrder->refund_amount = (float) $params['refund_amount'];
-            $paymentOrder->refunded_at = date('Y-m-d H:i:s');
-            $paymentOrder->save();
+            $this->orderRepository->updateByOrderNo($params['out_trade_no'], [
+                'status'        => PaymentOrder::STATUS_REFUNDED,
+                'refund_amount' => (float) $params['refund_amount'],
+                'refunded_at'   => date('Y-m-d H:i:s'),
+            ]);
         }
 
         return $result;
@@ -135,7 +138,7 @@ class PaymentService extends Service
             if (!$paymentOrder) {
                 Db::rollback();
                 Log::error("支付回调找不到订单: " . $data['out_trade_no']);
-                return $driver->successResponse();
+                return 'fail';
             }
 
             // 幂等：已处理过的订单直接返回成功

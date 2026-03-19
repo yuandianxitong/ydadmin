@@ -4,12 +4,16 @@
     <template v-else-if="article">
       <h1 class="text-3xl font-bold text-gray-900">{{ article.title }}</h1>
       <div class="flex items-center gap-4 text-sm text-gray-400 mt-4">
-        <span v-if="article.category_name">{{ article.category_name }}</span>
+        <span v-if="article.category_name" class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-sm">{{ article.category_name }}</span>
         <span v-if="article.author">{{ article.author }}</span>
-        <span>{{ article.published_at }}</span>
-        <span>{{ article.views }} 阅读</span>
+        <span class="inline-flex items-center gap-1"><i class="i-svg-calendar-days text-3.5" />{{ article.published_at }}</span>
+        <span class="inline-flex items-center gap-1"><i class="i-svg-eye text-3.5" />{{ article.views }} 阅读</span>
       </div>
-      <div class="mt-8 prose max-w-none" v-html="article.content" />
+      <div v-if="article.tags && article.tags.length" class="flex items-center gap-2 mt-3">
+        <i class="i-svg-tag text-3.5 text-gray-400" />
+        <span v-for="tag in article.tags" :key="tag" class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-sm">{{ tag }}</span>
+      </div>
+      <div class="mt-8 prose max-w-none" v-html="sanitizedContent" />
       <div class="mt-12">
         <NuxtLink to="/article" class="text-blue-600 hover:text-blue-700 text-sm">&larr; 返回文章列表</NuxtLink>
       </div>
@@ -19,11 +23,13 @@
 </template>
 
 <script setup lang="ts">
+import DOMPurify from 'dompurify'
 import { articleApi, type ArticleItem } from '~/api/article'
 
 const route = useRoute()
 const article = ref<ArticleItem | null>(null)
 const loading = ref(true)
+const sanitizedContent = computed(() => article.value ? DOMPurify.sanitize(article.value.content) : '')
 
 onMounted(async () => {
   try {

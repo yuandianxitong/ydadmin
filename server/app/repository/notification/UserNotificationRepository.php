@@ -79,37 +79,56 @@ class UserNotificationRepository extends Repository
     }
 
     /**
-     * 标记指定通知为已读
+     * 标记指定通知为已读（批量操作，避免 N+1）
      */
     public function markAsRead(int $userId, array $notificationIds): void
     {
+        if (empty($notificationIds)) {
+            return;
+        }
+
+        $notificationIds = array_map('intval', $notificationIds);
         $now = date('Y-m-d H:i:s');
 
-        foreach ($notificationIds as $notificationId) {
-            $exists = Db::table('user_notification_reads')
-                ->where('notification_id', (int) $notificationId)
-                ->where('user_id', $userId)
-                ->find();
+        // 一次查询获取已有记录
+        $existingRows = Db::table('user_notification_reads')
+            ->where('user_id', $userId)
+            ->whereIn('notification_id', $notificationIds)
+            ->column('notification_id,read_at', 'notification_id');
 
-            if ($exists) {
-                if (!$exists['read_at']) {
-                    Db::table('user_notification_reads')
-                        ->where('id', $exists['id'])
-                        ->update(['read_at' => $now]);
-                }
-            } else {
-                Db::table('user_notification_reads')->insert([
-                    'notification_id' => (int) $notificationId,
+        // 批量更新已有但未读的记录
+        $needUpdateIds = [];
+        foreach ($existingRows as $nid => $row) {
+            if (empty($row['read_at'])) {
+                $needUpdateIds[] = $nid;
+            }
+        }
+        if (!empty($needUpdateIds)) {
+            Db::table('user_notification_reads')
+                ->where('user_id', $userId)
+                ->whereIn('notification_id', $needUpdateIds)
+                ->update(['read_at' => $now]);
+        }
+
+        // 批量插入不存在的记录
+        $existingNids = array_keys($existingRows);
+        $newNids = array_diff($notificationIds, $existingNids);
+        if (!empty($newNids)) {
+            $insertData = [];
+            foreach ($newNids as $nid) {
+                $insertData[] = [
+                    'notification_id' => $nid,
                     'user_id'         => $userId,
                     'read_at'         => $now,
                     'created_at'      => $now,
-                ]);
+                ];
             }
+            Db::table('user_notification_reads')->insertAll($insertData);
         }
     }
 
     /**
-     * 全部标记已读
+     * 全部标记已读（批量操作，避免 N+1）
      */
     public function markAllAsRead(int $userId): void
     {
@@ -136,32 +155,7 @@ class UserNotificationRepository extends Repository
             return;
         }
 
-        $now = date('Y-m-d H:i:s');
-        $insertData = [];
-
-        foreach ($unreadIds as $nid) {
-            // 检查是否有未标记 read_at 的记录
-            $exists = Db::table('user_notification_reads')
-                ->where('notification_id', $nid)
-                ->where('user_id', $userId)
-                ->find();
-
-            if ($exists) {
-                Db::table('user_notification_reads')
-                    ->where('id', $exists['id'])
-                    ->update(['read_at' => $now]);
-            } else {
-                $insertData[] = [
-                    'notification_id' => $nid,
-                    'user_id'         => $userId,
-                    'read_at'         => $now,
-                    'created_at'      => $now,
-                ];
-            }
-        }
-
-        if (!empty($insertData)) {
-            Db::table('user_notification_reads')->insertAll($insertData);
-        }
+        // 利用 markAsRead 的批量逻辑
+        $this->markAsRead($userId, $unreadIds);
     }
 }

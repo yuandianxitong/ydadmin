@@ -16,6 +16,7 @@ use core\attribute\PermissionSkip;
 use app\service\system\AdminService;
 use Closure;
 use ReflectionMethod;
+use think\facade\Log;
 use think\Request;
 use think\Response;
 
@@ -28,10 +29,10 @@ use think\Response;
  * 权限解析优先级：
  *   1. #[PermissionSkip] → 跳过权限检查
  *   2. #[Permission('xxx')] → 校验指定权限
- *   3. 无注解 → 不做权限检查（放行）
+ *   3. 无注解 → 仅已登录可访问（放行但记录警告日志，提醒开发者补充注解）
  *
  * 开发者扩展新模块时，只需在控制器方法上添加 #[Permission] 注解即可，
- * 无需修改中间件代码。
+ * 无需修改中间件代码。不需要权限检查的方法请显式标注 #[PermissionSkip]。
  */
 class AdminPermissionMiddleware extends Middleware
 {
@@ -134,7 +135,8 @@ class AdminPermissionMiddleware extends Middleware
                 return static::$permissionCache[$cacheKey] = $perm->value;
             }
 
-            // 3. 无注解 → 不做权限检查
+            // 3. 无注解 → 放行但记录警告，提醒开发者补充注解
+            Log::warning("Controller method missing #[Permission] or #[PermissionSkip] annotation: {$cacheKey}");
             return static::$permissionCache[$cacheKey] = '';
 
         } catch (\Throwable) {

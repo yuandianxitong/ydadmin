@@ -178,16 +178,7 @@ class UploadController extends Controller
     private function getFullUrl(string $path): string
     {
         $request = $this->request;
-        $scheme = $request->scheme();
-        $host = $request->host();
-        $port = $request->port();
-
-        $baseUrl = $scheme . '://' . $host;
-
-        if (($scheme === 'http' && $port != 80) || ($scheme === 'https' && $port != 443)) {
-            $baseUrl .= ':' . $port;
-        }
-
-        return $baseUrl . $path;
+        // host() 在 ThinkPHP 中已包含端口号（如 localhost:8005），无需再拼接
+        return $request->domain() . $path;
     }
 }

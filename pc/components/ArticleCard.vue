@@ -13,9 +13,14 @@
       </div>
       <div class="flex items-center gap-4 text-xs text-gray-400">
         <span v-if="article.author" class="text-[var(--color-primary)]">{{ article.author }}</span>
-        <span>{{ article.published_at }}</span>
+        <span class="inline-flex items-center gap-1"><i class="i-svg-calendar-days text-4" />{{ article.published_at }}</span>
         <span v-if="article.category_name" class="px-1.5 py-0.5 bg-gray-100 rounded-sm text-gray-500">{{ article.category_name }}</span>
-        <span class="ml-auto">{{ article.views }} 阅读</span>
+        <span v-if="article.tags && article.tags.length" class="inline-flex items-center gap-1">
+          <i class="i-svg-tag text-4" />{{ article.tags.slice(0, 2).join(' / ') }}
+        </span>
+        <span class="inline-flex items-center gap-1 ml-auto">
+          <i class="i-svg-eye text-4" />{{ article.views }}
+        </span>
       </div>
     </div>
   </NuxtLink>

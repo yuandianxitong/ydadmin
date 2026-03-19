@@ -167,10 +167,10 @@ const configsData = reactive<Record<string, any[]>>({})
 const formData = reactive<Record<string, any>>({})
 const originalFormData = reactive<Record<string, any>>({})
 
-// 上传相关配置
-const uploadHeaders = {
+// 上传相关配置（computed 确保 Token 刷新后仍有效）
+const uploadHeaders = computed(() => ({
     Authorization: `Bearer ${getToken()}`
-}
+}))
 
 const rules: FormRules = {
     site_name: [{ required: true, message: t('config.validate.siteNameRequired'), trigger: 'blur' }],

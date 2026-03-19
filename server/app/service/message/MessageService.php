@@ -56,18 +56,18 @@ class MessageService extends Service
      */
     public function updateTemplate(int $id, array $data): bool
     {
-        $template = $this->templateRepository->findModel($id);
+        $template = $this->templateRepository->find($id);
         if (!$template) {
             throw new BusinessException(lang('business.template_not_found'));
         }
 
-        if (isset($data['code']) && $data['code'] !== $template->code) {
+        if (isset($data['code']) && $data['code'] !== $template['code']) {
             if ($this->templateRepository->existsCode($data['code'], $id)) {
                 throw new BusinessException(lang('business.template_code_exists'));
             }
         }
 
-        return $template->save($data);
+        return $this->templateRepository->update($id, $data);
     }
 
     /**
@@ -75,11 +75,11 @@ class MessageService extends Service
      */
     public function deleteTemplate(int $id): bool
     {
-        $template = $this->templateRepository->findModel($id);
+        $template = $this->templateRepository->find($id);
         if (!$template) {
             throw new BusinessException(lang('business.template_not_found'));
         }
-        return $template->delete();
+        return $this->templateRepository->delete($id);
     }
 
     /**
@@ -161,11 +161,12 @@ class MessageService extends Service
 
         $result = $channelInstance->send($receiver, $templateId, $data, $extra);
 
-        $log->status = $result['success'] ? 1 : 2;
-        $log->error_msg = $result['error'] ?? '';
-        $log->sent_at = date('Y-m-d H:i:s');
-        $log->content = json_encode($data, JSON_UNESCAPED_UNICODE);
-        $log->save();
+        $this->logRepository->updateLogResult($log['id'], [
+            'status'    => $result['success'] ? 1 : 2,
+            'error_msg' => $result['error'] ?? '',
+            'sent_at'   => date('Y-m-d H:i:s'),
+            'content'   => json_encode($data, JSON_UNESCAPED_UNICODE),
+        ]);
 
         if (!$result['success']) {
             Log::warning("消息发送失败 [{$channel}][{$template->code}]: " . $result['error']);

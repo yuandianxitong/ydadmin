@@ -13,12 +13,14 @@ use app\repository\system\RoleRepository;
 use app\repository\system\MenuRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\auth\Permission;
 use think\facade\Db;
 
 class RoleService extends Service
 {
     protected RoleRepository $roleRepository;
     protected MenuRepository $menuRepository;
+    protected Permission $permission;
 
     /**
      * 获取角色列表
@@ -136,6 +138,7 @@ class RoleService extends Service
 
             Db::commit();
 
+            $this->clearPermissionCache($id, $role['name']);
             $this->log('更新角色成功', ['role_id' => $id]);
 
             return $result;
@@ -211,12 +214,30 @@ class RoleService extends Service
 
             Db::commit();
 
+            $this->clearPermissionCache($id, $role['name']);
             $this->log('角色授权成功', ['role_id' => $id]);
 
             return true;
         } catch (\Exception $e) {
             Db::rollback();
             throw $e;
+        }
+    }
+
+    /**
+     * 清除角色相关的权限缓存
+     */
+    protected function clearPermissionCache(int $roleId, ?string $roleName = null): void
+    {
+        // 清除角色权限缓存
+        if ($roleName) {
+            $this->permission->clearRoleCache($roleName);
+        }
+
+        // 清除该角色下所有用户的权限缓存
+        $adminIds = $this->roleRepository->getAdminIdsByRoleId($roleId);
+        foreach ($adminIds as $adminId) {
+            $this->permission->clearUserCache($adminId);
         }
     }
 
@@ -236,6 +257,7 @@ class RoleService extends Service
 
         $result = $this->roleRepository->update($id, ['status' => $status]);
 
+        $this->clearPermissionCache($id, $role['name']);
         $this->log('更新角色状态', ['role_id' => $id, 'status' => $status]);
 
         return $result;

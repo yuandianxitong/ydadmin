@@ -24,7 +24,7 @@ import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
-import { getToken } from '@/utils/auth'
+import request from '@/utils/request'
 
 interface Props {
     modelValue?: string
@@ -51,17 +51,17 @@ const editorConfig: Partial<IEditorConfig> = {
     placeholder: '请输入内容...',
     MENU_CONF: {
         uploadImage: {
-            server: '/adminapi/upload/image',
-            fieldName: 'file',
             maxFileSize: 5 * 1024 * 1024,
             maxNumberOfFiles: 20,
             allowedFileTypes: ['image/*'],
-            headers: {
-                Authorization: `Bearer ${getToken()}`
-            },
-            // 自定义插入图片
-            customInsert(res: any, insertFn: (url: string, alt?: string, href?: string) => void) {
-                const url = res?.data?.url || res?.data?.path || ''
+            // 通过 axios 实例上传，自动携带最新 Token
+            async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
+                const formData = new FormData()
+                formData.append('file', file)
+                const res = await request.post('/adminapi/upload/image', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                const url = res?.data?.data?.url || res?.data?.data?.path || ''
                 if (url) {
                     insertFn(url, '', '')
                 }

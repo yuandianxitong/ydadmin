@@ -66,21 +66,36 @@ class AdminLoginLogRepository extends Repository
     }
 
     /**
-     * 最近N天登录趋势
+     * 最近N天登录趋势（单次 GROUP BY 查询）
      * @param int  $days    天数
      * @param bool $success true=成功趋势，false=失败趋势
      */
     public function getRecentTrend(int $days = 7, bool $success = true): array
     {
+        $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+
+        // 一次查询获取所有天的统计
+        $rows = $this->model
+            ->where('login_result', $success ? 1 : 0)
+            ->where('login_time', '>=', $startDate . ' 00:00:00')
+            ->fieldRaw("DATE(login_time) as date, COUNT(*) as count")
+            ->group('date')
+            ->select()
+            ->toArray();
+
+        // 建立日期 => 数量的映射
+        $countMap = [];
+        foreach ($rows as $row) {
+            $countMap[$row['date']] = (int)$row['count'];
+        }
+
+        // 补全所有日期（无数据的天填0）
         $trend = [];
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-{$i} days"));
-            $count = $this->model->whereDay('login_time', $date)
-                ->where('login_result', $success ? 1 : 0)
-                ->count();
             $trend[] = [
                 'date'  => date('m-d', strtotime($date)),
-                'count' => $count,
+                'count' => $countMap[$date] ?? 0,
             ];
         }
         return $trend;

@@ -141,6 +141,10 @@ const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
+const redirectPath = computed(() => {
+  const r = route.query.redirect as string
+  return r && r.startsWith('/') ? r : '/'
+})
 const submitting = ref(false)
 const loginType = ref<'password' | 'sms'>('password')
 const countdown = ref(0)
@@ -158,7 +162,7 @@ async function handlePasswordLogin() {
     const res = await userStore.login(passwordForm)
     if (res.code === 200) {
       message.success('登录成功')
-      router.push('/')
+      router.push(redirectPath.value)
     } else {
       message.error(res.message || '登录失败')
     }
@@ -177,7 +181,7 @@ async function handleSmsLogin() {
     const res = await userStore.smsLogin(smsForm)
     if (res.code === 200) {
       message.success('登录成功')
-      router.push('/')
+      router.push(redirectPath.value)
     } else {
       message.error(res.message || '登录失败')
     }
@@ -232,7 +236,7 @@ async function handleWechatCallback(code: string) {
       userStore.$patch({ token: res.data.token })
       setToken(res.data.token)
       message.success('登录成功')
-      router.push('/')
+      router.push(redirectPath.value)
     } else {
       message.error(res.message || '微信登录失败')
     }

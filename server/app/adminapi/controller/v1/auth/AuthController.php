@@ -83,44 +83,40 @@ class AuthController extends Controller
     )]
     public function login(): Response
     {
-        try {
-            // 兼容 JSON 与表单提交
-            $data = $this->request->param();
-            if (empty($data)) {
-                $json = json_decode((string)$this->request->getContent(), true);
-                if (is_array($json)) {
-                    $data = $json;
-                }
+        // 兼容 JSON 与表单提交
+        $data = $this->request->param();
+        if (empty($data)) {
+            $json = json_decode((string)$this->request->getContent(), true);
+            if (is_array($json)) {
+                $data = $json;
             }
-
-            // 预填默认键以避免未定义下标
-            $data = array_merge(['username' => null, 'password' => null, 'captcha_key' => null, 'captcha' => null], (array)$data);
-
-            // 参数验证
-            $this->validate($data, LoginValidate::class);
-
-            // 验证码校验
-            $captchaKey = (string)($data['captcha_key'] ?? '');
-            $captchaCode = (string)($data['captcha'] ?? '');
-            if (empty($captchaKey) || empty($captchaCode)) {
-                return $this->error(lang('auth.captcha_required'));
-            }
-            if (!$this->captchaService->verify($captchaKey, $captchaCode)) {
-                return $this->error(lang('auth.captcha_invalid'));
-            }
-
-            // 执行登录逻辑
-            $result = $this->adminService->login(
-                (string)($data['username'] ?? ''),
-                (string)($data['password'] ?? ''),
-                (string)$this->request->ip(),
-                (string)$this->request->header('User-Agent', '')
-            );
-
-            return $this->success(lang('messages.login_success'), $result);
-        } catch (\Exception $e) {
-            return $this->error(sprintf(lang('business.login_failed_reason'), $e->getMessage()), 500);
         }
+
+        // 预填默认键以避免未定义下标
+        $data = array_merge(['username' => null, 'password' => null, 'captcha_key' => null, 'captcha' => null], (array)$data);
+
+        // 参数验证
+        $this->validate($data, LoginValidate::class);
+
+        // 验证码校验
+        $captchaKey = (string)($data['captcha_key'] ?? '');
+        $captchaCode = (string)($data['captcha'] ?? '');
+        if (empty($captchaKey) || empty($captchaCode)) {
+            return $this->error(lang('auth.captcha_required'));
+        }
+        if (!$this->captchaService->verify($captchaKey, $captchaCode)) {
+            return $this->error(lang('auth.captcha_invalid'));
+        }
+
+        // 执行登录逻辑（BusinessException 由全局异常处理器统一返回 400）
+        $result = $this->adminService->login(
+            (string)($data['username'] ?? ''),
+            (string)($data['password'] ?? ''),
+            (string)$this->request->ip(),
+            (string)$this->request->header('User-Agent', '')
+        );
+
+        return $this->success(lang('messages.login_success'), $result);
     }
 
     #[PermissionSkip]

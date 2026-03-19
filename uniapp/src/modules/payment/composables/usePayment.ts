@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { paymentApi } from '@/api/payment'
 import type { PayChannel, TradeType } from '@/api/payment'
-import { isWeixin, isApp } from '@/utils/platform'
+import { isWeixin, isWeixinBrowser, isApp } from '@/utils/platform'
 
 export interface PayOptions {
   order_no: string
@@ -9,7 +9,8 @@ export interface PayOptions {
 }
 
 function getTradeType(): TradeType {
-  if (isWeixin()) return 'jsapi'
+  if (isWeixin()) return 'jsapi'       // 微信小程序
+  if (isWeixinBrowser()) return 'jsapi' // H5 在微信浏览器内
   if (isApp()) return 'app'
   return 'h5'
 }

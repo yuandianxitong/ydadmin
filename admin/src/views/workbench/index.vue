@@ -287,8 +287,8 @@ const loginChartOption = computed(() => {
     const failData = stats.value.loginFailTrend.map((i: any) => i.count)
     return {
         tooltip: { trigger: 'axis' },
-        legend: { data: [t('dashboard.loginSuccess'), t('dashboard.loginFailed')], bottom: 0, textStyle: { fontSize: 12 } },
-        grid: { top: 10, right: 16, bottom: 36, left: 40 },
+        legend: { data: [t('dashboard.loginSuccess'), t('dashboard.loginFailed')], top: 0, textStyle: { fontSize: 12 } },
+        grid: { top: 30, right: 16, bottom: 24, left: 40, containLabel: false },
         xAxis: {
             type: 'category',
             data: dates,
@@ -536,7 +536,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     border-radius: 6px;
     height: 100%;
     :deep(.el-card__body) {
-        padding: 16px;
+        padding: 8px 16px 0;
     }
     :deep(.el-card__header) {
         padding: 14px 16px;

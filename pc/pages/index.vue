@@ -191,8 +191,8 @@ onMounted(async () => {
     get<{ list: { id: number; title: string }[] }>('/api/announcement/list', { page_no: 1, page_size: 8 }),
   ])
 
-  if (catRes.code === 1) categories.value = catRes.data
-  if (announcementRes.code === 1) announcements.value = announcementRes.data.list
+  if (catRes.code === 200) categories.value = catRes.data
+  if (announcementRes.code === 200) announcements.value = announcementRes.data.list
 
   // Use first few articles for banner/side cards/news/hot
   const allArticles = articles.value

@@ -96,4 +96,12 @@ class RoleRepository extends Repository
     {
         return \think\facade\Db::table('admin_roles')->where('role_id', $roleId)->count() > 0;
     }
+
+    /**
+     * 获取角色下所有管理员ID
+     */
+    public function getAdminIdsByRoleId(int $roleId): array
+    {
+        return \think\facade\Db::table('admin_roles')->where('role_id', $roleId)->column('admin_id');
+    }
 }

@@ -48,7 +48,6 @@ import { useI18n } from 'vue-i18n'
 
 import { appConfig } from '@/constants/appSetting'
 import { RequestCodeEnum } from '@/constants/request'
-import useAppStore from '@/store/modules/app.store'
 import useUserStore from '@/store/modules/user.store'
 import feedback from '@/utils/feedback'
 
@@ -85,12 +84,10 @@ export default defineComponent({
     setup(props, { emit }) {
         const { t } = useI18n()
         const userStore = useUserStore()
-        const appStore = useAppStore()
         const uploadRefs = shallowRef<InstanceType<typeof ElUpload>>()
-        const action = ref(`${appConfig.baseUrl}${appConfig.urlPrefix}/upload/${props.type}`)
+        const action = ref(`${appConfig.baseUrl}/${appConfig.urlPrefix}/upload/${props.type}`)
         const headers = computed(() => ({
-            token: userStore.token,
-            version: appStore.config.version
+            Authorization: `Bearer ${userStore.token}`,
         }))
         const visible = ref(false)
         const fileList = ref<any[]>([])

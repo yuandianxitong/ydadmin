@@ -49,10 +49,19 @@ class MessageLogRepository extends Repository
     }
 
     /**
-     * 创建发送日志并返回模型实例
+     * 创建发送日志
      */
-    public function createLog(array $data): Model
+    public function createLog(array $data): array
     {
-        return MessageLog::create($data);
+        $log = MessageLog::create($data);
+        return $log->toArray();
+    }
+
+    /**
+     * 更新发送日志结果
+     */
+    public function updateLogResult(int $id, array $data): bool
+    {
+        return $this->model->where('id', $id)->update($data) !== false;
     }
 }

@@ -29,40 +29,89 @@ class ArticleRepository extends Repository
     }
 
     /**
-     * 搜索文章列表（管理端）
+     * 获取文章详情（带分类名称）
      */
-    public function getSearchList(array $params, int $page = 1, int $limit = 20): array
+    public function findWithCategory(int $id): ?array
     {
-        $where = [];
-
-        if (isset($params['status']) && $params['status'] !== '') {
-            $where[] = ['status', '=', (int) $params['status']];
+        $article = $this->model->with(['category'])->find($id);
+        if (!$article) {
+            return null;
         }
-        if (!empty($params['category_id'])) {
-            $where[] = ['category_id', '=', (int) $params['category_id']];
-        }
-        if (!empty($params['keyword'])) {
-            $where[] = ['title', 'like', "%{$params['keyword']}%"];
-        }
-
-        return $this->getList($where, $page, $limit, 'id desc');
+        $data = $article->toArray();
+        $data['category_name'] = $data['category']['name'] ?? '';
+        $data['views'] = $data['view_count'] ?? 0;
+        unset($data['category']);
+        return $data;
     }
 
     /**
-     * 获取已发布的文章列表（C端）
+     * 搜索文章列表（管理端，带分类名称）
+     */
+    public function getSearchList(array $params, int $page = 1, int $limit = 20): array
+    {
+        $query = $this->model->with(['category']);
+
+        if (isset($params['status']) && $params['status'] !== '') {
+            $query->where('status', '=', (int) $params['status']);
+        }
+        if (!empty($params['category_id'])) {
+            $query->where('category_id', '=', (int) $params['category_id']);
+        }
+        if (!empty($params['keyword'])) {
+            $query->where('title', 'like', "%{$params['keyword']}%");
+        }
+
+        $total = $query->count();
+        $list = $query->page($page, $limit)->order('id desc')->select()->toArray();
+
+        // 追加 category_name 字段
+        foreach ($list as &$item) {
+            $item['category_name'] = $item['category']['name'] ?? '';
+            unset($item['category']);
+        }
+
+        return [
+            'list' => $list,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $limit),
+            ],
+        ];
+    }
+
+    /**
+     * 获取已发布的文章列表（C端，带分类名称）
      */
     public function getPublishedList(int $page = 1, int $limit = 10, int $categoryId = 0): array
     {
-        $where = [
-            ['status', '=', Article::STATUS_PUBLISHED],
-            ['publish_at', '<=', date('Y-m-d H:i:s')],
-        ];
+        $query = $this->model->with(['category'])
+            ->where('status', '=', Article::STATUS_PUBLISHED)
+            ->where('publish_at', '<=', date('Y-m-d H:i:s'));
 
         if ($categoryId > 0) {
-            $where[] = ['category_id', '=', $categoryId];
+            $query->where('category_id', '=', $categoryId);
         }
 
-        return $this->getList($where, $page, $limit, 'id desc');
+        $total = $query->count();
+        $list = $query->page($page, $limit)->order('id desc')->select()->toArray();
+
+        foreach ($list as &$item) {
+            $item['category_name'] = $item['category']['name'] ?? '';
+            $item['views'] = $item['view_count'] ?? 0;
+            unset($item['category']);
+        }
+
+        return [
+            'list' => $list,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $limit),
+            ],
+        ];
     }
 
     /**

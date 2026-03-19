@@ -14,6 +14,7 @@ use app\repository\system\AdminLoginLogRepository;
 use app\repository\system\RoleRepository;
 use app\repository\system\MenuRepository;
 use core\base\Service;
+use think\facade\Cache;
 
 class DashboardService extends Service
 {
@@ -23,23 +24,20 @@ class DashboardService extends Service
     protected MenuRepository $menuRepository;
 
     /**
-     * 获取仪表板统计数据
+     * 获取仪表板统计数据（5分钟缓存）
      */
     public function getStats(): array
     {
-        $adminCount = $this->adminRepository->count();
-        $roleCount = $this->roleRepository->count();
-        $menuCount = $this->menuRepository->count();
-        $todayLoginCount = $this->loginLogRepository->getTodaySuccessCount();
-
-        return [
-            'adminCount'      => $adminCount,
-            'roleCount'       => $roleCount,
-            'menuCount'       => $menuCount,
-            'todayLoginCount' => $todayLoginCount,
-            'loginTrend'      => $this->loginLogRepository->getRecentTrend(7, true),
-            'loginFailTrend'  => $this->loginLogRepository->getRecentTrend(7, false),
-        ];
+        return Cache::remember('dashboard_stats', function () {
+            return [
+                'adminCount'      => $this->adminRepository->count(),
+                'roleCount'       => $this->roleRepository->count(),
+                'menuCount'       => $this->menuRepository->count(),
+                'todayLoginCount' => $this->loginLogRepository->getTodaySuccessCount(),
+                'loginTrend'      => $this->loginLogRepository->getRecentTrend(7, true),
+                'loginFailTrend'  => $this->loginLogRepository->getRecentTrend(7, false),
+            ];
+        }, 300);
     }
 
     /**

@@ -251,7 +251,10 @@ const handleStatusChange = async (row: any) => {
 
 // 新增
 const handleAdd = () => {
-    formData.value = { status: 0, tags: [] }
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const defaultTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+    formData.value = { status: 0, tags: [], publish_at: defaultTime }
     formVisible.value = true
 }
 

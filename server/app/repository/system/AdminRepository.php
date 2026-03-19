@@ -103,15 +103,15 @@ class AdminRepository extends Repository
     }
 
     /**
-     * 更新最后登录信息
+     * 更新最后登录信息（原子递增 login_count）
      */
     public function updateLastLogin(int $id, string $ip): bool
     {
-        return $this->update($id, [
+        return $this->model->where('id', $id)->update([
             'last_login_ip' => $ip,
             'last_login_time' => date('Y-m-d H:i:s'),
-            'login_count' => $this->model->where('id', $id)->value('login_count') + 1
-        ]);
+            'login_count' => \think\facade\Db::raw('login_count + 1'),
+        ]) !== false;
     }
 
     /**

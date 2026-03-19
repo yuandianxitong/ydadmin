@@ -7,6 +7,7 @@ import {
   transformerVariantGroup,
 } from 'unocss'
 import presetWind3 from '@unocss/preset-wind3'
+import { FileSystemIconLoader } from '@iconify/utils/lib/loader/node-loaders'
 
 export default defineConfig({
   presets: [
@@ -17,6 +18,9 @@ export default defineConfig({
         display: 'inline-block',
         width: '1em',
         height: '1em',
+      },
+      collections: {
+        svg: FileSystemIconLoader('./assets/svg'),
       },
     }),
     presetTypography(),

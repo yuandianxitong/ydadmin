@@ -37,4 +37,12 @@ class PaymentOrderRepository extends Repository
     {
         return PaymentOrder::create($data);
     }
+
+    /**
+     * 根据订单号更新订单数据
+     */
+    public function updateByOrderNo(string $orderNo, array $data): bool
+    {
+        return $this->model->where('order_no', $orderNo)->update($data) !== false;
+    }
 }

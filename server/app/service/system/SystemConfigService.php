@@ -66,21 +66,21 @@ class SystemConfigService extends Service
      */
     public function updateConfig(int $id, array $data): bool
     {
-        $config = $this->configRepository->findModel($id);
+        $config = $this->configRepository->find($id);
         if (!$config) {
             throw new \Exception(lang('business.config_not_found'));
         }
 
         // 根据类型处理值
-        if ($config->config_type === 'json') {
-            $data['config_value'] = json_encode($data['config_value'], JSON_UNESCAPED_UNICODE);
+        $value = $data['config_value'];
+        if ($config['config_type'] === 'json') {
+            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
-        $config->config_value = $data['config_value'];
-        $result = $config->save();
+        $result = $this->configRepository->updateConfigValueById($id, (string)$value);
 
         if ($result) {
-            $this->trigger('config.changed', ['keys' => [$config->config_key]]);
+            $this->trigger('config.changed', ['keys' => [$config['config_key']]]);
         }
 
         return $result;
@@ -100,19 +100,18 @@ class SystemConfigService extends Service
                 continue;
             }
 
-            $config = $this->configRepository->findModelByKey($configData['config_key']);
+            $config = $this->configRepository->findByKey($configData['config_key']);
             if (!$config) {
                 continue;
             }
 
             // 根据类型处理值
             $value = $configData['config_value'];
-            if ($config->config_type === 'json') {
+            if ($config['config_type'] === 'json') {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE);
             }
 
-            $config->config_value = $value;
-            $config->save();
+            $this->configRepository->updateConfigValueByKey($configData['config_key'], (string)$value);
             $changedKeys[] = $configData['config_key'];
         }
 

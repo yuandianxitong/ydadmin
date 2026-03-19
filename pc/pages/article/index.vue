@@ -139,11 +139,11 @@ onMounted(async () => {
     articleApi.getCategoryList(),
     fetchArticles(),
   ])
-  if (catRes.code === 1) categories.value = catRes.data
+  if (catRes.code === 200) categories.value = catRes.data
 
   // Hot articles (sorted by views)
   const allRes = await articleApi.getList({ page_no: 1, page_size: 10 })
-  if (allRes.code === 1) {
+  if (allRes.code === 200) {
     hotArticles.value = [...allRes.data.list].sort((a, b) => b.views - a.views).slice(0, 10)
   }
 })
