@@ -2,12 +2,16 @@
   <view class="avatar-upload" @tap="handleUpload">
     <view class="avatar-wrap">
       <image
+        v-if="displayUrl"
         class="avatar"
-        :src="displayUrl || '/static/default-avatar.png'"
+        :src="displayUrl"
         mode="aspectFill"
       />
+      <view v-else class="default-avatar">
+        <text class="iconfont icon-person-circle" />
+      </view>
       <view class="camera-overlay">
-        <wd-icon name="camera" color="#ffffff" size="36rpx" />
+        <text class="iconfont icon-image" style="color: #ffffff; font-size: 36rpx" />
       </view>
     </view>
     <text class="hint">点击更换头像</text>
@@ -59,6 +63,20 @@ async function handleUpload() {
   .avatar {
     width: 100%;
     height: 100%;
+  }
+
+  .default-avatar {
+    width: 100%;
+    height: 100%;
+    background: #e8e8e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .iconfont {
+      font-size: 80rpx;
+      color: #c0c4cc;
+    }
   }
 
   .camera-overlay {

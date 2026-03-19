@@ -11,7 +11,7 @@
             @click="handleClearCache"
           >
             <template #icon>
-              <wd-icon name="delete" size="40rpx" color="#fa3534" class="cell-icon" />
+              <text class="iconfont icon-trash3 cell-icon" style="color: #fa3534" />
             </template>
           </wd-cell>
           <wd-cell
@@ -20,7 +20,7 @@
             @click="handleCheckUpdate"
           >
             <template #icon>
-              <wd-icon name="refresh" size="40rpx" color="#2979ff" class="cell-icon" />
+              <text class="iconfont icon-phone-vibrate-fill cell-icon" style="color: #2979ff" />
             </template>
           </wd-cell>
         </wd-cell-group>
@@ -31,7 +31,7 @@
         <wd-cell-group>
           <wd-cell title="当前版本" :value="version">
             <template #icon>
-              <wd-icon name="info-circle" size="40rpx" color="#2979ff" class="cell-icon" />
+              <text class="iconfont icon-question-circle cell-icon" style="color: #2979ff" />
             </template>
           </wd-cell>
           <wd-cell
@@ -40,7 +40,7 @@
             @click="openPrivacy"
           >
             <template #icon>
-              <wd-icon name="secured" size="40rpx" color="#19be6b" class="cell-icon" />
+              <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
             </template>
           </wd-cell>
           <wd-cell
@@ -49,7 +49,7 @@
             @click="openTerms"
           >
             <template #icon>
-              <wd-icon name="file-text" size="40rpx" color="#ff9900" class="cell-icon" />
+              <text class="iconfont icon-file-earmark-text cell-icon" style="color: #ff9900" />
             </template>
           </wd-cell>
         </wd-cell-group>
@@ -170,6 +170,7 @@ function openTerms() {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 
   .cell-icon {
+    font-size: 40rpx;
     margin-right: 16rpx;
   }
 }

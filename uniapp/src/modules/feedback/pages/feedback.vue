@@ -41,7 +41,7 @@
           >
             <image :src="appStore.getImageUrl(img)" mode="aspectFill" class="preview-image" @tap="previewImage(index)" />
             <view class="image-delete" @tap="removeImage(index)">
-              <wd-icon name="close" size="24rpx" color="#fff" />
+              <text class="iconfont icon-trash3" style="color: #fff; font-size: 24rpx" />
             </view>
           </view>
           <view
@@ -49,7 +49,7 @@
             class="image-add"
             @tap="handleUpload"
           >
-            <wd-icon name="camera" size="56rpx" color="#cccccc" />
+            <text class="iconfont icon-image" style="font-size: 56rpx; color: #cccccc" />
           </view>
         </view>
       </view>
@@ -57,11 +57,11 @@
       <!-- 联系方式 -->
       <view class="section-card">
         <view class="section-title">联系方式 <text class="section-hint">（选填）</text></view>
-        <wd-input
+        <input
           v-model="form.contact"
           placeholder="手机号/邮箱，方便我们联系您"
-          no-border
           class="contact-input"
+          placeholder-class="input-placeholder"
         />
       </view>
 
@@ -248,6 +248,14 @@ async function handleSubmit() {
 
 .contact-input {
   width: 100%;
+  height: 80rpx;
+  font-size: 28rpx;
+  color: $text-color;
+}
+
+.input-placeholder {
+  color: #c0c4cc;
+  font-size: 28rpx;
 }
 
 .submit-btn {

@@ -221,7 +221,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "Admin",
+		"navigationBarTitleText": "元点Admin",
 		"navigationBarBackgroundColor": "#2979ff",
 		"backgroundColor": "#f5f5f5"
 	},

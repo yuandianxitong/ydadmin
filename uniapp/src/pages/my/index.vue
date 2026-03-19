@@ -6,10 +6,14 @@
       <view class="user-card" @tap="goUserAction">
         <view class="avatar-wrap">
           <image
+            v-if="userStore.isLoggedIn && userStore.avatar"
             class="avatar"
             :src="avatarUrl"
             mode="aspectFill"
           />
+          <view v-else class="default-avatar">
+            <text class="iconfont icon-person-circle" />
+          </view>
         </view>
         <view v-if="userStore.isLoggedIn" class="user-info">
           <text class="user-name">{{ userStore.nickname || '未设置昵称' }}</text>
@@ -21,35 +25,34 @@
         </view>
         <wd-icon name="arrow-right" color="rgba(255,255,255,0.8)" size="36rpx" />
       </view>
+
+      <!-- Balance & Points always visible in header area -->
+      <view class="header-assets">
+        <view class="header-assets-item" @tap="goAuthPage('/modules/user/pages/balance')">
+          <text class="header-assets-value">{{ userStore.isLoggedIn ? balanceInfo.balance : '**' }}</text>
+          <text class="header-assets-label">余额</text>
+        </view>
+        <view class="header-assets-divider" />
+        <view class="header-assets-item" @tap="goAuthPage('/modules/user/pages/points')">
+          <text class="header-assets-value">{{ userStore.isLoggedIn ? balanceInfo.points : '**' }}</text>
+          <text class="header-assets-label">积分</text>
+        </view>
+      </view>
     </view>
 
     <!-- Menu Groups -->
-    <view class="menu-body" :style="{ paddingTop: (statusBarHeight + 180) + 'px' }">
-      <!-- Balance & Points Card -->
-      <view v-if="userStore.isLoggedIn" class="assets-card" @tap.stop>
-        <view class="assets-item" @tap="goAuthPage('/modules/user/pages/balance')">
-          <text class="assets-label">余额</text>
-          <text class="assets-value">{{ balanceInfo.balance }}</text>
-          <text class="assets-action">去充值</text>
-        </view>
-        <view class="assets-divider" />
-        <view class="assets-item" @tap="goAuthPage('/modules/user/pages/points')">
-          <text class="assets-label">积分</text>
-          <text class="assets-value">{{ balanceInfo.points }}</text>
-          <text class="assets-action">积分明细</text>
-        </view>
-      </view>
+    <view class="menu-body" :style="{ paddingTop: (statusBarHeight + 260) + 'px' }">
       <!-- Group 1: Profile -->
       <view class="menu-card">
         <wd-cell-group>
           <wd-cell title="个人资料" is-link @click="goAuthPage('/modules/user/pages/edit-profile')">
             <template #icon>
-              <wd-icon name="user" size="40rpx" color="#2979ff" class="cell-icon" />
+              <text class="iconfont icon-person cell-icon" style="color: #2979ff" />
             </template>
           </wd-cell>
           <wd-cell title="修改密码" is-link @click="goAuthPage('/modules/user/pages/change-password')">
             <template #icon>
-              <wd-icon name="lock-on" size="40rpx" color="#19be6b" class="cell-icon" />
+              <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
             </template>
           </wd-cell>
         </wd-cell-group>
@@ -60,7 +63,7 @@
         <wd-cell-group>
           <wd-cell title="消息通知" is-link @click="goMessageTab">
             <template #icon>
-              <wd-icon name="bell" size="40rpx" color="#ff9900" class="cell-icon" />
+              <text class="iconfont icon-bell cell-icon" style="color: #ff9900" />
             </template>
             <template v-if="unreadCount > 0" #value>
               <wd-badge :value="unreadCount" />
@@ -68,7 +71,7 @@
           </wd-cell>
           <wd-cell title="意见反馈" is-link @click="goAuthPage('/modules/feedback/pages/feedback')">
             <template #icon>
-              <wd-icon name="edit" size="40rpx" color="#7c4dff" class="cell-icon" />
+              <text class="iconfont icon-chat-square-text cell-icon" style="color: #7c4dff" />
             </template>
           </wd-cell>
         </wd-cell-group>
@@ -79,12 +82,12 @@
         <wd-cell-group>
           <wd-cell title="关于我们" is-link @click="goPage('/modules/about/pages/about')">
             <template #icon>
-              <wd-icon name="info-circle" size="40rpx" color="#909399" class="cell-icon" />
+              <text class="iconfont icon-question-circle cell-icon" style="color: #909399" />
             </template>
           </wd-cell>
           <wd-cell title="设置" is-link @click="goPage('/modules/user/pages/settings')">
             <template #icon>
-              <wd-icon name="setting" size="40rpx" color="#fa3534" class="cell-icon" />
+              <text class="iconfont icon-gear cell-icon" style="color: #fa3534" />
             </template>
           </wd-cell>
         </wd-cell-group>
@@ -124,7 +127,7 @@ const avatarUrl = computed(() => {
   if (userStore.isLoggedIn && userStore.avatar) {
     return appStore.getImageUrl(userStore.avatar)
   }
-  return '/static/logo.png'
+  return ''
 })
 
 function maskMobile(mobile?: string): string {
@@ -211,13 +214,13 @@ onShow(() => {
   right: 0;
   z-index: 100;
   background: linear-gradient(135deg, #2979ff, #1e5fcc);
-  padding-bottom: 40rpx;
+  padding-bottom: 32rpx;
 }
 
 .user-card {
   display: flex;
   align-items: center;
-  padding: 32rpx 32rpx 0;
+  padding: 48rpx 32rpx;
 
   .avatar-wrap {
     width: 120rpx;
@@ -230,6 +233,20 @@ onShow(() => {
     .avatar {
       width: 100%;
       height: 100%;
+    }
+
+    .default-avatar {
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .iconfont {
+        font-size: 64rpx;
+        color: rgba(255, 255, 255, 0.8);
+      }
     }
   }
 
@@ -253,47 +270,34 @@ onShow(() => {
   }
 }
 
-.assets-card {
+.header-assets {
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx 0;
-  margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  padding: 24rpx 32rpx 0;
 
-  .assets-item {
+  .header-assets-item {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
 
-  .assets-label {
-    font-size: 24rpx;
-    color: $text-color-secondary;
-    margin-bottom: 8rpx;
-  }
-
-  .assets-value {
+  .header-assets-value {
     font-size: 40rpx;
     font-weight: 700;
-    color: $text-color;
-    margin-bottom: 12rpx;
+    color: #ffffff;
+    margin-bottom: 4rpx;
   }
 
-  .assets-action {
+  .header-assets-label {
     font-size: 24rpx;
-    color: $primary-color;
-    background: rgba(41, 121, 255, 0.08);
-    padding: 6rpx 24rpx;
-    border-radius: 20rpx;
+    color: rgba(255, 255, 255, 0.7);
   }
 
-  .assets-divider {
+  .header-assets-divider {
     width: 1rpx;
-    height: 80rpx;
-    background: $border-color;
+    height: 60rpx;
+    background: rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
   }
 }
@@ -310,6 +314,7 @@ onShow(() => {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 
   .cell-icon {
+    font-size: 40rpx;
     margin-right: 16rpx;
   }
 }

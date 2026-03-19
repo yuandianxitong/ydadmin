@@ -4,16 +4,20 @@
     <view class="user-card" @tap="goEditProfile">
       <view class="avatar-wrap">
         <image
+          v-if="avatarUrl"
           class="avatar"
-          :src="avatarUrl || '/static/default-avatar.png'"
+          :src="avatarUrl"
           mode="aspectFill"
         />
+        <view v-else class="default-avatar">
+          <text class="iconfont icon-person-circle" />
+        </view>
       </view>
       <view class="user-info">
         <text class="nickname">{{ userStore.nickname || '未设置昵称' }}</text>
         <text class="mobile">{{ userInfo?.mobile ? maskMobile(userInfo.mobile) : '' }}</text>
       </view>
-      <wd-icon name="arrow-right" color="#ccc" size="36rpx" />
+      <text class="iconfont icon-chevron-right" style="color: #ccc; font-size: 36rpx" />
     </view>
 
     <!-- 菜单列表 -->
@@ -22,42 +26,38 @@
         <wd-cell
           title="编辑资料"
           is-link
-          use-icon-slot
           @click="goEditProfile"
         >
           <template #icon>
-            <wd-icon name="user" size="40rpx" color="#2979ff" class="cell-icon" />
+            <text class="iconfont icon-person cell-icon" style="color: #2979ff" />
           </template>
         </wd-cell>
         <wd-cell
           title="修改密码"
           is-link
-          use-icon-slot
           @click="goChangePassword"
         >
           <template #icon>
-            <wd-icon name="lock-on" size="40rpx" color="#19be6b" class="cell-icon" />
+            <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
           </template>
         </wd-cell>
         <wd-cell
           title="设置"
           is-link
-          use-icon-slot
           @click="goSettings"
         >
           <template #icon>
-            <wd-icon name="setting" size="40rpx" color="#ff9900" class="cell-icon" />
+            <text class="iconfont icon-gear cell-icon" style="color: #ff9900" />
           </template>
         </wd-cell>
         <wd-cell
           title="关于"
           is-link
           :value="version"
-          use-icon-slot
           @click="goAbout"
         >
           <template #icon>
-            <wd-icon name="info-circle" size="40rpx" color="#909399" class="cell-icon" />
+            <text class="iconfont icon-question-circle cell-icon" style="color: #909399" />
           </template>
         </wd-cell>
       </wd-cell-group>
@@ -167,6 +167,20 @@ function handleLogout() {
       width: 100%;
       height: 100%;
     }
+
+    .default-avatar {
+      width: 100%;
+      height: 100%;
+      background: #e8e8e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .iconfont {
+        font-size: 64rpx;
+        color: #c0c4cc;
+      }
+    }
   }
 
   .user-info {
@@ -196,6 +210,7 @@ function handleLogout() {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
 
   .cell-icon {
+    font-size: 40rpx;
     margin-right: 16rpx;
   }
 }

@@ -33,25 +33,25 @@
         <view class="grid-card">
           <view class="grid-item" @tap="goPage('/modules/announcement/pages/announcement-list')">
             <view class="grid-icon icon-bg-blue">
-              <text class="iconfont icon-notice" />
+              <text class="iconfont icon-bell" />
             </view>
             <text class="grid-text">公告</text>
           </view>
           <view class="grid-item" @tap="goPage('/modules/feedback/pages/feedback')">
             <view class="grid-icon icon-bg-green">
-              <text class="iconfont icon-feedback" />
+              <text class="iconfont icon-chat-square-text" />
             </view>
             <text class="grid-text">反馈</text>
           </view>
           <view class="grid-item" @tap="goMessageTab">
             <view class="grid-icon icon-bg-orange">
-              <text class="iconfont icon-message" />
+              <text class="iconfont icon-envelope" />
             </view>
             <text class="grid-text">消息</text>
           </view>
           <view class="grid-item" @tap="goPage('/modules/agreement/pages/agreement?code=user_agreement')">
             <view class="grid-icon icon-bg-purple">
-              <text class="iconfont icon-document" />
+              <text class="iconfont icon-file-earmark-text" />
             </view>
             <text class="grid-text">协议</text>
           </view>

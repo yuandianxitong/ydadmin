@@ -11,40 +11,43 @@
       <view class="form-card">
         <!-- 手机号/账号 -->
         <view class="input-group">
-          <wd-input
+          <wd-icon name="mobile" size="36rpx" color="#999" class="input-prefix" />
+          <input
             v-model="form.account"
             placeholder="请输入手机号或账号"
-            prefix-icon="mobile"
-            clearable
-            no-border
-            class="custom-input"
+            class="uni-input"
+            placeholder-class="input-placeholder"
           />
         </view>
 
         <!-- 密码 -->
         <view class="input-group">
-          <wd-input
+          <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+          <input
             v-model="form.password"
-            :show-password="true"
+            :password="!showPwd"
             placeholder="请设置密码（6-20位）"
-            prefix-icon="lock-on"
-            clearable
-            no-border
-            class="custom-input"
+            class="uni-input"
+            placeholder-class="input-placeholder"
           />
+          <view class="pwd-toggle" @tap="showPwd = !showPwd">
+            <text class="pwd-toggle-text">{{ showPwd ? '隐藏' : '显示' }}</text>
+          </view>
         </view>
 
         <!-- 确认密码 -->
         <view class="input-group">
-          <wd-input
+          <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+          <input
             v-model="form.confirmPassword"
-            :show-password="true"
+            :password="!showConfirmPwd"
             placeholder="请再次输入密码"
-            prefix-icon="lock-on"
-            clearable
-            no-border
-            class="custom-input"
+            class="uni-input"
+            placeholder-class="input-placeholder"
           />
+          <view class="pwd-toggle" @tap="showConfirmPwd = !showConfirmPwd">
+            <text class="pwd-toggle-text">{{ showConfirmPwd ? '隐藏' : '显示' }}</text>
+          </view>
         </view>
 
         <!-- 协议 -->
@@ -78,6 +81,8 @@ import { isPassword } from '@/utils/validate'
 
 const loading = ref(false)
 const agreed = ref(false)
+const showPwd = ref(false)
+const showConfirmPwd = ref(false)
 
 const form = reactive({
   account: '',
@@ -160,25 +165,41 @@ function goLogin() {
 }
 
 .input-group {
+  display: flex;
+  align-items: center;
   margin-bottom: 24rpx;
   background: #f8f9fc;
   border-radius: 16rpx;
-  overflow: hidden;
-  min-height: 96rpx;
+  padding: 0 24rpx;
+  height: 96rpx;
 
-  .custom-input {
+  .input-prefix {
+    flex-shrink: 0;
+    margin-right: 16rpx;
+  }
+
+  .uni-input {
     flex: 1;
+    height: 96rpx;
+    font-size: 30rpx;
+    color: $text-color;
     background: transparent;
+  }
 
-    :deep(.wd-input) {
-      min-height: 96rpx;
-      padding: 0 24rpx;
-    }
+  .pwd-toggle {
+    flex-shrink: 0;
+    padding-left: 16rpx;
 
-    :deep(.wd-input__inner) {
-      font-size: 30rpx;
+    .pwd-toggle-text {
+      font-size: 26rpx;
+      color: $text-color-secondary;
     }
   }
+}
+
+.input-placeholder {
+  color: #c0c4cc;
+  font-size: 30rpx;
 }
 
 .submit-btn {

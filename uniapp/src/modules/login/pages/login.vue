@@ -6,7 +6,7 @@
     <!-- Logo 区域 -->
     <view class="logo-area">
       <image class="logo" src="/static/logo.png" mode="aspectFit" />
-      <text class="app-name">Dev007</text>
+      <text class="app-name">元点Admin</text>
       <text class="app-slogan">专业开发者的首选框架</text>
     </view>
 
@@ -32,41 +32,42 @@
 
       <!-- 手机号输入 -->
       <view class="input-group">
-        <wd-input
+        <wd-icon name="mobile" size="36rpx" color="#999" class="input-prefix" />
+        <input
           v-model="mobile"
           type="number"
           maxlength="11"
           placeholder="请输入手机号"
-          prefix-icon="mobile"
-          clearable
-          no-border
-          class="custom-input"
+          class="uni-input"
+          placeholder-class="input-placeholder"
         />
       </view>
 
       <!-- 密码输入 -->
       <view v-if="loginType === 'password'" class="input-group">
-        <wd-input
+        <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+        <input
           v-model="password"
-          :show-password="true"
+          :password="!showPwd"
           placeholder="请输入密码（6-20位）"
-          prefix-icon="lock-on"
-          clearable
-          no-border
-          class="custom-input"
+          class="uni-input"
+          placeholder-class="input-placeholder"
         />
+        <view class="pwd-toggle" @tap="showPwd = !showPwd">
+          <text class="pwd-toggle-text">{{ showPwd ? '隐藏' : '显示' }}</text>
+        </view>
       </view>
 
       <!-- 验证码输入 -->
       <view v-else class="input-group sms-group">
-        <wd-input
+        <wd-icon name="secured" size="36rpx" color="#999" class="input-prefix" />
+        <input
           v-model="smsCode"
           type="number"
           maxlength="6"
           placeholder="请输入验证码"
-          prefix-icon="secured"
-          no-border
-          class="custom-input sms-input"
+          class="uni-input"
+          placeholder-class="input-placeholder"
         />
         <view
           class="send-code-btn"
@@ -109,6 +110,7 @@ const mobile = ref('')
 const password = ref('')
 const smsCode = ref('')
 const agreed = ref(false)
+const showPwd = ref(false)
 
 // 获取状态栏高度
 const statusBarHeight = ref(0)
@@ -215,41 +217,45 @@ function goRegister() {
 }
 
 .input-group {
+  display: flex;
+  align-items: center;
   margin-bottom: 24rpx;
   background: #f8f9fc;
   border-radius: 16rpx;
-  overflow: hidden;
-  min-height: 96rpx;
+  padding: 0 24rpx;
+  height: 96rpx;
 
-  &.sms-group {
-    display: flex;
-    align-items: center;
+  .input-prefix {
+    flex-shrink: 0;
+    margin-right: 16rpx;
   }
 
-  .custom-input {
+  .uni-input {
     flex: 1;
+    height: 96rpx;
+    font-size: 30rpx;
+    color: $text-color;
     background: transparent;
-
-    :deep(.wd-input) {
-      min-height: 96rpx;
-      padding: 0 24rpx;
-    }
-
-    :deep(.wd-input__inner) {
-      font-size: 30rpx;
-    }
   }
 
-  .sms-input {
-    border-right: 2rpx solid $border-color;
+  .pwd-toggle {
+    flex-shrink: 0;
+    padding-left: 16rpx;
+
+    .pwd-toggle-text {
+      font-size: 26rpx;
+      color: $text-color-secondary;
+    }
   }
 
   .send-code-btn {
-    padding: 0 28rpx;
+    flex-shrink: 0;
+    padding-left: 20rpx;
+    margin-left: 20rpx;
+    border-left: 2rpx solid $border-color;
     font-size: 26rpx;
     color: $primary-color;
     white-space: nowrap;
-    flex-shrink: 0;
     height: 100%;
     display: flex;
     align-items: center;
@@ -258,6 +264,11 @@ function goRegister() {
       color: $text-color-secondary;
     }
   }
+}
+
+.input-placeholder {
+  color: #c0c4cc;
+  font-size: 30rpx;
 }
 
 .login-btn {
