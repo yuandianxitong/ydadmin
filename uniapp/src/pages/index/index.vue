@@ -12,7 +12,7 @@
           indicator-active-color="#2979ff"
           indicator-color="rgba(255,255,255,0.6)"
         >
-          <swiper-item v-for="(item, index) in bannerList" :key="index">
+          <swiper-item v-for="(item, index) in bannerList" :key="index" @tap="item.url && goPage(item.url)">
             <image class="banner-image" :src="appStore.getImageUrl(item.image)" mode="aspectFill" />
           </swiper-item>
         </swiper>
@@ -71,6 +71,12 @@
             class="article-item"
             @tap="goArticleDetail(item.id)"
           >
+            <image
+              v-if="item.cover"
+              class="article-cover"
+              :src="appStore.getImageUrl(item.cover)"
+              mode="aspectFill"
+            />
             <view class="article-info">
               <text class="article-title">{{ item.title }}</text>
               <view class="article-meta">
@@ -78,12 +84,6 @@
                 <text class="article-date">{{ formatDate(item.published_at || item.created_at) }}</text>
               </view>
             </view>
-            <image
-              v-if="item.cover"
-              class="article-cover"
-              :src="appStore.getImageUrl(item.cover)"
-              mode="aspectFill"
-            />
           </view>
         </view>
         <view v-else class="article-empty">
@@ -138,9 +138,12 @@ function goArticleDetail(id: number) {
 }
 
 async function loadData() {
-  // Load banner from config
+  // Ensure config is loaded
+  await appStore.getConfig()
+
+  // Load banner from config, fallback to article covers
   const config = appStore.config
-  if (config?.banner_list && Array.isArray(config.banner_list)) {
+  if (config?.banner_list && Array.isArray(config.banner_list) && config.banner_list.length > 0) {
     bannerList.value = config.banner_list
   }
 
@@ -157,6 +160,13 @@ async function loadData() {
     .getList({ page_no: 1, page_size: 5 })
     .then((res) => {
       articles.value = res.list
+      // 如果没有配置 banner，用带封面的文章作为轮播
+      if (bannerList.value.length === 0) {
+        bannerList.value = res.list
+          .filter((a: ArticleItem) => a.cover)
+          .slice(0, 4)
+          .map((a: ArticleItem) => ({ image: a.cover, url: `/modules/article/pages/article-detail?id=${a.id}` }))
+      }
     })
     .catch(() => {})
 }
@@ -312,7 +322,7 @@ onShow(() => {
   .article-info {
     flex: 1;
     min-width: 0;
-    margin-right: 20rpx;
+    margin-left: 20rpx;
   }
 
   .article-title {

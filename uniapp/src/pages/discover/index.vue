@@ -44,21 +44,22 @@
             </view>
           </template>
 
-          <!-- Other items: horizontal card -->
+          <!-- Other items: horizontal card (cover left, text right) -->
           <template v-else>
-            <view class="article-card__content">
-              <text class="article-card__title">{{ item.title }}</text>
-              <view class="article-card__meta">
-                <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
-                <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
-              </view>
-            </view>
             <image
               v-if="item.cover"
               class="article-card__thumb"
               :src="appStore.getImageUrl(item.cover)"
               mode="aspectFill"
             />
+            <view class="article-card__content">
+              <text class="article-card__title">{{ item.title }}</text>
+              <text v-if="item.summary" class="article-card__summary">{{ item.summary }}</text>
+              <view class="article-card__meta">
+                <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
+                <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
+              </view>
+            </view>
           </template>
         </view>
       </view>
@@ -174,7 +175,10 @@ onShow(() => {
   &__content {
     flex: 1;
     min-width: 0;
-    margin-right: 20rpx;
+    margin-left: 20rpx;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
 
   &__title {
@@ -187,7 +191,19 @@ onShow(() => {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 16rpx;
+    margin-bottom: 8rpx;
+  }
+
+  &__summary {
+    display: block;
+    font-size: 24rpx;
+    color: $text-color-secondary;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8rpx;
   }
 
   &__meta {

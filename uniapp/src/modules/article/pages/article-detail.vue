@@ -56,10 +56,11 @@ const tagColors = ['primary', 'success', 'warning', 'danger'] as const
 
 const tagList = computed(() => {
   if (!article.value?.tags) return []
-  return article.value.tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
+  const tags = article.value.tags
+  // 后端 tags 字段为 JSON 类型，返回数组；兼容字符串格式
+  if (Array.isArray(tags)) return tags.filter(Boolean)
+  if (typeof tags === 'string') return tags.split(',').map((t) => t.trim()).filter(Boolean)
+  return []
 })
 
 function formatDate(dateStr: string): string {

@@ -22,8 +22,18 @@ export const useAppStore = defineStore('app', () => {
 
   function getImageUrl(url: string): string {
     if (!url) return ''
-    if (url.startsWith('http://') || url.startsWith('https://')) return url
     const baseUrl = config.value.site_url || config.value.oss_domain || ''
+    // 已是完整 URL：如果 site_url 已配置且 URL 以其他域名开头，替换为 site_url
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (baseUrl) {
+        // 提取路径部分（从第一个 /storage/ 或 /uploads/ 开始）
+        const pathMatch = url.match(/(\/storage\/.*)/)
+        if (pathMatch) {
+          return baseUrl + pathMatch[1]
+        }
+      }
+      return url
+    }
     return baseUrl + url
   }
 

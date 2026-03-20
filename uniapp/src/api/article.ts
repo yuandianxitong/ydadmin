@@ -16,7 +16,7 @@ export interface ArticleItem {
   category_id: number
   category_name?: string
   author: string
-  tags: string
+  tags: string[] | string
   views: number
   is_top: number
   status: number

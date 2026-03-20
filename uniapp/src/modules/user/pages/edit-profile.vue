@@ -81,8 +81,26 @@ const form = reactive({
   avatar: '',
   nickname: '',
   gender: 0,
-  birthday: '',
+  birthday: '' as string | number,
 })
+
+// 时间戳转 YYYY-MM-DD
+function formatBirthday(val: string | number): string {
+  if (!val) return ''
+  const d = typeof val === 'number' ? new Date(val) : new Date(val)
+  if (isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// 日期字符串转时间戳（供 wd-datetime-picker 使用）
+function parseBirthday(val: string): number {
+  if (!val) return 0
+  const d = new Date(val.replace(/-/g, '/'))
+  return isNaN(d.getTime()) ? 0 : d.getTime()
+}
 
 function onGenderConfirm(val: { value: number }) {
   form.gender = val.value
@@ -94,7 +112,7 @@ onMounted(async () => {
     form.avatar = profile.avatar || ''
     form.nickname = profile.nickname || ''
     form.gender = profile.gender ?? 0
-    form.birthday = profile.birthday || ''
+    form.birthday = parseBirthday(profile.birthday || '')
   } catch {
     // error handled
   }
@@ -110,7 +128,7 @@ async function handleSave() {
     avatar: form.avatar,
     nickname: form.nickname,
     gender: form.gender,
-    birthday: form.birthday,
+    birthday: formatBirthday(form.birthday),
   })
 }
 </script>
