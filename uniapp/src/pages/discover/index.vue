@@ -1,5 +1,5 @@
 <template>
-  <d-page :safe-area="false">
+  <view class="discover-page">
     <!-- Category Tabs -->
     <wd-tabs v-model="activeTab" @change="handleTabChange">
       <wd-tab :name="0" title="全部" />
@@ -12,66 +12,57 @@
     </wd-tabs>
 
     <!-- Article List -->
-    <scroll-view
-      scroll-y
-      class="article-scroll"
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="handleRefresh"
-      @scrolltolower="getList"
-    >
-      <view class="article-list">
-        <view
-          v-for="(item, index) in list"
-          :key="item.id"
-          class="article-card"
-          :class="{ 'article-card--large': index === 0 && item.cover }"
-          @tap="goDetail(item.id)"
-        >
-          <!-- First item: large cover card -->
-          <template v-if="index === 0 && item.cover">
-            <image
-              class="article-card__cover-large"
-              :src="appStore.getImageUrl(item.cover)"
-              mode="aspectFill"
-            />
-            <view class="article-card__body">
-              <text class="article-card__title">{{ item.title }}</text>
-              <view class="article-card__meta">
-                <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
-                <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
-              </view>
+    <view class="article-list">
+      <view
+        v-for="(item, index) in list"
+        :key="item.id"
+        class="article-card"
+        :class="{ 'article-card--large': index === 0 && item.cover }"
+        @tap="goDetail(item.id)"
+      >
+        <!-- First item: large cover card -->
+        <template v-if="index === 0 && item.cover">
+          <image
+            class="article-card__cover-large"
+            :src="appStore.getImageUrl(item.cover)"
+            mode="aspectFill"
+          />
+          <view class="article-card__body">
+            <text class="article-card__title">{{ item.title }}</text>
+            <view class="article-card__meta">
+              <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
+              <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
             </view>
-          </template>
+          </view>
+        </template>
 
-          <!-- Other items: horizontal card (cover left, text right) -->
-          <template v-else>
-            <image
-              v-if="item.cover"
-              class="article-card__thumb"
-              :src="appStore.getImageUrl(item.cover)"
-              mode="aspectFill"
-            />
-            <view class="article-card__content">
-              <text class="article-card__title">{{ item.title }}</text>
-              <text v-if="item.summary" class="article-card__summary">{{ item.summary }}</text>
-              <view class="article-card__meta">
-                <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
-                <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
-              </view>
+        <!-- Other items: horizontal card (cover left, text right) -->
+        <template v-else>
+          <image
+            v-if="item.cover"
+            class="article-card__thumb"
+            :src="appStore.getImageUrl(item.cover)"
+            mode="aspectFill"
+          />
+          <view class="article-card__content">
+            <text class="article-card__title">{{ item.title }}</text>
+            <text v-if="item.summary" class="article-card__summary">{{ item.summary }}</text>
+            <view class="article-card__meta">
+              <text v-if="item.category_name" class="article-card__tag">{{ item.category_name }}</text>
+              <text class="article-card__date">{{ formatDate(item.published_at || item.created_at) }}</text>
             </view>
-          </template>
-        </view>
+          </view>
+        </template>
       </view>
+    </view>
 
-      <d-list-loader
-        :loading="loading"
-        :finished="finished"
-        :total="total"
-        empty-text="暂无文章"
-      />
-    </scroll-view>
-  </d-page>
+    <d-list-loader
+      :loading="loading"
+      :finished="finished"
+      :total="total"
+      empty-text="暂无文章"
+    />
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -140,12 +131,14 @@ onShow(() => {
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
 
-.article-scroll {
-  height: calc(100vh - 88rpx - env(safe-area-inset-bottom) - 100rpx);
+.discover-page {
+  min-height: 100vh;
+  background-color: $bg-color;
 }
 
 .article-list {
   padding: 20rpx $page-padding;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .article-card {
