@@ -62,18 +62,78 @@ class WechatController extends Controller
 
     /**
      * 公众号 OAuth 回调 — 通过 code 获取用户信息
+     * 支持两种模式：
+     * - API 模式：直接返回 JSON（原有行为）
+     * - SPA 重定向模式：state 参数存在时，缓存 openid 并 302 重定向
      */
     public function oauthCallback(): Response
     {
         try {
             $code = (string)$this->request->param('code', '');
+            $state = (string)$this->request->param('state', '');
+
             if (empty($code)) {
                 return $this->error(lang('business.missing_code'));
             }
 
             $user = $this->officialAccountService->getUserByCode($code);
+            $openid = $user['openid'] ?? '';
+            $unionid = $user['unionid'] ?? '';
 
+            // SPA 重定向模式
+            if (!empty($state)) {
+                $token = md5(uniqid((string)mt_rand(), true));
+                cache('wechat_oauth_' . $token, [
+                    'openid'  => $openid,
+                    'unionid' => $unionid,
+                ], 300);
+
+                // 如果已登录，直接关联 oa_openid
+                $userId = (int)($this->request->userId ?? 0);
+                if ($userId > 0 && $openid) {
+                    \app\model\user\User::where('id', $userId)->update(['oa_openid' => $openid]);
+                }
+
+                $separator = str_contains($state, '?') ? '&' : '?';
+                return redirect($state . $separator . 'wechat_token=' . $token);
+            }
+
+            // API 模式（原有行为）
             return $this->success(lang('messages.authorize_success'), $user);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 通过 wechat_token 换取 openid（前端 SPA 使用）
+     */
+    public function getOpenid(): Response
+    {
+        try {
+            $token = (string)$this->request->param('token', '');
+            if (empty($token)) {
+                return $this->error('缺少 token 参数');
+            }
+
+            $data = cache('wechat_oauth_' . $token);
+            if (empty($data)) {
+                return $this->error('token 已过期，请重新授权');
+            }
+
+            // 一次性使用
+            cache('wechat_oauth_' . $token, null);
+
+            // 如果已登录，关联到用户
+            $userId = (int)($this->request->userId ?? 0);
+            if ($userId > 0 && !empty($data['openid'])) {
+                \app\model\user\User::where('id', $userId)->update([
+                    'oa_openid' => $data['openid'],
+                    'unionid'   => $data['unionid'] ?: null,
+                ]);
+            }
+
+            return $this->success('ok', $data);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
         }

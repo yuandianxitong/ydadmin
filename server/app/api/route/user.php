@@ -11,4 +11,5 @@ Route::group('user', function () {
     Route::get('points', 'v1.user.UserController/points');
     Route::get('points-logs', 'v1.user.UserController/pointsLogs');
     Route::post('recharge', 'v1.user.UserController/recharge');
+    Route::post('bind-oa-openid', 'v1.user.UserController/bindOaOpenid');
 })->middleware(['api_auth']);

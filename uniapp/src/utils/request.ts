@@ -3,6 +3,19 @@ import type { ApiResponse } from '@/types/api'
 
 const BASE_URL = import.meta.env.VITE_APP_API_URL || ''
 
+function getClientType(): string {
+  // #ifdef MP-WEIXIN
+  return 'miniapp'
+  // #endif
+  // #ifdef APP-PLUS
+  return 'app'
+  // #endif
+  // #ifdef H5
+  const ua = navigator.userAgent.toLowerCase()
+  return ua.includes('micromessenger') ? 'wechat_h5' : 'h5'
+  // #endif
+}
+
 interface RequestOptions {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -30,6 +43,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       data,
       header: {
         'Content-Type': 'application/json',
+        'X-Client-Type': getClientType(),
         ...header,
       },
       success: (res: any) => {

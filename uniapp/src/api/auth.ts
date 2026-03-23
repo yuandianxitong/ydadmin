@@ -25,4 +25,11 @@ export const authApi = {
 
   logout: () =>
     http.post('/api/auth/logout'),
+
+  wechatQuickLogin(data: { code: string }) {
+    return http.post('/api/auth/wechat-quick-login', data)
+  },
+  wechatBindPhone(data: { temp_token: string; phone_code: string }) {
+    return http.post('/api/auth/wechat-bindphone', data)
+  },
 }

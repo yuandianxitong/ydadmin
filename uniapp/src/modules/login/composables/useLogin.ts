@@ -2,12 +2,16 @@ import { ref } from 'vue'
 import { useUserStore } from '@/store/user.store'
 import { authApi } from '@/api/auth'
 import { isMobile, isPassword, isVerifyCode } from '@/utils/validate'
+import { setToken } from '@/utils/auth'
 
 export function useLogin() {
   const userStore = useUserStore()
   const loading = ref(false)
   const loginType = ref<'password' | 'sms'>('password')
   const countdown = ref(0)
+  const wechatQuickLoading = ref(false)
+  const needBindPhone = ref(false)
+  const tempToken = ref('')
 
   async function loginByPassword(mobile: string, password: string) {
     if (!isMobile(mobile)) {
@@ -63,5 +67,46 @@ export function useLogin() {
     }, 1000)
   }
 
-  return { loading, loginType, countdown, loginByPassword, loginBySms, sendCode }
+  async function loginByWechatQuick() {
+    wechatQuickLoading.value = true
+    try {
+      const loginRes = await new Promise<UniApp.LoginRes>((resolve, reject) => {
+        uni.login({ provider: 'weixin', success: resolve, fail: reject })
+      })
+
+      const result = await authApi.wechatQuickLogin({ code: loginRes.code })
+
+      if (result.status === 'logged_in' && result.token) {
+        setToken(result.token)
+        uni.reLaunch({ url: '/pages/index/index' })
+      } else if (result.status === 'need_bindphone') {
+        tempToken.value = result.temp_token
+        needBindPhone.value = true
+      }
+    } catch (e: any) {
+      uni.showToast({ title: e.message || '登录失败', icon: 'none' })
+    } finally {
+      wechatQuickLoading.value = false
+    }
+  }
+
+  async function bindPhoneAndLogin(phoneCode: string) {
+    try {
+      const result = await authApi.wechatBindPhone({
+        temp_token: tempToken.value,
+        phone_code: phoneCode,
+      })
+      if (result.token) {
+        setToken(result.token)
+        uni.reLaunch({ url: '/pages/index/index' })
+      }
+    } catch (e: any) {
+      uni.showToast({ title: e.message || '绑定失败', icon: 'none' })
+    }
+  }
+
+  return {
+    loading, loginType, countdown, loginByPassword, loginBySms, sendCode,
+    wechatQuickLoading, needBindPhone, loginByWechatQuick, bindPhoneAndLogin,
+  }
 }

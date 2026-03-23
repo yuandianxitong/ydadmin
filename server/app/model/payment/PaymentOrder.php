@@ -10,7 +10,7 @@ class PaymentOrder extends Model
     protected $table = 'payment_orders';
 
     protected $fillable = [
-        'user_id', 'biz_type',
+        'user_id', 'biz_type', 'client_type',
         'order_no', 'trade_no', 'channel', 'trade_type',
         'subject', 'body', 'total_amount', 'refund_amount',
         'status', 'notify_data', 'extra',

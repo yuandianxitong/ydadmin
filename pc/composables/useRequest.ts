@@ -18,12 +18,14 @@ export function removeToken() {
 export const request = ofetch.create({
   onRequest({ options }) {
     const token = getToken()
+    const headers = options.headers instanceof Headers
+      ? options.headers
+      : new Headers(options.headers as HeadersInit | undefined)
     if (token) {
-      options.headers = options.headers instanceof Headers
-        ? options.headers
-        : new Headers(options.headers as HeadersInit | undefined)
-      options.headers.set('Authorization', `Bearer ${token}`)
+      headers.set('Authorization', `Bearer ${token}`)
     }
+    headers.set('X-Client-Type', 'pc')
+    options.headers = headers
   },
 
   onResponseError({ response }) {

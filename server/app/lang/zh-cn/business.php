@@ -145,6 +145,7 @@ return [
     'alipay_callback_process_failed'        => '支付宝回调处理失败',
     'wechat_pay_config_incomplete'          => '微信支付配置不完整，请在系统配置中完善支付设置',
     'wechat_pay_key_not_found'              => '微信支付私钥文件不存在',
+    'wechat_pay_cert_not_found'             => '微信平台证书文件不存在',
     'wechat_pay_create_order_failed'        => '微信支付创建订单失败',
     'wechat_pay_query_order_failed'         => '微信支付查询订单失败',
     'wechat_pay_refund_failed'              => '微信支付退款失败',

@@ -160,15 +160,54 @@ async function handlePay(channel: PayChannel) {
     showPayPopup.value = false
 
     // Call native payment
+    const payData = res.payment_data?.data
     try {
+      // #ifdef MP-WEIXIN
       await new Promise<void>((resolve, reject) => {
         uni.requestPayment({
-          provider: channel === 'wechat' ? 'wxpay' : 'alipay',
-          ...res.payment_params,
+          provider: 'wxpay',
+          timeStamp: payData.timeStamp,
+          nonceStr: payData.nonceStr,
+          package: payData.package,
+          signType: payData.signType,
+          paySign: payData.paySign,
           success: () => resolve(),
           fail: (err: any) => reject(err),
         })
       })
+      // #endif
+      // #ifdef H5
+      if (payData.paySign) {
+        // 微信浏览器内 JSAPI 支付
+        await new Promise<void>((resolve, reject) => {
+          function onBridgeReady() {
+            (window as any).WeixinJSBridge.invoke('getBrandWCPayRequest', {
+              appId: payData.appId,
+              timeStamp: payData.timeStamp,
+              nonceStr: payData.nonceStr,
+              package: payData.package,
+              signType: payData.signType,
+              paySign: payData.paySign,
+            }, (res: any) => {
+              if (res.err_msg === 'get_brand_wcpay_request:ok') {
+                resolve()
+              } else {
+                reject(new Error(res.err_msg || 'cancel'))
+              }
+            })
+          }
+          if (typeof (window as any).WeixinJSBridge !== 'undefined') {
+            onBridgeReady()
+          } else {
+            document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false)
+          }
+        })
+      } else if (payData.h5_url) {
+        // 普通浏览器 H5 支付跳转
+        window.location.href = payData.h5_url
+        return
+      }
+      // #endif
 
       uni.showToast({ title: '充值成功', icon: 'success' })
       showRecharge.value = false

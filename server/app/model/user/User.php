@@ -11,7 +11,7 @@ class User extends Model
 
     protected $fillable = [
         'nickname', 'avatar', 'mobile', 'email', 'password',
-        'gender', 'birthday', 'openid', 'unionid', 'mini_openid',
+        'gender', 'birthday', 'openid', 'oa_openid', 'unionid', 'mini_openid',
         'last_login_ip', 'last_login_time', 'login_count', 'status',
     ];
 

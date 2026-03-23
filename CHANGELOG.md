@@ -4,6 +4,43 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-23
+
+### Added
+- 微信支付多端适配：小程序 JSAPI、公众号 JSAPI、H5 MWEB、APP、PC Native 五种支付方式自动路由
+- 客户端平台识别：`X-Client-Type` 请求头（miniapp/wechat_h5/h5/app/pc），后端白名单校验
+- 多 AppID 支付配置：按平台自动选择小程序/公众号/开放平台/移动应用 AppID
+- JSAPI/APP 支付参数二次签名：`buildJsapiParams()`、`buildAppParams()` 方法
+- 微信平台证书自动下载与缓存（无需手动配置 cert_path）
+- 小程序微信快捷登录 + 手机号绑定（`wechatQuickLogin`、`wechatBindPhone` 接口）
+- H5 公众号 OAuth 静默授权获取 oa_openid（`wechat-oauth.ts`）
+- H5 微信浏览器 WeixinJSBridge 调起支付
+- PC 端充值二维码展示 + 轮询支付状态（qrcode 库）
+- 用户表新增 `oa_openid` 字段，支付订单表新增 `client_type` 字段
+- 注册成功后自动登录（token + userInfo 同步写入 store）
+- `notify_url` 支持相对路径，运行时自动补全域名
+
+### Changed
+- `PaymentManager::getWechatConfig()` 改为 public，新增多端 appid 配置加载
+- `WechatPayDriver::create()` 支持动态 appid 参数
+- `WechatPayDriver::query()` 使用 URI 模板避免订单号大写被 normalize 转义
+- `PaymentService::createOrder()` 存储 client_type 到订单记录
+- `UserController::recharge()` 根据客户端类型自动路由支付方式
+- `PaymentController::query()` 不再强制要求 channel 参数，自动从订单记录获取
+- `WechatController::oauthCallback()` 支持 SPA 重定向模式和 JSON 模式
+- `OfficialAccountService::getUserByCode()` 返回 unionid 字段
+
+### Fixed
+- 修复微信支付未启用时返回 500 错误（改为友好提示）
+- 修复微信支付 V3 SDK certs 参数为空导致初始化失败
+- 修复微信 WXSS 编译错误（UnoCSS presetUno → presetWeapp）
+- 修复发现页 tabs 四周边距不合理及多余 scroll-view
+- 修复 H5 微信 OAuth 死循环（前端直接处理 code 参数）
+- 修复 el-tree-select `value` 属性 TS 类型错误（改用 `node-key`）
+- 修复 el-tag type 属性 TS 联合类型不匹配
+- 修复微信支付查询订单号大写被转为 kebab-case（W → -w）
+- 修复 ORDER_NOT_EXIST 轮询报错暴露给用户（静默返回 pending）
+
 ## [1.0.0] - 2026-03-20
 
 ### Added

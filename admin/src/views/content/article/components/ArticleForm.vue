@@ -16,7 +16,8 @@
                 <el-tree-select
                     v-model="form.category_id"
                     :data="categoryTreeData"
-                    :props="{ label: 'name', value: 'id' }"
+                    node-key="id"
+                    :props="{ label: 'name' }"
                     placeholder="请选择文章分类"
                     check-strictly
                     clearable

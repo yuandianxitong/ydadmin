@@ -109,4 +109,12 @@ class UserRepository extends Repository
     {
         return User::where('id', $id)->lock(true)->find();
     }
+
+    /**
+     * 根据公众号 openid 查找用户
+     */
+    public function findByOaOpenid(string $openid): ?Model
+    {
+        return User::where('oa_openid', $openid)->find();
+    }
 }

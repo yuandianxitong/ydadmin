@@ -370,6 +370,7 @@ CREATE TABLE IF NOT EXISTS `payment_orders` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int(10) unsigned DEFAULT NULL COMMENT '用户ID',
   `biz_type` varchar(30) DEFAULT NULL COMMENT '业务类型',
+  `client_type` varchar(20) DEFAULT NULL COMMENT '客户端类型',
   `order_no` varchar(64) NOT NULL COMMENT '商户订单号',
   `trade_no` varchar(128) DEFAULT NULL COMMENT '第三方交易号',
   `channel` varchar(20) NOT NULL COMMENT '支付渠道：alipay/wechat',
@@ -480,6 +481,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `gender` tinyint(1) NOT NULL DEFAULT 0 COMMENT '性别：0未知 1男 2女',
   `birthday` date DEFAULT NULL COMMENT '生日',
   `openid` varchar(128) DEFAULT NULL COMMENT '微信openid',
+  `oa_openid` varchar(128) DEFAULT NULL COMMENT '公众号openid',
   `unionid` varchar(128) DEFAULT NULL COMMENT '微信unionid',
   `mini_openid` varchar(128) DEFAULT NULL COMMENT '小程序openid',
   `last_login_ip` varchar(45) DEFAULT NULL COMMENT '最后登录IP',
@@ -494,6 +496,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_mobile` (`mobile`),
   KEY `idx_openid` (`openid`),
+  KEY `idx_oa_openid` (`oa_openid`),
   KEY `idx_unionid` (`unionid`),
   KEY `idx_mini_openid` (`mini_openid`),
   KEY `idx_status` (`status`)

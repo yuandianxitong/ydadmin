@@ -5,6 +5,12 @@ import { useAppStore } from '@/store/app.store'
 onLaunch(async () => {
   const appStore = useAppStore()
   await appStore.getConfig().catch(() => {})
+
+  // #ifdef H5
+  import('@/utils/wechat-oauth').then(({ initWechatOAuth }) => {
+    initWechatOAuth()
+  })
+  // #endif
 })
 </script>
 

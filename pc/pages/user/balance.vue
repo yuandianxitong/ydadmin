@@ -73,6 +73,17 @@
       </template>
     </div>
 
+    <!-- QR Code payment dialog -->
+    <NModal v-model:show="showQrDialog" preset="card" title="扫码支付" class="max-w-400px" @after-leave="clearPollTimers">
+      <div class="text-center">
+        <div class="text-gray-600 mb-4">请使用微信扫描二维码完成支付</div>
+        <div class="inline-block p-4 bg-white rounded-lg border border-gray-200">
+          <img v-if="qrDataUrl" :src="qrDataUrl" alt="支付二维码" class="w-48 h-48" />
+        </div>
+        <div class="text-sm text-gray-400 mt-4">支付完成后页面将自动刷新</div>
+      </div>
+    </NModal>
+
     <!-- Recharge dialog -->
     <NModal v-model:show="showRechargeDialog" preset="card" title="余额充值" class="max-w-500px">
       <!-- Preset amounts -->
@@ -146,6 +157,7 @@
 
 <script setup lang="ts">
 import { NModal, NInputNumber, useMessage } from 'naive-ui'
+import QRCode from 'qrcode'
 import { userApi } from '~/api/user'
 import { get } from '~/composables/useRequest'
 import type { BalanceLogItem } from '~/api/user'
@@ -186,6 +198,8 @@ const customAmount = ref<number | null>(null)
 const useCustom = ref(false)
 const payChannel = ref<'wechat' | 'alipay'>('wechat')
 const recharging = ref(false)
+const showQrDialog = ref(false)
+const qrDataUrl = ref('')
 
 const finalAmount = computed(() => {
   if (useCustom.value && customAmount.value && customAmount.value > 0) {
@@ -240,10 +254,11 @@ function pollPayment(orderNo: string) {
   clearPollTimers()
   pollTimer = setInterval(async () => {
     try {
-      const res = await get('/api/payment/query', { order_no: orderNo })
+      const res = await get('/api/payment/query', { order_no: orderNo }, false)
       if (res.code === 200 && res.data.status === 'paid') {
         clearPollTimers()
         showRechargeDialog.value = false
+        showQrDialog.value = false
         recharging.value = false
         fetchBalance()
         fetchLogs()
@@ -265,11 +280,16 @@ async function handleRecharge() {
     const res = await userApi.recharge({ amount: finalAmount.value, channel: payChannel.value })
     if (res.code === 200 && res.data) {
       const data = res.data as any
-      // Open payment URL in new window
-      if (data.pay_url) {
-        window.open(data.pay_url, '_blank')
+      const paymentData = data.payment_data?.data
+
+      // Native 支付：生成二维码
+      if (paymentData?.code_url) {
+        qrDataUrl.value = await QRCode.toDataURL(paymentData.code_url, { width: 256, margin: 2 })
+        showRechargeDialog.value = false
+        showQrDialog.value = true
       }
-      // Start polling for payment status
+
+      // 开始轮询支付状态
       if (data.order_no) {
         pollPayment(data.order_no)
       }

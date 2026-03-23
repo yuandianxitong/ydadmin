@@ -145,6 +145,7 @@ return [
     'alipay_callback_process_failed'        => 'Alipay callback processing failed',
     'wechat_pay_config_incomplete'          => 'WeChat Pay configuration is incomplete, please complete payment settings in system configuration',
     'wechat_pay_key_not_found'              => 'WeChat Pay private key file not found',
+    'wechat_pay_cert_not_found'             => 'WeChat platform certificate file not found',
     'wechat_pay_create_order_failed'        => 'WeChat Pay order creation failed',
     'wechat_pay_query_order_failed'         => 'WeChat Pay order query failed',
     'wechat_pay_refund_failed'              => 'WeChat Pay refund failed',

@@ -34,11 +34,13 @@ class OfficialAccountService extends Service
         $oauth = $app->getOAuth();
         $user = $oauth->userFromCode($code);
 
+        $raw = $user->getRaw();
         return [
             'openid'   => $user->getId(),
+            'unionid'  => $raw['unionid'] ?? '',
             'nickname' => $user->getNickname(),
             'avatar'   => $user->getAvatar(),
-            'raw'      => $user->getRaw(),
+            'raw'      => $raw,
         ];
     }
 

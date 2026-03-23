@@ -409,7 +409,7 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 ('pay_wechat_serial_no', '', 'payment', 'string', '微信证书序列号', '微信支付平台证书序列号', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 11, 1, NOW(), NOW()),
 ('pay_wechat_private_key_path', '', 'payment', 'string', '微信私钥文件', '商户API私钥文件路径（apiclient_key.pem）', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 12, 1, NOW(), NOW()),
 ('pay_wechat_cert_path', '', 'payment', 'string', '微信证书文件', '商户API证书文件路径（apiclient_cert.pem）', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 13, 1, NOW(), NOW()),
-('pay_wechat_notify_url', '', 'payment', 'string', '异步通知地址', '微信支付异步回调通知URL', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 14, 1, NOW(), NOW()),
+('pay_wechat_notify_url', '/api/payment/notify/wechat', 'payment', 'string', '异步通知地址', '微信支付异步回调通知URL（相对路径会自动补全域名）', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 14, 1, NOW(), NOW()),
 
 -- ===== 存储配置 (storage) =====
 ('storage_driver', 'local', 'storage', 'select', '存储方式', '选择文件存储方式', '{"local":"本地存储","aliyun":"阿里云OSS","tencent":"腾讯云COS","qiniu":"七牛云"}', NULL, 1, 1, NOW(), NOW()),

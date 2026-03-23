@@ -107,23 +107,63 @@ class UserController extends Controller
      */
     public function recharge(): Response
     {
-        $amount = (float) $this->request->post('amount');
-        $channel = $this->request->post('channel', 'wechat');
+        try {
+            $amount = (float) $this->request->post('amount');
+            $channel = $this->request->post('channel', 'wechat');
 
-        if ($amount < 1 || $amount > 10000) {
-            return $this->error('充值金额范围为 1.00 ~ 10000.00 元');
+            if ($amount < 1 || $amount > 10000) {
+                return $this->error('充值金额范围为 1.00 ~ 10000.00 元');
+            }
+
+            $userId = $this->getUserId();
+            $clientType = $this->getClientType();
+
+            $payParams = [
+                'subject'      => '余额充值',
+                'body'         => '账户余额充值 ' . $amount . ' 元',
+                'total_amount' => $amount,
+                'user_id'      => $userId,
+                'biz_type'     => 'recharge',
+                'client_type'  => $clientType,
+            ];
+
+            if ($channel === 'wechat') {
+                $resolved = $this->paymentService->resolveWechatPayParams($clientType, $userId);
+                $payParams['trade_type'] = $resolved['trade_type'];
+                $payParams['appid']      = $resolved['appid'];
+                if ($resolved['openid']) {
+                    $payParams['openid'] = $resolved['openid'];
+                }
+                if ($resolved['trade_type'] === 'h5') {
+                    $payParams['client_ip'] = $this->request->ip();
+                }
+            }
+
+            $result = $this->paymentService->createOrder($channel, $payParams);
+
+            return $this->success('ok', $result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
         }
+    }
 
-        $userId = $this->getUserId();
+    /**
+     * 绑定公众号 openid 到当前用户
+     */
+    public function bindOaOpenid(): Response
+    {
+        try {
+            $oaOpenid = (string)$this->request->post('oa_openid', '');
+            if (empty($oaOpenid)) {
+                return $this->error('缺少 oa_openid');
+            }
 
-        $result = $this->paymentService->createOrder($channel, [
-            'subject'      => '余额充值',
-            'body'         => '账户余额充值 ' . $amount . ' 元',
-            'total_amount' => $amount,
-            'user_id'      => $userId,
-            'biz_type'     => 'recharge',
-        ]);
+            $userId = $this->getUserId();
+            \app\model\user\User::where('id', $userId)->update(['oa_openid' => $oaOpenid]);
 
-        return $this->success('ok', $result);
+            return $this->success('ok');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
     }
 }

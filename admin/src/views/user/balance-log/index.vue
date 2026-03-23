@@ -139,8 +139,8 @@ const pagination = reactive({
 })
 
 // 获取类型标签颜色
-const getTypeTagType = (type: number): string => {
-    const typeMap: Record<number, string> = {
+const getTypeTagType = (type: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
         1: 'success',  // 充值
         2: 'danger',   // 消费
         3: 'warning',  // 退款

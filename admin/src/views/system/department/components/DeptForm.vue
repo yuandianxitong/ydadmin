@@ -12,7 +12,8 @@
                 <el-tree-select
                     v-model="form.parent_id"
                     :data="parentOptions"
-                    :props="{ label: 'name', value: 'id', children: 'children' }"
+                    node-key="id"
+                    :props="{ label: 'name', children: 'children' }"
                     :placeholder="$t('department.parentPlaceholder')"
                     clearable
                     check-strictly

@@ -36,6 +36,7 @@ class PaymentService extends Service
             'status'       => PaymentOrder::STATUS_PENDING,
             'user_id'      => $params['user_id'] ?? null,
             'biz_type'     => $params['biz_type'] ?? null,
+            'client_type'  => $params['client_type'] ?? null,
         ]);
 
         // 调用支付驱动
@@ -190,5 +191,53 @@ class PaymentService extends Service
         };
 
         return $prefix . date('YmdHis') . str_pad((string) mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * 根据客户端类型解析微信支付参数
+     */
+    public function resolveWechatPayParams(string $clientType, int $userId): array
+    {
+        $config = PaymentManager::getWechatConfig();
+        $defaultAppId = $config['app_id']; // pay_wechat_app_id 兜底
+
+        return match ($clientType) {
+            'miniapp'    => [
+                'trade_type' => 'jsapi',
+                'appid'      => $config['mini_app_id'] ?: $defaultAppId,
+                'openid'     => $this->getUserOpenid($userId, 'mini_openid'),
+            ],
+            'wechat_h5'  => [
+                'trade_type' => 'jsapi',
+                'appid'      => $config['official_app_id'] ?: $defaultAppId,
+                'openid'     => $this->getUserOpenid($userId, 'oa_openid'),
+            ],
+            'h5'         => [
+                'trade_type' => 'h5',
+                'appid'      => $config['official_app_id'] ?: $defaultAppId,
+                'openid'     => null,
+            ],
+            'app'        => [
+                'trade_type' => 'app',
+                'appid'      => $config['mobile_app_id'] ?: $defaultAppId,
+                'openid'     => null,
+            ],
+            'pc'         => [
+                'trade_type' => 'native',
+                'appid'      => $config['open_app_id'] ?: $defaultAppId,
+                'openid'     => null,
+            ],
+            default => throw new BusinessException('不支持的客户端类型: ' . $clientType),
+        };
+    }
+
+    protected function getUserOpenid(int $userId, string $field): string
+    {
+        $user = \app\model\user\User::find($userId);
+        $openid = $user?->$field ?? '';
+        if (empty($openid)) {
+            throw new BusinessException('请先完成微信授权后再支付');
+        }
+        return $openid;
     }
 }

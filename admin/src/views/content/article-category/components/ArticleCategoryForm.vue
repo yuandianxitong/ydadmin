@@ -12,7 +12,8 @@
                 <el-tree-select
                     v-model="form.parent_id"
                     :data="parentTreeData"
-                    :props="{ label: 'name', value: 'id' }"
+                    node-key="id"
+                    :props="{ label: 'name' }"
                     placeholder="请选择上级分类"
                     check-strictly
                     clearable

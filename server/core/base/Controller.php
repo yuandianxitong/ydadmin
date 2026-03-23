@@ -218,4 +218,18 @@ abstract class Controller
     {
         return $this->request->userInfo ?? [];
     }
+
+    /**
+     * 获取客户端类型
+     * 从 X-Client-Type 请求头读取，白名单校验
+     */
+    protected function getClientType(): string
+    {
+        $clientType = $this->request->header('X-Client-Type', '');
+        $allowed = ['miniapp', 'wechat_h5', 'h5', 'app', 'pc'];
+        if (!in_array($clientType, $allowed, true)) {
+            throw new BusinessException('缺少或无效的客户端类型标识（X-Client-Type）');
+        }
+        return $clientType;
+    }
 }

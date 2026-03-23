@@ -51,7 +51,7 @@ class PaymentManager
         ];
     }
 
-    protected static function getWechatConfig(): array
+    public static function getWechatConfig(): array
     {
         $enabled = SystemConfig::getConfigValue('pay_wechat_enabled', false);
         if (!$enabled) {
@@ -67,6 +67,11 @@ class PaymentManager
             'private_key_path' => (string)SystemConfig::getConfigValue('pay_wechat_private_key_path', ''),
             'cert_path'        => (string)SystemConfig::getConfigValue('pay_wechat_cert_path', ''),
             'notify_url'       => (string)SystemConfig::getConfigValue('pay_wechat_notify_url', ''),
+            // 多端 appid
+            'mini_app_id'      => (string)SystemConfig::getConfigValue('wechat_mini_app_id', ''),
+            'official_app_id'  => (string)SystemConfig::getConfigValue('wechat_official_app_id', ''),
+            'open_app_id'      => (string)SystemConfig::getConfigValue('wechat_open_app_id', ''),
+            'mobile_app_id'    => (string)SystemConfig::getConfigValue('wechat_app_app_id', ''),
         ];
     }
 

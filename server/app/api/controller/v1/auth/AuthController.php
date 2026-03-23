@@ -221,4 +221,56 @@ class AuthController extends Controller
             return $this->error($e->getMessage());
         }
     }
+
+    /**
+     * 微信快捷登录（小程序）
+     */
+    public function wechatQuickLogin(): Response
+    {
+        try {
+            $code = (string)$this->request->post('code', '');
+            if (empty($code)) {
+                return $this->error('缺少 code');
+            }
+            $result = $this->userService->wechatQuickLogin($code, $this->request->ip());
+            return $this->success('ok', $result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 微信快捷登录 — 手机号绑定
+     */
+    public function wechatBindPhone(): Response
+    {
+        try {
+            $tempToken = (string)$this->request->post('temp_token', '');
+            $phoneCode = (string)$this->request->post('phone_code', '');
+            if (empty($tempToken) || empty($phoneCode)) {
+                return $this->error('参数不完整');
+            }
+            $result = $this->userService->wechatBindPhone($tempToken, $phoneCode, $this->request->ip());
+            return $this->success('ok', $result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    /**
+     * 微信 H5 登录（公众号 OAuth code 换登录）
+     */
+    public function wechatH5Login(): Response
+    {
+        try {
+            $code = (string)$this->request->post('code', '');
+            if (empty($code)) {
+                return $this->error('缺少 code');
+            }
+            $result = $this->userService->wechatH5Login($code, $this->request->ip());
+            return $this->success('ok', $result);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
 }

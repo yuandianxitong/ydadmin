@@ -16,12 +16,14 @@
     "naive-ui": "^2.44.1",
     "nuxt": "^3.16.2",
     "pinia": "^2.3.1",
+    "qrcode": "^1.5.4",
     "swiper": "^12.1.2",
     "vue": "^3.5.30"
   },
   "devDependencies": {
     "@iconify/utils": "^3.1.0",
     "@types/dompurify": "^3.2.0",
+    "@types/qrcode": "^1.5.6",
     "@unocss/nuxt": "^66.6.6",
     "@unocss/preset-wind3": "^66.6.6",
     "typescript": "^5.8.3",

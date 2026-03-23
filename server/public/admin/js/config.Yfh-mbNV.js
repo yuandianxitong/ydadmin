@@ -1,1 +1,0 @@
-import{a5 as n}from"./index.UoZ5_Cjm.js";function i(){return n.get("/adminapi/system/config/groups")}function t(i="basic"){return n.get(`/adminapi/system/config?group=${i}`)}function a(i){return n.post("/adminapi/system/config/batch-update",{configs:i})}export{i as a,a as b,t as g};

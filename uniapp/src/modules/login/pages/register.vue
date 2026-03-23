@@ -78,6 +78,9 @@
 import { ref, reactive } from 'vue'
 import { authApi } from '@/api/auth'
 import { isPassword } from '@/utils/validate'
+import { useUserStore } from '@/store/user.store'
+
+const userStore = useUserStore()
 
 const loading = ref(false)
 const agreed = ref(false)
@@ -116,8 +119,16 @@ async function handleRegister() {
       password_confirmation: form.confirmPassword,
     })
     if (result.token) {
+      // 通过 store 设置登录状态（token + userInfo 同步更新）
       const { setToken } = await import('@/utils/auth')
       setToken(result.token)
+      userStore.token = result.token
+      userStore.userInfo = (result as any).user_info || (result as any).user || null
+      // #ifdef H5
+      import('@/utils/wechat-oauth').then(({ bindOaOpenidAfterLogin }) => {
+        bindOaOpenidAfterLogin()
+      }).catch(() => {})
+      // #endif
     }
     uni.showToast({ title: '注册成功' })
     setTimeout(() => {

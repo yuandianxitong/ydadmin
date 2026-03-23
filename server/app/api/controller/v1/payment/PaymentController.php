@@ -48,11 +48,19 @@ class PaymentController extends Controller
     public function query(): Response
     {
         try {
-            $channel = (string)$this->request->param('channel', '');
             $orderNo = (string)$this->request->param('order_no', '');
-
-            if (empty($channel) || empty($orderNo)) {
+            if (empty($orderNo)) {
                 return $this->error(lang('business.params_incomplete'));
+            }
+
+            // 从订单记录自动获取 channel，前端无需传
+            $channel = (string)$this->request->param('channel', '');
+            if (empty($channel)) {
+                $order = \app\model\payment\PaymentOrder::where('order_no', $orderNo)->find();
+                if (!$order) {
+                    return $this->error('订单不存在');
+                }
+                $channel = $order->channel;
             }
 
             $result = $this->paymentService->queryOrder($channel, $orderNo);

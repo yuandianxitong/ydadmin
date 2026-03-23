@@ -17,6 +17,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = result.token
     userInfo.value = result.user
     setToken(result.token)
+    await afterLogin()
     return result
   }
 
@@ -25,7 +26,18 @@ export const useUserStore = defineStore('user', () => {
     token.value = result.token
     userInfo.value = result.user
     setToken(result.token)
+    await afterLogin()
     return result
+  }
+
+  /** 登录成功后的通用钩子 */
+  async function afterLogin() {
+    // H5 微信浏览器：绑定 oa_openid 到当前用户
+    // #ifdef H5
+    import('@/utils/wechat-oauth').then(({ bindOaOpenidAfterLogin }) => {
+      bindOaOpenidAfterLogin()
+    }).catch(() => {})
+    // #endif
   }
 
   async function getUserInfo(): Promise<UserInfo> {

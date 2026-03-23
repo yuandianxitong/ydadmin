@@ -7,6 +7,9 @@ Route::group('auth', function () {
     Route::post('sms-login', 'v1.auth.AuthController/smsLogin');
     Route::post('wechat-login', 'v1.auth.AuthController/wechatLogin');
     Route::post('wechat-web-login', 'v1.auth.AuthController/wechatWebLogin');
+    Route::post('wechat-quick-login', 'v1.auth.AuthController/wechatQuickLogin');
+    Route::post('wechat-bindphone', 'v1.auth.AuthController/wechatBindPhone');
+    Route::post('wechat-h5-login', 'v1.auth.AuthController/wechatH5Login');
     Route::post('register', 'v1.auth.AuthController/register');
 });
 

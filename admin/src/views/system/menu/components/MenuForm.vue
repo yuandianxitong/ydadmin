@@ -13,7 +13,8 @@
                         <el-tree-select
                             v-model="form.parent_id"
                             :data="parentTreeData"
-                            :props="{ label: 'title', value: 'id' }"
+                            node-key="id"
+                            :props="{ label: 'title' }"
                             :placeholder="$t('menu.parentMenu')"
                             check-strictly
                             clearable

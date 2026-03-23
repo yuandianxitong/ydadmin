@@ -12,6 +12,8 @@ class UserService extends Service
 {
     protected UserRepository $userRepository;
     protected TokenManager $tokenManager;
+    protected \app\service\wechat\MiniAppService $miniAppService;
+    protected \app\service\wechat\OfficialAccountService $officialAccountService;
 
     /**
      * 账号+密码登录（账号可以是手机号或用户名）
@@ -218,6 +220,95 @@ class UserService extends Service
     }
 
     /**
+     * 微信快捷登录（小程序）— 通过 code 获取 openid，已注册直接登录
+     */
+    public function wechatQuickLogin(string $code, string $ip = ''): array
+    {
+        $session = $this->miniAppService->login($code);
+        $openid = $session['openid'] ?? '';
+        $unionid = $session['unionid'] ?? '';
+
+        // 按 mini_openid 查找
+        $user = $this->userRepository->findByMiniOpenid($openid);
+
+        // unionid 关联
+        if (!$user && $unionid) {
+            $user = $this->userRepository->findByUnionid($unionid);
+            if ($user && empty($user->mini_openid)) {
+                $user->mini_openid = $openid;
+                $user->save();
+            }
+        }
+
+        if ($user) {
+            if ($user->status !== 1) {
+                throw new BusinessException(lang('business.user_account_disabled'));
+            }
+            return array_merge(['status' => 'logged_in'], $this->loginSuccess($user, $ip));
+        }
+
+        // 未找到用户，需要手机号绑定
+        $tempToken = md5(uniqid((string)mt_rand(), true));
+        cache('wechat_quick_' . $tempToken, [
+            'openid'  => $openid,
+            'unionid' => $unionid,
+        ], 300);
+
+        return [
+            'status'     => 'need_bindphone',
+            'temp_token' => $tempToken,
+        ];
+    }
+
+    /**
+     * 微信快捷登录 — 绑定手机号完成注册
+     */
+    public function wechatBindPhone(string $tempToken, string $phoneCode, string $ip = ''): array
+    {
+        $wechatData = cache('wechat_quick_' . $tempToken);
+        if (empty($wechatData)) {
+            throw new BusinessException('登录已过期，请重新操作');
+        }
+        cache('wechat_quick_' . $tempToken, null);
+
+        $openid = $wechatData['openid'];
+        $unionid = $wechatData['unionid'] ?? '';
+
+        // 解密手机号
+        $phoneInfo = $this->miniAppService->decryptPhoneNumber($phoneCode);
+        $mobile = $phoneInfo['pure_phone_number'] ?: ($phoneInfo['phone_number'] ?? '');
+        if (empty($mobile)) {
+            throw new BusinessException('获取手机号失败');
+        }
+
+        // 查找已有手机号用户
+        $user = $this->userRepository->findByMobile($mobile);
+        if ($user) {
+            $user->mini_openid = $openid;
+            if ($unionid && empty($user->unionid)) {
+                $user->unionid = $unionid;
+            }
+            $user->save();
+        } else {
+            $this->userRepository->create([
+                'mobile'      => $mobile,
+                'mini_openid' => $openid,
+                'unionid'     => $unionid ?: null,
+                'nickname'    => '微信用户',
+                'status'      => 1,
+            ]);
+            $user = $this->userRepository->findByMobile($mobile);
+            $this->trigger('user.register', ['user_id' => $user->id, 'channel' => 'wechat_mini_quick']);
+        }
+
+        if ($user->status !== 1) {
+            throw new BusinessException(lang('business.user_account_disabled'));
+        }
+
+        return array_merge(['status' => 'logged_in'], $this->loginSuccess($user, $ip));
+    }
+
+    /**
      * 登录成功处理
      */
     protected function loginSuccess($user, string $ip = ''): array
@@ -245,6 +336,60 @@ class UserService extends Service
                 'avatar'   => $user->avatar,
                 'mobile'   => $user->mobile,
             ],
+        ];
+    }
+
+    /**
+     * 微信 H5 登录（公众号 OAuth）
+     * @return array ['status' => 'logged_in'|'need_bindphone', 'token'?, 'openid', 'unionid']
+     */
+    public function wechatH5Login(string $code, string $ip = ''): array
+    {
+        $wechatUser = $this->officialAccountService->getUserByCode($code);
+        $openid = $wechatUser['openid'] ?? '';
+        $unionid = $wechatUser['unionid'] ?? '';
+
+        if (empty($openid)) {
+            throw new BusinessException('微信授权失败，未获取到 openid');
+        }
+
+        // 按 oa_openid 查找
+        $user = $this->userRepository->findByOaOpenid($openid);
+
+        // unionid 关联
+        if (!$user && $unionid) {
+            $user = $this->userRepository->findByUnionid($unionid);
+            if ($user && empty($user->oa_openid)) {
+                $user->oa_openid = $openid;
+                $user->save();
+            }
+        }
+
+        if ($user) {
+            if ($user->status !== 1) {
+                throw new BusinessException(lang('business.user_account_disabled'));
+            }
+            return array_merge([
+                'status'  => 'logged_in',
+                'openid'  => $openid,
+                'unionid' => $unionid,
+            ], $this->loginSuccess($user, $ip));
+        }
+
+        // 未找到用户，缓存 openid 供手机号绑定使用
+        $tempToken = md5(uniqid((string)mt_rand(), true));
+        cache('wechat_h5_' . $tempToken, [
+            'openid'   => $openid,
+            'unionid'  => $unionid,
+            'nickname' => $wechatUser['nickname'] ?? '',
+            'avatar'   => $wechatUser['avatar'] ?? '',
+        ], 300);
+
+        return [
+            'status'     => 'need_login',
+            'temp_token' => $tempToken,
+            'openid'     => $openid,
+            'unionid'    => $unionid,
         ];
     }
 }

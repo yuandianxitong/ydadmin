@@ -92,6 +92,34 @@
         登录
       </wd-button>
 
+      <!-- #ifdef MP-WEIXIN -->
+      <view class="wechat-quick-section">
+        <view class="divider-line">
+          <view class="line" /><text class="divider-text">其他登录方式</text><view class="line" />
+        </view>
+
+        <wd-button
+          v-if="!needBindPhone"
+          block
+          plain
+          :loading="wechatQuickLoading"
+          class="wechat-btn"
+          @click="handleWechatQuickLogin"
+        >
+          微信快捷登录
+        </wd-button>
+
+        <button
+          v-else
+          open-type="getPhoneNumber"
+          class="phone-bind-btn"
+          @getphonenumber="handleGetPhoneNumber"
+        >
+          授权手机号完成注册
+        </button>
+      </view>
+      <!-- #endif -->
+
       <!-- 底部链接 -->
       <view class="bottom-links">
         <text class="link" @tap="goRegister">立即注册</text>
@@ -104,7 +132,12 @@
 import { ref } from 'vue'
 import { useLogin } from '../composables/useLogin'
 
-const { loading, loginType, countdown, loginByPassword, loginBySms, sendCode } = useLogin()
+const {
+  loading, loginType, countdown,
+  loginByPassword, loginBySms, sendCode,
+  wechatQuickLoading, needBindPhone,
+  loginByWechatQuick, bindPhoneAndLogin,
+} = useLogin()
 
 const mobile = ref('')
 const password = ref('')
@@ -140,6 +173,19 @@ async function handleSendCode() {
 
 function goRegister() {
   uni.navigateTo({ url: '/modules/login/pages/register' })
+}
+
+async function handleWechatQuickLogin() {
+  if (!checkAgreement()) return
+  await loginByWechatQuick()
+}
+
+function handleGetPhoneNumber(e: any) {
+  if (e.detail.code) {
+    bindPhoneAndLogin(e.detail.code)
+  } else {
+    uni.showToast({ title: '已取消授权', icon: 'none' })
+  }
 }
 </script>
 
@@ -288,5 +334,43 @@ function goRegister() {
     color: $primary-color;
     padding: 10rpx 20rpx;
   }
+}
+
+.wechat-quick-section {
+  margin-top: 40rpx;
+}
+
+.divider-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+  .line {
+    flex: 1;
+    height: 1rpx;
+    background: $border-color;
+  }
+  .divider-text {
+    font-size: 24rpx;
+    color: $text-color-secondary;
+    padding: 0 24rpx;
+  }
+}
+
+.wechat-btn {
+  border-color: #07c160 !important;
+  color: #07c160 !important;
+  border-radius: 16rpx !important;
+  height: 88rpx !important;
+}
+
+.phone-bind-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #07c160;
+  color: #ffffff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  border: none;
 }
 </style>
