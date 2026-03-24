@@ -911,49 +911,47 @@ export default {
     },
     // 工作台/仪表盘
     dashboard: {
-        greeting: {
-            night: '夜深了',
-            morning: '早上好',
-            forenoon: '上午好',
-            noon: '中午好',
-            afternoon: '下午好',
-            evening: '晚上好'
-        },
-        weekdays: {
-            sun: '日', mon: '一', tue: '二', wed: '三', thu: '四', fri: '五', sat: '六'
-        },
-        year: '年',
-        month: '月',
-        daySuffix: '日 星期',
-        stats: {
-            admins: '管理员',
-            roles: '角色',
-            menus: '菜单',
-            todayLogin: '今日登录'
-        },
-        loginTrend: '登录趋势（近7天）',
-        loginSuccess: '登录成功',
-        loginFailed: '登录失败',
-        quickNav: '快捷导航',
+        // KPI
+        totalUsers: '总用户数',
+        activeUsers: '活跃用户',
+        todayNew: '今日新增',
+        todayLogin: '今日登录',
+        comparedLastWeek: '较上周',
+        // 辅助指标
+        newAdmins: '管理员',
+        newRoles: '角色',
+        newMenus: '菜单',
+        operationLogs: '操作日志',
+        // 资源总览
+        resourceOverview: '资源总览',
+        totalResources: '资源总数',
+        users: '用户',
+        roles: '角色',
+        menus: '菜单',
+        configs: '配置',
+        // 最近动态
+        recentActivities: '最近动态',
+        viewMore: '查看更多',
+        // 常用功能
+        quickNav: '常用功能',
         quickNavItems: {
-            admin: '管理员',
+            userManage: '用户管理',
             roleManage: '角色管理',
             menuManage: '菜单管理',
             permManage: '权限管理',
             systemConfig: '系统配置',
-            loginLog: '登录日志'
+            loginLog: '登录日志',
         },
-        recentLogin: '最近登录',
-        viewMore: '查看更多',
-        tableHeaders: {
-            username: '用户名',
-            ip: 'IP',
-            time: '时间',
-            browser: '浏览器',
-            status: '状态'
-        },
-        success: '成功',
-        failed: '失败',
+        // 活跃排行
+        activeRanking: '活跃排行',
+        rankPeriod: { day: '日', week: '周', month: '月' },
+        times: '次',
+        // 趋势总览
+        trendOverview: '趋势总览',
+        registerTrend: '用户注册趋势',
+        loginTrend: '登录趋势',
+        trendPeriod: { week: '本周', month: '本月' },
+        // 系统信息
         systemInfo: '系统信息',
         systemName: '系统名称',
         systemVersion: '系统版本',
@@ -961,7 +959,6 @@ export default {
         frontendFramework: '前端框架',
         uiLibrary: 'UI 组件库',
         buildTool: '构建工具',
-        browserInfo: '浏览器'
     },
     // 消息模板
     messageTemplate: {
