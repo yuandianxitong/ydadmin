@@ -217,8 +217,8 @@ const rankBadgeStyle = (rank: number) => {
 
 // System info items
 const systemInfoItems = computed(() => [
-    { label: t('dashboard.systemName'), value: appStore.appConfig?.system_name || '元点Admin', icon: Monitor, bg: '#eff6ff' },
-    { label: t('dashboard.systemVersion'), value: appStore.appConfig?.system_version || 'v1.1.0', icon: Stamp, bg: '#f0fdf4' },
+    { label: t('dashboard.systemName'), value: appStore.config?.system_name || '元点Admin', icon: Monitor, bg: '#eff6ff' },
+    { label: t('dashboard.systemVersion'), value: appStore.config?.system_version || 'v1.1.0', icon: Stamp, bg: '#f0fdf4' },
     { label: t('dashboard.backendFramework'), value: 'ThinkPHP 8.0', icon: Cpu, bg: '#fff7ed' },
     { label: t('dashboard.frontendFramework'), value: 'Vue 3 + TS', icon: Platform, bg: '#eff6ff' },
     { label: t('dashboard.uiLibrary'), value: 'Element Plus', icon: Setting, bg: '#faf5ff' },
