@@ -942,6 +942,8 @@ export default {
             permManage: 'Permissions',
             systemConfig: 'Settings',
             loginLog: 'Login Logs',
+            article: 'Articles',
+            announcement: 'Notices',
         },
         activeRanking: 'Active Ranking',
         rankPeriod: { day: 'Day', week: 'Week', month: 'Month' },

@@ -3,20 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import '@/utils/echart'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useAppStore } from '@/store/modules/app.store'
 import { getDashboardStats } from '@/api/dashboard'
 import type { DashboardStats } from '@/types/api'
 import VChart from 'vue-echarts'
 import {
     User, TrendCharts, Plus, Key,
-    UserFilled, Menu as MenuIcon, Lock, Setting, Document,
-    Monitor, Stamp, Cpu, Platform, Ticket
+    UserFilled, Menu as MenuIcon, Lock, Setting, Document, Monitor
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const { t } = useI18n()
-const appStore = useAppStore()
-
 // State
 const stats = ref<DashboardStats | null>(null)
 const trendDays = ref(7)
@@ -80,6 +76,8 @@ const quickNavItems = [
     { label: 'dashboard.quickNavItems.permManage', icon: Lock, route: '/system/permission', gradient: 'linear-gradient(135deg, #9B59B6, #BB77D0)' },
     { label: 'dashboard.quickNavItems.systemConfig', icon: Setting, route: '/system/config', gradient: 'linear-gradient(135deg, #36CFC9, #5CE0DB)' },
     { label: 'dashboard.quickNavItems.loginLog', icon: Document, route: '/system/admin_login_log', gradient: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' },
+    { label: 'dashboard.quickNavItems.article', icon: Document, route: '/content/article', gradient: 'linear-gradient(135deg, #4C84FF, #6C9FFF)' },
+    { label: 'dashboard.quickNavItems.announcement', icon: Monitor, route: '/content/announcement', gradient: 'linear-gradient(135deg, #F5A623, #F7C164)' },
 ]
 
 // Donut chart option
@@ -172,16 +170,6 @@ const loginTrendOption = computed(() => {
     if (!stats.value?.loginTrend) return {}
     return buildTrendOption(stats.value.loginTrend, '#36CFC9')
 })
-
-// System info items
-const systemInfoItems = computed(() => [
-    { label: t('dashboard.systemName'), value: appStore.config?.system_name || '元点Admin', icon: Monitor, bg: '#eff6ff' },
-    { label: t('dashboard.systemVersion'), value: appStore.config?.system_version || 'v1.1.0', icon: Stamp, bg: '#f0fdf4' },
-    { label: t('dashboard.backendFramework'), value: 'ThinkPHP 8.0', icon: Cpu, bg: '#fff7ed' },
-    { label: t('dashboard.frontendFramework'), value: 'Vue 3 + TS', icon: Platform, bg: '#eff6ff' },
-    { label: t('dashboard.uiLibrary'), value: 'Element Plus', icon: Setting, bg: '#faf5ff' },
-    { label: t('dashboard.buildTool'), value: 'Vite', icon: Ticket, bg: '#fef2f2' },
-])
 
 const navigateTo = (path: string) => router.push(path)
 </script>
@@ -277,24 +265,6 @@ const navigateTo = (path: string) => router.push(path)
       </div>
     </div>
 
-    <!-- System Info -->
-    <div class="glass-card system-info-card">
-      <div class="card-header">
-        <span class="card-title">{{ t('dashboard.systemInfo') }}</span>
-      </div>
-      <div class="system-info-grid">
-        <div v-for="(item, i) in systemInfoItems" :key="i" class="system-info-item">
-          <div class="info-icon" :style="{ background: item.bg }">
-            <el-icon :size="16"><component :is="item.icon" /></el-icon>
-          </div>
-          <div class="info-text">
-            <span class="info-label">{{ item.label }}</span>
-            <span class="info-value">{{ item.value }}</span>
-          </div>
-          <div v-if="i < systemInfoItems.length - 1" class="info-divider"></div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -451,7 +421,7 @@ const navigateTo = (path: string) => router.push(path)
 // ===== Quick Nav =====
 .quick-nav-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
@@ -537,62 +507,6 @@ const navigateTo = (path: string) => router.push(path)
   height: 260px;
 }
 
-// ===== System Info =====
-.system-info-card {
-  margin-bottom: 0;
-}
-
-.system-info-grid {
-  display: flex;
-  align-items: center;
-}
-
-.system-info-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-  padding: 8px 0;
-}
-
-.info-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.info-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.info-label {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.info-divider {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1px;
-  height: 28px;
-  background: rgba(0, 0, 0, 0.06);
-}
-
 // ===== Responsive =====
 @media (max-width: 1024px) {
   .middle-section {
@@ -616,16 +530,6 @@ const navigateTo = (path: string) => router.push(path)
 
   .trend-charts {
     flex-direction: column;
-  }
-
-  .system-info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-
-  .info-divider {
-    display: none;
   }
 
   .quick-nav-grid {

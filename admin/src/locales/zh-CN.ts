@@ -941,6 +941,8 @@ export default {
             permManage: '权限管理',
             systemConfig: '系统配置',
             loginLog: '登录日志',
+            article: '文章管理',
+            announcement: '公告管理',
         },
         // 活跃排行
         activeRanking: '活跃排行',
