@@ -271,7 +271,6 @@ const navigateTo = (path: string) => router.push(path)
 <style scoped lang="scss">
 .dashboard {
   padding: 0;
-  background: #f0f5ff;
   min-height: 100%;
 }
 
