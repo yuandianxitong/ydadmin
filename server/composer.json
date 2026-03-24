@@ -43,6 +43,9 @@
         "phpstan/phpstan": "^2.0"
     },
     "autoload": {
+        "classmap": [
+            "extend/think/model/"
+        ],
         "psr-4": {
             "app\\": "app",
             "core\\": "core/"
