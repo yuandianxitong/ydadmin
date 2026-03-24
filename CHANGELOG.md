@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-24
+
+### Added
+- 仪表盘新增「最近活动」和「活跃用户排行」数据端点（`/adminapi/dashboard/recent-activities`、`/adminapi/dashboard/active-ranking`）
+- DashboardRepository 新增用户统计、排行榜、最近活动查询方法
+- DashboardService 新增用户注册/活跃统计、最近活动聚合、活跃排行逻辑
+
+### Changed
+- 仪表盘前端整体重设计：渐变玻璃态风格（gradient glassmorphism）
+- KPI 卡片调整为冷色系渐变配色（左亮右暗）
+- 移除系统信息卡片，快捷导航扩展为 4×2 网格布局
+- 简化仪表盘整体布局，放大关键数字排版
+- 移除仪表盘区域背景色覆盖
+- 更新仪表盘相关 TypeScript 类型定义与 API 函数
+- 更新仪表盘 i18n 多语言翻译
+
+### Fixed
+- 修复仪表盘中 `appStore` 属性名引用错误
+
 ## [1.1.0] - 2026-03-23
 
 ### Added
