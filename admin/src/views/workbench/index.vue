@@ -4,8 +4,8 @@ import '@/utils/echart'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/store/modules/app.store'
-import { getDashboardStats, getRecentActivities, getActiveRanking } from '@/api/dashboard'
-import type { DashboardStats, ActivityItem, ActiveRanking } from '@/types/api'
+import { getDashboardStats } from '@/api/dashboard'
+import type { DashboardStats } from '@/types/api'
 import VChart from 'vue-echarts'
 import {
     User, TrendCharts, Plus, Key,
@@ -19,9 +19,6 @@ const appStore = useAppStore()
 
 // State
 const stats = ref<DashboardStats | null>(null)
-const activities = ref<ActivityItem[]>([])
-const ranking = ref<ActiveRanking | null>(null)
-const rankPeriod = ref('day')
 const trendDays = ref(7)
 
 // Data loading
@@ -30,28 +27,13 @@ const loadStats = async () => {
     stats.value = res.data
 }
 
-const loadActivities = async () => {
-    const res = await getRecentActivities()
-    activities.value = res.data
-}
-
-const loadRanking = async () => {
-    const res = await getActiveRanking(rankPeriod.value)
-    ranking.value = res.data
-}
-
-const switchRankPeriod = (period: string) => {
-    rankPeriod.value = period
-    loadRanking()
-}
-
 const switchTrendDays = (days: number) => {
     trendDays.value = days
     loadStats()
 }
 
 onMounted(() => {
-    Promise.all([loadStats(), loadActivities(), loadRanking()])
+    loadStats()
 })
 
 // KPI Cards config
@@ -90,18 +72,6 @@ const kpiCards = computed(() => {
     ]
 })
 
-// Sub stats
-const subStats = computed(() => {
-    if (!stats.value) return []
-    const s = stats.value
-    return [
-        { label: t('dashboard.newAdmins'), value: s.newAdmins },
-        { label: t('dashboard.newRoles'), value: s.newRoles },
-        { label: t('dashboard.newMenus'), value: s.newMenus },
-        { label: t('dashboard.operationLogs'), value: s.operationLogCount },
-    ]
-})
-
 // Quick nav items
 const quickNavItems = [
     { label: 'dashboard.quickNavItems.userManage', icon: User, route: '/user/list', gradient: 'linear-gradient(135deg, #4C84FF, #6C9FFF)' },
@@ -122,19 +92,24 @@ const donutOption = computed(() => {
         legend: { show: false },
         series: [{
             type: 'pie',
-            radius: ['55%', '75%'],
-            center: ['35%', '50%'],
+            radius: ['50%', '72%'],
+            center: ['50%', '50%'],
             avoidLabelOverlap: false,
             label: {
                 show: true,
                 position: 'center',
                 formatter: () => total.toString(),
-                fontSize: 20,
+                fontSize: 28,
                 fontWeight: 700,
                 color: '#4C84FF',
             },
             emphasis: {
-                label: { show: true, fontSize: 20, fontWeight: 700 },
+                label: { show: true, fontSize: 28, fontWeight: 700 },
+            },
+            itemStyle: {
+                borderRadius: 4,
+                borderColor: '#fff',
+                borderWidth: 2,
             },
             data: [
                 { value: s.totalUsers, name: t('dashboard.users'), itemStyle: { color: '#4C84FF' } },
@@ -148,34 +123,40 @@ const donutOption = computed(() => {
 
 // Trend chart option builder
 const buildTrendOption = (data: Array<{ date: string; count: number }>, color: string) => ({
-    tooltip: { trigger: 'axis' },
-    grid: { top: 10, right: 16, bottom: 24, left: 40 },
+    tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.96)',
+        borderColor: '#eee',
+        textStyle: { color: '#333', fontSize: 13 },
+    },
+    grid: { top: 16, right: 20, bottom: 30, left: 48 },
     xAxis: {
         type: 'category',
         data: data.map(i => i.date),
         axisLine: { lineStyle: { color: '#e5e7eb' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        axisLabel: { color: '#94a3b8', fontSize: 12 },
+        axisTick: { show: false },
     },
     yAxis: {
         type: 'value',
         minInterval: 1,
         splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } },
-        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        axisLabel: { color: '#94a3b8', fontSize: 12 },
     },
     series: [{
         type: 'line',
         data: data.map(i => i.count),
         smooth: true,
         symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { color, width: 2.5 },
-        itemStyle: { color },
+        symbolSize: 7,
+        lineStyle: { color, width: 3 },
+        itemStyle: { color, borderWidth: 2, borderColor: '#fff' },
         areaStyle: {
             color: {
                 type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                    { offset: 0, color: color + '4D' },
-                    { offset: 1, color: color + '00' },
+                    { offset: 0, color: color + '40' },
+                    { offset: 1, color: color + '05' },
                 ],
             },
         },
@@ -191,29 +172,6 @@ const loginTrendOption = computed(() => {
     if (!stats.value?.loginTrend) return {}
     return buildTrendOption(stats.value.loginTrend, '#36CFC9')
 })
-
-// Activity dot color
-const activityDotColor = (type: string) => {
-    const map: Record<string, string> = {
-        login_success: '#3b82f6',
-        login_failed: '#ef4444',
-        operation: '#22c55e',
-    }
-    return map[type] || '#94a3b8'
-}
-
-// Ranking badge style
-const rankBadgeStyle = (rank: number) => {
-    const gradients: Record<number, string> = {
-        1: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        2: 'linear-gradient(135deg, #C0C0C0, #A0A0A0)',
-        3: 'linear-gradient(135deg, #CD7F32, #B8860B)',
-    }
-    return {
-        background: gradients[rank] || '#f0f0f0',
-        color: rank <= 3 ? '#fff' : '#999',
-    }
-}
 
 // System info items
 const systemInfoItems = computed(() => [
@@ -253,106 +211,46 @@ const navigateTo = (path: string) => router.push(path)
       </div>
     </div>
 
-    <!-- Sub Stats Row -->
-    <div class="sub-stats-row">
-      <div v-for="(item, i) in subStats" :key="i" class="sub-stat-card">
-        <span class="sub-stat-label">{{ item.label }}</span>
-        <span class="sub-stat-value">{{ item.value?.toLocaleString() }}</span>
-      </div>
-    </div>
-
-    <!-- Middle Section: Left + Right -->
+    <!-- Middle Section: Resource Overview + Quick Nav -->
     <div class="middle-section">
-      <!-- Left Column -->
-      <div class="middle-left">
-        <!-- Resource Overview (Donut) -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-title">{{ t('dashboard.resourceOverview') }}</span>
-          </div>
-          <div class="resource-content">
-            <v-chart class="donut-chart" :option="donutOption" autoresize />
-            <div class="resource-legend">
-              <div v-if="stats" class="legend-item" v-for="item in [
-                { name: t('dashboard.users'), value: stats.totalUsers, color: '#4C84FF' },
-                { name: t('dashboard.roles'), value: stats.roleCount, color: '#52c41a' },
-                { name: t('dashboard.menus'), value: stats.menuCount, color: '#faad14' },
-                { name: t('dashboard.configs'), value: stats.configCount, color: '#9B59B6' },
-              ]" :key="item.name">
-                <span class="legend-dot" :style="{ background: item.color }"></span>
-                <span class="legend-name">{{ item.name }}</span>
-                <span class="legend-value">{{ item.value }}</span>
-              </div>
-            </div>
-          </div>
+      <!-- Resource Overview (Donut) -->
+      <div class="glass-card resource-card">
+        <div class="card-header">
+          <span class="card-title">{{ t('dashboard.resourceOverview') }}</span>
         </div>
-
-        <!-- Recent Activities -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-title">{{ t('dashboard.recentActivities') }}</span>
-            <span class="card-link" @click="navigateTo('/system/admin_login_log')">{{ t('dashboard.viewMore') }}</span>
-          </div>
-          <div class="timeline">
-            <div v-for="(item, i) in activities" :key="i" class="timeline-item">
-              <div class="timeline-dot-wrapper">
-                <span class="timeline-dot" :style="{ background: activityDotColor(item.type) }"></span>
-                <span v-if="i < activities.length - 1" class="timeline-line"></span>
-              </div>
-              <div class="timeline-content">
-                <span class="timeline-desc">{{ item.description }}</span>
-                <span class="timeline-time">{{ item.relative_time }}</span>
-              </div>
+        <div class="resource-content">
+          <v-chart class="donut-chart" :option="donutOption" autoresize />
+          <div class="resource-legend">
+            <div v-if="stats" class="legend-item" v-for="item in [
+              { name: t('dashboard.users'), value: stats.totalUsers, color: '#4C84FF' },
+              { name: t('dashboard.roles'), value: stats.roleCount, color: '#52c41a' },
+              { name: t('dashboard.menus'), value: stats.menuCount, color: '#faad14' },
+              { name: t('dashboard.configs'), value: stats.configCount, color: '#9B59B6' },
+            ]" :key="item.name">
+              <span class="legend-dot" :style="{ background: item.color }"></span>
+              <span class="legend-name">{{ item.name }}</span>
+              <span class="legend-value">{{ item.value }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column -->
-      <div class="middle-right">
-        <!-- Quick Nav -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-title">{{ t('dashboard.quickNav') }}</span>
-          </div>
-          <div class="quick-nav-grid">
-            <div
-              v-for="(item, i) in quickNavItems"
-              :key="i"
-              class="nav-item"
-              @click="navigateTo(item.route)"
-            >
-              <div class="nav-icon" :style="{ background: item.gradient }">
-                <el-icon :size="16" color="#fff"><component :is="item.icon" /></el-icon>
-              </div>
-              <span class="nav-label">{{ t(item.label) }}</span>
-            </div>
-          </div>
+      <!-- Quick Nav -->
+      <div class="glass-card quicknav-card">
+        <div class="card-header">
+          <span class="card-title">{{ t('dashboard.quickNav') }}</span>
         </div>
-
-        <!-- Active Ranking -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-title">{{ t('dashboard.activeRanking') }}</span>
-            <div class="period-tabs">
-              <span
-                v-for="p in ['day', 'week', 'month']"
-                :key="p"
-                class="period-tab"
-                :class="{ active: rankPeriod === p }"
-                @click="switchRankPeriod(p)"
-              >{{ t(`dashboard.rankPeriod.${p}`) }}</span>
+        <div class="quick-nav-grid">
+          <div
+            v-for="(item, i) in quickNavItems"
+            :key="i"
+            class="nav-item"
+            @click="navigateTo(item.route)"
+          >
+            <div class="nav-icon" :style="{ background: item.gradient }">
+              <el-icon :size="20" color="#fff"><component :is="item.icon" /></el-icon>
             </div>
-          </div>
-          <div class="ranking-list">
-            <div v-for="item in ranking?.list" :key="item.rank" class="ranking-item">
-              <span class="rank-badge" :style="rankBadgeStyle(item.rank)">{{ item.rank }}</span>
-              <span class="rank-name">{{ item.username }}</span>
-              <span class="rank-count">{{ item.count }}{{ t('dashboard.times') }}</span>
-            </div>
-            <div v-if="!ranking?.list?.length" class="ranking-empty">
-              {{ t('common.noData') }}
-            </div>
+            <span class="nav-label">{{ t(item.label) }}</span>
           </div>
         </div>
       </div>
@@ -387,7 +285,7 @@ const navigateTo = (path: string) => router.push(path)
       <div class="system-info-grid">
         <div v-for="(item, i) in systemInfoItems" :key="i" class="system-info-item">
           <div class="info-icon" :style="{ background: item.bg }">
-            <el-icon :size="14"><component :is="item.icon" /></el-icon>
+            <el-icon :size="16"><component :is="item.icon" /></el-icon>
           </div>
           <div class="info-text">
             <span class="info-label">{{ item.label }}</span>
@@ -407,24 +305,25 @@ const navigateTo = (path: string) => router.push(path)
   min-height: 100%;
 }
 
+// ===== KPI Cards =====
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .kpi-card {
   position: relative;
-  border-radius: 6px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 28px 24px;
   color: #fff;
   overflow: hidden;
   transition: all 0.25s ease;
   cursor: default;
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -435,200 +334,306 @@ const navigateTo = (path: string) => router.push(path)
   z-index: 1;
 }
 
-.kpi-label { font-size: 12px; opacity: 0.8; margin-bottom: 8px; }
-.kpi-value { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-.kpi-trend { font-size: 12px; opacity: 0.7; }
+.kpi-label {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+
+.kpi-trend {
+  font-size: 13px;
+  opacity: 0.75;
+}
 
 .kpi-icon {
   position: absolute;
-  right: 16px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 48px;
+  font-size: 64px;
   opacity: 0.15;
 }
 
-.sub-stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.sub-stat-card {
-  background: #fff;
-  border-radius: 6px;
-  padding: 14px;
-  text-align: center;
-  border: 1px solid #f0f0f0;
-}
-
-.sub-stat-label { display: block; font-size: 12px; color: #64748b; margin-bottom: 6px; }
-.sub-stat-value { display: block; font-size: 18px; font-weight: 700; color: #1e293b; }
-
+// ===== Glass Card =====
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 6px;
-  padding: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.card-title { font-size: 14px; font-weight: 600; color: #1e293b; }
-
-.card-link {
-  font-size: 12px;
-  color: #4C84FF;
-  cursor: pointer;
-  &:hover { opacity: 0.8; }
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
+// ===== Middle Section =====
 .middle-section {
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.middle-left {
-  flex: 3;
+.resource-card {
+  flex: 1;
+}
+
+.quicknav-card {
+  flex: 1;
+}
+
+// ===== Resource Overview =====
+.resource-content {
   display: flex;
-  flex-direction: column;
-  .glass-card { margin-bottom: 16px; &:last-child { margin-bottom: 0; } }
+  align-items: center;
+  gap: 32px;
 }
 
-.middle-right {
-  flex: 2;
+.donut-chart {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.resource-legend {
+  flex: 1;
+}
+
+.legend-item {
   display: flex;
-  flex-direction: column;
-  .glass-card { margin-bottom: 16px; &:last-child { margin-bottom: 0; } }
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.resource-content { display: flex; align-items: center; gap: 16px; }
-.donut-chart { width: 160px; height: 160px; flex-shrink: 0; }
-.resource-legend { flex: 1; }
-.legend-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.legend-name { font-size: 13px; color: #64748b; flex: 1; }
-.legend-value { font-size: 13px; font-weight: 600; color: #1e293b; }
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-.timeline { padding-left: 4px; }
-.timeline-item { display: flex; gap: 12px; min-height: 40px; }
-.timeline-dot-wrapper { display: flex; flex-direction: column; align-items: center; width: 12px; flex-shrink: 0; padding-top: 6px; }
-.timeline-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.timeline-line { width: 1px; flex: 1; background: #e5e7eb; margin-top: 4px; }
-.timeline-content { flex: 1; display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; }
-.timeline-desc { font-size: 13px; color: #1e293b; }
-.timeline-time { font-size: 11px; color: #94a3b8; flex-shrink: 0; margin-left: 12px; }
+.legend-name {
+  font-size: 14px;
+  color: #64748b;
+  flex: 1;
+}
 
-.quick-nav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.legend-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+// ===== Quick Nav =====
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 12px 4px;
-  border-radius: 6px;
+  gap: 10px;
+  padding: 20px 8px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.25s ease;
-  &:hover { background: #f8fafc; .nav-icon { transform: scale(1.05); } }
+
+  &:hover {
+    background: #f0f5ff;
+    .nav-icon {
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+  }
 }
 
 .nav-icon {
-  width: 32px; height: 32px;
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  transition: transform 0.25s ease;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
 }
 
-.nav-label { font-size: 12px; color: #1e293b; }
+.nav-label {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 500;
+}
 
-.period-tabs { display: flex; gap: 4px; }
+// ===== Trend =====
+.trend-card {
+  margin-bottom: 20px;
+}
+
+.period-tabs {
+  display: flex;
+  gap: 4px;
+}
 
 .period-tab {
-  font-size: 11px;
-  padding: 2px 10px;
-  border-radius: 10px;
+  font-size: 12px;
+  padding: 4px 14px;
+  border-radius: 12px;
   background: #f0f0f0;
   color: #666;
   cursor: pointer;
   transition: all 0.2s ease;
-  &.active { background: #4C84FF; color: #fff; }
+  font-weight: 500;
+
+  &.active {
+    background: #4C84FF;
+    color: #fff;
+  }
 }
 
-.ranking-list { display: flex; flex-direction: column; }
-
-.ranking-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f8f8f8;
-  &:last-child { border-bottom: none; }
+.trend-charts {
+  display: flex;
+  gap: 28px;
 }
 
-.rank-badge {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 600; flex-shrink: 0;
+.trend-chart-wrapper {
+  flex: 1;
 }
 
-.rank-name { flex: 1; font-size: 13px; color: #1e293b; }
-.rank-count { font-size: 13px; font-weight: 600; color: #4C84FF; }
-.ranking-empty { text-align: center; padding: 24px 0; font-size: 13px; color: #94a3b8; }
+.trend-label {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
 
-.trend-card { margin-bottom: 16px; }
-.trend-charts { display: flex; gap: 24px; }
-.trend-chart-wrapper { flex: 1; }
-.trend-label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
-.trend-chart { width: 100%; height: 200px; }
+.trend-chart {
+  width: 100%;
+  height: 260px;
+}
 
-.system-info-card { margin-bottom: 0; }
-.system-info-grid { display: flex; align-items: center; }
+// ===== System Info =====
+.system-info-card {
+  margin-bottom: 0;
+}
+
+.system-info-grid {
+  display: flex;
+  align-items: center;
+}
 
 .system-info-item {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   position: relative;
+  padding: 8px 0;
 }
 
 .info-icon {
-  width: 28px; height: 28px;
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.info-text { display: flex; flex-direction: column; }
-.info-label { font-size: 11px; color: #64748b; }
-.info-value { font-size: 13px; font-weight: 600; color: #1e293b; }
+.info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
 
 .info-divider {
   position: absolute;
-  right: 0; top: 50%; transform: translateY(-50%);
-  width: 1px; height: 24px;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 28px;
   background: rgba(0, 0, 0, 0.06);
 }
 
+// ===== Responsive =====
 @media (max-width: 1024px) {
-  .middle-section { flex-direction: column; }
+  .middle-section {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 768px) {
-  .kpi-row, .sub-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .trend-charts { flex-direction: column; }
-  .system-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .info-divider { display: none; }
-  .quick-nav-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .kpi-card {
+    padding: 20px 16px;
+  }
+
+  .kpi-value {
+    font-size: 28px;
+  }
+
+  .trend-charts {
+    flex-direction: column;
+  }
+
+  .system-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .info-divider {
+    display: none;
+  }
+
+  .quick-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .resource-content {
+    flex-direction: column;
+  }
 }
 </style>
