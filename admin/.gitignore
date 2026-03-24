@@ -14,10 +14,6 @@ dist-ssr
 coverage
 *.local
 
-# unplugin-auto-import
-auto-imports.d.ts
-components.d.ts
-.eslintrc-auto-import.json
 
 /cypress/videos/
 /cypress/screenshots/
@@ -31,6 +27,3 @@ components.d.ts
 *.sln
 *.sw?
 
-# .env
-.env.development
-.env.production

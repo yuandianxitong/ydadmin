@@ -16,7 +16,8 @@ const request: AxiosInstance = axios.create({
     baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_APP_API_URL || ''),
     timeout: 30000,
     headers: {
-        'Content-Type': 'application/json;charset=UTF-8'
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Accept': 'application/json'
     }
 })
 

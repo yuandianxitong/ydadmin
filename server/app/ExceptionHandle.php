@@ -70,10 +70,21 @@ class ExceptionHandle extends Handle
      */
     protected function isApiRequest($request): bool
     {
+        // 路径检测（pathinfo 或完整 URL）
         $pathInfo = $request->pathinfo();
-        if (str_starts_with($pathInfo, 'adminapi/') || str_starts_with($pathInfo, 'api/')) {
+        $url = $request->url();
+        if (str_starts_with($pathInfo, 'adminapi/') || str_starts_with($pathInfo, 'api/')
+            || str_contains($url, '/adminapi/') || str_contains($url, '/api/')) {
             return true;
         }
+
+        // Content-Type / Accept 含 json
+        $contentType = $request->header('content-type', '');
+        $accept = $request->header('accept', '');
+        if (str_contains($contentType, 'json') || str_contains($accept, 'json')) {
+            return true;
+        }
+
         return $request->isJson() || $request->isAjax();
     }
 
