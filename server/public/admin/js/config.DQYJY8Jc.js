@@ -1,0 +1,1 @@
+import{a1 as n}from"./index._jSLj_S3.js";function i(){return n.get("/adminapi/system/config/groups")}function t(i="basic"){return n.get(`/adminapi/system/config?group=${i}`)}function a(i){return n.post("/adminapi/system/config/batch-update",{configs:i})}export{i as a,a as b,t as g};
