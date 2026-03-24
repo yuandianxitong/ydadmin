@@ -34,7 +34,8 @@ class DashboardController extends Controller
     public function stats(): Response
     {
         try {
-            $data = $this->dashboardService->getStats();
+            $days = (int) $this->request->get('days', 7);
+            $data = $this->dashboardService->getStats($days);
             return $this->success(lang('messages.get_success'), $data);
         } catch (\Exception $e) {
             return $this->error(sprintf(lang('business.get_stats_failed'), $e->getMessage()));
@@ -59,6 +60,52 @@ class DashboardController extends Controller
             return $this->success(lang('messages.get_success'), $logs);
         } catch (\Exception $e) {
             return $this->error(sprintf(lang('business.get_login_log_failed'), $e->getMessage()));
+        }
+    }
+
+    #[PermissionSkip]
+    #[OA\Get(
+        path: '/dashboard/recent-activities',
+        summary: '获取最近动态',
+        security: [['bearerAuth' => []]],
+        tags: ['仪表板'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功'),
+            new OA\Response(response: 400, description: '请求失败')
+        ]
+    )]
+    public function recentActivities(): Response
+    {
+        try {
+            $data = $this->dashboardService->getRecentActivities();
+            return $this->success(lang('messages.get_success'), $data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    #[PermissionSkip]
+    #[OA\Get(
+        path: '/dashboard/active-ranking',
+        summary: '获取活跃排行',
+        security: [['bearerAuth' => []]],
+        tags: ['仪表板'],
+        parameters: [
+            new OA\Parameter(name: 'period', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['day', 'week', 'month']))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功'),
+            new OA\Response(response: 400, description: '请求失败')
+        ]
+    )]
+    public function activeRanking(): Response
+    {
+        try {
+            $period = $this->request->get('period', 'day');
+            $data = $this->dashboardService->getActiveRanking($period);
+            return $this->success(lang('messages.get_success'), $data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
         }
     }
 }

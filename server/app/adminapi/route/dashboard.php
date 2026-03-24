@@ -11,4 +11,6 @@ use think\facade\Route;
 Route::group('dashboard', function () {
     Route::get('stats', 'v1.dashboard.DashboardController/stats');
     Route::get('recent-logs', 'v1.dashboard.DashboardController/recentLogs');
+    Route::get('recent-activities', 'v1.dashboard.DashboardController/recentActivities');
+    Route::get('active-ranking', 'v1.dashboard.DashboardController/activeRanking');
 })->middleware(['admin_auth', 'admin_permission', 'admin_log']);
