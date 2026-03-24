@@ -59,4 +59,24 @@ class AdminOperationLogRepository extends Repository
         $this->model->where('id', '>', 0)->delete();
         return true;
     }
+
+    /**
+     * 获取最近操作日志
+     */
+    public function getRecentActivities(int $limit = 5): array
+    {
+        return $this->model->order('id', 'desc')
+            ->limit($limit)
+            ->field('id,username,action,description,method,operation_time')
+            ->select()
+            ->toArray();
+    }
+
+    /**
+     * 今日操作日志总数
+     */
+    public function getTodayCount(): int
+    {
+        return $this->model->whereTime('operation_time', 'today')->count();
+    }
 }

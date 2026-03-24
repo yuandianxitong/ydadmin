@@ -120,4 +120,45 @@ class AdminLoginLogRepository extends Repository
         $this->model->where('id', '>', 0)->delete();
         return true;
     }
+
+    /**
+     * 管理员活跃排行（按登录次数）
+     * @param string $period day|week|month
+     * @param int $limit
+     */
+    public function getActiveRanking(string $period = 'day', int $limit = 10): array
+    {
+        $query = $this->model->where('login_result', 1);
+
+        switch ($period) {
+            case 'day':
+                $query->whereTime('login_time', 'today');
+                break;
+            case 'week':
+                $query->whereTime('login_time', 'week');
+                break;
+            case 'month':
+                $query->whereTime('login_time', 'month');
+                break;
+        }
+
+        return $query->fieldRaw('username, COUNT(*) as count')
+            ->group('username')
+            ->order('count', 'desc')
+            ->limit($limit)
+            ->select()
+            ->toArray();
+    }
+
+    /**
+     * 上周同日登录成功数（用于环比对比）
+     */
+    public function getLastWeekSameDaySuccessCount(): int
+    {
+        $date = date('Y-m-d', strtotime('-7 days'));
+        return $this->model
+            ->where('login_result', 1)
+            ->whereDay('login_time', $date)
+            ->count();
+    }
 }

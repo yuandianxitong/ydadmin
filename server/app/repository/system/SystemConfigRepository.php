@@ -93,4 +93,12 @@ class SystemConfigRepository extends Repository
     {
         return $this->model->where('config_key', $key)->update(['config_value' => $value]) !== false;
     }
+
+    /**
+     * 配置项总数
+     */
+    public function getTotalCount(): int
+    {
+        return $this->model->where('status', 1)->count();
+    }
 }

@@ -117,4 +117,78 @@ class UserRepository extends Repository
     {
         return User::where('oa_openid', $openid)->find();
     }
+
+    /**
+     * 用户总数
+     */
+    public function getTotalCount(): int
+    {
+        return User::count();
+    }
+
+    /**
+     * 今日新增用户数
+     */
+    public function getTodayNewCount(): int
+    {
+        return User::whereTime('created_at', 'today')->count();
+    }
+
+    /**
+     * 上周同日新增用户数
+     */
+    public function getLastWeekSameDayNewCount(): int
+    {
+        $date = date('Y-m-d', strtotime('-7 days'));
+        return User::whereDay('created_at', $date)->count();
+    }
+
+    /**
+     * 活跃用户数（最近7天有登录记录）
+     */
+    public function getActiveCount(int $days = 7): int
+    {
+        $startDate = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        return User::where('last_login_time', '>=', $startDate)->count();
+    }
+
+    /**
+     * 上周活跃用户数（用于环比对比）
+     */
+    public function getLastWeekActiveCount(): int
+    {
+        $lastWeekStart = date('Y-m-d H:i:s', strtotime('-14 days'));
+        $lastWeekEnd = date('Y-m-d H:i:s', strtotime('-7 days'));
+        return User::where('last_login_time', '>=', $lastWeekStart)
+            ->where('last_login_time', '<', $lastWeekEnd)
+            ->count();
+    }
+
+    /**
+     * 用户注册趋势（最近N天）
+     */
+    public function getRegisterTrend(int $days = 7): array
+    {
+        $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+        $rows = User::where('created_at', '>=', $startDate . ' 00:00:00')
+            ->fieldRaw("DATE(created_at) as date, COUNT(*) as count")
+            ->group('date')
+            ->select()
+            ->toArray();
+
+        $countMap = [];
+        foreach ($rows as $row) {
+            $countMap[$row['date']] = (int)$row['count'];
+        }
+
+        $trend = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-{$i} days"));
+            $trend[] = [
+                'date'  => date('m-d', strtotime($date)),
+                'count' => $countMap[$date] ?? 0,
+            ];
+        }
+        return $trend;
+    }
 }
