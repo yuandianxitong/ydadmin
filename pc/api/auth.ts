@@ -26,7 +26,7 @@ export const authApi = {
   smsLogin: (data: { mobile: string; code: string }) =>
     post<LoginResult>('/api/auth/sms-login', data),
 
-  register: (data: { account: string; password: string; password_confirmation: string }) =>
+  register: (data: { mobile: string; code: string; password: string; password_confirmation: string }) =>
     post<LoginResult>('/api/auth/register', data),
 
   wechatLogin: (data: { code: string }) =>
