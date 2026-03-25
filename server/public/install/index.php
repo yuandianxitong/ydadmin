@@ -15,21 +15,11 @@ session_start();
 define('INSTALL_PATH', __DIR__ . '/');
 define('ROOT_PATH', dirname(dirname(__DIR__)) . '/');
 
-function install_env(string $key, ?string $default = null): ?string {
-    $envFile = ROOT_PATH . '.env';
-    if (!is_file($envFile)) return $default;
-    $content = file_get_contents($envFile);
-    if ($content === false) return $default;
-    if (!preg_match('/^\s*' . preg_quote($key, '/') . '\s*=\s*(.*?)\s*$/m', $content, $m)) return $default;
-    $val = trim($m[1], "\"'");
-    return $val !== '' ? $val : $default;
-}
-
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 // 已安装：AJAX 请求正常返回 JSON，页面请求跳转后台
 if (file_exists(ROOT_PATH . 'config/install.lock') && !$isAjax) {
-    header('Location: ' . (install_env('ADMIN_FRONTEND_URL', '/admin') ?: '/admin'));
+    header('Location: /admin');
     exit;
 }
 

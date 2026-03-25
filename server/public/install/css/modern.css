@@ -666,3 +666,15 @@ input.checkbox:focus-visible {
 .animate-fade-out-up {
   animation: animate-fade-out-up 0.3s ease-in forwards;
 }
+
+/* --- Inline field error text --- */
+.field-error {
+  display: none;
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
+}
+.field-error.visible {
+  display: block;
+}

@@ -346,26 +346,6 @@ class Installer
             $envContent = rtrim($envContent) . "\n\n" . $dbBlock;
         }
 
-        // ---- 顶层配置（写在所有 [SECTION] 之前）----
-        $topLevel = [];
-        if (isset($config['admin_frontend_url'])) {
-            $topLevel['ADMIN_FRONTEND_URL'] = trim((string)$config['admin_frontend_url']);
-        }
-
-        foreach ($topLevel as $key => $value) {
-            if (preg_match("/^{$key}\s*=/m", $envContent)) {
-                $envContent = preg_replace("/^{$key}\s*=.*$/m", "{$key} = {$value}", $envContent);
-            } else {
-                // 插入到第一个 [SECTION] 之前
-                if (preg_match('/^\[/m', $envContent, $m, PREG_OFFSET_CAPTURE)) {
-                    $pos = $m[0][1];
-                    $envContent = substr($envContent, 0, $pos) . "{$key} = {$value}\n\n" . substr($envContent, $pos);
-                } else {
-                    $envContent .= "\n{$key} = {$value}";
-                }
-            }
-        }
-
         file_put_contents($envFile, $envContent);
     }
 

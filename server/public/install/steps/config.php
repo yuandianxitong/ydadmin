@@ -10,18 +10,22 @@
             <div class="form-control">
                 <label class="label"><span class="label-text">数据库主机</span></label>
                 <input type="text" name="db_host" value="127.0.0.1" class="input input-bordered" required>
+                <span class="field-error">请填写数据库主机地址</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">端口</span></label>
                 <input type="number" name="db_port" value="3306" class="input input-bordered" required>
+                <span class="field-error">请填写端口号</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">数据库名</span></label>
                 <input type="text" name="db_name" placeholder="yd_admin" class="input input-bordered" required>
+                <span class="field-error">请填写数据库名</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">用户名</span></label>
                 <input type="text" name="db_user" placeholder="root" class="input input-bordered" required>
+                <span class="field-error">请填写数据库用户名</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">密码</span></label>
@@ -30,6 +34,7 @@
             <div class="form-control">
                 <label class="label"><span class="label-text">数据表前缀</span></label>
                 <input type="text" name="db_prefix" placeholder="yd_" class="input input-bordered" pattern="^[a-zA-Z0-9_]*$">
+                <span class="field-error">只允许字母、数字和下划线</span>
             </div>
         </div>
         <div class="flex items-center gap-4 pt-2">
@@ -50,18 +55,17 @@
             <div class="form-control">
                 <label class="label"><span class="label-text">管理员用户名</span></label>
                 <input type="text" name="admin_username" value="admin" class="input input-bordered" required pattern="^[a-zA-Z][a-zA-Z0-9_]{3,15}$">
+                <span class="field-error">请填写4-16位用户名（字母开头）</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">管理员密码</span></label>
                 <input type="password" name="admin_password" id="admin_pass" class="input input-bordered" placeholder="至少6位" required minlength="6">
+                <span class="field-error">密码至少6位</span>
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">管理员邮箱</span></label>
                 <input type="email" name="admin_email" placeholder="admin@example.com" class="input input-bordered" required>
-            </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">后台访问地址</span></label>
-                <input type="text" name="admin_frontend_url" value="/admin" class="input input-bordered" placeholder="/admin">
+                <span class="field-error">请填写有效的邮箱地址</span>
             </div>
         </div>
     </fieldset>
@@ -126,15 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateForm() {
         let isValid = true;
-        form.querySelectorAll('input[required]').forEach(input => {
-            input.classList.remove('input-error');
+        let firstError = null;
+        // Clear all previous errors
+        form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+        form.querySelectorAll('.field-error.visible').forEach(el => el.classList.remove('visible'));
+        // Validate inputs that have constraints (required, pattern, minlength, type)
+        form.querySelectorAll('input').forEach(input => {
             if (!input.checkValidity()) {
                 input.classList.add('input-error');
+                const errorSpan = input.parentElement.querySelector('.field-error');
+                if (errorSpan) errorSpan.classList.add('visible');
+                if (!firstError) firstError = input;
                 isValid = false;
             }
         });
-        if (!isValid) {
-            ui.toast('请检查所有必填项和格式要求', 'error');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstError.focus();
         }
         return isValid;
     }

@@ -1,6 +1,5 @@
 <?php
 $config = $_SESSION['install_config'] ?? [];
-$adminUrl = htmlspecialchars($config['admin_frontend_url'] ?? '/admin', ENT_QUOTES, 'UTF-8');
 ?>
 <div class="text-center">
     <h2 class="text-2xl font-bold text-slate-800 sm:text-3xl">🎉 安装完成！</h2>
@@ -14,7 +13,7 @@ $adminUrl = htmlspecialchars($config['admin_frontend_url'] ?? '/admin', ENT_QUOT
             <i class="fa fa-home text-xl mb-1"></i>
             <span>访问网站前台</span>
         </a>
-         <a href="<?= $adminUrl ?>" target="_blank" class="btn btn-secondary btn-lg h-auto py-4 flex-col">
+         <a href="/admin" target="_blank" class="btn btn-secondary btn-lg h-auto py-4 flex-col">
             <i class="fa fa-user-secret text-xl mb-1"></i>
             <span>登录系统后台</span>
         </a>
