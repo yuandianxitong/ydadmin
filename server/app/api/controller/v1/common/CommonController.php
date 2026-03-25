@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace app\api\controller\v1\common;
 
+use app\service\user\UserService;
+use app\service\message\MessageService;
 use core\base\Controller;
 use core\storage\StorageManager;
 use think\Response;
@@ -10,6 +12,9 @@ use think\facade\Filesystem;
 
 class CommonController extends Controller
 {
+    protected UserService $userService;
+    protected MessageService $messageService;
+
     /**
      * 获取应用基础配置（无需登录）
      */
@@ -93,6 +98,27 @@ class CommonController extends Controller
                 return $this->error(lang('business.invalid_mobile_format'));
             }
 
+            // 场景校验
+            $templateMap = [
+                'login'          => 'login_captcha',
+                'register'       => 'register_captcha',
+                'reset_password' => 'reset_password',
+                'bind_mobile'    => 'bind_mobile',
+                'change_mobile'  => 'change_mobile',
+            ];
+            if (!isset($templateMap[$scene])) {
+                return $this->error(lang('business.invalid_sms_scene'));
+            }
+
+            // 根据场景校验手机号存在性
+            $exists = $this->userService->mobileExists($mobile);
+            if ($scene === 'login' && !$exists) {
+                return $this->error(lang('business.mobile_not_registered'));
+            }
+            if ($scene === 'register' && $exists) {
+                return $this->error(lang('business.mobile_already_registered'));
+            }
+
             // 频率限制
             $limitKey = 'sms_limit:' . $mobile;
             $lastSend = cache($limitKey);
@@ -104,15 +130,18 @@ class CommonController extends Controller
             $code = (string)mt_rand(100000, 999999);
             $cacheKey = 'sms_code:' . $scene . ':' . $mobile;
 
-            // TODO: 调用短信服务发送验证码
-            // $smsService->send($mobile, $code);
+            // 发送短信
+            $this->messageService->send($templateMap[$scene], ['phone' => $mobile], [
+                'code'   => $code,
+                'expire' => '5',
+            ]);
 
             // 缓存验证码（5分钟有效）
             cache($cacheKey, $code, 300);
             cache($limitKey, time(), 60);
 
             return $this->success(lang('messages.sms_code_sent'));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->error($e->getMessage());
         }
     }
