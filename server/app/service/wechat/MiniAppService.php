@@ -57,34 +57,6 @@ class MiniAppService extends Service
     }
 
     /**
-     * 发送订阅消息
-     */
-    public function sendSubscribeMessage(string $openid, string $templateId, array $data, string $page = ''): array
-    {
-        $app = WechatManager::miniApp();
-        $api = $app->getClient();
-
-        $message = [
-            'touser'      => $openid,
-            'template_id' => $templateId,
-            'data'        => $data,
-        ];
-
-        if ($page) {
-            $message['page'] = $page;
-        }
-
-        $response = $api->postJson('/cgi-bin/message/subscribe/send', $message);
-        $result = $response->toArray();
-
-        if (($result['errcode'] ?? -1) !== 0) {
-            throw new BusinessException(lang('business.send_subscribe_failed') . ': ' . ($result['errmsg'] ?? ''));
-        }
-
-        return $result;
-    }
-
-    /**
      * 生成小程序码
      */
     public function getQrCode(string $scene, string $page = '', int $width = 430): string

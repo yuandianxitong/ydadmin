@@ -87,31 +87,6 @@ class OfficialAccountService extends Service
     }
 
     /**
-     * 发送模板消息
-     */
-    public function sendTemplateMessage(string $openid, string $templateId, array $data, string $url = ''): array
-    {
-        $app = WechatManager::officialAccount();
-        $api = $app->getClient();
-
-        $message = [
-            'touser'      => $openid,
-            'template_id' => $templateId,
-            'data'        => $data,
-        ];
-
-        if ($url) {
-            $message['url'] = $url;
-        }
-
-        $response = $api->postJson('/cgi-bin/message/template/send', $message);
-        $result = $response->toArray();
-        $this->checkResponse($result);
-
-        return $result;
-    }
-
-    /**
      * 获取粉丝列表
      */
     public function getUserList(string $nextOpenid = ''): array
