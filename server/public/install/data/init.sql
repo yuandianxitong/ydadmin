@@ -392,8 +392,6 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 ('sms_access_key', '', 'sms', 'string', 'AccessKey ID', '短信服务商提供的 AccessKey ID', NULL, NULL, 2, 1, NOW(), NOW()),
 ('sms_access_secret', '', 'sms', 'string', 'AccessKey Secret', '短信服务商提供的 AccessKey Secret', NULL, NULL, 3, 1, NOW(), NOW()),
 ('sms_sign_name', '', 'sms', 'string', '短信签名', '已审核通过的短信签名', NULL, NULL, 4, 1, NOW(), NOW()),
-('sms_template_code', '', 'sms', 'string', '验证码模板', '短信验证码模板编号', NULL, NULL, 5, 1, NOW(), NOW()),
-('sms_template_notify', '', 'sms', 'string', '通知模板', '短信通知模板编号', NULL, NULL, 6, 1, NOW(), NOW()),
 
 -- ===== 支付配置 (payment) =====
 ('pay_alipay_enabled', '0', 'payment', 'boolean', '启用支付宝', '是否开启支付宝支付', NULL, NULL, 1, 1, NOW(), NOW()),
