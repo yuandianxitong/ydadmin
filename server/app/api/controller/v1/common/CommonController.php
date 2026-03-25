@@ -130,10 +130,9 @@ class CommonController extends Controller
             $code = (string)mt_rand(100000, 999999);
             $cacheKey = 'sms_code:' . $scene . ':' . $mobile;
 
-            // 发送短信
+            // 发送短信（模板变量只传 code，与阿里云/腾讯云模板一致）
             $this->messageService->send($templateMap[$scene], ['phone' => $mobile], [
-                'code'   => $code,
-                'expire' => '5',
+                'code' => $code,
             ]);
 
             // 缓存验证码（5分钟有效）

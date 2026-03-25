@@ -455,11 +455,11 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 
 -- ===== 预置消息模板 =====
 INSERT INTO `message_templates` (`name`, `code`, `sms_enabled`, `sms_template_id`, `sms_content`, `wechat_official_enabled`, `wechat_official_template_id`, `wechat_official_url`, `wechat_mini_enabled`, `wechat_mini_template_id`, `wechat_mini_page`, `variables`, `remark`, `status`, `created_at`, `updated_at`) VALUES
-('登录验证码', 'login_captcha', 1, '', '您的登录验证码为${code}，${expire}分钟内有效，请勿泄露给他人。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"6789"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户登录时发送的验证码通知', 1, NOW(), NOW()),
-('注册验证码', 'register_captcha', 1, '', '您的注册验证码为${code}，${expire}分钟内有效，请勿泄露给他人。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"1234"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户注册时发送的验证码通知', 1, NOW(), NOW()),
-('找回密码', 'reset_password', 1, '', '您正在找回密码，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"5678"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户找回密码时发送的验证码通知', 1, NOW(), NOW()),
-('绑定手机', 'bind_mobile', 1, '', '您正在绑定手机号，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"9012"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户绑定手机号时发送的验证码通知', 1, NOW(), NOW()),
-('变更手机', 'change_mobile', 1, '', '您正在变更手机号，验证码为${code}，${expire}分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"3456"},{"key":"expire","name":"有效期（分钟）","example":"5"}]', '用户变更手机号时发送的验证码通知', 1, NOW(), NOW()),
+('登录验证码', 'login_captcha', 1, '', '您的登录验证码为${code}，5分钟内有效，请勿泄露给他人。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"6789"}]', '用户登录时发送的验证码通知', 1, NOW(), NOW()),
+('注册验证码', 'register_captcha', 1, '', '您的注册验证码为${code}，5分钟内有效，请勿泄露给他人。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"1234"}]', '用户注册时发送的验证码通知', 1, NOW(), NOW()),
+('找回密码', 'reset_password', 1, '', '您正在找回密码，验证码为${code}，5分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"5678"}]', '用户找回密码时发送的验证码通知', 1, NOW(), NOW()),
+('绑定手机', 'bind_mobile', 1, '', '您正在绑定手机号，验证码为${code}，5分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"9012"}]', '用户绑定手机号时发送的验证码通知', 1, NOW(), NOW()),
+('变更手机', 'change_mobile', 1, '', '您正在变更手机号，验证码为${code}，5分钟内有效。', 0, '', '', 0, '', '', '[{"key":"code","name":"验证码","example":"3456"}]', '用户变更手机号时发送的验证码通知', 1, NOW(), NOW()),
 ('用户注册欢迎', 'user_register', 0, '', '恭喜您注册成功！感谢您的信任与支持。', 0, '', '', 0, '', '', '[]', '用户注册成功后发送的欢迎通知', 1, NOW(), NOW()),
 ('支付成功通知', 'payment_success', 0, '', '您的订单${order_no}已支付成功，支付金额${amount}元。', 0, '', '', 0, '', '', '[{"key":"order_no","name":"订单号","example":"202603250001"},{"key":"amount","name":"支付金额","example":"99.00"}]', '用户支付成功后发送的通知', 1, NOW(), NOW()),
 ('反馈已收到', 'feedback_received', 0, '', '您的反馈我们已收到，将尽快为您处理，感谢您的支持！', 0, '', '', 0, '', '', '[]', '用户提交反馈后发送的确认通知', 1, NOW(), NOW());
