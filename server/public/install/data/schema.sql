@@ -436,7 +436,7 @@ CREATE TABLE IF NOT EXISTS `message_logs` (
   `content` text COMMENT '发送内容',
   `variables` json DEFAULT NULL COMMENT '模板变量值',
   `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0待发送,1成功,2失败',
-  `error_msg` varchar(500) DEFAULT '' COMMENT '错误信息',
+  `error_msg` text COMMENT '错误信息',
   `sent_at` timestamp NULL DEFAULT NULL COMMENT '发送时间',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
