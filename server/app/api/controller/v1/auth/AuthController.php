@@ -176,20 +176,21 @@ class AuthController extends Controller
     }
 
     /**
-     * 注册（账号可以是手机号或用户名，无需验证码）
+     * 注册（手机号 + 短信验证码 + 密码）
      */
     public function register(): Response
     {
         try {
-            $account = (string)$this->request->param('account', '');
-            // 兼容旧版 mobile 参数
-            if (empty($account)) {
-                $account = (string)$this->request->param('mobile', '');
+            $mobile = (string)$this->request->param('mobile', '');
+            // 兼容旧版 account 参数
+            if (empty($mobile)) {
+                $mobile = (string)$this->request->param('account', '');
             }
+            $code = (string)$this->request->param('code', '');
             $password = (string)$this->request->param('password', '');
             $passwordConfirmation = (string)$this->request->param('password_confirmation', '');
 
-            if (empty($account) || empty($password)) {
+            if (empty($mobile) || empty($code) || empty($password)) {
                 return $this->error(lang('business.register_fields_required'));
             }
 
@@ -197,7 +198,17 @@ class AuthController extends Controller
                 return $this->error('两次输入的密码不一致');
             }
 
-            $result = $this->userService->register($account, $password, $this->request->ip());
+            // 校验短信验证码
+            $cacheKey = 'sms_code:register:' . $mobile;
+            $cachedCode = cache($cacheKey);
+            if (!$cachedCode || $cachedCode !== $code) {
+                return $this->error(lang('auth.captcha_invalid'));
+            }
+
+            $result = $this->userService->register($mobile, $password, $this->request->ip());
+
+            // 清除已使用的验证码
+            cache($cacheKey, null);
 
             return $this->success(lang('messages.register_success'), $result);
         } catch (\Exception $e) {
