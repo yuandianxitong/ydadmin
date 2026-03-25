@@ -24,6 +24,7 @@ use OpenApi\Attributes as OA;
     contact: new OA\Contact(name: 'mashanglai Team', url: 'https://www.dev007.cn')
 )]
 #[OA\Server(url: '/adminapi', description: '管理后台API')]
+#[OA\Server(url: '/api', description: '前端API')]
 #[OA\SecurityScheme(
     securityScheme: 'bearerAuth',
     type: 'http',
