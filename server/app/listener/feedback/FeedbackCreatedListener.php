@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace app\listener\feedback;
 
+use app\repository\user\UserRepository;
+use app\service\message\MessageService;
 use think\facade\Log;
 
 /**
@@ -18,8 +20,6 @@ use think\facade\Log;
  * - feedback_id: int    反馈ID
  * - user_id: int        用户ID
  * - type: string        反馈类型
- *
- * 扩展点：可在此添加通知管理员、发送确认消息等后续业务逻辑
  */
 class FeedbackCreatedListener
 {
@@ -31,7 +31,24 @@ class FeedbackCreatedListener
             'type'        => $event['type'],
         ]);
 
-        // TODO: 通知管理员有新反馈
-        // TODO: 给用户发送反馈已收到的确认消息
+        $userId = (int) ($event['user_id'] ?? 0);
+        if (!$userId) {
+            return;
+        }
+
+        $user = app(UserRepository::class)->findModel($userId);
+        if (!$user) {
+            return;
+        }
+
+        $receivers = array_filter([
+            'phone'       => $user->mobile ?? '',
+            'openid'      => $user->oa_openid ?? '',
+            'mini_openid' => $user->mini_openid ?? '',
+        ]);
+
+        if (!empty($receivers)) {
+            app(MessageService::class)->trySend('feedback_received', $receivers, []);
+        }
     }
 }

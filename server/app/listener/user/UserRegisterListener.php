@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace app\listener\user;
 
+use app\service\message\MessageService;
 use think\facade\Log;
 
 /**
@@ -18,8 +19,8 @@ use think\facade\Log;
  * - user_id: int      用户ID
  * - mobile: string    手机号（手机注册时）
  * - channel: string   注册渠道：sms / miniapp（可选）
- *
- * 扩展点：可在此添加发送欢迎消息、初始化用户数据等逻辑
+ * - oa_openid: string    公众号openid（可选）
+ * - mini_openid: string 小程序openid（可选）
  */
 class UserRegisterListener
 {
@@ -30,9 +31,14 @@ class UserRegisterListener
             'channel' => $event['channel'] ?? 'sms',
         ]);
 
-        // TODO: 发送欢迎消息
-        // app()->make(MessageService::class)->send('welcome', ...);
+        $receivers = array_filter([
+            'phone'       => $event['mobile'] ?? '',
+            'openid'      => $event['oa_openid'] ?? '',
+            'mini_openid' => $event['mini_openid'] ?? '',
+        ]);
 
-        // TODO: 初始化用户积分/优惠券等
+        if (!empty($receivers)) {
+            app(MessageService::class)->trySend('user_register', $receivers, []);
+        }
     }
 }

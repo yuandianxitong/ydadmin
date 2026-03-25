@@ -114,13 +114,25 @@ class MessagePushListener
      */
     protected function pushToWechatSubscribe(array $message): void
     {
-        // TODO: 实现微信订阅消息推送
-        // 1. 获取 access_token
-        // 2. 调用 subscribeMessage.send 接口
-        // $templateId = config('wechat.subscribe_template_id');
-        // $openid = $this->getUserOpenid($message['user_id']);
-        // WechatService::sendSubscribeMessage($openid, $templateId, [...]);
-        Log::info('MessagePush: wechat subscribe message (not implemented yet)', $message);
+        $userId = (int) ($message['user_id'] ?? 0);
+        if (!$userId) {
+            return;
+        }
+
+        $user = app(\app\repository\user\UserRepository::class)->findModel($userId);
+        if (!$user || empty($user->mini_openid)) {
+            Log::debug("MessagePush: user {$userId} has no mini_openid, skip wechat subscribe");
+            return;
+        }
+
+        $templateCode = $message['extra']['template_code'] ?? 'notification';
+        $receivers = ['mini_openid' => $user->mini_openid];
+        $data = [
+            'title'   => $message['title'] ?? '',
+            'content' => $message['content'] ?? '',
+        ];
+
+        app(\app\service\message\MessageService::class)->trySend($templateCode, $receivers, $data);
     }
 
     /**
