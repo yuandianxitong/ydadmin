@@ -5,6 +5,7 @@ namespace app\adminapi\controller\v1\wechat;
 
 use core\base\Controller;
 use app\service\wechat\OfficialAccountService;
+use app\service\message\MessageService;
 use core\attribute\Permission;
 use think\Response;
 use OpenApi\Attributes as OA;
@@ -13,6 +14,7 @@ use OpenApi\Attributes as OA;
 class OfficialAccountController extends Controller
 {
     protected OfficialAccountService $service;
+    protected MessageService $messageService;
 
     /**
      * 获取自定义菜单
@@ -109,12 +111,15 @@ class OfficialAccountController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['openid', 'template_id'],
+                required: ['code', 'receivers'],
                 properties: [
-                    new OA\Property(property: 'openid', type: 'string', description: '接收者OpenID'),
-                    new OA\Property(property: 'template_id', type: 'string', description: '模板ID'),
+                    new OA\Property(property: 'code', type: 'string', description: '消息模板编码'),
+                    new OA\Property(property: 'receivers', type: 'object', description: '接收者', properties: [
+                        new OA\Property(property: 'phone', type: 'string', description: '手机号'),
+                        new OA\Property(property: 'openid', type: 'string', description: '公众号OpenID'),
+                        new OA\Property(property: 'mini_openid', type: 'string', description: '小程序OpenID'),
+                    ]),
                     new OA\Property(property: 'data', type: 'object', description: '模板变量数据'),
-                    new OA\Property(property: 'url', type: 'string', description: '跳转链接'),
                 ]
             )
         ),
@@ -125,18 +130,17 @@ class OfficialAccountController extends Controller
     public function sendTemplate(): Response
     {
         try {
-            $openid = (string)$this->request->param('openid', '');
-            $templateId = (string)$this->request->param('template_id', '');
+            $code = (string)$this->request->param('code', '');
+            $receivers = $this->request->param('receivers', []);
             $data = $this->request->param('data', []);
-            $url = (string)$this->request->param('url', '');
 
-            if (empty($openid) || empty($templateId)) {
-                return $this->error(lang('business.openid_template_required'));
+            if (empty($code)) {
+                return $this->error(lang('business.template_code_required'));
             }
 
-            $result = $this->service->sendTemplateMessage($openid, $templateId, $data, $url);
+            $result = $this->messageService->send($code, $receivers, $data);
             return $this->success(lang('messages.send_success'), $result);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->error($e->getMessage());
         }
     }
