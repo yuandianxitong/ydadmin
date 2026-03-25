@@ -190,6 +190,8 @@ return [
     'mobile_code_required'          => 'Phone number and verification code are required',
     'register_fields_required'      => 'Mobile, password and verification code are required',
     'mobile_already_registered'     => 'This mobile number is already registered',
+    'mobile_not_registered' => 'Mobile number not registered, please register first',
+    'invalid_sms_scene' => 'Invalid SMS scene',
     'missing_code_param'        => 'Missing code parameter',
     'password_min_length'       => 'New password must be at least 6 characters',
     'select_payment_channel'    => 'Please select a payment channel',

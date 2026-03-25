@@ -190,6 +190,8 @@ return [
     'mobile_code_required'          => '请输入手机号和验证码',
     'register_fields_required'      => '手机号、密码和验证码不能为空',
     'mobile_already_registered'     => '该手机号已注册',
+    'mobile_not_registered' => '手机号未注册，请先注册',
+    'invalid_sms_scene' => '无效的验证码场景',
     'missing_code_param'        => '缺少code参数',
     'password_min_length'       => '新密码至少6位',
     'select_payment_channel'    => '请选择支付渠道',

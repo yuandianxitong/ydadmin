@@ -16,6 +16,14 @@ class UserService extends Service
     protected \app\service\wechat\OfficialAccountService $officialAccountService;
 
     /**
+     * 检查手机号是否已注册
+     */
+    public function mobileExists(string $mobile): bool
+    {
+        return $this->userRepository->findByMobile($mobile) !== null;
+    }
+
+    /**
      * 账号+密码登录（账号可以是手机号或用户名）
      */
     public function loginByPassword(string $account, string $password, string $ip = ''): array
