@@ -45,22 +45,14 @@ class UserService extends Service
     }
 
     /**
-     * 手机号+验证码登录（自动注册）
+     * 手机号+验证码登录
      */
     public function loginBySmsCode(string $mobile, string $ip = ''): array
     {
         $user = $this->userRepository->findByMobile($mobile);
 
         if (!$user) {
-            // 自动注册
-            $this->userRepository->create([
-                'mobile'   => $mobile,
-                'nickname' => '用户' . substr($mobile, -4),
-                'status'   => 1,
-            ]);
-            $user = $this->userRepository->findByMobile($mobile);
-
-            $this->trigger('user.register', ['user_id' => $user->id, 'mobile' => $mobile]);
+            throw new BusinessException(lang('business.mobile_not_registered'));
         }
 
         if ($user->status !== 1) {
