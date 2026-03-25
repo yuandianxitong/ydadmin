@@ -60,7 +60,7 @@ class MessageLogRepository extends Repository
     /**
      * 更新发送日志结果
      */
-    public function updateLogResult(int $id, array $data): bool
+    public function updateLogResult(int|string $id, array $data): bool
     {
         return $this->model->where('id', $id)->update($data) !== false;
     }
