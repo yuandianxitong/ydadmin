@@ -139,6 +139,27 @@ class MessageService extends Service
     }
 
     /**
+     * 尝试发送消息（失败不抛异常）
+     *
+     * 专为事件监听器设计：消息发送是副作用，失败不应影响主流程。
+     * 模板不存在或未启用时静默跳过，发送失败只记日志。
+     *
+     * @param string $code 模板标识
+     * @param array  $receivers ['phone' => '手机号', 'openid' => '公众号openid', 'mini_openid' => '小程序openid']
+     * @param array  $data 模板变量
+     * @return array 发送结果，失败时返回 ['error' => '错误信息']
+     */
+    public function trySend(string $code, array $receivers, array $data): array
+    {
+        try {
+            return $this->send($code, $receivers, $data);
+        } catch (\Throwable $e) {
+            Log::warning("消息发送跳过 [{$code}]: " . $e->getMessage());
+            return ['error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * 单通道发送并记录日志
      */
     protected function sendChannel(
