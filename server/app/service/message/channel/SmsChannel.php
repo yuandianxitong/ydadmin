@@ -32,17 +32,15 @@ class SmsChannel implements ChannelInterface
             return ['success' => false, 'error' => lang('business.aliyun_sms_config_incomplete')];
         }
 
-        \AlibabaCloud\SDK\Dysmsapi\Dysmsapi::setEndpoint('dysmsapi.aliyuncs.com');
-
         $config = new \Darabonba\OpenApi\Models\Config([
             'accessKeyId'     => $accessKey,
             'accessKeySecret' => $accessSecret,
             'endpoint'        => 'dysmsapi.aliyuncs.com',
         ]);
 
-        $client = new \AlibabaCloud\SDK\Dysmsapi\Dysmsapi($config);
+        $client = new \AlibabaCloud\SDK\Dysmsapi\V20170525\Dysmsapi($config);
 
-        $request = new \AlibabaCloud\SDK\Dysmsapi\Models\SendSmsRequest([
+        $request = new \AlibabaCloud\SDK\Dysmsapi\V20170525\Models\SendSmsRequest([
             'phoneNumbers'  => $phone,
             'signName'      => $signName,
             'templateCode'  => $templateCode,
