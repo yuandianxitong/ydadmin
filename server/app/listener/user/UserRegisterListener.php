@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace app\listener\user;
 
+use app\repository\user\UserRepository;
 use app\service\message\MessageService;
 use think\facade\Log;
 
@@ -17,10 +18,7 @@ use think\facade\Log;
  *
  * 事件数据：
  * - user_id: int      用户ID
- * - mobile: string    手机号（手机注册时）
  * - channel: string   注册渠道：sms / miniapp（可选）
- * - oa_openid: string    公众号openid（可选）
- * - mini_openid: string 小程序openid（可选）
  */
 class UserRegisterListener
 {
@@ -31,10 +29,20 @@ class UserRegisterListener
             'channel' => $event['channel'] ?? 'sms',
         ]);
 
+        $userId = (int) ($event['user_id'] ?? 0);
+        if (!$userId) {
+            return;
+        }
+
+        $user = app(UserRepository::class)->findModel($userId);
+        if (!$user) {
+            return;
+        }
+
         $receivers = array_filter([
-            'phone'       => $event['mobile'] ?? '',
-            'openid'      => $event['oa_openid'] ?? '',
-            'mini_openid' => $event['mini_openid'] ?? '',
+            'phone'       => $user->mobile ?? '',
+            'openid'      => $user->oa_openid ?? '',
+            'mini_openid' => $user->mini_openid ?? '',
         ]);
 
         if (!empty($receivers)) {
