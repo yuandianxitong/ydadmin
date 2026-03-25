@@ -4,13 +4,34 @@
       <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">注册</h2>
       <form @submit.prevent="handleRegister">
         <div class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">手机号/账号</label>
+          <label class="block text-sm text-gray-600 mb-1">手机号</label>
           <input
-            v-model="form.account"
+            v-model="form.mobile"
             type="text"
-            placeholder="请输入手机号或账号"
+            maxlength="11"
+            placeholder="请输入手机号"
             class="form-input"
           />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm text-gray-600 mb-1">验证码</label>
+          <div class="flex gap-2">
+            <input
+              v-model="form.code"
+              type="text"
+              maxlength="6"
+              placeholder="请输入验证码"
+              class="form-input flex-1"
+            />
+            <button
+              type="button"
+              :disabled="countdown > 0"
+              class="btn-outline text-sm flex-shrink-0 !px-3"
+              @click="handleSendCode"
+            >
+              {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+            </button>
+          </div>
         </div>
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">密码</label>
@@ -51,17 +72,45 @@ import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
 import { setToken } from '~/composables/useRequest'
 import { authApi } from '~/api/auth'
+import { commonApi } from '~/api/common'
 
 definePageMeta({ layout: 'blank' })
 
 const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
-const form = reactive({ account: '', password: '', password_confirmation: '' })
+const form = reactive({ mobile: '', code: '', password: '', password_confirmation: '' })
 const submitting = ref(false)
+const countdown = ref(0)
+let timer: ReturnType<typeof setInterval> | null = null
+
+async function handleSendCode() {
+  if (!form.mobile) { message.warning('请输入手机号'); return }
+  if (!/^1[3-9]\d{9}$/.test(form.mobile)) { message.warning('请输入正确的手机号'); return }
+  if (countdown.value > 0) return
+  try {
+    const res = await commonApi.sendSmsCode({ mobile: form.mobile, scene: 'register' })
+    if (res.code === 200) {
+      message.success('验证码已发送')
+      countdown.value = 60
+      timer = setInterval(() => {
+        countdown.value--
+        if (countdown.value <= 0 && timer) {
+          clearInterval(timer)
+          timer = null
+        }
+      }, 1000)
+    } else {
+      message.error(res.message || '发送失败')
+    }
+  } catch {
+    message.error('网络错误')
+  }
+}
 
 async function handleRegister() {
-  if (!form.account) { message.warning('请输入手机号或账号'); return }
+  if (!form.mobile) { message.warning('请输入手机号'); return }
+  if (!form.code) { message.warning('请输入验证码'); return }
   if (!form.password || form.password.length < 6) { message.warning('密码长度至少6位'); return }
   if (form.password !== form.password_confirmation) { message.warning('两次密码输入不一致'); return }
 
@@ -82,4 +131,8 @@ async function handleRegister() {
     submitting.value = false
   }
 }
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
