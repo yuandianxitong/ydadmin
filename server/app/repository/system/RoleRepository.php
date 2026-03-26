@@ -58,12 +58,23 @@ class RoleRepository extends Repository
      */
     public function assignMenus(int $roleId, array $menuIds): bool
     {
-        $role = $this->model->find($roleId);
-        if (!$role) {
-            return false;
+        $now = date('Y-m-d H:i:s');
+
+        // 清除旧关联
+        \think\facade\Db::table('role_menus')->where('role_id', $roleId)->delete();
+
+        // 写入新关联（带时间戳）
+        if (!empty($menuIds)) {
+            $pivotData = array_map(fn(int $menuId) => [
+                'role_id' => $roleId,
+                'menu_id' => $menuId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $menuIds);
+            \think\facade\Db::table('role_menus')->insertAll($pivotData);
         }
 
-        return $role->menus()->sync($menuIds) !== false;
+        return true;
     }
 
     /**
@@ -73,7 +84,8 @@ class RoleRepository extends Repository
     {
         return $this->model->where('status', 1)
             ->order('sort asc, id asc')
-            ->select(['id', 'name', 'title'])
+            ->field('id, name, title')
+            ->select()
             ->toArray();
     }
 

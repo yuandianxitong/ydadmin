@@ -17,7 +17,7 @@ class MessageTemplateController extends Controller
     /**
      * 模板列表
      */
-    #[Permission('message.template.list')]
+    #[Permission('system.message.template.list')]
     #[OA\Get(
         path: '/message/template',
         summary: '获取消息模板列表',
@@ -48,7 +48,7 @@ class MessageTemplateController extends Controller
     /**
      * 模板详情
      */
-    #[Permission('message.template.list')]
+    #[Permission('system.message.template.list')]
     #[OA\Get(
         path: '/message/template/{id}',
         summary: '获取消息模板详情',
@@ -74,7 +74,7 @@ class MessageTemplateController extends Controller
     /**
      * 创建模板
      */
-    #[Permission('message.template.create')]
+    #[Permission('system.message.template.create')]
     #[OA\Post(
         path: '/message/template',
         summary: '创建消息模板',
@@ -110,7 +110,7 @@ class MessageTemplateController extends Controller
     /**
      * 更新模板
      */
-    #[Permission('message.template.update')]
+    #[Permission('system.message.template.update')]
     #[OA\Put(
         path: '/message/template/{id}',
         summary: '更新消息模板',
@@ -145,7 +145,7 @@ class MessageTemplateController extends Controller
     /**
      * 删除模板
      */
-    #[Permission('message.template.delete')]
+    #[Permission('system.message.template.delete')]
     #[OA\Delete(
         path: '/message/template/{id}',
         summary: '删除消息模板',
@@ -172,7 +172,7 @@ class MessageTemplateController extends Controller
     /**
      * 测试发送
      */
-    #[Permission('message.template.send')]
+    #[Permission('system.message.template.send')]
     #[OA\Post(
         path: '/message/template/test-send',
         summary: '测试发送消息模板',

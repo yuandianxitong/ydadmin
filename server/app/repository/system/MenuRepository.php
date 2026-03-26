@@ -53,7 +53,8 @@ class MenuRepository extends Repository
             ->where('type', 3)
             ->where('status', 1)
             ->order('sort asc, id asc')
-            ->select(['id', 'title', 'permission'])
+            ->field('id, title, permission')
+            ->select()
             ->toArray();
     }
 
@@ -68,7 +69,7 @@ class MenuRepository extends Repository
 
         $buttons = \think\facade\Db::table((new Menu())->getTable())
             ->whereIn('id', $menuIds)
-            ->where('type', 3)
+            ->whereIn('type', [2, 3])
             ->where('status', 1)
             ->where('permission', '<>', '')
             ->column('permission');

@@ -321,7 +321,7 @@ export default {
         mobilePlaceholder: 'Enter mobile number',
         passwordPlaceholder: 'Enter password',
         confirmPasswordPlaceholder: 'Re-enter password',
-        deptInputPlaceholder: 'Enter department',
+        deptInputPlaceholder: 'Select department',
         positionPlaceholder: 'Enter position',
         rolePlaceholder: 'Select roles',
         avatarTip: 'Supports jpg, png formats, max 2MB',

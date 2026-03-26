@@ -19,7 +19,7 @@ class OfficialAccountController extends Controller
     /**
      * 获取自定义菜单
      */
-    #[Permission('wechat.official.list')]
+    #[Permission('channel.official.menu')]
     #[OA\Get(
         path: '/wechat/official/menu',
         summary: '获取公众号自定义菜单',
@@ -42,7 +42,7 @@ class OfficialAccountController extends Controller
     /**
      * 创建自定义菜单
      */
-    #[Permission('wechat.official.create')]
+    #[Permission('channel.official.menu.create')]
     #[OA\Post(
         path: '/wechat/official/menu',
         summary: '创建公众号自定义菜单',
@@ -79,7 +79,7 @@ class OfficialAccountController extends Controller
     /**
      * 删除自定义菜单
      */
-    #[Permission('wechat.official.delete')]
+    #[Permission('channel.official.menu.delete')]
     #[OA\Delete(
         path: '/wechat/official/menu',
         summary: '删除公众号自定义菜单',
@@ -102,7 +102,7 @@ class OfficialAccountController extends Controller
     /**
      * 发送模板消息
      */
-    #[Permission('wechat.official.send')]
+    #[Permission('channel.official.config.send')]
     #[OA\Post(
         path: '/wechat/official/template/send',
         summary: '发送公众号模板消息',
@@ -148,7 +148,7 @@ class OfficialAccountController extends Controller
     /**
      * 获取粉丝列表
      */
-    #[Permission('wechat.official.list')]
+    #[Permission('channel.official.config')]
     #[OA\Get(
         path: '/wechat/official/followers',
         summary: '获取公众号粉丝列表',
@@ -175,7 +175,7 @@ class OfficialAccountController extends Controller
     /**
      * 获取用户信息
      */
-    #[Permission('wechat.official.list')]
+    #[Permission('channel.official.config')]
     #[OA\Get(
         path: '/wechat/official/user-info',
         summary: '获取公众号用户信息',

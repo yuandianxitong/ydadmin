@@ -57,7 +57,7 @@ class AnnouncementController extends Controller
     /**
      * 公告详情
      */
-    #[Permission('announcement.detail')]
+    #[Permission('announcement.list')]
     #[OA\Get(
         path: '/announcement/detail/{id}',
         summary: '获取公告详情',

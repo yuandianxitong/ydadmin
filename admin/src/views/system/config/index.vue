@@ -56,29 +56,31 @@
 
                                     <!-- file 文件上传 -->
                                     <template v-else-if="config.config_type === 'file'">
-                                        <el-upload
-                                            class="image-uploader"
-                                            :show-file-list="false"
-                                            :on-success="
-                                                (response: any) =>
-                                                    handleUploadSuccess(response, config.config_key)
-                                            "
-                                            :before-upload="beforeUpload"
-                                            action="/adminapi/upload/image"
-                                            :headers="uploadHeaders"
-                                        >
-                                            <img
-                                                v-if="formData[config.config_key]"
-                                                :src="getImageUrl(formData[config.config_key])"
-                                                class="uploaded-image"
-                                                :alt="getItemName(config)"
-                                            />
-                                            <el-icon v-else class="image-uploader-icon">
-                                                <Plus />
-                                            </el-icon>
-                                        </el-upload>
-                                        <div class="upload-tip">
-                                            {{ getItemDesc(config) }}，{{ $t('config.fileTip') }}
+                                        <div>
+                                            <el-upload
+                                                class="image-uploader"
+                                                :show-file-list="false"
+                                                :on-success="
+                                                    (response: any) =>
+                                                        handleUploadSuccess(response, config.config_key)
+                                                "
+                                                :before-upload="beforeUpload"
+                                                action="/adminapi/upload/image"
+                                                :headers="uploadHeaders"
+                                            >
+                                                <img
+                                                    v-if="formData[config.config_key]"
+                                                    :src="getImageUrl(formData[config.config_key])"
+                                                    class="uploaded-image"
+                                                    :alt="getItemName(config)"
+                                                />
+                                                <el-icon v-else class="image-uploader-icon">
+                                                    <Plus />
+                                                </el-icon>
+                                            </el-upload>
+                                            <div class="upload-tip">
+                                                {{ getItemDesc(config) }}，{{ $t('config.fileTip') }}
+                                            </div>
                                         </div>
                                     </template>
 
@@ -443,7 +445,6 @@ const handleReset = () => {
         color: var(--color-text-tertiary);
         margin-top: 8px;
         line-height: 1.4;
-        margin-left: 10px;
     }
 
     :deep(.el-tabs__content) {

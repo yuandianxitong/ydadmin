@@ -237,12 +237,8 @@ const handleSubmit = async () => {
         submitLoading.value = true
 
         // 获取选中的菜单ID（包含半选的父节点）
-        const checkedKeys = (menuTreeRef.value?.getCheckedKeys() || []).filter(
-            (key: any) => typeof key === 'number'
-        ) as number[]
-        const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() || []).filter(
-            (key: any) => typeof key === 'number'
-        ) as number[]
+        const checkedKeys = (menuTreeRef.value?.getCheckedKeys() || []).map(Number).filter(Boolean)
+        const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() || []).map(Number).filter(Boolean)
 
         const menuIds = [...checkedKeys, ...halfCheckedKeys]
 

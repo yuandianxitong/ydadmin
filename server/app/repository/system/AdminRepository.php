@@ -119,12 +119,23 @@ class AdminRepository extends Repository
      */
     public function assignRoles(int $adminId, array $roleIds): bool
     {
-        $admin = $this->model->find($adminId);
-        if (!$admin) {
-            return false;
+        $now = date('Y-m-d H:i:s');
+
+        // 清除旧关联
+        \think\facade\Db::table('admin_roles')->where('admin_id', $adminId)->delete();
+
+        // 写入新关联（带时间戳）
+        if (!empty($roleIds)) {
+            $pivotData = array_map(fn(int $roleId) => [
+                'admin_id' => $adminId,
+                'role_id' => $roleId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $roleIds);
+            \think\facade\Db::table('admin_roles')->insertAll($pivotData);
         }
 
-        return $admin->roles()->sync($roleIds) !== false;
+        return true;
     }
 
     /**

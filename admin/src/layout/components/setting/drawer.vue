@@ -145,7 +145,7 @@
                 </div>
 
                 <!-- 底部重置 -->
-                <div class="mt-auto pt-4 border-t border-solid border-color-border">
+                <div class="mt-auto pt-4">
                     <el-button class="w-full" @click="resetAll">
                         {{ $t('settings.reset') }}
                     </el-button>

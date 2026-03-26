@@ -17,7 +17,7 @@ class AutoReplyController extends Controller
     /**
      * 自动回复列表
      */
-    #[Permission('wechat.auto-reply.list')]
+    #[Permission('channel.official.auto_reply')]
     #[OA\Get(
         path: '/wechat/auto-reply',
         summary: '获取自动回复列表',
@@ -50,7 +50,7 @@ class AutoReplyController extends Controller
     /**
      * 自动回复详情
      */
-    #[Permission('wechat.auto-reply.list')]
+    #[Permission('channel.official.auto_reply')]
     #[OA\Get(
         path: '/wechat/auto-reply/{id}',
         summary: '获取自动回复详情',
@@ -76,7 +76,7 @@ class AutoReplyController extends Controller
     /**
      * 创建自动回复
      */
-    #[Permission('wechat.auto-reply.create')]
+    #[Permission('channel.official.auto_reply.create')]
     #[OA\Post(
         path: '/wechat/auto-reply',
         summary: '创建自动回复规则',
@@ -112,7 +112,7 @@ class AutoReplyController extends Controller
     /**
      * 更新自动回复
      */
-    #[Permission('wechat.auto-reply.update')]
+    #[Permission('channel.official.auto_reply.update')]
     #[OA\Put(
         path: '/wechat/auto-reply/{id}',
         summary: '更新自动回复规则',
@@ -148,7 +148,7 @@ class AutoReplyController extends Controller
     /**
      * 删除自动回复
      */
-    #[Permission('wechat.auto-reply.delete')]
+    #[Permission('channel.official.auto_reply.delete')]
     #[OA\Delete(
         path: '/wechat/auto-reply/{id}',
         summary: '删除自动回复规则',

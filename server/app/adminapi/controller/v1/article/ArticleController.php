@@ -57,7 +57,7 @@ class ArticleController extends Controller
     /**
      * 文章详情
      */
-    #[Permission('article.detail')]
+    #[Permission('article.list')]
     #[OA\Get(
         path: '/article/detail/{id}',
         summary: '获取文章详情',

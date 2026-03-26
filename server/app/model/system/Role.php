@@ -31,13 +31,13 @@ class Role extends Model
     // 关联管理员
     public function admins(): BelongsToMany
     {
-        return $this->belongsToMany(Admin::class, 'admin_roles', 'role_id', 'admin_id');
+        return $this->belongsToMany(Admin::class, 'admin_roles', 'admin_id', 'role_id');
     }
 
     // 关联菜单（统一管理权限）
     public function menus(): BelongsToMany
     {
-        return $this->belongsToMany(Menu::class, 'role_menus', 'role_id', 'menu_id');
+        return $this->belongsToMany(Menu::class, 'role_menus', 'menu_id', 'role_id');
     }
 
     // 访问器

@@ -95,7 +95,7 @@ class Permission
                 ->join('menus m', 'rm.menu_id = m.id')
                 ->join('roles r', 'rm.role_id = r.id')
                 ->where('r.name', $role)
-                ->where('m.type', 3)
+                ->whereIn('m.type', [2, 3])
                 ->where('m.status', 1)
                 ->where('m.permission', '<>', '')
                 ->column('m.permission');

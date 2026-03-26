@@ -55,7 +55,7 @@ class AppVersionController extends Controller
     /**
      * 版本详情
      */
-    #[Permission('version.detail')]
+    #[Permission('version.list')]
     #[OA\Get(
         path: '/version/detail/{id}',
         summary: '获取版本详情',

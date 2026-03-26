@@ -315,7 +315,7 @@ export default {
         mobilePlaceholder: '请输入手机号',
         passwordPlaceholder: '请输入密码',
         confirmPasswordPlaceholder: '请再次输入密码',
-        deptInputPlaceholder: '请输入部门',
+        deptInputPlaceholder: '请选择部门',
         positionPlaceholder: '请输入职位',
         rolePlaceholder: '请选择角色',
         avatarTip: '支持jpg、png格式，大小不超过2MB',

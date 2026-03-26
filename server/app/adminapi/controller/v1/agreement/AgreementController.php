@@ -55,7 +55,7 @@ class AgreementController extends Controller
     /**
      * 协议详情
      */
-    #[Permission('agreement.detail')]
+    #[Permission('agreement.list')]
     #[OA\Get(
         path: '/agreement/detail/{id}',
         summary: '获取协议详情',

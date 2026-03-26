@@ -65,8 +65,17 @@
 
             <el-row :gutter="16">
                 <el-col :span="12">
-                    <el-form-item :label="$t('admin.department')" prop="department">
-                        <el-input v-model="form.department" :placeholder="$t('admin.deptInputPlaceholder')" />
+                    <el-form-item :label="$t('admin.department')" prop="department_id">
+                        <el-tree-select
+                            v-model="form.department_id"
+                            :data="departmentOptions"
+                            node-key="id"
+                            :props="{ label: 'name' }"
+                            :placeholder="$t('admin.deptInputPlaceholder')"
+                            check-strictly
+                            clearable
+                            style="width: 100%"
+                        />
                     </el-form-item>
                 </el-col>
 
@@ -78,22 +87,24 @@
             </el-row>
 
             <el-form-item :label="$t('admin.avatar')" prop="avatar">
-                <el-upload
-                    class="avatar-uploader"
-                    :show-file-list="false"
-                    :on-success="handleAvatarSuccess"
-                    :before-upload="beforeAvatarUpload"
-                    action="/api/upload/image"
-                    :headers="uploadHeaders"
-                >
-                    <img
-                        v-if="form.avatar"
-                        :src="appStore.getImageUrl(form.avatar)"
-                        class="avatar"
-                    />
-                    <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-                </el-upload>
-                <div class="upload-tip">{{ $t('admin.avatarTip') }}</div>
+                <div>
+                    <el-upload
+                        class="avatar-uploader"
+                        :show-file-list="false"
+                        :on-success="handleAvatarSuccess"
+                        :before-upload="beforeAvatarUpload"
+                        action="/adminapi/upload/image"
+                        :headers="uploadHeaders"
+                    >
+                        <img
+                            v-if="form.avatar"
+                            :src="appStore.getImageUrl(form.avatar)"
+                            class="avatar"
+                        />
+                        <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+                    </el-upload>
+                    <div class="upload-tip">{{ $t('admin.avatarTip') }}</div>
+                </div>
             </el-form-item>
 
             <el-form-item :label="$t('admin.role')" prop="role_ids">
@@ -147,6 +158,7 @@ interface Props {
     modelValue: boolean
     formData: Partial<AdminInfo>
     roleOptions: Array<{ id: number; name: string; title: string }>
+    departmentOptions: Array<{ id: number; name: string; children?: any[] }>
 }
 
 interface Emits {
@@ -182,7 +194,7 @@ const form = reactive<AdminReq & { confirmPassword?: string }>({
     confirmPassword: '',
     nickname: '',
     avatar: '',
-    department: '',
+    department_id: null,
     position: '',
     status: 1,
     role_ids: []
@@ -248,7 +260,7 @@ watch(
                 confirmPassword: '',
                 nickname: newData.nickname || '',
                 avatar: newData.avatar || '',
-                department: newData.department || '',
+                department_id: newData.department_id || null,
                 position: newData.position || '',
                 status: newData.status || 1,
                 role_ids: newData.roles?.map((role) => role.id) || []
@@ -300,7 +312,7 @@ const handleSubmit = async () => {
             mobile: form.mobile,
             nickname: form.nickname,
             avatar: form.avatar,
-            department: form.department,
+            department_id: form.department_id,
             position: form.position,
             status: form.status,
             role_ids: form.role_ids

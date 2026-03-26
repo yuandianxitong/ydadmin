@@ -57,7 +57,7 @@ class FeedbackController extends Controller
     /**
      * 反馈详情
      */
-    #[Permission('feedback.detail')]
+    #[Permission('feedback.list')]
     #[OA\Get(
         path: '/feedback/detail/{id}',
         summary: '获取反馈详情',

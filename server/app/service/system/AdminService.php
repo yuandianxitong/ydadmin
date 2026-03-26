@@ -10,20 +10,24 @@ declare(strict_types=1);
 namespace app\service\system;
 
 use app\repository\system\AdminRepository;
+use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use core\base\Service;
 use core\auth\TokenManager;
+use core\auth\Permission;
 use core\exception\BusinessException;
 use think\facade\Db;
 
 class AdminService extends Service
 {
     protected AdminRepository $adminRepository;
+    protected DepartmentRepository $departmentRepository;
     protected RoleRepository $roleRepository;
     protected MenuRepository $menuRepository;
     protected TokenManager $tokenManager;
     protected MenuService $menuService;
+    protected Permission $permission;
 
     /**
      * 管理员登录
@@ -151,6 +155,7 @@ class AdminService extends Service
         Db::startTrans();
         try {
             // 创建管理员
+            $departmentId = !empty($data['department_id']) ? (int) $data['department_id'] : null;
             $adminData = [
                 'username' => $data['username'],
                 'email' => $data['email'],
@@ -158,7 +163,8 @@ class AdminService extends Service
                 'password' => $data['password'],
                 'nickname' => $data['nickname'] ?? $data['username'],
                 'avatar' => $data['avatar'] ?? '',
-                'department' => $data['department'] ?? '',
+                'department_id' => $departmentId,
+                'department' => $departmentId ? ($this->departmentRepository->find($departmentId)['name'] ?? '') : ($data['department'] ?? ''),
                 'position' => $data['position'] ?? '',
                 'status' => $data['status'] ?? 1,
                 'created_by' => $data['created_by'] ?? 0,
@@ -168,10 +174,13 @@ class AdminService extends Service
 
             // 分配角色
             if (!empty($data['role_ids'])) {
-                $this->adminRepository->assignRoles($admin['id'], $data['role_ids']);
+                $this->adminRepository->assignRoles((int) $admin['id'], $data['role_ids']);
             }
 
             Db::commit();
+
+            // 清除权限缓存
+            $this->permission->clearUserCache((int) $admin['id']);
 
             $this->log('创建管理员成功', ['admin_id' => $admin['id']]);
 
@@ -210,7 +219,6 @@ class AdminService extends Service
                 'mobile' => $data['mobile'] ?? null,
                 'nickname' => $data['nickname'] ?? null,
                 'avatar' => $data['avatar'] ?? null,
-                'department' => $data['department'] ?? null,
                 'position' => $data['position'] ?? null,
                 'status' => $data['status'] ?? null,
                 'updated_by' => $data['updated_by'] ?? 0,
@@ -218,9 +226,16 @@ class AdminService extends Service
                 return $value !== null;
             });
 
+            // 处理部门
+            if (array_key_exists('department_id', $data)) {
+                $departmentId = !empty($data['department_id']) ? (int) $data['department_id'] : null;
+                $updateData['department_id'] = $departmentId;
+                $updateData['department'] = $departmentId ? ($this->departmentRepository->find($departmentId)['name'] ?? '') : '';
+            }
+
             // 如果有密码更新
             if (!empty($data['password'])) {
-                $updateData['password'] = $data['password'];
+                $updateData['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
             }
 
             $result = $this->adminRepository->update($id, $updateData);
@@ -231,6 +246,9 @@ class AdminService extends Service
             }
 
             Db::commit();
+
+            // 清除权限缓存
+            $this->permission->clearUserCache($id);
 
             $this->log('更新管理员成功', ['admin_id' => $id]);
 
@@ -312,7 +330,7 @@ class AdminService extends Service
             throw new BusinessException(lang('auth.admin_not_found'));
         }
 
-        $result = $this->adminRepository->update($id, ['password' => $password]);
+        $result = $this->adminRepository->update($id, ['password' => password_hash($password, PASSWORD_DEFAULT)]);
 
         if ($result) {
             $this->log('重置密码成功', ['admin_id' => $id]);
@@ -336,7 +354,7 @@ class AdminService extends Service
             throw new BusinessException(lang('auth.old_password_error'));
         }
 
-        $result = $this->adminRepository->update($id, ['password' => $newPassword]);
+        $result = $this->adminRepository->update($id, ['password' => password_hash($newPassword, PASSWORD_DEFAULT)]);
 
         if ($result) {
             $this->log('修改密码成功', ['admin_id' => $id]);

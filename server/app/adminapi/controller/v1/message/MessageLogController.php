@@ -17,7 +17,7 @@ class MessageLogController extends Controller
     /**
      * 发送记录列表
      */
-    #[Permission('message.log.list')]
+    #[Permission('system.message.log.list')]
     #[OA\Get(
         path: '/message/log',
         summary: '获取消息发送记录列表',

@@ -20,6 +20,7 @@ class AdminValidate extends Validate
         'password' => 'require|length:6,20',
         'nickname' => 'length:2,20',
         'avatar' => 'url',
+        'department_id' => 'integer',
         'department' => 'max:100',
         'position' => 'max:100',
         'status' => 'integer|in:0,1',
@@ -48,9 +49,18 @@ class AdminValidate extends Validate
     ];
 
     protected $scene = [
-        'create' => ['username', 'email', 'mobile', 'password', 'nickname', 'avatar', 'department', 'position', 'status', 'role_ids'],
-        'update' => ['username', 'email', 'mobile', 'nickname', 'avatar', 'department', 'position', 'status', 'role_ids'],
+        'create' => ['username', 'email', 'mobile', 'password', 'nickname', 'avatar', 'department_id', 'department', 'position', 'status', 'role_ids'],
     ];
+
+    /**
+     * update 场景：去掉 unique 规则，唯一性由 Service 层排除自身后校验
+     */
+    public function sceneUpdate(): AdminValidate
+    {
+        return $this->only(['username', 'email', 'mobile', 'nickname', 'avatar', 'department_id', 'department', 'position', 'status', 'role_ids'])
+            ->remove('username', 'require|unique')
+            ->remove('email', 'require|unique');
+    }
 
     /**
      * 验证手机号

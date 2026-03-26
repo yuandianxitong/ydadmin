@@ -187,6 +187,7 @@
             v-model="formVisible"
             :form-data="formData"
             :role-options="roleOptions"
+            :department-options="departmentOptions"
             @success="getAdminList"
         />
 
@@ -206,6 +207,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { adminApi } from '@/api/admin'
+import { departmentApi } from '@/api/department'
 import { roleApi } from '@/api/role'
 import { useUserStore } from '@/store'
 import useAppStore from '@/store/modules/app.store'
@@ -250,6 +252,9 @@ const currentAdmin = ref<AdminInfo | null>(null)
 // 角色选项
 const roleOptions = ref<RoleOption[]>([])
 
+// 部门选项
+const departmentOptions = ref<any[]>([])
+
 // 获取管理员列表
 const getAdminList = async () => {
     try {
@@ -277,6 +282,16 @@ const getRoleOptions = async () => {
         roleOptions.value = response.data
     } catch (error) {
         console.error('获取角色选项失败:', error)
+    }
+}
+
+// 获取部门选项
+const getDepartmentOptions = async () => {
+    try {
+        const response = await departmentApi.getOptions()
+        departmentOptions.value = response.data
+    } catch (error) {
+        console.error('获取部门选项失败:', error)
     }
 }
 
@@ -378,6 +393,7 @@ const handleBatchDelete = async () => {
 onMounted(() => {
     getAdminList()
     getRoleOptions()
+    getDepartmentOptions()
 })
 </script>
 

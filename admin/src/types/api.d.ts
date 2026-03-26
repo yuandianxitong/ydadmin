@@ -49,6 +49,7 @@ export interface AdminInfo {
     mobile?: string
     nickname?: string
     avatar?: string
+    department_id?: number | null
     department?: string
     position?: string
     status: number
@@ -125,7 +126,7 @@ export interface AdminReq {
     password?: string
     nickname?: string
     avatar?: string
-    department?: string
+    department_id?: number | null
     position?: string
     status: number
     role_ids?: number[]

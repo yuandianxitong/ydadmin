@@ -53,7 +53,8 @@ class PermissionRepository extends Repository
     {
         return $this->model->where('status', 1)
             ->order('group asc, sort asc, id asc')
-            ->select(['id', 'name', 'title', 'group'])
+            ->field('id, name, title, group')
+            ->select()
             ->toArray();
     }
 

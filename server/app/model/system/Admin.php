@@ -19,7 +19,7 @@ class Admin extends Model
 
     protected $fillable = [
         'username', 'email', 'mobile', 'password', 'nickname', 'avatar',
-        'department', 'position', 'status', 'last_login_ip', 'last_login_time',
+        'department_id', 'department', 'position', 'status', 'last_login_ip', 'last_login_time',
         'login_count', 'created_by', 'updated_by'
     ];
 
@@ -34,7 +34,7 @@ class Admin extends Model
     // 关联角色
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'admin_roles', 'admin_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'admin_roles', 'role_id', 'admin_id');
     }
 
     // 登录日志

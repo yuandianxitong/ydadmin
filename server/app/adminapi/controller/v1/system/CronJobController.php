@@ -14,7 +14,7 @@ class CronJobController extends Controller
 {
     protected CronJobService $service;
 
-    #[Permission('system.cron-job.list')]
+    #[Permission('system.cron_job.list')]
     #[OA\Get(
         path: '/system/cron-job',
         summary: '定时任务列表',
@@ -42,7 +42,7 @@ class CronJobController extends Controller
         return $this->paginate($result);
     }
 
-    #[Permission('system.cron-job.list')]
+    #[Permission('system.cron_job.list')]
     #[OA\Get(
         path: '/system/cron-job/{id}',
         summary: '定时任务详情',
@@ -66,7 +66,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.get_success'), $result);
     }
 
-    #[Permission('system.cron-job.create')]
+    #[Permission('system.cron_job.create')]
     #[OA\Post(
         path: '/system/cron-job',
         summary: '创建定时任务',
@@ -99,7 +99,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.create_success'), $result);
     }
 
-    #[Permission('system.cron-job.update')]
+    #[Permission('system.cron_job.update')]
     #[OA\Put(
         path: '/system/cron-job/{id}',
         summary: '更新定时任务',
@@ -130,7 +130,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.update_success'));
     }
 
-    #[Permission('system.cron-job.delete')]
+    #[Permission('system.cron_job.delete')]
     #[OA\Delete(
         path: '/system/cron-job/{id}',
         summary: '删除定时任务',
@@ -150,7 +150,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.delete_success'));
     }
 
-    #[Permission('system.cron-job.update')]
+    #[Permission('system.cron_job.update')]
     #[OA\Put(
         path: '/system/cron-job/{id}/status',
         summary: '更新定时任务状态',
@@ -177,7 +177,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.update_success'));
     }
 
-    #[Permission('system.cron-job.run')]
+    #[Permission('system.cron_job.run')]
     #[OA\Post(
         path: '/system/cron-job/{id}/run',
         summary: '手动执行定时任务',
@@ -197,7 +197,7 @@ class CronJobController extends Controller
         return $this->success(lang('messages.execute_complete'), $result);
     }
 
-    #[Permission('system.cron-job.list')]
+    #[Permission('system.cron_job.list')]
     #[OA\Get(
         path: '/system/cron-job/{id}/logs',
         summary: '定时任务执行日志',
@@ -223,7 +223,7 @@ class CronJobController extends Controller
         return $this->paginate($result);
     }
 
-    #[Permission('system.cron-job.clear')]
+    #[Permission('system.cron_job.clear')]
     #[OA\Post(
         path: '/system/cron-job/{id}/clear-logs',
         summary: '清理定时任务日志',

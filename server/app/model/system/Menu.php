@@ -41,7 +41,7 @@ class Menu extends Model
     // 关联角色
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_menus', 'menu_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'role_menus', 'role_id', 'menu_id');
     }
 
     // 关联子菜单
@@ -99,15 +99,17 @@ class Menu extends Model
      */
     public static function getFrontendRoutes(array $menuIds = []): array
     {
-        $query = self::where('status', 1)
-            ->where('type', '<>', 3) // 排除按钮
-            ->order('sort asc, id asc');
-
-        if (!empty($menuIds)) {
-            $query->whereIn('id', $menuIds);
+        // 没有分配任何菜单则返回空路由
+        if (empty($menuIds)) {
+            return [];
         }
 
-        $menus = $query->select()->toArray();
+        $menus = self::where('status', 1)
+            ->where('type', '<>', 3) // 排除按钮
+            ->whereIn('id', $menuIds)
+            ->order('sort asc, id asc')
+            ->select()
+            ->toArray();
 
         // 转换为前端路由格式
         $routes = [];
@@ -156,7 +158,8 @@ class Menu extends Model
                 $query->where('id', '<>', $excludeId);
             })
             ->order('sort asc, id asc')
-            ->select(['id', 'parent_id', 'title', 'type'])
+            ->field('id, parent_id, title, type')
+            ->select()
             ->toArray();
 
         // 添加根节点

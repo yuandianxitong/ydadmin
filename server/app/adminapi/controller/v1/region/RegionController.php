@@ -75,7 +75,7 @@ class RegionController extends Controller
     /**
      * 地区详情
      */
-    #[Permission('region.detail')]
+    #[Permission('region.list')]
     #[OA\Get(
         path: '/region/detail/{id}',
         summary: '获取地区详情',
