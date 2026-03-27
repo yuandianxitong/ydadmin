@@ -30,7 +30,7 @@
                 mode="vertical"
                 background-color="var(--color-sidebar-bg)"
                 text-color="#fff"
-                active-text-color="var(--el-color-primary)"
+                active-text-color="#fff"
                 class="standard-el-menu"
                 @select="onMenuSelect"
             >
@@ -87,7 +87,8 @@ function onMenuSelect(index: string) {
     }
 
     :deep(.el-menu-item.is-active) {
-        background-color: rgba(var(--el-color-primary-rgb, 59, 130, 246), 0.15);
+        color: #fff !important;
+        background-color: var(--color-sidebar-active);
         border-right: 3px solid var(--el-color-primary);
     }
 
