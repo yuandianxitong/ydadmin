@@ -28,8 +28,8 @@
                 :collapse="isCollapsed"
                 :unique-opened="settingStore.isUniqueOpened"
                 mode="vertical"
-                background-color="#1e1e2d"
-                text-color="#c0c4cc"
+                background-color="var(--color-sidebar-bg)"
+                text-color="#fff"
                 active-text-color="var(--el-color-primary)"
                 class="standard-el-menu"
                 @select="onMenuSelect"
@@ -74,7 +74,7 @@ function onMenuSelect(index: string) {
 
 <style lang="scss" scoped>
 .standard-sidebar {
-    background-color: #1e1e2d;
+    background-color: var(--color-sidebar-bg);
     transition: width 0.3s ease;
     overflow: hidden;
 }
