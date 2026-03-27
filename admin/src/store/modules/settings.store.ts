@@ -23,6 +23,7 @@ export interface SettingState {
     sideTheme: string
     sideDarkColor: string
     openMultipleTabs: boolean
+    layoutMode: 'classic' | 'sidebar'
     themeMode: 'system' | 'light' | 'dark'
     darkTheme: string
     theme: string
