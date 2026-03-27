@@ -91,25 +91,45 @@
                 <div class="setting-section mb-6">
                     <div class="section-title">{{ $t('settings.layoutMode') }}</div>
                     <div class="flex gap-4 mt-3">
-                        <el-tooltip :content="$t('settings.layoutModes.main')" placement="top">
+                        <!-- 经典布局 -->
+                        <div class="layout-option" @click="changeLayout('classic')">
                             <div
                                 class="layout-preview"
-                                :class="{
-                                    active:
-                                        settingStore.sideTheme === 'light' ||
-                                        settingStore.sideTheme === 'dark'
-                                }"
-                                @click="changeLayout('main')"
+                                :class="{ active: settingStore.layoutMode === 'classic' }"
                             >
                                 <div class="layout-classic">
-                                    <div class="layout-sidebar"></div>
+                                    <div class="layout-icon-bar"></div>
+                                    <div class="layout-sub-panel"></div>
                                     <div class="layout-main">
                                         <div class="layout-header"></div>
                                         <div class="layout-content"></div>
                                     </div>
                                 </div>
                             </div>
-                        </el-tooltip>
+                            <span
+                                class="text-xs mt-1"
+                                :class="settingStore.layoutMode === 'classic' ? 'text-[var(--el-color-primary)]' : 'text-[var(--color-text-tertiary)]'"
+                            >{{ $t('settings.layoutModes.classic') }}</span>
+                        </div>
+                        <!-- 正常侧栏 -->
+                        <div class="layout-option" @click="changeLayout('sidebar')">
+                            <div
+                                class="layout-preview"
+                                :class="{ active: settingStore.layoutMode === 'sidebar' }"
+                            >
+                                <div class="layout-classic">
+                                    <div class="layout-sidebar-wide"></div>
+                                    <div class="layout-main">
+                                        <div class="layout-header"></div>
+                                        <div class="layout-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <span
+                                class="text-xs mt-1"
+                                :class="settingStore.layoutMode === 'sidebar' ? 'text-[var(--el-color-primary)]' : 'text-[var(--color-text-tertiary)]'"
+                            >{{ $t('settings.layoutModes.sidebar') }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -290,8 +310,8 @@ function changeDarkTheme(value: string) {
     settingStore.applyThemeMode()
 }
 
-function changeLayout(_mode: string) {
-    // Reserved for future layout modes
+function changeLayout(mode: string) {
+    settingStore.setSetting({ key: 'layoutMode', value: mode })
 }
 
 function resetAll() {
@@ -411,14 +431,33 @@ function resetAll() {
     }
 }
 
+.layout-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
 .layout-classic {
     display: flex;
     width: 100%;
     height: 100%;
 }
 
-.layout-sidebar {
-    width: 24%;
+.layout-icon-bar {
+    width: 16%;
+    height: 100%;
+    background: var(--color-text-tertiary);
+}
+
+.layout-sub-panel {
+    width: 22%;
+    height: 100%;
+    background: var(--color-border);
+}
+
+.layout-sidebar-wide {
+    width: 30%;
     height: 100%;
     background: var(--color-text-tertiary);
 }

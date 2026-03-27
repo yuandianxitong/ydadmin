@@ -155,7 +155,7 @@ export default {
             black: 'Black'
         },
         layoutMode: 'Layout Mode',
-        layoutModes: { main: 'Classic', sideblock: 'Sidebar' },
+        layoutModes: { classic: 'Classic', sidebar: 'Sidebar' },
         otherSettings: 'Other Settings',
         reset: 'Reset Settings'
     },

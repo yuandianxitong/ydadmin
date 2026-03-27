@@ -149,7 +149,7 @@ export default {
         darkTheme: '暗色主题',
         darkThemes: { mint: '薄荷', navy: '海军蓝', mirage: '幻影', cinder: '煤灰', black: '纯黑' },
         layoutMode: '布局模式',
-        layoutModes: { main: '经典布局', sideblock: '分栏布局' },
+        layoutModes: { classic: '经典布局', sidebar: '正常侧栏' },
         otherSettings: '其他设置',
         reset: '重置设置'
     },
