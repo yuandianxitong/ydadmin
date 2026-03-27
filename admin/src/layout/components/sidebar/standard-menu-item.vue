@@ -4,7 +4,9 @@
         <el-menu-item v-if="!hasVisibleChildren" :index="resolvePath(route.path)">
             <Icon v-if="route.meta?.icon" :name="route.meta.icon" :size="20" />
             <template #title>
-                <span class="ml-2">{{ translateRouteTitle(route.meta?.title as string, route.name) }}</span>
+                <span class="ml-2">{{
+                    translateRouteTitle(route.meta?.title as string, route.name)
+                }}</span>
             </template>
         </el-menu-item>
 
@@ -12,7 +14,9 @@
         <el-sub-menu v-else :index="resolvePath(route.path)">
             <template #title>
                 <Icon v-if="route.meta?.icon" :name="route.meta.icon" :size="20" />
-                <span class="ml-2">{{ translateRouteTitle(route.meta?.title as string, route.name) }}</span>
+                <span class="ml-2">{{
+                    translateRouteTitle(route.meta?.title as string, route.name)
+                }}</span>
             </template>
             <standard-menu-item
                 v-for="child in visibleChildren"
@@ -48,6 +52,8 @@ const hasVisibleChildren = computed(() => {
 
 function resolvePath(path: string): string {
     if (isExternal(path)) return path
+    // 绝对路径直接返回（菜单数据的 path 都是绝对路径如 /system/admin）
+    if (path.startsWith('/')) return path
     return getNormalPath(`${props.basePath}/${path}`)
 }
 </script>
