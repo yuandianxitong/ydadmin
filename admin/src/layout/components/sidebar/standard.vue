@@ -88,7 +88,7 @@ function onMenuSelect(index: string) {
 
     :deep(.el-menu-item.is-active) {
         color: #fff !important;
-        background-color: var(--color-sidebar-active);
+        background-color: var(--el-color-primary-dark-2);
         border-right: 3px solid var(--el-color-primary);
     }
 
