@@ -310,7 +310,7 @@ function changeDarkTheme(value: string) {
     settingStore.applyThemeMode()
 }
 
-function changeLayout(mode: string) {
+function changeLayout(mode: 'classic' | 'sidebar') {
     settingStore.setSetting({ key: 'layoutMode', value: mode })
 }
 

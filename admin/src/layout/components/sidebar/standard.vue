@@ -13,10 +13,7 @@
                 :src="appStore.getImageUrl(appStore.config.site_logo)"
                 class="w-[32px] h-[32px] rounded-sm flex-shrink-0"
             />
-            <span
-                v-show="!isCollapsed"
-                class="ml-2 text-white text-sm font-semibold truncate"
-            >
+            <span v-show="!isCollapsed" class="ml-2 text-white text-sm font-semibold truncate">
                 {{ appStore.config.site_name || '元点Admin' }}
             </span>
         </div>
@@ -38,10 +35,7 @@
                 @select="onMenuSelect"
             >
                 <template v-for="item in menuRoutes" :key="item.path">
-                    <standard-menu-item
-                        :route="item"
-                        :base-path="item.path"
-                    />
+                    <standard-menu-item :route="item" base-path="" />
                 </template>
             </el-menu>
         </el-scrollbar>
