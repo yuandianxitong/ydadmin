@@ -4,6 +4,7 @@ import '@/utils/echart'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getDashboardStats } from '@/api/dashboard'
+import useSettingStore from '@/store/modules/settings.store'
 import type { DashboardStats } from '@/types/api'
 import VChart from 'vue-echarts'
 import {
@@ -13,6 +14,35 @@ import {
 
 const router = useRouter()
 const { t } = useI18n()
+const settingStore = useSettingStore()
+
+// Dark mode detection for ECharts
+const isDark = computed(() => {
+    if (settingStore.themeMode === 'dark') return true
+    if (settingStore.themeMode === 'light') return false
+    return document.documentElement.classList.contains('dark')
+})
+
+const chartColors = computed(() => isDark.value ? {
+    surface: '#1a1b1e',
+    tooltipBg: 'rgba(30,31,34,0.96)',
+    tooltipBorder: '#2e2f33',
+    tooltipText: '#e5e7eb',
+    axisLine: '#2e2f33',
+    splitLine: '#252629',
+    axisLabel: '#6b7280',
+    centerLabel: '#6C9FFF',
+} : {
+    surface: '#fff',
+    tooltipBg: 'rgba(255,255,255,0.96)',
+    tooltipBorder: '#eee',
+    tooltipText: '#333',
+    axisLine: '#e5e7eb',
+    splitLine: '#f0f0f0',
+    axisLabel: '#94a3b8',
+    centerLabel: '#4C84FF',
+})
+
 // State
 const stats = ref<DashboardStats | null>(null)
 const trendDays = ref(7)
@@ -99,14 +129,14 @@ const donutOption = computed(() => {
                 formatter: () => total.toString(),
                 fontSize: 28,
                 fontWeight: 700,
-                color: '#4C84FF',
+                color: chartColors.value.centerLabel,
             },
             emphasis: {
                 label: { show: true, fontSize: 28, fontWeight: 700 },
             },
             itemStyle: {
                 borderRadius: 4,
-                borderColor: '#fff',
+                borderColor: chartColors.value.surface,
                 borderWidth: 2,
             },
             data: [
@@ -123,23 +153,23 @@ const donutOption = computed(() => {
 const buildTrendOption = (data: Array<{ date: string; count: number }>, color: string) => ({
     tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.96)',
-        borderColor: '#eee',
-        textStyle: { color: '#333', fontSize: 13 },
+        backgroundColor: chartColors.value.tooltipBg,
+        borderColor: chartColors.value.tooltipBorder,
+        textStyle: { color: chartColors.value.tooltipText, fontSize: 13 },
     },
     grid: { top: 16, right: 20, bottom: 30, left: 48 },
     xAxis: {
         type: 'category',
         data: data.map(i => i.date),
-        axisLine: { lineStyle: { color: '#e5e7eb' } },
-        axisLabel: { color: '#94a3b8', fontSize: 12 },
+        axisLine: { lineStyle: { color: chartColors.value.axisLine } },
+        axisLabel: { color: chartColors.value.axisLabel, fontSize: 12 },
         axisTick: { show: false },
     },
     yAxis: {
         type: 'value',
         minInterval: 1,
-        splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } },
-        axisLabel: { color: '#94a3b8', fontSize: 12 },
+        splitLine: { lineStyle: { type: 'dashed', color: chartColors.value.splitLine } },
+        axisLabel: { color: chartColors.value.axisLabel, fontSize: 12 },
     },
     series: [{
         type: 'line',
@@ -333,12 +363,11 @@ const navigateTo = (path: string) => router.push(path)
 
 // ===== Glass Card =====
 .glass-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -351,7 +380,7 @@ const navigateTo = (path: string) => router.push(path)
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 // ===== Middle Section =====
@@ -391,7 +420,7 @@ const navigateTo = (path: string) => router.push(path)
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-divider);
 
   &:last-child {
     border-bottom: none;
@@ -407,14 +436,14 @@ const navigateTo = (path: string) => router.push(path)
 
 .legend-name {
   font-size: 14px;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   flex: 1;
 }
 
 .legend-value {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
 
 // ===== Quick Nav =====
@@ -435,7 +464,7 @@ const navigateTo = (path: string) => router.push(path)
   transition: all 0.25s ease;
 
   &:hover {
-    background: #f0f5ff;
+    background: var(--color-brand-ghost);
     .nav-icon {
       transform: scale(1.08);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -455,7 +484,7 @@ const navigateTo = (path: string) => router.push(path)
 
 .nav-label {
   font-size: 13px;
-  color: #1e293b;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -473,8 +502,8 @@ const navigateTo = (path: string) => router.push(path)
   font-size: 12px;
   padding: 4px 14px;
   border-radius: 12px;
-  background: #f0f0f0;
-  color: #666;
+  background: var(--gray-200);
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
@@ -496,7 +525,7 @@ const navigateTo = (path: string) => router.push(path)
 
 .trend-label {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   margin-bottom: 12px;
   font-weight: 500;
 }

@@ -334,7 +334,7 @@ function resetAll() {
     justify-content: center;
     width: 80px;
     height: 60px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     border: 2px solid var(--color-border);
     cursor: pointer;
     transition: all 0.2s;
