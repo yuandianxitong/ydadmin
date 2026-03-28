@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-03-28
+
+### Added
+- 新增系统版本配置文件 `server/config/version.php`
+- 新增数据库升级目录 `server/database/updates/` 及通用升级指南
+- 新增 v1.2.1 数据库升级脚本（权限系统修复）
+
+### Changed
+- `CLAUDE.md` 新增发版数据规范章节
+
+### Fixed
+- 修正菜单权限命名不一致（type=2 菜单添加 `.list` 后缀）
+- 补充缺失的 type=3 按钮菜单权限
+- 为超级管理员角色分配新增按钮权限
+
+### Removed
+- 移除 `server/public/install/data/fix_permissions.sql`（内容已合并至 init.sql 和 updates/v1.2.1）
+
 ## [1.2.0] - 2026-03-24
 
 ### Added
