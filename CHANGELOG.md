@@ -7,6 +7,8 @@
 ### Fixed
 - 修复开放平台配置保存成功但刷新后值为空（`system_configs` 缺少 `wechat_open` 组初始数据）
 - 修复 `batchUpdateConfigs()` 对不存在的配置键静默跳过，改为抛出异常提示具体键名
+- 修复异常类在 PHP 8.4 下隐式 nullable 参数弃用警告（BusinessException、ApiException、PermissionException）
+- 修复 `server/public/static/fonts` 未纳入 git 版本控制
 - 补充英文语言包缺失的 `config_group_wechat_open` 翻译
 
 ## [1.2.1] - 2026-03-28

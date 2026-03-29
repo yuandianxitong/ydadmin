@@ -13,7 +13,7 @@ use Exception;
 
 class PermissionException extends Exception
 {
-    public function __construct(string $message = '', int $code = 403, Exception $previous = null)
+    public function __construct(string $message = '', int $code = 403, ?Exception $previous = null)
     {
         parent::__construct($message ?: lang('auth.permission_denied'), $code, $previous);
     }

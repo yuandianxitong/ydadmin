@@ -16,7 +16,7 @@ class ApiException extends Exception
     protected $httpCode;
     protected $data = [];
 
-    public function __construct(string $message = '', int $code = 500, int $httpCode = 500, $data = [], Exception $previous = null)
+    public function __construct(string $message = '', int $code = 500, int $httpCode = 500, array $data = [], ?Exception $previous = null)
     {
         $this->httpCode = $httpCode;
         $this->data = $data;

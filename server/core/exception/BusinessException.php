@@ -15,7 +15,7 @@ class BusinessException extends Exception
 {
     protected $data = [];
 
-    public function __construct(string $message = '', int $code = 400, $data = [], Exception $previous = null)
+    public function __construct(string $message = '', int $code = 400, array $data = [], ?Exception $previous = null)
     {
         $this->data = $data;
         parent::__construct($message ?: lang('auth.business_error'), $code, $previous);
