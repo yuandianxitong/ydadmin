@@ -106,5 +106,6 @@ return [
     'config_group_storage'          => 'Storage Settings',
     'config_group_payment'          => 'Payment Settings',
     'config_group_wechat_official'  => 'WeChat Official Account',
+    'config_group_wechat_open'      => 'WeChat Open Platform',
     'config_group_wechat_mini'      => 'WeChat Mini Program',
 ];

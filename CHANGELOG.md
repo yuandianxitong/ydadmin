@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- 修复开放平台配置保存成功但刷新后值为空（`system_configs` 缺少 `wechat_open` 组初始数据）
+- 修复 `batchUpdateConfigs()` 对不存在的配置键静默跳过，改为抛出异常提示具体键名
+- 补充英文语言包缺失的 `config_group_wechat_open` 翻译
+
 ## [1.2.1] - 2026-03-28
 
 ### Added

@@ -102,7 +102,7 @@ class SystemConfigService extends Service
 
             $config = $this->configRepository->findByKey($configData['config_key']);
             if (!$config) {
-                continue;
+                throw new \Exception(lang('business.config_not_found') . ': ' . $configData['config_key']);
             }
 
             // 根据类型处理值
