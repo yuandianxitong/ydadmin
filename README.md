@@ -26,7 +26,7 @@
 
 ## 系统简介
 
-元点Admin 是一款开箱即用的通用后台管理系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。
+元点Admin 是一款**免费商用**、开箱即用的通用后台管理系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。基于 MIT 协议开源，个人和企业均可免费使用，无需授权费用。
 
 系统内置完善的 RBAC 权限体系、CRUD 代码生成器和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
@@ -89,7 +89,7 @@ docker-compose up -d
 
 安装完成后访问 `http://localhost/admin/` 进入管理后台。
 
-> 默认管理员账号：`admin`，密码：`admin123456`
+> 默认管理员账号：`admin`，密码：`admin888`
 
 ### 手动安装
 
@@ -117,7 +117,7 @@ http://your-domain/install/
 http://your-domain/admin/
 ```
 
-> 默认管理员账号：`admin`，密码：`admin123456`
+> 默认管理员账号：`admin`，密码：`admin888`
 
 ### 二次开发
 
@@ -184,10 +184,24 @@ php think make:crud table_name --module=模块名 --model=模型名
 
 ## 系统截图
 
+### 管理后台
+
 | | |
 |---|---|
-| ![登录页](https://www.dev007.cn/oss/admin01.png) | ![控制台](https://www.dev007.cn/oss/admin02.png) |
-| ![系统管理](https://www.dev007.cn/oss/admin03.png) | ![更多功能](https://www.dev007.cn/oss/admin04.png) |
+| ![登录页](https://docs.dev007.cn/admin/demo/admin01.png) | ![控制台](https://docs.dev007.cn/admin/demo/admin02.png) |
+| ![系统管理](https://docs.dev007.cn/admin/demo/admin03.png) | ![更多功能](https://docs.dev007.cn/admin/demo/admin04.png) |
+
+### PC 端
+
+| | |
+|---|---|
+| ![PC首页](https://docs.dev007.cn/admin/demo/pc01.png) | ![PC详情](https://docs.dev007.cn/admin/demo/pc02.png) |
+
+### 移动端
+
+| | | | |
+|---|---|---|---|
+| ![移动端首页](https://docs.dev007.cn/admin/demo/mobile01.png) | ![移动端功能](https://docs.dev007.cn/admin/demo/mobile02.png) | ![移动端详情](https://docs.dev007.cn/admin/demo/mobile03.png) | ![移动端个人中心](https://docs.dev007.cn/admin/demo/mobile04.png) |
 
 ## 开源协议
 
@@ -195,8 +209,9 @@ php think make:crud table_name --module=模块名 --model=模型名
 
 ## 联系我们
 
-- 邮箱：642508814@qq.com
-- 微信：Vince_Dorian
+<p align="center">
+  <img src="https://www.dev007.cn/support.png" alt="联系我们" width="800">
+</p>
 
 ## 链接
 

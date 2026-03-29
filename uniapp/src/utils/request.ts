@@ -1,7 +1,11 @@
 import { getToken, removeToken } from './auth'
 import type { ApiResponse } from '@/types/api'
 
-const BASE_URL = import.meta.env.VITE_APP_API_URL || ''
+let BASE_URL = import.meta.env.VITE_APP_API_URL || ''
+// #ifdef H5
+// H5 开发模式通过 Vite 代理转发，使用相对路径避免跨域
+if (import.meta.env.DEV) BASE_URL = ''
+// #endif
 
 function getClientType(): string {
   // #ifdef MP-WEIXIN

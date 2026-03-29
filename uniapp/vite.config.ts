@@ -12,4 +12,17 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["wot-design-uni"],
   },
+  // H5 开发模式代理，解决浏览器跨域问题
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8005",
+        changeOrigin: true,
+      },
+      "/storage": {
+        target: "http://localhost:8005",
+        changeOrigin: true,
+      },
+    },
+  },
 });
