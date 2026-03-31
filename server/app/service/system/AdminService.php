@@ -103,6 +103,11 @@ class AdminService extends Service
         // 从菜单按钮中获取权限标识
         $permissions = $this->menuService->getButtonPermissions(array_unique($menuIds));
 
+        // 超级管理员注入通配权限标识，与前端 hasPermission('*') 对齐
+        if ($admin['id'] == 1) {
+            array_unshift($permissions, '*');
+        }
+
         $admin['permissions'] = array_unique($permissions);
         $admin['menu_ids'] = array_unique($menuIds);
 
@@ -185,7 +190,7 @@ class AdminService extends Service
             $this->log('创建管理员成功', ['admin_id' => $admin['id']]);
 
             return $admin;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }
@@ -253,7 +258,7 @@ class AdminService extends Service
             $this->log('更新管理员成功', ['admin_id' => $id]);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }

@@ -82,7 +82,7 @@ export const useAppStore = defineStore('app', {
                 this.isLoadingConfig = true
                 const data = await getConfig()
                 this.config = data.data
-                return data
+                return this.config
             } catch (error) {
                 return Promise.reject(error)
             } finally {

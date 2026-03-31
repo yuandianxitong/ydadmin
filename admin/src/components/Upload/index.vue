@@ -106,9 +106,8 @@ export default defineComponent({
             emit('change', file)
             if (response.code == RequestCodeEnum.SUCCESS) {
                 emit('success', response)
-            }
-            if (response.code == RequestCodeEnum.FAIL && response.msg) {
-                feedback.msgError(response.msg)
+            } else if (response.message) {
+                feedback.msgError(response.message)
             }
         }
         const handleError = (event: any, file: any) => {

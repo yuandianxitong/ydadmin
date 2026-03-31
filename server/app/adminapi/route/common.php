@@ -12,9 +12,3 @@ Route::group('common', function () {
     Route::get('regions', 'v1.region.RegionController/tree');
 })->middleware('admin_auth');
 
-// 上传相关
-Route::group('upload', function () {
-    Route::post('image', 'v1.upload.UploadController/image');
-    Route::post('file', 'v1.upload.UploadController/file');
-    Route::post('video', 'v1.upload.UploadController/video');
-})->middleware('admin_auth');

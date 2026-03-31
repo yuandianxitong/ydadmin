@@ -11,9 +11,9 @@ export enum RequestMethodsEnum {
 }
 
 export enum RequestCodeEnum {
-    NOT_INSTALL = -2,
-    LOGIN_FAILURE = -1,
-    FAIL = 0,
-    SUCCESS = 1,
-    OPEN_NEW_PAGE = 2
+    SUCCESS = 200,
+    FAIL = 400,
+    UNAUTHORIZED = 401,
+    FORBIDDEN = 403,
+    SERVER_ERROR = 500,
 }

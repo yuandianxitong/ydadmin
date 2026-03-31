@@ -131,7 +131,7 @@ export const useUserStore = defineStore('user', () => {
 
     function hasPermission(permission: string): boolean {
         if (!permission) return true
-        if (permissions.value.includes('*') || permissions.value.includes('super_admin')) {
+        if (permissions.value.includes('*')) {
             return true
         }
         return permissions.value.includes(permission)

@@ -111,6 +111,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                 "vue",
                 "vue-router",
                 "element-plus",
+                "element-plus/es/components/*/style/index",
                 "pinia",
                 "axios",
                 "@vueuse/core",

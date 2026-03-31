@@ -14,6 +14,7 @@ use core\base\Controller;
 use core\storage\StorageManager;
 use think\Response;
 use think\facade\Filesystem;
+use think\facade\Log;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: '文件上传', description: '图片和文件上传')]
@@ -168,7 +169,7 @@ class UploadController extends Controller
                 'storage'   => $storage,
             ]);
         } catch (\Exception $e) {
-            // 记录失败不影响上传
+            Log::warning('Upload record failed: ' . $e->getMessage());
         }
     }
 
