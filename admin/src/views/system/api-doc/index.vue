@@ -37,6 +37,7 @@
 import { Download, Link } from '@element-plus/icons-vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getToken } from '@/utils/auth'
 
 const { t } = useI18n()
 
@@ -69,7 +70,7 @@ const initSwagger = async () => {
             persistAuthorization: true,
             requestInterceptor: (req: any) => {
                 // 自动注入当前登录 token
-                const token = localStorage.getItem('like_admin_token')
+                const token = getToken()
                 if (token) {
                     req.headers.Authorization = `Bearer ${token}`
                 }

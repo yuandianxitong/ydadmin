@@ -239,16 +239,18 @@ const navigateTo = (path: string) => router.push(path)
         <div class="resource-content">
           <v-chart class="donut-chart" :option="donutOption" autoresize />
           <div class="resource-legend">
-            <div v-if="stats" class="legend-item" v-for="item in [
-              { name: t('dashboard.users'), value: stats.totalUsers, color: '#4C84FF' },
-              { name: t('dashboard.roles'), value: stats.roleCount, color: '#52c41a' },
-              { name: t('dashboard.menus'), value: stats.menuCount, color: '#faad14' },
-              { name: t('dashboard.configs'), value: stats.configCount, color: '#9B59B6' },
-            ]" :key="item.name">
-              <span class="legend-dot" :style="{ background: item.color }"></span>
-              <span class="legend-name">{{ item.name }}</span>
-              <span class="legend-value">{{ item.value }}</span>
-            </div>
+            <template v-if="stats">
+              <div class="legend-item" v-for="item in [
+                { name: t('dashboard.users'), value: stats.totalUsers, color: '#4C84FF' },
+                { name: t('dashboard.roles'), value: stats.roleCount, color: '#52c41a' },
+                { name: t('dashboard.menus'), value: stats.menuCount, color: '#faad14' },
+                { name: t('dashboard.configs'), value: stats.configCount, color: '#9B59B6' },
+              ]" :key="item.name">
+                <span class="legend-dot" :style="{ background: item.color }"></span>
+                <span class="legend-name">{{ item.name }}</span>
+                <span class="legend-value">{{ item.value }}</span>
+              </div>
+            </template>
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 /* cspell:disable */
 import type {
-    AuthInfoRes,
     ConfigBatchUpdateItem,
     ConfigInfo,
     ConfigReq
@@ -30,9 +29,4 @@ export function updateConfig(id: number, data: Partial<ConfigReq>) {
 // 批量更新配置
 export function batchUpdateConfigs(configs: ConfigBatchUpdateItem[]) {
     return myRequest.post<void>('/adminapi/system/config/batch-update', { configs })
-}
-
-// 获取全局配置
-export function getGlobalConfigs() {
-    return myRequest.get<AuthInfoRes>('/adminapi/system/config/global')
 }

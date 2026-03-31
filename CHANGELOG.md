@@ -4,12 +4,39 @@
 
 ## [Unreleased]
 
+### Changed
+- 重构 Controller/Service/Repository 分层，消除架构违规（Controller 不再直接调用 Model，Service 不再绕过 Repository）
+- Menu/Permission Model 查询逻辑迁移至 Repository 层
+- AdminLogMiddleware 改用 Repository 记录操作日志
+- 统一 Repository 调用风格（`$this->getModel()::` → `$this->model->`）
+- `RequestCodeEnum` 更新为与后端一致的 HTTP 状态码（200/400/401/403/500）
+- 超级管理员权限标识前后端对齐（后端注入 `'*'` 通配符）
+- 事务 catch 类型统一为 `\Throwable`（RoleService、AdminService、DictionaryService）
+- MessageLog Model 改为继承 `core\base\Model`
+- `ConfigInfo` TypeScript 类型定义与实际 API 响应字段对齐
+- `app.store.getConfig()` 返回值统一为 config 数据对象
+
 ### Fixed
 - 修复开放平台配置保存成功但刷新后值为空（`system_configs` 缺少 `wechat_open` 组初始数据）
 - 修复 `batchUpdateConfigs()` 对不存在的配置键静默跳过，改为抛出异常提示具体键名
 - 修复异常类在 PHP 8.4 下隐式 nullable 参数弃用警告（BusinessException、ApiException、PermissionException）
 - 修复 `server/public/static/fonts` 未纳入 git 版本控制
 - 补充英文语言包缺失的 `config_group_wechat_open` 翻译
+- 修复 Upload 组件响应码检查（`code == 1` → `code == 200`），错误消息字段（`msg` → `message`）
+- 修复上传路由重复定义（移除 `common.php` 中多余的 upload 路由组）
+- 修复超级管理员 `v-hasPerm` 指令不生效（后端未向前端发送 `'*'` 权限标识）
+- 修复 21 个 Model 缺少 `$append` 声明导致访问器字段不出现在 API 响应
+- 修复日志 Model 缺少 `$updateTime = false`（AdminLoginLog、AdminOperationLog）
+- 修复静默吞掉异常的 catch 块（FileService、CodeGeneratorService、UploadController），改为 Log::warning
+- 修复 `api-doc` 页面硬编码 localStorage key 获取 token
+- 修复 `workbench` 页面 `v-for` + `v-if` 同元素（Vue 3 不允许）
+- 修复 Vite 开发模式新页面首次访问触发依赖重优化整页刷新
+
+### Removed
+- 移除重复的消息模块视图（`views/message/`，保留 `views/system/message/`）
+- 移除未使用的路由 guard 文件（`router/guards/init.ts`）
+- 移除死代码：`getWorkbench()`、`getGlobalConfigs()`、`ThemePicker/demo.vue`
+- 注册 3 个孤立事件到 `event.php`（`announcement.created`、`article.created`、`user.notification.created`）
 
 ## [1.2.1] - 2026-03-28
 
