@@ -3,16 +3,15 @@ declare(strict_types=1);
 
 namespace app\model\message;
 
-use think\Model as BaseModel;
+use core\base\Model;
 
-class MessageLog extends BaseModel
+class MessageLog extends Model
 {
     protected $table = 'message_logs';
 
-    protected $autoWriteTimestamp = true;
-    protected $createTime = 'created_at';
-    protected $updateTime = 'updated_at';
-    protected $dateFormat = 'Y-m-d H:i:s';
+    // 日志表不需要自动更新时间和软删除
+    protected $updateTime = false;
+    protected $deleteTime = false;
 
     protected $fillable = [
         'template_id', 'template_code', 'channel', 'receiver',

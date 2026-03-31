@@ -28,6 +28,8 @@ class Role extends Model
         'sort' => 'integer',
     ];
 
+    protected $append = ['status_text', 'data_scope_text', 'is_system_text'];
+
     // 关联管理员
     public function admins(): BelongsToMany
     {

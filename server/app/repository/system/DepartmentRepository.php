@@ -19,7 +19,7 @@ class DepartmentRepository extends Repository
      */
     public function getTree(array $where = []): array
     {
-        $query = $this->getModel()::where('deleted_at', null);
+        $query = $this->model->where('deleted_at', null);
 
         if (!empty($where['status'])) {
             $query->where('status', (int) $where['status']);
@@ -36,7 +36,7 @@ class DepartmentRepository extends Repository
      */
     public function getAllEnabled(): array
     {
-        return $this->getModel()::where('status', 1)
+        return $this->model->where('status', 1)
             ->where('deleted_at', null)
             ->field('id, parent_id, name, code')
             ->order('sort asc, id asc')
@@ -49,7 +49,7 @@ class DepartmentRepository extends Repository
      */
     public function existsCode(string $code, int $excludeId = 0): bool
     {
-        $query = $this->getModel()::where('code', $code)->where('deleted_at', null);
+        $query = $this->model->where('code', $code)->where('deleted_at', null);
         if ($excludeId > 0) {
             $query->where('id', '<>', $excludeId);
         }
@@ -61,7 +61,7 @@ class DepartmentRepository extends Repository
      */
     public function getChildIds(int $parentId): array
     {
-        $all = $this->getModel()::where('deleted_at', null)
+        $all = $this->model->where('deleted_at', null)
             ->field('id, parent_id')
             ->select()
             ->toArray();

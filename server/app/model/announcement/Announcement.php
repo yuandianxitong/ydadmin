@@ -30,6 +30,8 @@ class Announcement extends Model
         'admin_id' => 'integer',
     ];
 
+    protected $append = ['type_text', 'status_text'];
+
     /**
      * 类型文本获取器
      */

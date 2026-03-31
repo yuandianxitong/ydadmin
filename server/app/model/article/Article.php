@@ -32,6 +32,8 @@ class Article extends Model
         'tags'        => 'json',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 所属分类
      */

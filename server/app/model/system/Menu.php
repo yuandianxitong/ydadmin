@@ -37,6 +37,8 @@ class Menu extends Model
         'meta' => 'json',
     ];
 
+    protected $append = ['type_text', 'status_text', 'is_hidden_text', 'is_cache_text'];
+
     // 关联角色
     public function roles(): BelongsToMany
     {

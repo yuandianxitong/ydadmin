@@ -7,6 +7,7 @@ use app\repository\system\FileRepository;
 use core\base\Service;
 use core\storage\StorageManager;
 use core\exception\BusinessException;
+use think\facade\Log;
 
 class FileService extends Service
 {
@@ -105,7 +106,7 @@ class FileService extends Service
                 $this->deleteFile((int)$id);
                 $count++;
             } catch (\Exception $e) {
-                // 跳过失败的
+                Log::warning('File delete failed: ' . $e->getMessage());
             }
         }
         return $count;

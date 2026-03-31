@@ -109,7 +109,7 @@ class DictionaryService extends Service
             $result = $this->dictRepo->delete($id);
             Db::commit();
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }

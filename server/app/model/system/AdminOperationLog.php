@@ -16,7 +16,8 @@ class AdminOperationLog extends Model
 {
     protected $table = 'admin_operation_logs';
 
-    // 日志表不需要软删除
+    // 日志表不需要自动更新时间和软删除
+    protected $updateTime = false;
     protected $deleteTime = false;
 
     protected $fillable = [

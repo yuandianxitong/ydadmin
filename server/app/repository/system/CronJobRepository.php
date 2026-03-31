@@ -20,7 +20,7 @@ class CronJobRepository extends Repository
      */
     public function getListWithStats(array $where, int $page, int $limit): array
     {
-        $query = $this->getModel()::where('deleted_at', null);
+        $query = $this->model->where('deleted_at', null);
 
         if (!empty($where['keyword'])) {
             $query->where('name|command', 'like', '%' . $where['keyword'] . '%');
@@ -94,7 +94,7 @@ class CronJobRepository extends Repository
      */
     public function getEnabledJobs(): array
     {
-        return $this->getModel()::where('status', 1)
+        return $this->model->where('status', 1)
             ->where('deleted_at', null)
             ->order('sort asc')
             ->select()

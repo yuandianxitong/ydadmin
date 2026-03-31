@@ -23,6 +23,8 @@ class AppVersion extends Model
         'status'       => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 状态文本获取器
      */

@@ -30,6 +30,8 @@ class Region extends Model
         'status'    => 'integer',
     ];
 
+    protected $append = ['level_text'];
+
     /**
      * 子级关联
      */

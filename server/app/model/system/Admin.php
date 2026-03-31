@@ -31,6 +31,8 @@ class Admin extends Model
         'last_login_time' => 'datetime',
     ];
 
+    protected $append = ['status_text', 'avatar_url'];
+
     // 关联角色
     public function roles(): BelongsToMany
     {

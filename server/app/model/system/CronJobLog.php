@@ -23,6 +23,8 @@ class CronJobLog extends Model
         'duration'    => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     protected $updateTime = false;
 
     public function cronJob(): \think\model\relation\BelongsTo

@@ -20,6 +20,8 @@ class Department extends Model
         'sort'      => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 子部门
      */

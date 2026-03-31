@@ -26,6 +26,8 @@ class Feedback extends Model
         'replied_by' => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 图片获取器
      */

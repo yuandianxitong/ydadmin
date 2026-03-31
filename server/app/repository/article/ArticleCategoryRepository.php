@@ -25,7 +25,7 @@ class ArticleCategoryRepository extends Repository
      */
     public function getCategoryTree(bool $onlyEnabled = false): array
     {
-        $query = $this->getModel()::order('sort asc, id asc');
+        $query = $this->model->order('sort asc, id asc');
 
         if ($onlyEnabled) {
             $query->where('status', 1);
@@ -47,7 +47,7 @@ class ArticleCategoryRepository extends Repository
      */
     public function existsName(string $name, int $excludeId = 0): bool
     {
-        $query = $this->getModel()::where('name', $name);
+        $query = $this->model->where('name', $name);
         if ($excludeId > 0) {
             $query->where('id', '<>', $excludeId);
         }
@@ -59,7 +59,7 @@ class ArticleCategoryRepository extends Repository
      */
     public function hasChildren(int $id): bool
     {
-        return $this->getModel()::where('parent_id', $id)->count() > 0;
+        return $this->model->where('parent_id', $id)->count() > 0;
     }
 
     /**
@@ -78,7 +78,7 @@ class ArticleCategoryRepository extends Repository
      */
     public function getOptions(int $excludeId = 0): array
     {
-        $query = $this->getModel()::where('status', 1)
+        $query = $this->model->where('status', 1)
             ->field('id, parent_id, name')
             ->order('sort asc, id asc');
 

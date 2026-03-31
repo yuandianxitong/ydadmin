@@ -28,6 +28,8 @@ class ArticleCategory extends Model
         'status'    => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 子分类
      */

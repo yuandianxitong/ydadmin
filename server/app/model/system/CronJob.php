@@ -22,6 +22,8 @@ class CronJob extends Model
         'sort'        => 'integer',
     ];
 
+    protected $append = ['status_text', 'last_status_text'];
+
     public function logs(): \think\model\relation\HasMany
     {
         return $this->hasMany(CronJobLog::class, 'cron_job_id', 'id');

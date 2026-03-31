@@ -20,6 +20,8 @@ class Notification extends Model
         'status'      => 'integer',
     ];
 
+    protected $append = ['type_text', 'target_type_text'];
+
     public function sender(): \think\model\relation\BelongsTo
     {
         return $this->belongsTo(Admin::class, 'sender_id', 'id');

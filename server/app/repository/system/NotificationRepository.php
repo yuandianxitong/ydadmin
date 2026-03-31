@@ -21,7 +21,7 @@ class NotificationRepository extends Repository
      */
     public function getListWithStats(array $where, int $page, int $limit): array
     {
-        $query = $this->getModel()::where('deleted_at', null);
+        $query = $this->model->where('deleted_at', null);
 
         if (!empty($where['keyword'])) {
             $query->where('title', 'like', '%' . $where['keyword'] . '%');
@@ -53,7 +53,7 @@ class NotificationRepository extends Repository
      */
     public function getUserNotifications(int $adminId, array $where, int $page, int $limit): array
     {
-        $query = $this->getModel()::where('deleted_at', null)
+        $query = $this->model->where('deleted_at', null)
             ->where('status', 1)
             ->where(function ($q) use ($adminId) {
                 $q->where('target_type', 1)
@@ -120,7 +120,7 @@ class NotificationRepository extends Repository
             ->whereNotNull('read_at')
             ->column('notification_id');
 
-        $query = $this->getModel()::where('deleted_at', null)
+        $query = $this->model->where('deleted_at', null)
             ->where('status', 1)
             ->where('target_type', 1);
 
@@ -164,7 +164,7 @@ class NotificationRepository extends Repository
             ->whereNotNull('read_at')
             ->column('notification_id');
 
-        $unreadQuery = $this->getModel()::where('deleted_at', null)
+        $unreadQuery = $this->model->where('deleted_at', null)
             ->where('status', 1)
             ->where('target_type', 1);
 

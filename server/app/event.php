@@ -30,6 +30,11 @@ return [
 
         // ---- 消息推送事件 ----
         'message.created' => [\app\listener\MessagePushListener::class],
+
+        // 预留事件（暂无监听器）
+        'announcement.created'       => [],
+        'article.created'            => [],
+        'user.notification.created'  => [],
     ],
 
     'subscribe' => [

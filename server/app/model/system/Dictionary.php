@@ -19,6 +19,8 @@ class Dictionary extends Model
         'sort'   => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 关联字典项
      */

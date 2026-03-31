@@ -5,6 +5,7 @@ namespace app\service\system;
 
 use core\base\Service;
 use think\facade\Db;
+use think\facade\Log;
 
 class CodeGeneratorService extends Service
 {
@@ -1620,7 +1621,9 @@ TS;
         try {
             $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE ?", [$table]);
             $tableComment = $tables[0]['Comment'] ?? '';
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            Log::warning('Table status query failed: ' . $e->getMessage());
+        }
 
         $tableOptions = "'engine' => 'InnoDB', 'collation' => 'utf8mb4_unicode_ci'";
         if ($tableComment) {

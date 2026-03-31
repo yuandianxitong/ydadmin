@@ -179,25 +179,31 @@ export interface MenuQuery {
 // 系统配置
 export interface ConfigInfo {
     id: number
-    name: string
-    title: string
-    value: any
-    type: string
-    group: string
-    description?: string
-    sort?: number
+    config_key: string
+    config_name: string
+    config_value: any
+    config_type: string
+    config_group: string
+    config_desc?: string
+    config_options?: any
+    config_depends?: string
+    sort_order?: number
+    status?: number
     created_at?: string
     updated_at?: string
 }
 
 export interface ConfigReq {
-    name: string
-    title: string
-    value: any
-    type: string
-    group: string
-    description?: string
-    sort?: number
+    config_key: string
+    config_name: string
+    config_value: any
+    config_type: string
+    config_group: string
+    config_desc?: string
+    config_options?: any
+    config_depends?: string
+    sort_order?: number
+    status?: number
 }
 
 // 操作日志

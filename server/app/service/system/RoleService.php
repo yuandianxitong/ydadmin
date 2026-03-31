@@ -88,7 +88,7 @@ class RoleService extends Service
             $this->log('创建角色成功', ['role_id' => $role['id']]);
 
             return $role;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }
@@ -142,7 +142,7 @@ class RoleService extends Service
             $this->log('更新角色成功', ['role_id' => $id]);
 
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }
@@ -218,7 +218,7 @@ class RoleService extends Service
             $this->log('角色授权成功', ['role_id' => $id]);
 
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Db::rollback();
             throw $e;
         }

@@ -19,6 +19,8 @@ class File extends Model
         'upload_by' => 'integer',
     ];
 
+    protected $append = ['size_text', 'is_image'];
+
     /**
      * 文件大小可读格式
      */

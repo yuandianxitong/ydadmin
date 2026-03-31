@@ -16,7 +16,8 @@ class AdminLoginLog extends Model
 {
     protected $table = 'admin_login_logs';
 
-    // 日志表不需要软删除
+    // 日志表不需要自动更新时间和软删除
+    protected $updateTime = false;
     protected $deleteTime = false;
 
     protected $fillable = [
@@ -29,6 +30,8 @@ class AdminLoginLog extends Model
         'login_result' => 'boolean',
         'login_time' => 'datetime',
     ];
+
+    protected $append = ['login_result_text'];
 
     // 关联管理员
     public function admin(): BelongsTo

@@ -18,6 +18,8 @@ class UserNotification extends Model
         'biz_id'  => 'integer',
     ];
 
+    protected $append = ['type_text'];
+
     // 类型常量
     const TYPE_SYSTEM   = 'system';
     const TYPE_ORDER    = 'order';

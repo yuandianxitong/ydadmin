@@ -26,6 +26,8 @@ class Permission extends Model
         'sort' => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     // 关联角色
     public function roles(): BelongsToMany
     {

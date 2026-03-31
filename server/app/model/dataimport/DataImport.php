@@ -30,6 +30,8 @@ class DataImport extends Model
         'admin_id'      => 'integer',
     ];
 
+    protected $append = ['status_text'];
+
     /**
      * 错误信息获取器
      */
