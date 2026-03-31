@@ -43,7 +43,28 @@ class PermissionRepository extends Repository
      */
     public function getPermissionTree(): array
     {
-        return Permission::getPermissionTree();
+        $permissions = $this->model->where('status', 1)
+            ->order('group asc, sort asc, id asc')
+            ->select()
+            ->toArray();
+
+        $tree = [];
+        foreach ($permissions as $permission) {
+            if (!isset($tree[$permission['group']])) {
+                $tree[$permission['group']] = [
+                    'label'    => $permission['group'],
+                    'children' => [],
+                ];
+            }
+
+            $tree[$permission['group']]['children'][] = [
+                'id'    => $permission['id'],
+                'label' => $permission['title'],
+                'value' => $permission['name'],
+            ];
+        }
+
+        return array_values($tree);
     }
 
     /**

@@ -119,6 +119,35 @@ class UserRepository extends Repository
     }
 
     /**
+     * 更新用户的公众号 openid
+     */
+    public function updateOaOpenid(int $userId, string $oaOpenid): bool
+    {
+        return User::where('id', $userId)->update(['oa_openid' => $oaOpenid]) !== false;
+    }
+
+    /**
+     * 更新用户的公众号 openid 和 unionid
+     */
+    public function updateOaOpenidAndUnionid(int $userId, string $oaOpenid, ?string $unionid): bool
+    {
+        $data = ['oa_openid' => $oaOpenid];
+        if ($unionid !== null) {
+            $data['unionid'] = $unionid ?: null;
+        }
+        return User::where('id', $userId)->update($data) !== false;
+    }
+
+    /**
+     * 根据 ID 获取指定字段的值
+     */
+    public function getFieldById(int $userId, string $field): mixed
+    {
+        $user = User::where('id', $userId)->field($field)->find();
+        return $user?->$field;
+    }
+
+    /**
      * 用户总数
      */
     public function getTotalCount(): int

@@ -6,12 +6,14 @@ namespace app\api\controller\v1\wechat;
 use core\base\Controller;
 use app\service\wechat\OfficialAccountService;
 use app\service\wechat\MiniAppService;
+use app\service\user\UserService;
 use think\Response;
 
 class WechatController extends Controller
 {
     protected OfficialAccountService $officialAccountService;
     protected MiniAppService $miniAppService;
+    protected UserService $userService;
 
     /**
      * 微信公众号服务端验证 & 消息回调
@@ -91,7 +93,7 @@ class WechatController extends Controller
                 // 如果已登录，直接关联 oa_openid
                 $userId = (int)($this->request->userId ?? 0);
                 if ($userId > 0 && $openid) {
-                    \app\model\user\User::where('id', $userId)->update(['oa_openid' => $openid]);
+                    $this->userService->bindOaOpenid($userId, $openid);
                 }
 
                 $separator = str_contains($state, '?') ? '&' : '?';
@@ -127,10 +129,7 @@ class WechatController extends Controller
             // 如果已登录，关联到用户
             $userId = (int)($this->request->userId ?? 0);
             if ($userId > 0 && !empty($data['openid'])) {
-                \app\model\user\User::where('id', $userId)->update([
-                    'oa_openid' => $data['openid'],
-                    'unionid'   => $data['unionid'] ?: null,
-                ]);
+                $this->userService->bindOaOpenidAndUnionid($userId, $data['openid'], $data['unionid'] ?: null);
             }
 
             return $this->success('ok', $data);

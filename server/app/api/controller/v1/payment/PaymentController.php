@@ -56,11 +56,10 @@ class PaymentController extends Controller
             // 从订单记录自动获取 channel，前端无需传
             $channel = (string)$this->request->param('channel', '');
             if (empty($channel)) {
-                $order = \app\model\payment\PaymentOrder::where('order_no', $orderNo)->find();
-                if (!$order) {
+                $channel = $this->paymentService->getChannelByOrderNo($orderNo);
+                if (empty($channel)) {
                     return $this->error('订单不存在');
                 }
-                $channel = $order->channel;
             }
 
             $result = $this->paymentService->queryOrder($channel, $orderNo);

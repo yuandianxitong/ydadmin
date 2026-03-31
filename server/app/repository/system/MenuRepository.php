@@ -11,6 +11,7 @@ namespace app\repository\system;
 
 use app\model\system\Menu;
 use core\base\Repository;
+use core\helper\ArrayHelper;
 use think\Model;
 
 class MenuRepository extends Repository
@@ -25,7 +26,15 @@ class MenuRepository extends Repository
      */
     public function getMenuTree(bool $onlyEnabled = true): array
     {
-        return Menu::getMenuTree(0, $onlyEnabled);
+        $query = $this->model->order('sort asc, id asc');
+
+        if ($onlyEnabled) {
+            $query->where('status', 1);
+        }
+
+        $menus = $query->select()->toArray();
+
+        return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', 0);
     }
 
     /**
@@ -33,15 +42,75 @@ class MenuRepository extends Repository
      */
     public function getFrontendRoutes(array $menuIds = []): array
     {
-        return Menu::getFrontendRoutes($menuIds);
+        if (empty($menuIds)) {
+            return [];
+        }
+
+        $menus = $this->model->where('status', 1)
+            ->where('type', '<>', 3)
+            ->whereIn('id', $menuIds)
+            ->order('sort asc, id asc')
+            ->select()
+            ->toArray();
+
+        $routes = [];
+        foreach ($menus as $menu) {
+            $route = [
+                'id'        => $menu['id'],
+                'parent_id' => $menu['parent_id'],
+                'name'      => $menu['name'],
+                'path'      => $menu['path'],
+                'component' => $menu['component'],
+                'redirect'  => $menu['redirect'],
+                'type'      => $menu['type'],
+                'meta'      => [
+                    'title'        => $menu['title'],
+                    'icon'         => $menu['icon'],
+                    'hidden'       => (bool) $menu['is_hidden'],
+                    'cache'        => (bool) $menu['is_cache'],
+                    'affix'        => (bool) $menu['is_affix'],
+                    'iframe'       => (bool) $menu['is_iframe'],
+                    'breadcrumb'   => (bool) $menu['breadcrumb'],
+                    'activeMenu'   => $menu['active_menu'],
+                    'permission'   => $menu['permission'],
+                    'externalLink' => $menu['external_link'],
+                ],
+            ];
+
+            if ($menu['meta']) {
+                $route['meta'] = array_merge($route['meta'], $menu['meta']);
+            }
+
+            $routes[] = $route;
+        }
+
+        return ArrayHelper::toTree($routes, 'id', 'parent_id', 'children', 0);
     }
 
     /**
-     * 获取菜单选项树
+     * 获取菜单选项树（用于表单选择）
      */
     public function getMenuOptions(int $excludeId = 0): array
     {
-        return Menu::getMenuOptions($excludeId);
+        $query = $this->model->where('status', 1)
+            ->where('type', '<>', 3)
+            ->order('sort asc, id asc')
+            ->field('id, parent_id, title, type');
+
+        if ($excludeId > 0) {
+            $query->where('id', '<>', $excludeId);
+        }
+
+        $menus = $query->select()->toArray();
+
+        array_unshift($menus, [
+            'id'        => 0,
+            'parent_id' => -1,
+            'title'     => '根目录',
+            'type'      => 0,
+        ]);
+
+        return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', -1);
     }
 
     /**
@@ -88,15 +157,26 @@ class MenuRepository extends Repository
     }
 
     /**
-     * 获取菜单的所有子菜单ID
+     * 获取菜单的所有子菜单ID（含自身，递归）
      */
     public function getAllChildrenIds(int $id): array
     {
-        $menu = $this->model->find($id);
-        if (!$menu) {
-            return [];
+        return $this->collectChildrenIds($id);
+    }
+
+    /**
+     * 递归收集菜单ID（含自身）
+     */
+    private function collectChildrenIds(int $id): array
+    {
+        $ids = [$id];
+        $children = $this->model->where('parent_id', $id)->column('id');
+
+        foreach ($children as $childId) {
+            $ids = array_merge($ids, $this->collectChildrenIds((int)$childId));
         }
-        return $menu->getAllChildrenIds();
+
+        return $ids;
     }
 
     /**
@@ -146,12 +226,7 @@ class MenuRepository extends Repository
      */
     public function deleteWithChildren(int $id): bool
     {
-        $menu = $this->model->find($id);
-        if (!$menu) {
-            return false;
-        }
-
-        $childrenIds = $menu->getAllChildrenIds();
+        $childrenIds = $this->collectChildrenIds($id);
         return $this->model->whereIn('id', $childrenIds)->delete() > 0;
     }
 

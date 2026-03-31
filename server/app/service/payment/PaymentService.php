@@ -5,6 +5,7 @@ namespace app\service\payment;
 
 use app\model\payment\PaymentOrder;
 use app\repository\payment\PaymentOrderRepository;
+use app\repository\user\UserRepository;
 use core\base\Service;
 use core\exception\BusinessException;
 use core\payment\PaymentManager;
@@ -14,6 +15,7 @@ use think\facade\Log;
 class PaymentService extends Service
 {
     protected PaymentOrderRepository $orderRepository;
+    protected UserRepository $userRepository;
 
     /**
      * 创建支付订单
@@ -180,6 +182,15 @@ class PaymentService extends Service
     }
 
     /**
+     * 根据订单号获取支付渠道
+     */
+    public function getChannelByOrderNo(string $orderNo): ?string
+    {
+        $order = $this->orderRepository->findByOrderNo($orderNo);
+        return $order?->channel;
+    }
+
+    /**
      * 生成商户订单号
      */
     protected function generateOrderNo(string $channel): string
@@ -233,8 +244,7 @@ class PaymentService extends Service
 
     protected function getUserOpenid(int $userId, string $field): string
     {
-        $user = \app\model\user\User::find($userId);
-        $openid = $user?->$field ?? '';
+        $openid = $this->userRepository->getFieldById($userId, $field) ?? '';
         if (empty($openid)) {
             throw new BusinessException('请先完成微信授权后再支付');
         }

@@ -340,6 +340,22 @@ class UserService extends Service
     }
 
     /**
+     * 绑定公众号 openid 到指定用户
+     */
+    public function bindOaOpenid(int $userId, string $oaOpenid): bool
+    {
+        return $this->userRepository->updateOaOpenid($userId, $oaOpenid);
+    }
+
+    /**
+     * 绑定公众号 openid 和 unionid 到指定用户
+     */
+    public function bindOaOpenidAndUnionid(int $userId, string $oaOpenid, ?string $unionid): bool
+    {
+        return $this->userRepository->updateOaOpenidAndUnionid($userId, $oaOpenid, $unionid);
+    }
+
+    /**
      * 微信 H5 登录（公众号 OAuth）
      * @return array ['status' => 'logged_in'|'need_bindphone', 'token'?, 'openid', 'unionid']
      */

@@ -159,7 +159,7 @@ class UserController extends Controller
             }
 
             $userId = $this->getUserId();
-            \app\model\user\User::where('id', $userId)->update(['oa_openid' => $oaOpenid]);
+            $this->userService->bindOaOpenid($userId, $oaOpenid);
 
             return $this->success('ok');
         } catch (\Exception $e) {

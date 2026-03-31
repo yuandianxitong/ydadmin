@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace app\adminapi\middleware;
 
 use core\http\Middleware;
-use app\model\system\AdminOperationLog;
+use app\repository\system\AdminOperationLogRepository;
 use Closure;
 use think\Request;
 use think\Response;
@@ -54,7 +54,9 @@ class AdminLogMiddleware extends Middleware
         $action = $this->getActionDescription($request);
 
         // 记录日志
-        AdminOperationLog::record([
+        /** @var AdminOperationLogRepository $logRepository */
+        $logRepository = app(AdminOperationLogRepository::class);
+        $logRepository->record([
             'admin_id' => $userId,
             'username' => $username,
             'method' => $method,
