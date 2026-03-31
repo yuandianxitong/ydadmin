@@ -98,16 +98,16 @@
           <view class="line" /><text class="divider-text">其他登录方式</text><view class="line" />
         </view>
 
-        <wd-button
+        <view
           v-if="!needBindPhone"
-          block
-          plain
-          :loading="wechatQuickLoading"
-          class="wechat-btn"
-          @click="handleWechatQuickLogin"
+          class="wechat-login-icon"
+          :class="{ loading: wechatQuickLoading }"
+          @tap="handleWechatQuickLogin"
         >
-          微信快捷登录
-        </wd-button>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="48" height="48">
+            <path fill="#ffffff" d="M17.6 6.32C16.27 5.45 14.6 5 12.8 5 8.15 5 4.39 8.2 4.39 12.14c0 2.18 1.13 4.16 2.95 5.56l-.74 2.2 2.56-1.3c.89.25 1.84.38 2.8.38.23 0 .47-.01.7-.03a6.06 6.06 0 0 1-.26-1.78c0-3.5 3.16-6.35 7.05-6.35.24 0 .47.01.7.03C19.68 8.47 18.93 7.16 17.6 6.32zM10.23 8.72c.5 0 .9.38.9.85s-.4.85-.9.85-.9-.38-.9-.85.4-.85.9-.85zm-4.85.85c0-.47.4-.85.9-.85s.9.38.9.85-.4.85-.9.85-.9-.38-.9-.85zM23.5 17.07c0-3.07-3.12-5.57-6.97-5.57s-6.97 2.5-6.97 5.57 3.12 5.57 6.97 5.57c.82 0 1.6-.13 2.33-.36l1.97 1.07-.57-1.71C22.37 20.56 23.5 18.93 23.5 17.07zM14.5 15.8c-.37 0-.68-.29-.68-.65s.3-.65.68-.65.68.29.68.65-.3.65-.68.65zm4.06 0c-.37 0-.68-.29-.68-.65s.3-.65.68-.65.68.29.68.65-.3.65-.68.65z"/>
+          </svg>
+        </view>
 
         <button
           v-else
@@ -356,11 +356,20 @@ function handleGetPhoneNumber(e: any) {
   }
 }
 
-.wechat-btn {
-  border-color: #07c160 !important;
-  color: #07c160 !important;
-  border-radius: 16rpx !important;
-  height: 88rpx !important;
+.wechat-login-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #07c160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 4rpx 16rpx rgba(7, 193, 96, 0.3);
+
+  &.loading {
+    opacity: 0.6;
+  }
 }
 
 .phone-bind-btn {

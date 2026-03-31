@@ -8,13 +8,13 @@ export const authApi = {
   smsLogin: (data: { mobile: string; code: string }) =>
     http.post<LoginResult>('/api/auth/sms-login', data),
 
-  sendSmsCode: (data: { mobile: string }) =>
+  sendSmsCode: (data: { mobile: string; scene?: string }) =>
     http.post('/api/common/sms-code', data),
 
   wechatMiniLogin: (data: { code: string }) =>
     http.post<LoginResult>('/api/auth/wechat-login', data),
 
-  register: (data: { account: string; password: string; password_confirmation: string }) =>
+  register: (data: { mobile: string; code: string; password: string; password_confirmation: string }) =>
     http.post<LoginResult>('/api/auth/register', data),
 
   refreshToken: () =>

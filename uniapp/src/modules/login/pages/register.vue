@@ -9,15 +9,33 @@
 
       <!-- 注册表单 -->
       <view class="form-card">
-        <!-- 手机号/账号 -->
+        <!-- 手机号 -->
         <view class="input-group">
           <wd-icon name="mobile" size="36rpx" color="#999" class="input-prefix" />
           <input
-            v-model="form.account"
-            placeholder="请输入手机号或账号"
+            v-model="form.mobile"
+            type="number"
+            maxlength="11"
+            placeholder="请输入手机号"
             class="uni-input"
             placeholder-class="input-placeholder"
           />
+        </view>
+
+        <!-- 短信验证码 -->
+        <view class="input-group sms-group">
+          <wd-icon name="secured" size="36rpx" color="#999" class="input-prefix" />
+          <input
+            v-model="form.code"
+            type="number"
+            maxlength="6"
+            placeholder="请输入验证码"
+            class="uni-input"
+            placeholder-class="input-placeholder"
+          />
+          <view class="send-code-btn" :class="{ disabled: countdown > 0 }" @tap="handleSendCode">
+            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+          </view>
         </view>
 
         <!-- 密码 -->
@@ -75,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { authApi } from '@/api/auth'
 import { isPassword } from '@/utils/validate'
 import { useUserStore } from '@/store/user.store'
@@ -86,16 +104,49 @@ const loading = ref(false)
 const agreed = ref(false)
 const showPwd = ref(false)
 const showConfirmPwd = ref(false)
+const countdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const form = reactive({
-  account: '',
+  mobile: '',
+  code: '',
   password: '',
   confirmPassword: '',
 })
 
+function startCountdown() {
+  countdown.value = 60
+  countdownTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer!)
+      countdownTimer = null
+    }
+  }, 1000)
+}
+
+async function handleSendCode() {
+  if (countdown.value > 0) return
+  if (!/^1[3-9]\d{9}$/.test(form.mobile)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return
+  }
+  try {
+    await authApi.sendSmsCode({ mobile: form.mobile, scene: 'register' })
+    uni.showToast({ title: '验证码已发送', icon: 'none' })
+    startCountdown()
+  } catch {
+    // 错误已由请求拦截器处理
+  }
+}
+
 async function handleRegister() {
-  if (!form.account) {
-    uni.showToast({ title: '请输入手机号或账号', icon: 'none' })
+  if (!/^1[3-9]\d{9}$/.test(form.mobile)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return
+  }
+  if (!form.code) {
+    uni.showToast({ title: '请输入验证码', icon: 'none' })
     return
   }
   if (!isPassword(form.password)) {
@@ -114,7 +165,8 @@ async function handleRegister() {
   loading.value = true
   try {
     const result = await authApi.register({
-      account: form.account,
+      mobile: form.mobile,
+      code: form.code,
       password: form.password,
       password_confirmation: form.confirmPassword,
     })
@@ -142,6 +194,13 @@ async function handleRegister() {
 function goLogin() {
   uni.navigateBack()
 }
+
+onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -203,6 +262,23 @@ function goLogin() {
 
     .pwd-toggle-text {
       font-size: 26rpx;
+      color: $text-color-secondary;
+    }
+  }
+
+  .send-code-btn {
+    flex-shrink: 0;
+    padding-left: 20rpx;
+    margin-left: 20rpx;
+    border-left: 2rpx solid $border-color;
+    font-size: 26rpx;
+    color: $primary-color;
+    white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
+
+    &.disabled {
       color: $text-color-secondary;
     }
   }
