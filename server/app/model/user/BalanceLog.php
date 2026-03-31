@@ -37,6 +37,7 @@ class BalanceLog extends Model
 
     public function getTypeTextAttr($value, $data): string
     {
+        if (!isset($data['type'])) return '';
         return self::TYPE_MAP[$data['type']] ?? '未知';
     }
 

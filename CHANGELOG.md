@@ -30,7 +30,9 @@
 - 修复静默吞掉异常的 catch 块（FileService、CodeGeneratorService、UploadController），改为 Log::warning
 - 修复 `api-doc` 页面硬编码 localStorage key 获取 token
 - 修复 `workbench` 页面 `v-for` + `v-if` 同元素（Vue 3 不允许）
-- 修复 Vite 开发模式新页面首次访问触发依赖重优化整页刷新
+- 修复 Vite 开发模式新页面首次访问触发依赖重优化整页刷新（改用动态解析组件样式路径）
+- 修复 Dashboard stats 接口报 "Undefined array key 'login_result'"（AdminLoginLog 访问器加 isset 防御）
+- 修复多个 Model 访问器在字段缺省时抛出 "Undefined array key" 警告（Admin、Role、Menu、Dictionary、DictionaryItem、Permission、BalanceLog、PointsLog）
 
 ### Removed
 - 移除重复的消息模块视图（`views/message/`，保留 `views/system/message/`）

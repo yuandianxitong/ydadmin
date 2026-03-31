@@ -36,6 +36,7 @@ class DictionaryItem extends Model
      */
     public function getStatusTextAttr($value, $data): string
     {
+        if (!isset($data['status'])) return '';
         return $this->getStatusText($data['status'], [1 => '正常', 0 => '禁用']);
     }
 }

@@ -37,6 +37,7 @@ class Permission extends Model
     // 访问器
     public function getStatusTextAttr($value, $data): string
     {
+        if (!isset($data['status'])) return '';
         return $this->getStatusText($data['status'], [1 => '启用', 0 => '禁用']);
     }
 

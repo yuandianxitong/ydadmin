@@ -60,22 +60,26 @@ class Menu extends Model
     // 访问器
     public function getTypeTextAttr($value, $data): string
     {
+        if (!isset($data['type'])) return '';
         $types = [1 => '目录', 2 => '菜单', 3 => '按钮'];
         return $types[$data['type']] ?? '未知';
     }
 
     public function getStatusTextAttr($value, $data): string
     {
+        if (!isset($data['status'])) return '';
         return $this->getStatusText($data['status'], [1 => '启用', 0 => '禁用']);
     }
 
     public function getIsHiddenTextAttr($value, $data): string
     {
+        if (!isset($data['is_hidden'])) return '';
         return $data['is_hidden'] ? '是' : '否';
     }
 
     public function getIsCacheTextAttr($value, $data): string
     {
+        if (!isset($data['is_cache'])) return '';
         return $data['is_cache'] ? '是' : '否';
     }
 

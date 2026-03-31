@@ -7,7 +7,20 @@ import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 import UnoCSS from "unocss/vite";
 import { resolve } from "path";
+import { readdirSync, existsSync } from "fs";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
+
+// 动态解析 Element Plus 所有组件样式路径，避免开发模式下依赖重优化导致页面刷新
+function getElementPlusStyleIncludes(): string[] {
+    const dir = resolve(__dirname, "node_modules/element-plus/es/components");
+    try {
+        return readdirSync(dir)
+            .filter((name) => existsSync(resolve(dir, name, "style")))
+            .map((name) => `element-plus/es/components/${name}/style/index`);
+    } catch {
+        return [];
+    }
+}
 
 // 平台的名称、版本、运行所需的 node 版本、依赖、构建时间的类型提示
 const __APP_INFO__ = {
@@ -111,7 +124,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                 "vue",
                 "vue-router",
                 "element-plus",
-                "element-plus/es/components/*/style/index",
+                ...getElementPlusStyleIncludes(),
                 "pinia",
                 "axios",
                 "@vueuse/core",

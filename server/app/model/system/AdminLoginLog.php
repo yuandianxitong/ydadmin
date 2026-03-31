@@ -42,6 +42,9 @@ class AdminLoginLog extends Model
     // 访问器
     public function getLoginResultTextAttr($value, $data): string
     {
+        if (!isset($data['login_result'])) {
+            return '';
+        }
         return $data['login_result'] ? '成功' : '失败';
     }
 

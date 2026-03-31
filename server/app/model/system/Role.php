@@ -45,11 +45,13 @@ class Role extends Model
     // 访问器
     public function getStatusTextAttr($value, $data): string
     {
+        if (!isset($data['status'])) return '';
         return $this->getStatusText($data['status'], [1 => '正常', 0 => '禁用']);
     }
 
     public function getDataScopeTextAttr($value, $data): string
     {
+        if (!isset($data['data_scope'])) return '';
         $scopes = [
             1 => '全部数据',
             2 => '自定义数据',
@@ -62,6 +64,7 @@ class Role extends Model
 
     public function getIsSystemTextAttr($value, $data): string
     {
+        if (!isset($data['is_system'])) return '';
         return $data['is_system'] ? '是' : '否';
     }
 

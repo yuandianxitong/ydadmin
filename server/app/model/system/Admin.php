@@ -54,13 +54,14 @@ class Admin extends Model
     // 访问器
     public function getStatusTextAttr($value, $data): string
     {
+        if (!isset($data['status'])) return '';
         $status = [1 => '正常', 0 => '禁用'];
         return $status[$data['status']] ?? '未知';
     }
 
     public function getAvatarUrlAttr($value, $data): string
     {
-        if (empty($data['avatar'])) {
+        if (!isset($data['avatar']) || empty($data['avatar'])) {
             return '/static/images/default-avatar.png';
         }
 
