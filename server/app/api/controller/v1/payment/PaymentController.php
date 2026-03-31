@@ -6,14 +6,36 @@ namespace app\api\controller\v1\payment;
 use core\base\Controller;
 use app\service\payment\PaymentService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '支付', description: '支付订单创建、查询、退款及异步回调')]
 class PaymentController extends Controller
 {
     protected PaymentService $paymentService;
 
-    /**
-     * 创建支付订单
-     */
+    #[OA\Post(
+        path: '/payment/create',
+        summary: '创建支付订单',
+        security: [['bearerAuth' => []]],
+        tags: ['支付'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['channel', 'subject', 'total_amount'],
+                properties: [
+                    new OA\Property(property: 'channel', type: 'string', description: '支付渠道（wechat/alipay）'),
+                    new OA\Property(property: 'subject', type: 'string', description: '订单标题'),
+                    new OA\Property(property: 'total_amount', type: 'number', description: '支付金额（元）'),
+                    new OA\Property(property: 'trade_type', type: 'string', description: '微信交易类型（jsapi/h5/app/native）'),
+                    new OA\Property(property: 'openid', type: 'string', description: 'JSAPI 支付时用户 openid'),
+                    new OA\Property(property: 'return_url', type: 'string', description: '支付宝同步回跳地址'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '创建成功，返回支付参数', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function create(): Response
     {
         try {
@@ -42,9 +64,18 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * 查询订单
-     */
+    #[OA\Get(
+        path: '/payment/query',
+        summary: '查询订单支付状态',
+        security: [['bearerAuth' => []]],
+        tags: ['支付'],
+        parameters: [
+            new OA\Parameter(name: 'order_no', in: 'query', required: true, description: '订单号', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '查询成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function query(): Response
     {
         try {
@@ -69,9 +100,27 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * 退款
-     */
+    #[OA\Post(
+        path: '/payment/refund',
+        summary: '申请退款',
+        security: [['bearerAuth' => []]],
+        tags: ['支付'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['channel', 'order_no', 'refund_amount'],
+                properties: [
+                    new OA\Property(property: 'channel', type: 'string', description: '支付渠道'),
+                    new OA\Property(property: 'order_no', type: 'string', description: '订单号'),
+                    new OA\Property(property: 'refund_amount', type: 'number', description: '退款金额（元）'),
+                    new OA\Property(property: 'reason', type: 'string', description: '退款原因'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '退款申请成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function refund(): Response
     {
         try {
@@ -100,9 +149,14 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * 支付宝异步回调
-     */
+    #[OA\Post(
+        path: '/payment/notify/alipay',
+        summary: '支付宝异步回调（供支付宝服务器调用）',
+        tags: ['支付'],
+        responses: [
+            new OA\Response(response: 200, description: 'success'),
+        ]
+    )]
     public function alipayNotify(): Response
     {
         $params = $this->request->param();
@@ -111,9 +165,14 @@ class PaymentController extends Controller
         return response($result, 200, ['Content-Type' => 'text/plain']);
     }
 
-    /**
-     * 微信支付异步回调
-     */
+    #[OA\Post(
+        path: '/payment/notify/wechat',
+        summary: '微信支付异步回调（供微信服务器调用）',
+        tags: ['支付'],
+        responses: [
+            new OA\Response(response: 200, description: '{"code":"SUCCESS"}'),
+        ]
+    )]
     public function wechatNotify(): Response
     {
         $body = $this->request->getContent();

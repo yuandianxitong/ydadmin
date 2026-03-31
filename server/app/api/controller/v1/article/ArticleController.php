@@ -12,14 +12,26 @@ namespace app\api\controller\v1\article;
 use core\base\Controller;
 use app\service\article\ArticleService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '文章', description: '文章列表与详情')]
 class ArticleController extends Controller
 {
     protected ArticleService $articleService;
 
-    /**
-     * 文章列表（已发布）
-     */
+    #[OA\Get(
+        path: '/article/list',
+        summary: '获取文章列表（已发布）',
+        tags: ['文章'],
+        parameters: [
+            new OA\Parameter(name: 'page_no', in: 'query', description: '页码', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'page_size', in: 'query', description: '每页数量', schema: new OA\Schema(type: 'integer', default: 10)),
+            new OA\Parameter(name: 'category_id', in: 'query', description: '分类ID', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/PaginatedResponse')),
+        ]
+    )]
     public function getList(): Response
     {
         $params = $this->getRequestData([
@@ -31,9 +43,17 @@ class ArticleController extends Controller
         return $this->paginate($result);
     }
 
-    /**
-     * 文章详情
-     */
+    #[OA\Get(
+        path: '/article/detail/{id}',
+        summary: '获取文章详情',
+        tags: ['文章'],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: '文章ID', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function getDetail(): Response
     {
         $id = (int) $this->request->param('id');

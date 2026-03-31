@@ -6,6 +6,10 @@
                     <div class="flex items-center gap-3">
                         <span class="text-lg font-bold">{{ $t('apiDoc.title') }}</span>
                         <el-tag size="small" effect="plain">OpenAPI 3.0</el-tag>
+                        <el-radio-group v-model="apiType" size="small" @change="handleTypeChange">
+                            <el-radio-button value="admin">后台管理 API</el-radio-button>
+                            <el-radio-button value="api">前端应用 API</el-radio-button>
+                        </el-radio-group>
                     </div>
                     <div class="flex items-center gap-2">
                         <el-tooltip :content="$t('apiDoc.openSwagger')" placement="bottom">
@@ -45,9 +49,11 @@ const swaggerContainer = ref<HTMLElement>()
 const loadError = ref(false)
 let swaggerUI: any = null
 
+const apiType = ref('admin')
+
 const getOpenapiUrl = () => {
     // 始终用相对路径，开发环境走 Vite 代理，生产环境走同域
-    return '/adminapi/system/api-doc/openapi.json'
+    return `/adminapi/system/api-doc/openapi.json?type=${apiType.value}`
 }
 
 const initSwagger = async () => {
@@ -112,8 +118,12 @@ const loadSwaggerUI = (): Promise<any> => {
     })
 }
 
+const handleTypeChange = () => {
+    initSwagger()
+}
+
 const openSwaggerUI = () => {
-    window.open('/adminapi/system/api-doc', '_blank')
+    window.open(`/adminapi/system/api-doc?type=${apiType.value}`, '_blank')
 }
 
 const downloadJson = () => {

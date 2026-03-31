@@ -6,16 +6,24 @@ namespace app\api\controller\v1\user;
 use core\base\Controller;
 use app\service\user\UserService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '用户中心', description: '用户个人信息、余额、积分、充值')]
 class UserController extends Controller
 {
     protected UserService $userService;
     protected \app\service\user\UserManageService $userManageService;
     protected \app\service\payment\PaymentService $paymentService;
 
-    /**
-     * 获取个人信息
-     */
+    #[OA\Get(
+        path: '/user/profile',
+        summary: '获取个人信息',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function profile(): Response
     {
         try {
@@ -26,9 +34,23 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * 更新个人信息
-     */
+    #[OA\Put(
+        path: '/user/profile',
+        summary: '更新个人信息',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'nickname', type: 'string', description: '昵称'),
+                new OA\Property(property: 'avatar', type: 'string', description: '头像URL'),
+                new OA\Property(property: 'gender', type: 'integer', description: '性别(0未知 1男 2女)', enum: [0, 1, 2]),
+                new OA\Property(property: 'birthday', type: 'string', description: '生日(Y-m-d)'),
+            ])
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '更新成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function updateProfile(): Response
     {
         try {
@@ -40,9 +62,25 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * 修改密码
-     */
+    #[OA\Put(
+        path: '/user/change-password',
+        summary: '修改密码',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['new_password'],
+                properties: [
+                    new OA\Property(property: 'old_password', type: 'string', description: '旧密码（已设置密码时必填）'),
+                    new OA\Property(property: 'new_password', type: 'string', description: '新密码（至少6位）'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '修改成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function changePassword(): Response
     {
         try {
@@ -60,9 +98,15 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * 获取余额
-     */
+    #[OA\Get(
+        path: '/user/balance',
+        summary: '获取余额',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function balance(): Response
     {
         $userId = $this->getUserId();
@@ -70,9 +114,19 @@ class UserController extends Controller
         return $this->success('ok', $result);
     }
 
-    /**
-     * 获取余额记录
-     */
+    #[OA\Get(
+        path: '/user/balance-logs',
+        summary: '获取余额记录',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        parameters: [
+            new OA\Parameter(name: 'page_no', in: 'query', description: '页码', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'page_size', in: 'query', description: '每页数量', schema: new OA\Schema(type: 'integer', default: 10)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/PaginatedResponse')),
+        ]
+    )]
     public function balanceLogs(): Response
     {
         $userId = $this->getUserId();
@@ -81,9 +135,15 @@ class UserController extends Controller
         return $this->success('ok', $result);
     }
 
-    /**
-     * 获取积分
-     */
+    #[OA\Get(
+        path: '/user/points',
+        summary: '获取积分',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function points(): Response
     {
         $userId = $this->getUserId();
@@ -91,9 +151,19 @@ class UserController extends Controller
         return $this->success('ok', $result);
     }
 
-    /**
-     * 获取积分记录
-     */
+    #[OA\Get(
+        path: '/user/points-logs',
+        summary: '获取积分记录',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        parameters: [
+            new OA\Parameter(name: 'page_no', in: 'query', description: '页码', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'page_size', in: 'query', description: '每页数量', schema: new OA\Schema(type: 'integer', default: 10)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/PaginatedResponse')),
+        ]
+    )]
     public function pointsLogs(): Response
     {
         $userId = $this->getUserId();
@@ -102,9 +172,25 @@ class UserController extends Controller
         return $this->success('ok', $result);
     }
 
-    /**
-     * 余额充值
-     */
+    #[OA\Post(
+        path: '/user/recharge',
+        summary: '余额充值',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['amount'],
+                properties: [
+                    new OA\Property(property: 'amount', type: 'number', description: '充值金额（1.00~10000.00）'),
+                    new OA\Property(property: 'channel', type: 'string', description: '支付渠道（wechat/alipay）', default: 'wechat'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '创建充值订单成功，返回支付参数', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function recharge(): Response
     {
         try {
@@ -147,9 +233,24 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * 绑定公众号 openid 到当前用户
-     */
+    #[OA\Post(
+        path: '/user/bind-oa-openid',
+        summary: '绑定公众号 openid',
+        security: [['bearerAuth' => []]],
+        tags: ['用户中心'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['oa_openid'],
+                properties: [
+                    new OA\Property(property: 'oa_openid', type: 'string', description: '公众号 openid'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '绑定成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function bindOaOpenid(): Response
     {
         try {

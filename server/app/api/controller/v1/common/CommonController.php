@@ -9,15 +9,22 @@ use core\base\Controller;
 use core\storage\StorageManager;
 use think\Response;
 use think\facade\Filesystem;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '公共接口', description: '应用配置、短信验证码、文件上传')]
 class CommonController extends Controller
 {
     protected UserService $userService;
     protected MessageService $messageService;
 
-    /**
-     * 获取应用基础配置（无需登录）
-     */
+    #[OA\Get(
+        path: '/common/config',
+        summary: '获取应用基础配置',
+        tags: ['公共接口'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function config(): Response
     {
         try {
@@ -39,9 +46,27 @@ class CommonController extends Controller
         }
     }
 
-    /**
-     * 上传图片
-     */
+    #[OA\Post(
+        path: '/common/upload/image',
+        summary: '上传图片',
+        security: [['bearerAuth' => []]],
+        tags: ['公共接口'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['file'],
+                    properties: [
+                        new OA\Property(property: 'file', type: 'string', format: 'binary', description: '图片文件（jpg/png/gif/webp，最大2MB）'),
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '上传成功，返回文件URL', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function uploadImage(): Response
     {
         try {
@@ -85,9 +110,25 @@ class CommonController extends Controller
         }
     }
 
-    /**
-     * 发送短信验证码
-     */
+    #[OA\Post(
+        path: '/common/sms-code',
+        summary: '发送短信验证码',
+        tags: ['公共接口'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['mobile', 'scene'],
+                properties: [
+                    new OA\Property(property: 'mobile', type: 'string', description: '手机号'),
+                    new OA\Property(property: 'scene', type: 'string', description: '场景（login/register/reset_password/bind_mobile/change_mobile）'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '发送成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+            new OA\Response(response: 400, description: '发送失败', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
     public function sendSmsCode(): Response
     {
         try {

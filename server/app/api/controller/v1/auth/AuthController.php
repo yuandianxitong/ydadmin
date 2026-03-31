@@ -9,16 +9,34 @@ use app\service\user\UserService;
 use app\service\wechat\MiniAppService;
 use app\model\system\SystemConfig;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '认证', description: '用户登录、注册、Token管理')]
 class AuthController extends Controller
 {
     protected UserService $userService;
     protected MiniAppService $miniAppService;
     protected TokenManager $tokenManager;
 
-    /**
-     * 账号+密码登录（账号可以是手机号或用户名）
-     */
+    #[OA\Post(
+        path: '/auth/login',
+        summary: '账号密码登录',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['account', 'password'],
+                properties: [
+                    new OA\Property(property: 'account', type: 'string', description: '账号（手机号或用户名）'),
+                    new OA\Property(property: 'password', type: 'string', description: '密码'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功，返回token', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+            new OA\Response(response: 400, description: '账号或密码错误', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
     public function login(): Response
     {
         try {
@@ -40,9 +58,25 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 手机号+验证码登录
-     */
+    #[OA\Post(
+        path: '/auth/sms-login',
+        summary: '手机号验证码登录',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['mobile', 'code'],
+                properties: [
+                    new OA\Property(property: 'mobile', type: 'string', description: '手机号'),
+                    new OA\Property(property: 'code', type: 'string', description: '短信验证码'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+            new OA\Response(response: 400, description: '验证码错误', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
     public function smsLogin(): Response
     {
         try {
@@ -71,9 +105,23 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 微信小程序登录
-     */
+    #[OA\Post(
+        path: '/auth/wechat-login',
+        summary: '微信小程序登录',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [
+                    new OA\Property(property: 'code', type: 'string', description: '微信小程序 code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function wechatLogin(): Response
     {
         try {
@@ -97,9 +145,23 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 微信开放平台网页扫码登录（PC端）
-     */
+    #[OA\Post(
+        path: '/auth/wechat-web-login',
+        summary: '微信开放平台网页扫码登录（PC端）',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [
+                    new OA\Property(property: 'code', type: 'string', description: '微信授权 code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function wechatWebLogin(): Response
     {
         try {
@@ -145,9 +207,15 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 获取当前用户信息
-     */
+    #[OA\Get(
+        path: '/auth/info',
+        summary: '获取当前用户信息',
+        security: [['bearerAuth' => []]],
+        tags: ['认证'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function info(): Response
     {
         try {
@@ -159,9 +227,15 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 退出登录
-     */
+    #[OA\Post(
+        path: '/auth/logout',
+        summary: '退出登录',
+        security: [['bearerAuth' => []]],
+        tags: ['认证'],
+        responses: [
+            new OA\Response(response: 200, description: '退出成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function logout(): Response
     {
         try {
@@ -175,9 +249,27 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 注册（手机号 + 短信验证码 + 密码）
-     */
+    #[OA\Post(
+        path: '/auth/register',
+        summary: '注册（手机号+验证码+密码）',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['mobile', 'code', 'password'],
+                properties: [
+                    new OA\Property(property: 'mobile', type: 'string', description: '手机号'),
+                    new OA\Property(property: 'code', type: 'string', description: '短信验证码'),
+                    new OA\Property(property: 'password', type: 'string', description: '密码'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', description: '确认密码'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '注册成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+            new OA\Response(response: 400, description: '注册失败', content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')),
+        ]
+    )]
     public function register(): Response
     {
         try {
@@ -216,9 +308,15 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 刷新Token
-     */
+    #[OA\Post(
+        path: '/auth/refresh-token',
+        summary: '刷新 Token',
+        security: [['bearerAuth' => []]],
+        tags: ['认证'],
+        responses: [
+            new OA\Response(response: 200, description: '刷新成功，返回新 token', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function refreshToken(): Response
     {
         try {
@@ -233,9 +331,23 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 微信快捷登录（小程序）
-     */
+    #[OA\Post(
+        path: '/auth/wechat-quick-login',
+        summary: '微信快捷登录（小程序）',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [
+                    new OA\Property(property: 'code', type: 'string', description: '微信小程序 code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功或返回临时 token 待绑定手机号', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function wechatQuickLogin(): Response
     {
         try {
@@ -250,9 +362,24 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 微信快捷登录 — 手机号绑定
-     */
+    #[OA\Post(
+        path: '/auth/wechat-bindphone',
+        summary: '微信快捷登录 — 绑定手机号',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['temp_token', 'phone_code'],
+                properties: [
+                    new OA\Property(property: 'temp_token', type: 'string', description: '快捷登录返回的临时 token'),
+                    new OA\Property(property: 'phone_code', type: 'string', description: '微信 getPhoneNumber code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '绑定并登录成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function wechatBindPhone(): Response
     {
         try {
@@ -268,9 +395,23 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * 微信 H5 登录（公众号 OAuth code 换登录）
-     */
+    #[OA\Post(
+        path: '/auth/wechat-h5-login',
+        summary: '微信 H5 登录（公众号 OAuth code 换登录）',
+        tags: ['认证'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [
+                    new OA\Property(property: 'code', type: 'string', description: '公众号 OAuth code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '登录成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function wechatH5Login(): Response
     {
         try {

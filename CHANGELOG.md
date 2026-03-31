@@ -4,7 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+- API 文档支持后台管理 API / 前端应用 API 切换，C 端 11 个控制器添加 OpenAPI 注解
+- UniApp 注册页新增手机短信验证码（与 PC 端注册流程统一）
+
 ### Changed
+- UniApp 微信快捷登录按钮改为圆形绿色微信图标
 - 重构 Controller/Service/Repository 分层，消除架构违规（Controller 不再直接调用 Model，Service 不再绕过 Repository）
 - Menu/Permission Model 查询逻辑迁移至 Repository 层
 - AdminLogMiddleware 改用 Repository 记录操作日志

@@ -6,14 +6,26 @@ namespace app\api\controller\v1\message;
 use core\base\Controller;
 use app\service\notification\UserNotificationService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '消息通知', description: '用户消息列表、未读数量、标记已读')]
 class MessageController extends Controller
 {
     protected UserNotificationService $notificationService;
 
-    /**
-     * 消息列表
-     */
+    #[OA\Get(
+        path: '/message/list',
+        summary: '消息列表',
+        security: [['bearerAuth' => []]],
+        tags: ['消息通知'],
+        parameters: [
+            new OA\Parameter(name: 'page_no', in: 'query', schema: new OA\Schema(type: 'integer', default: 1)),
+            new OA\Parameter(name: 'page_size', in: 'query', schema: new OA\Schema(type: 'integer', default: 10)),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/PaginatedResponse')),
+        ]
+    )]
     public function list(): Response
     {
         try {
@@ -26,9 +38,15 @@ class MessageController extends Controller
         }
     }
 
-    /**
-     * 未读消息数量
-     */
+    #[OA\Get(
+        path: '/message/unread-count',
+        summary: '获取未读消息数量',
+        security: [['bearerAuth' => []]],
+        tags: ['消息通知'],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function unreadCount(): Response
     {
         try {
@@ -40,10 +58,20 @@ class MessageController extends Controller
         }
     }
 
-    /**
-     * 标记消息已读
-     * ids 为空时全部标记已读，否则标记指定消息
-     */
+    #[OA\Post(
+        path: '/message/read',
+        summary: '标记消息已读',
+        security: [['bearerAuth' => []]],
+        tags: ['消息通知'],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'ids', type: 'array', items: new OA\Items(type: 'integer'), description: '消息ID列表，为空则全部标记已读'),
+            ])
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '操作成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function read(): Response
     {
         try {

@@ -8,18 +8,34 @@ use app\service\wechat\OfficialAccountService;
 use app\service\wechat\MiniAppService;
 use app\service\user\UserService;
 use think\Response;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag(name: '微信', description: '微信公众号 OAuth、消息服务、小程序手机号')]
 class WechatController extends Controller
 {
     protected OfficialAccountService $officialAccountService;
     protected MiniAppService $miniAppService;
     protected UserService $userService;
 
-    /**
-     * 微信公众号服务端验证 & 消息回调
-     * GET  请求：URL 接入验证（echostr）
-     * POST 请求：接收消息/事件推送
-     */
+    #[OA\Get(
+        path: '/wechat/serve',
+        summary: '微信公众号 URL 接入验证',
+        tags: ['微信'],
+        parameters: [
+            new OA\Parameter(name: 'echostr', in: 'query', description: '微信验证字符串', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'echostr 回显'),
+        ]
+    )]
+    #[OA\Post(
+        path: '/wechat/serve',
+        summary: '微信公众号消息/事件推送回调',
+        tags: ['微信'],
+        responses: [
+            new OA\Response(response: 200, description: 'success'),
+        ]
+    )]
     public function serve(): Response
     {
         try {
@@ -41,9 +57,18 @@ class WechatController extends Controller
         }
     }
 
-    /**
-     * 获取公众号 OAuth 授权跳转 URL
-     */
+    #[OA\Get(
+        path: '/wechat/oauth-url',
+        summary: '获取公众号 OAuth 授权跳转 URL',
+        tags: ['微信'],
+        parameters: [
+            new OA\Parameter(name: 'redirect_url', in: 'query', required: true, description: '授权后回调地址', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'scope', in: 'query', description: '授权范围（snsapi_base/snsapi_userinfo）', schema: new OA\Schema(type: 'string', default: 'snsapi_userinfo')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功，返回授权URL', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function oauthUrl(): Response
     {
         try {
@@ -62,12 +87,19 @@ class WechatController extends Controller
         }
     }
 
-    /**
-     * 公众号 OAuth 回调 — 通过 code 获取用户信息
-     * 支持两种模式：
-     * - API 模式：直接返回 JSON（原有行为）
-     * - SPA 重定向模式：state 参数存在时，缓存 openid 并 302 重定向
-     */
+    #[OA\Get(
+        path: '/wechat/oauth-callback',
+        summary: '公众号 OAuth 回调',
+        tags: ['微信'],
+        parameters: [
+            new OA\Parameter(name: 'code', in: 'query', required: true, description: '微信授权 code', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'state', in: 'query', description: 'SPA 重定向地址（存在时重定向，否则返回 JSON）', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'API模式：返回用户 openid 信息', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+            new OA\Response(response: 302, description: 'SPA模式：重定向至 state 地址'),
+        ]
+    )]
     public function oauthCallback(): Response
     {
         try {
@@ -107,9 +139,17 @@ class WechatController extends Controller
         }
     }
 
-    /**
-     * 通过 wechat_token 换取 openid（前端 SPA 使用）
-     */
+    #[OA\Get(
+        path: '/wechat/get-openid',
+        summary: '通过 wechat_token 换取 openid（SPA 使用）',
+        tags: ['微信'],
+        parameters: [
+            new OA\Parameter(name: 'token', in: 'query', required: true, description: 'OAuth 回调后缓存的临时 token', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: '获取成功，返回 openid/unionid', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function getOpenid(): Response
     {
         try {
@@ -138,9 +178,24 @@ class WechatController extends Controller
         }
     }
 
-    /**
-     * 小程序解密手机号
-     */
+    #[OA\Post(
+        path: '/wechat/decrypt-phone',
+        summary: '小程序解密手机号',
+        security: [['bearerAuth' => []]],
+        tags: ['微信'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [
+                    new OA\Property(property: 'code', type: 'string', description: '小程序 getPhoneNumber 返回的 code'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: '解密成功，返回手机号信息', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
     public function decryptPhone(): Response
     {
         try {
