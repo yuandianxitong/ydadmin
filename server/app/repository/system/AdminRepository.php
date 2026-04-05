@@ -68,38 +68,17 @@ class AdminRepository extends Repository
     }
 
     /**
-     * 获取管理员详情（包含角色和权限）
+     * 获取管理员详情（包含角色和权限，使用 eager loading）
      */
     public function getDetailWithPermissions(int $id): ?array
     {
-        $admin = $this->model->find($id);
+        $admin = $this->model->with(['roles.menus'])->find($id);
 
         if (!$admin) {
             return null;
         }
 
-        // 手动构建完整的数据结构
-        $adminData = $admin->toArray();
-        $adminData['roles'] = [];
-
-        // 获取角色信息
-        $roles = $admin->roles;
-        foreach ($roles as $role) {
-            $roleData = $role->toArray();
-
-            // 手动查询菜单避免ORM问题
-            $menus = \think\facade\Db::table('role_menus')
-                ->alias('rm')
-                ->join('menus m', 'rm.menu_id = m.id')
-                ->where('rm.role_id', $role->id)
-                ->field('m.*')
-                ->select();
-            $roleData['menus'] = $menus->toArray();
-
-            $adminData['roles'][] = $roleData;
-        }
-
-        return $adminData;
+        return $admin->toArray();
     }
 
     /**
