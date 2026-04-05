@@ -139,10 +139,27 @@ function generateTraceId(): string {
     return 'trace_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11)
 }
 
+// ========== GET 请求去重 ==========
+const pendingGetRequests = new Map<string, Promise<any>>()
+
+function buildDedupKey(url: string, config?: AxiosRequestConfig): string {
+    const params = config?.params ? JSON.stringify(config.params) : ''
+    return `${url}:${params}`
+}
+
 // 封装请求方法
 export const myRequest = {
     get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-        return request.get(url, config)
+        const key = buildDedupKey(url, config)
+        const pending = pendingGetRequests.get(key)
+        if (pending) {
+            return pending as Promise<ApiResponse<T>>
+        }
+        const req = request.get(url, config).finally(() => {
+            pendingGetRequests.delete(key)
+        }) as unknown as Promise<ApiResponse<T>>
+        pendingGetRequests.set(key, req)
+        return req
     },
 
     post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
