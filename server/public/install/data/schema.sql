@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS `admin_login_logs` (
   `os` varchar(100) DEFAULT NULL COMMENT '操作系统',
   PRIMARY KEY (`id`),
   KEY `admin_login_logs_admin_id_index` (`admin_id`),
+  KEY `idx_admin_login_time` (`admin_id`, `login_time`),
   KEY `admin_login_logs_username_index` (`username`),
   KEY `admin_login_logs_ip_index` (`ip`),
   KEY `admin_login_logs_login_time_index` (`login_time`),
