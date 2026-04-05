@@ -30,23 +30,31 @@
 
 系统内置完善的 RBAC 权限体系、CRUD 代码生成器和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
+## 演示体验
+
+| 端 | 地址 | 账号 |
+|---|---|---|
+| 管理后台 | [https://admin.dev007.cn/admin/](https://admin.dev007.cn/admin/) | admin / admin888 |
+| PC 前台 | [https://admin.dev007.cn/pc/](https://admin.dev007.cn/pc/) | — |
+| 手机端 | [https://admin.dev007.cn/mobile/](https://admin.dev007.cn/mobile/) | — |
+
 ## 技术栈
 
 | 端 | 技术 |
 |---|---|
-| 后端 | ThinkPHP 8.0 / PHP 8.0+ / MySQL |
+| 后端 | ThinkPHP 8.0 / PHP 8.0+ / MySQL / Redis |
 | 前端 | Vue 3 / TypeScript / Element Plus / Vite / Pinia / UnoCSS |
-| 移动端 | UniApp / Vue 3 / Wot Design Uni |
+| 移动端 | UniApp / Vue 3 / uview-plus |
 
 ## 功能特性
 
 - **RBAC 权限** — 管理员 / 角色 / 权限 / 菜单，支持按钮级权限控制和数据范围
 - **系统管理** — 部门、数据字典、文件管理、通知管理、定时任务、系统配置
-- **日志审计** — 登录日志、操作日志自动记录
+- **日志审计** — 登录日志、操作日志自动记录（队列异步写入）
 - **内容管理** — 协议、公告、用户反馈
 - **应用管理** — 区域管理（省市区三级）、APP 版本管理
 - **渠道管理** — 微信公众号（菜单/自动回复）、小程序配置
-- **消息系统** — 多通道消息模板（短信/微信/站内信）、发送记录
+- **消息系统** — 多通道消息模板（短信/微信/站内信）、队列异步发送
 - **支付集成** — 微信支付 / 支付宝（APP/小程序/H5）
 - **代码生成** — 可视化 CRUD 代码生成器，一键生成前后端完整代码
 - **API 文档** — 内置 OpenAPI 文档自动生成
@@ -71,8 +79,9 @@
 
 ### 环境要求
 
-- PHP >= 8.0（含 PDO、mbstring、fileinfo、curl、openssl、GD、ZipArchive 扩展）
+- PHP >= 8.0（含 PDO、mbstring、fileinfo、curl、openssl、GD、ZipArchive、redis 扩展）
 - MySQL >= 5.7
+- Redis >= 5.0
 - Node.js >= 16
 - Composer
 
@@ -90,6 +99,26 @@ docker-compose up -d
 安装完成后访问 `http://localhost/admin/` 进入管理后台。
 
 > 默认管理员账号：`admin`，密码：`admin888`
+
+### 启动队列（必须）
+
+系统的消息发送（短信/微信通知）和操作日志采用异步队列处理，需要启动队列 worker：
+
+```bash
+cd server
+php think queue:work --queue default
+```
+
+生产环境建议使用 Supervisor 守护队列进程，防止意外退出：
+
+```ini
+[program:ydadmin-queue]
+command=php think queue:work --queue default --tries=3
+directory=/your-project-path/server
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/ydadmin-queue.log
+```
 
 ### 手动安装
 

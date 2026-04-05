@@ -96,6 +96,7 @@
 import { ref, reactive, onUnmounted } from 'vue'
 import { authApi } from '@/api/auth'
 import { isPassword } from '@/utils/validate'
+import { setToken } from '@/utils/auth'
 import { useUserStore } from '@/store/user.store'
 
 const userStore = useUserStore()
@@ -171,8 +172,6 @@ async function handleRegister() {
       password_confirmation: form.confirmPassword,
     })
     if (result.token) {
-      // 通过 store 设置登录状态（token + userInfo 同步更新）
-      const { setToken } = await import('@/utils/auth')
       setToken(result.token)
       userStore.token = result.token
       userStore.userInfo = (result as any).user_info || (result as any).user || null
