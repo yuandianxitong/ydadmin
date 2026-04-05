@@ -5,11 +5,16 @@ namespace app\repository\system;
 
 use app\model\system\SystemConfig;
 use core\base\Repository;
-use think\facade\Cache;
+use core\cache\CacheableRepository;
 use think\Model;
 
 class SystemConfigRepository extends Repository
 {
+    use CacheableRepository;
+
+    protected string $cacheTag = 'config';
+    protected int $cacheTTL = 3600;
+
     protected function getModel(): Model
     {
         return new SystemConfig();
@@ -57,9 +62,9 @@ class SystemConfigRepository extends Repository
      */
     public function getAllConfigs(): array
     {
-        return Cache::remember('system_configs', function () {
+        return $this->cacheRemember('system_configs', function () {
             return SystemConfig::getAllConfigs();
-        }, 3600);
+        });
     }
 
     /**

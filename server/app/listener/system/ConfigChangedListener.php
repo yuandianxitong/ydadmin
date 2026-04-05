@@ -23,8 +23,7 @@ class ConfigChangedListener
 {
     public function handle(array $event): void
     {
-        // 清除配置缓存
-        Cache::delete('system_configs');
+        // 清除配置缓存（标签化管理，tag clear 会清除所有关联缓存）
         Cache::tag('config')->clear();
 
         Log::info('系统配置已更新，缓存已清除', [
