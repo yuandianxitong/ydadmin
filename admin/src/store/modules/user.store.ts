@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 
 import { authApi } from '@/api/auth'
-import { menuApi } from '@/api/menu'
 import { TOKEN_KEY } from '@/constants/cache'
 import { PageEnum } from '@/constants/page'
 import router from '@/router'
@@ -87,13 +86,7 @@ export const useUserStore = defineStore('user', () => {
             userInfo.value = data.admin || {}
             permissions.value = data.permissions || userInfo.value.permissions || []
 
-            // 优先使用 info 接口内置的 routes；否则单独拉取
-            if (Array.isArray(data.routes)) {
-                menus.value = data.routes
-            } else {
-                const menuResponse = await menuApi.getAdminRoutes()
-                menus.value = menuResponse.data || []
-            }
+            menus.value = data.routes || []
             return { admin: userInfo.value, menu: menus.value }
         } catch (error) {
             return Promise.reject(error)
