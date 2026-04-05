@@ -52,7 +52,7 @@
             </div>
 
             <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('cronJob.taskName')" prop="name" min-width="160">
+                <el-table-column :label="$t('cronJob.taskName')" prop="name" min-width="140">
                     <template #default="{ row }">
                         <div>
                             <div>{{ row.name }}</div>
@@ -101,7 +101,7 @@
 
                 <el-table-column :label="$t('cronJob.executionCount')" prop="run_count" width="90" />
 
-                <el-table-column :label="$t('common.operation')" width="250" fixed="right">
+                <el-table-column :label="$t('common.operation')" width="280" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             v-has-perm="['system.cron_job.run']"

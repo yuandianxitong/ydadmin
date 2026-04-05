@@ -1,13 +1,13 @@
 <template>
     <el-dialog
         v-model="visible"
-        title="用户详情"
+        :title="t('userMgmt.detail.title')"
         width="600px"
         :close-on-click-modal="false"
         @close="handleClose"
     >
         <el-descriptions :column="2" border>
-            <el-descriptions-item label="头像" :span="2">
+            <el-descriptions-item :label="t('userMgmt.avatar')" :span="2">
                 <el-image
                     v-if="userData?.avatar"
                     :src="appStore.getImageUrl(userData.avatar)"
@@ -20,42 +20,42 @@
                         </div>
                     </template>
                 </el-image>
-                <span v-else class="text-gray-400">暂无头像</span>
+                <span v-else class="text-gray-400">{{ t('userMgmt.detail.noAvatar') }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="昵称">
+            <el-descriptions-item :label="t('userMgmt.nickname')">
                 {{ userData?.nickname || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="账号">
+            <el-descriptions-item :label="t('userMgmt.mobile')">
                 {{ userData?.mobile || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="余额">
+            <el-descriptions-item :label="t('userMgmt.balance')">
                 <span class="balance-text">¥{{ userData?.balance || '0.00' }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="积分">
+            <el-descriptions-item :label="t('userMgmt.points')">
                 <span class="points-text">{{ userData?.points || 0 }}</span>
             </el-descriptions-item>
-            <el-descriptions-item label="状态">
+            <el-descriptions-item :label="t('userMgmt.status')">
                 <el-tag :type="userData?.status === 1 ? 'success' : 'danger'" size="small">
-                    {{ userData?.status === 1 ? '启用' : '禁用' }}
+                    {{ userData?.status === 1 ? t('userMgmt.statusEnabled') : t('userMgmt.statusDisabled') }}
                 </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="登录次数">
+            <el-descriptions-item :label="t('userMgmt.detail.loginCount')">
                 {{ userData?.login_count || 0 }}
             </el-descriptions-item>
-            <el-descriptions-item label="最后登录IP">
+            <el-descriptions-item :label="t('userMgmt.detail.lastLoginIp')">
                 {{ userData?.last_login_ip || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="最后登录时间">
+            <el-descriptions-item :label="t('userMgmt.detail.lastLoginTime')">
                 {{ userData?.last_login_time || '-' }}
             </el-descriptions-item>
-            <el-descriptions-item label="注册时间" :span="2">
+            <el-descriptions-item :label="t('userMgmt.detail.createdAt')" :span="2">
                 {{ userData?.created_at || '-' }}
             </el-descriptions-item>
         </el-descriptions>
 
         <template #footer>
             <span class="dialog-footer">
-                <el-button @click="handleClose">关闭</el-button>
+                <el-button @click="handleClose">{{ t('userMgmt.detail.close') }}</el-button>
             </span>
         </template>
     </el-dialog>
@@ -63,9 +63,12 @@
 
 <script setup lang="ts" name="UserDetailDialog">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type { UserItem } from '@/api/user'
 import useAppStore from '@/store/modules/app.store'
+
+const { t } = useI18n()
 
 interface Props {
     modelValue: boolean

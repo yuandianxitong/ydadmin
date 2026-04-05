@@ -1,42 +1,42 @@
 <template>
     <el-dialog
         v-model="visible"
-        title="调整余额"
+        :title="t('userMgmt.adjustBalanceDialog.title')"
         width="480px"
         :close-on-click-modal="false"
         @close="handleClose"
     >
         <div class="current-info">
-            <p>当前余额：<strong>¥{{ currentBalance }}</strong></p>
+            <p>{{ t('userMgmt.adjustBalanceDialog.currentBalance') }}：<strong>¥{{ currentBalance }}</strong></p>
         </div>
 
         <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-            <el-form-item label="调整金额" prop="amount">
+            <el-form-item :label="t('userMgmt.adjustBalanceDialog.amount')" prop="amount">
                 <el-input-number
                     v-model="form.amount"
                     :step="0.01"
                     :precision="2"
-                    placeholder="正数增加，负数减少"
+                    :placeholder="t('userMgmt.adjustBalanceDialog.amountPlaceholder')"
                     style="width: 100%"
                     controls-position="right"
                 />
             </el-form-item>
 
-            <el-form-item label="备注" prop="remark">
+            <el-form-item :label="t('userMgmt.adjustBalanceDialog.remark')" prop="remark">
                 <el-input
                     v-model="form.remark"
                     type="textarea"
                     :rows="3"
-                    placeholder="请输入调整原因"
+                    :placeholder="t('userMgmt.adjustBalanceDialog.remarkPlaceholder')"
                 />
             </el-form-item>
         </el-form>
 
         <template #footer>
             <span class="dialog-footer">
-                <el-button @click="handleClose">取消</el-button>
+                <el-button @click="handleClose">{{ t('userMgmt.adjustBalanceDialog.cancel') }}</el-button>
                 <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-                    确定
+                    {{ t('userMgmt.adjustBalanceDialog.confirm') }}
                 </el-button>
             </span>
         </template>
@@ -46,8 +46,11 @@
 <script setup lang="ts" name="AdjustBalanceDialog">
 import { ElForm, ElMessage } from 'element-plus'
 import { computed, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { userManageApi } from '@/api/user'
+
+const { t } = useI18n()
 
 interface Props {
     modelValue: boolean
@@ -81,11 +84,11 @@ const form = reactive({
 // 表单验证规则
 const rules = {
     amount: [
-        { required: true, message: '请输入调整金额', trigger: 'blur' },
+        { required: true, message: () => t('userMgmt.adjustBalanceDialog.validate.amountRequired'), trigger: 'blur' },
         {
             validator: (_rule: any, value: number, callback: (error?: Error) => void) => {
                 if (value === 0) {
-                    callback(new Error('调整金额不能为0'))
+                    callback(new Error(t('userMgmt.adjustBalanceDialog.validate.amountNotZero')))
                 } else {
                     callback()
                 }
@@ -93,7 +96,7 @@ const rules = {
             trigger: 'blur'
         }
     ],
-    remark: [{ required: true, message: '请输入备注', trigger: 'blur' }]
+    remark: [{ required: true, message: () => t('userMgmt.adjustBalanceDialog.validate.remarkRequired'), trigger: 'blur' }]
 }
 
 // 提交加载状态
@@ -114,7 +117,7 @@ const handleSubmit = async () => {
             remark: form.remark
         })
 
-        ElMessage.success('余额调整成功')
+        ElMessage.success(t('userMgmt.adjustBalanceDialog.successMsg'))
         emit('success')
         handleClose()
     } catch (error) {

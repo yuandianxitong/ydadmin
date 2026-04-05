@@ -3,33 +3,33 @@
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
-                <el-form-item label="用户昵称/账号">
+                <el-form-item :label="t('userMgmt.keyword')">
                     <el-input
                         v-model="searchForm.keyword"
-                        placeholder="请输入昵称或手机号"
+                        :placeholder="t('userMgmt.keywordPlaceholder')"
                         clearable
                         style="width: 200px"
                     />
                 </el-form-item>
-                <el-form-item label="状态">
+                <el-form-item :label="t('userMgmt.status')">
                     <el-select
                         v-model="searchForm.status"
-                        placeholder="全部"
+                        :placeholder="t('userMgmt.statusAll')"
                         clearable
                         style="width: 120px"
                     >
-                        <el-option label="启用" :value="1" />
-                        <el-option label="禁用" :value="0" />
+                        <el-option :label="t('userMgmt.statusEnabled')" :value="1" />
+                        <el-option :label="t('userMgmt.statusDisabled')" :value="0" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="getUserList">
                         <el-icon><Search /></el-icon>
-                        搜索
+                        {{ t('userMgmt.common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
                         <el-icon><Refresh /></el-icon>
-                        重置
+                        {{ t('userMgmt.common.reset') }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -38,13 +38,13 @@
         <!-- 表格区域 -->
         <el-card class="table-card" shadow="never">
             <div class="table-header">
-                <div class="table-title">用户列表</div>
+                <div class="table-title">{{ t('userMgmt.title') }}</div>
             </div>
 
             <el-table v-loading="loading" :data="userList" style="width: 100%">
                 <el-table-column label="ID" prop="id" width="80" />
 
-                <el-table-column label="头像" width="80">
+                <el-table-column :label="t('userMgmt.avatar')" width="80">
                     <template #default="{ row }">
                         <el-image
                             :src="appStore.getImageUrl(row.avatar)"
@@ -61,23 +61,23 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="昵称" prop="nickname" min-width="120" show-overflow-tooltip />
+                <el-table-column :label="t('userMgmt.nickname')" prop="nickname" min-width="120" show-overflow-tooltip />
 
-                <el-table-column label="账号" prop="mobile" width="140" />
+                <el-table-column :label="t('userMgmt.mobile')" prop="mobile" width="140" />
 
-                <el-table-column label="余额" width="120">
+                <el-table-column :label="t('userMgmt.balance')" width="120">
                     <template #default="{ row }">
                         <span class="balance-text">¥{{ row.balance }}</span>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="积分" width="100">
+                <el-table-column :label="t('userMgmt.points')" width="100">
                     <template #default="{ row }">
                         <span class="points-text">{{ row.points }}</span>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="状态" width="100">
+                <el-table-column :label="t('userMgmt.status')" width="100">
                     <template #default="{ row }">
                         <el-switch
                             v-model="row.status"
@@ -88,20 +88,20 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="注册时间" prop="created_at" width="170" />
+                <el-table-column :label="t('userMgmt.registerTime')" prop="created_at" width="170" />
 
-                <el-table-column label="最后登录" prop="last_login_time" width="170" />
+                <el-table-column :label="t('userMgmt.lastLogin')" prop="last_login_time" width="170" />
 
-                <el-table-column label="操作" width="240" fixed="right">
+                <el-table-column :label="t('userMgmt.actions')" width="240" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" size="small" text @click="handleDetail(row)">
-                            查看
+                            {{ t('userMgmt.viewDetail') }}
                         </el-button>
                         <el-button type="warning" size="small" text @click="handleAdjustBalance(row)">
-                            调整余额
+                            {{ t('userMgmt.adjustBalance') }}
                         </el-button>
                         <el-button type="success" size="small" text @click="handleAdjustPoints(row)">
-                            调整积分
+                            {{ t('userMgmt.adjustPoints') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -148,6 +148,7 @@
 import { Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { userManageApi } from '@/api/user'
 import type { UserItem } from '@/api/user'
@@ -157,6 +158,7 @@ import AdjustBalanceDialog from './components/AdjustBalanceDialog.vue'
 import AdjustPointsDialog from './components/AdjustPointsDialog.vue'
 import UserDetailDialog from './components/UserDetailDialog.vue'
 
+const { t } = useI18n()
 const appStore = useAppStore()
 
 // 搜索表单
@@ -216,7 +218,7 @@ const resetSearch = () => {
 const handleStatusChange = async (row: UserItem) => {
     try {
         await userManageApi.updateStatus(row.id, { status: row.status })
-        ElMessage.success('状态更新成功')
+        ElMessage.success(t('userMgmt.statusUpdateSuccess'))
     } catch (error) {
         // 恢复状态
         row.status = row.status === 1 ? 0 : 1

@@ -3,35 +3,35 @@
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
-                <el-form-item label="用户昵称/账号">
+                <el-form-item :label="t('userMgmt.keyword')">
                     <el-input
                         v-model="searchForm.keyword"
-                        placeholder="请输入用户昵称或账号"
+                        :placeholder="t('userMgmt.common.userNickname') + '/' + t('userMgmt.mobile')"
                         clearable
                         style="width: 200px"
                     />
                 </el-form-item>
-                <el-form-item label="类型">
+                <el-form-item :label="t('userMgmt.pointsLog.type')">
                     <el-select
                         v-model="searchForm.type"
-                        placeholder="全部"
+                        :placeholder="t('userMgmt.pointsLog.typeAll')"
                         clearable
                         style="width: 140px"
                     >
-                        <el-option label="后台调整" :value="1" />
-                        <el-option label="注册赠送" :value="2" />
-                        <el-option label="签到" :value="3" />
-                        <el-option label="消费赠送" :value="4" />
-                        <el-option label="消费扣减" :value="5" />
+                        <el-option :label="t('userMgmt.pointsLog.typeAdmin')" :value="1" />
+                        <el-option :label="t('userMgmt.pointsLog.typeRegister')" :value="2" />
+                        <el-option :label="t('userMgmt.pointsLog.typeCheckin')" :value="3" />
+                        <el-option :label="t('userMgmt.pointsLog.typeConsumeGift')" :value="4" />
+                        <el-option :label="t('userMgmt.pointsLog.typeConsumeDeduct')" :value="5" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="时间范围">
+                <el-form-item :label="t('userMgmt.pointsLog.dateRange')">
                     <el-date-picker
                         v-model="searchForm.dateRange"
                         type="daterange"
-                        range-separator="至"
-                        start-placeholder="开始日期"
-                        end-placeholder="结束日期"
+                        :range-separator="t('userMgmt.common.to')"
+                        :start-placeholder="t('userMgmt.common.startDate')"
+                        :end-placeholder="t('userMgmt.common.endDate')"
                         value-format="YYYY-MM-DD"
                         style="width: 260px"
                     />
@@ -39,11 +39,11 @@
                 <el-form-item>
                     <el-button type="primary" @click="getLogList">
                         <el-icon><Search /></el-icon>
-                        搜索
+                        {{ t('userMgmt.common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
                         <el-icon><Refresh /></el-icon>
-                        重置
+                        {{ t('userMgmt.common.reset') }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -52,15 +52,15 @@
         <!-- 表格区域 -->
         <el-card class="table-card" shadow="never">
             <div class="table-header">
-                <div class="table-title">积分记录</div>
+                <div class="table-title">{{ t('userMgmt.pointsLog.title') }}</div>
             </div>
 
             <el-table v-loading="loading" :data="logList">
                 <el-table-column label="ID" prop="id" width="80" />
 
-                <el-table-column label="用户昵称" prop="user_nickname" width="120" show-overflow-tooltip />
+                <el-table-column :label="t('userMgmt.common.userNickname')" prop="user_nickname" width="120" show-overflow-tooltip />
 
-                <el-table-column label="变动积分" width="120">
+                <el-table-column :label="t('userMgmt.pointsLog.changePoints')" width="120">
                     <template #default="{ row }">
                         <span :class="row.points >= 0 ? 'points-positive' : 'points-negative'">
                             {{ row.points >= 0 ? '+' : '' }}{{ row.points }}
@@ -68,11 +68,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="变动前积分" prop="before_points" width="120" />
+                <el-table-column :label="t('userMgmt.pointsLog.beforePoints')" prop="before_points" width="120" />
 
-                <el-table-column label="变动后积分" prop="after_points" width="120" />
+                <el-table-column :label="t('userMgmt.pointsLog.afterPoints')" prop="after_points" width="120" />
 
-                <el-table-column label="类型" width="110">
+                <el-table-column :label="t('userMgmt.pointsLog.type')" width="110">
                     <template #default="{ row }">
                         <el-tag :type="getTypeTagType(row.type)" size="small">
                             {{ row.type_text }}
@@ -80,15 +80,15 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column label="备注" prop="remark" min-width="160" show-overflow-tooltip />
+                <el-table-column :label="t('userMgmt.common.remark')" prop="remark" min-width="160" show-overflow-tooltip />
 
-                <el-table-column label="操作人" prop="operator_name" width="110">
+                <el-table-column :label="t('userMgmt.pointsLog.operator')" prop="operator_name" width="110">
                     <template #default="{ row }">
                         {{ row.operator_name || '-' }}
                     </template>
                 </el-table-column>
 
-                <el-table-column label="时间" prop="created_at" width="170" />
+                <el-table-column :label="t('userMgmt.pointsLog.time')" prop="created_at" width="170" />
             </el-table>
 
             <!-- 分页 -->
@@ -109,9 +109,12 @@
 <script setup lang="ts" name="PointsLog">
 import { Refresh, Search } from '@element-plus/icons-vue'
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { userManageApi } from '@/api/user'
 import type { PointsLogItem } from '@/api/user'
+
+const { t } = useI18n()
 
 // 搜索表单
 const searchForm = reactive({

@@ -5,11 +5,11 @@
             <template #header>
                 <div class="card-header">
                     <el-icon><Key /></el-icon>
-                    <span>微信开放平台</span>
+                    <span>{{ t('channel.open.wechatOpenTitle') }}</span>
                 </div>
             </template>
             <el-alert type="info" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>用于 PC 端微信扫码登录，需在<el-link type="primary" href="https://open.weixin.qq.com" target="_blank">微信开放平台</el-link>创建「网站应用」并通过审核</template>
+                <template #title>{{ t('channel.open.wechatOpenAlert') }}<el-link type="primary" href="https://open.weixin.qq.com" target="_blank">{{ t('channel.open.wechatOpenTitle') }}</el-link></template>
             </el-alert>
             <el-form
                 :model="formData"
@@ -20,7 +20,7 @@
                 <el-form-item label="AppID">
                     <el-input
                         v-model="formData.wechat_open_app_id"
-                        placeholder="请输入微信开放平台网站应用AppID"
+                        :placeholder="t('channel.open.appIdPlaceholder')"
                     />
                 </el-form-item>
                 <el-form-item label="AppSecret">
@@ -28,7 +28,7 @@
                         v-model="formData.wechat_open_app_secret"
                         type="password"
                         show-password
-                        placeholder="请输入微信开放平台网站应用AppSecret"
+                        :placeholder="t('channel.open.appSecretPlaceholder')"
                     />
                 </el-form-item>
             </el-form>
@@ -39,27 +39,27 @@
             <template #header>
                 <div class="card-header">
                     <el-icon><Link /></el-icon>
-                    <span>回调配置</span>
+                    <span>{{ t('channel.open.callbackTitle') }}</span>
                 </div>
             </template>
             <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>请将以下回调域名配置到微信开放平台「网站应用 > 授权回调域」</template>
+                <template #title>{{ t('channel.open.callbackAlert') }}</template>
             </el-alert>
             <el-form label-width="150px" label-position="left" style="max-width: 600px">
-                <el-form-item label="授权回调域">
+                <el-form-item :label="t('channel.open.callbackDomain')">
                     <el-input :model-value="callbackDomain" disabled>
                         <template #append>
-                            <el-button @click="copyText(callbackDomain)">复制</el-button>
+                            <el-button @click="copyText(callbackDomain)">{{ t('channel.open.copyBtn') }}</el-button>
                         </template>
                     </el-input>
-                    <div class="form-tip">不包含 http:// 或 https:// 前缀</div>
+                    <div class="form-tip">{{ t('channel.open.callbackDomainTip') }}</div>
                 </el-form-item>
             </el-form>
         </el-card>
 
         <!-- 保存按钮 -->
         <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">保存配置</el-button>
+            <el-button type="primary" :loading="loading" @click="handleSave">{{ t('channel.open.saveBtn') }}</el-button>
         </div>
     </div>
 </template>
@@ -68,10 +68,12 @@
 import { Key, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { batchUpdateConfigs, getConfigsByGroup } from '@/api/system/config'
 import useAppStore from '@/store/modules/app.store'
 
+const { t } = useI18n()
 const loading = ref(false)
 const appStore = useAppStore()
 
@@ -91,7 +93,7 @@ const callbackDomain = computed(() => {
 
 const copyText = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-        ElMessage.success('复制成功')
+        ElMessage.success(t('channel.open.copySuccess'))
     })
 }
 
@@ -106,7 +108,7 @@ onMounted(async () => {
             }
         })
     } catch {
-        ElMessage.error('获取配置失败')
+        ElMessage.error(t('channel.open.loadFailed'))
     } finally {
         loading.value = false
     }
@@ -120,9 +122,9 @@ const handleSave = async () => {
             config_value: value,
         }))
         await batchUpdateConfigs(configs)
-        ElMessage.success('保存成功')
+        ElMessage.success(t('channel.open.saveSuccess'))
     } catch {
-        ElMessage.error('保存失败')
+        ElMessage.error(t('channel.open.saveFailed'))
     } finally {
         loading.value = false
     }
