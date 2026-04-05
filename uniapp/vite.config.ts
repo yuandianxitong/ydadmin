@@ -8,13 +8,6 @@ const uni = (uniModule as any).default || uniModule;
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [UnoCSS(), uni()],
-  css: {
-    preprocessorOptions: {
-      scss: {
-        silenceDeprecations: ['import'],
-      },
-    },
-  },
   // H5 开发模式代理，解决浏览器跨域问题
   server: {
     proxy: {
