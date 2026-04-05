@@ -160,7 +160,7 @@ class MessageService extends Service
     }
 
     /**
-     * 单通道发送并记录日志
+     * 单通道发送并记录日志（异步队列）
      */
     protected function sendChannel(
         string $channel,
@@ -180,20 +180,16 @@ class MessageService extends Service
             'status'        => 0,
         ]);
 
-        $result = $channelInstance->send($receiver, $templateId, $data, $extra);
-
-        $this->logRepository->updateLogResult($log['id'], [
-            'status'    => $result['success'] ? 1 : 2,
-            'error_msg' => $result['error'] ?? '',
-            'sent_at'   => date('Y-m-d H:i:s'),
-            'content'   => json_encode($data, JSON_UNESCAPED_UNICODE),
+        \core\queue\QueueManager::push(\app\job\MessageSendJob::class, [
+            'channel'     => $channel,
+            'receiver'    => $receiver,
+            'template_id' => $templateId,
+            'variables'   => $data,
+            'extra'       => $extra,
+            'log_id'      => $log['id'],
         ]);
 
-        if (!$result['success']) {
-            Log::warning("消息发送失败 [{$channel}][{$template->code}]: " . $result['error']);
-        }
-
-        return $result;
+        return ['success' => true, 'queued' => true];
     }
 
     /**
