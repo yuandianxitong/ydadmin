@@ -81,6 +81,13 @@ class Installer
                 'current' => extension_loaded('gd') ? '已安装' : '未安装',
                 'status' => extension_loaded('gd'),
                 'type' => 'recommended'
+            ],
+            'redis' => [
+                'name' => 'Redis扩展',
+                'required' => '推荐（缓存/队列）',
+                'current' => extension_loaded('redis') ? '已安装' : '未安装',
+                'status' => extension_loaded('redis'),
+                'type' => 'recommended'
             ]
         ];
 
