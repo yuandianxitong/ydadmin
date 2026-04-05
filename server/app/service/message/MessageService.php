@@ -5,9 +5,6 @@ namespace app\service\message;
 
 use app\repository\message\MessageLogRepository;
 use app\repository\message\MessageTemplateRepository;
-use app\service\message\channel\SmsChannel;
-use app\service\message\channel\WechatMiniChannel;
-use app\service\message\channel\WechatOfficialChannel;
 use core\base\Service;
 use core\exception\BusinessException;
 use think\facade\Log;
@@ -16,9 +13,6 @@ class MessageService extends Service
 {
     protected MessageTemplateRepository $templateRepository;
     protected MessageLogRepository $logRepository;
-    protected SmsChannel $smsChannel;
-    protected WechatOfficialChannel $wechatOfficialChannel;
-    protected WechatMiniChannel $wechatMiniChannel;
 
     /**
      * 获取模板列表
@@ -101,7 +95,6 @@ class MessageService extends Service
         if ($template->sms_enabled && !empty($receivers['phone']) && !empty($template->sms_template_id)) {
             $results['sms'] = $this->sendChannel(
                 'sms',
-                $this->smsChannel,
                 $template,
                 $receivers['phone'],
                 $template->sms_template_id,
@@ -113,7 +106,6 @@ class MessageService extends Service
         if ($template->wechat_official_enabled && !empty($receivers['openid']) && !empty($template->wechat_official_template_id)) {
             $results['wechat_official'] = $this->sendChannel(
                 'wechat_official',
-                $this->wechatOfficialChannel,
                 $template,
                 $receivers['openid'],
                 $template->wechat_official_template_id,
@@ -126,7 +118,6 @@ class MessageService extends Service
         if ($template->wechat_mini_enabled && !empty($receivers['mini_openid']) && !empty($template->wechat_mini_template_id)) {
             $results['wechat_mini'] = $this->sendChannel(
                 'wechat_mini',
-                $this->wechatMiniChannel,
                 $template,
                 $receivers['mini_openid'],
                 $template->wechat_mini_template_id,
@@ -164,7 +155,6 @@ class MessageService extends Service
      */
     protected function sendChannel(
         string $channel,
-        $channelInstance,
         $template,
         string $receiver,
         string $templateId,
