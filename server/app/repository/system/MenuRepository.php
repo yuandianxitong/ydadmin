@@ -11,11 +11,17 @@ namespace app\repository\system;
 
 use app\model\system\Menu;
 use core\base\Repository;
+use core\cache\CacheableRepository;
 use core\helper\ArrayHelper;
 use think\Model;
 
 class MenuRepository extends Repository
 {
+    use CacheableRepository;
+
+    protected string $cacheTag = 'menu';
+    protected int $cacheTTL = 3600;
+
     protected function getModel(): Model
     {
         return new Menu();
@@ -26,15 +32,17 @@ class MenuRepository extends Repository
      */
     public function getMenuTree(bool $onlyEnabled = true): array
     {
-        $query = $this->model->order('sort asc, id asc');
+        return $this->cacheRemember('menu_tree:' . ($onlyEnabled ? '1' : '0'), function () use ($onlyEnabled) {
+            $query = $this->model->order('sort asc, id asc');
 
-        if ($onlyEnabled) {
-            $query->where('status', 1);
-        }
+            if ($onlyEnabled) {
+                $query->where('status', 1);
+            }
 
-        $menus = $query->select()->toArray();
+            $menus = $query->select()->toArray();
 
-        return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', 0);
+            return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', 0);
+        });
     }
 
     /**
@@ -92,25 +100,27 @@ class MenuRepository extends Repository
      */
     public function getMenuOptions(int $excludeId = 0): array
     {
-        $query = $this->model->where('status', 1)
-            ->where('type', '<>', 3)
-            ->order('sort asc, id asc')
-            ->field('id, parent_id, title, type');
+        return $this->cacheRemember('menu_options:' . $excludeId, function () use ($excludeId) {
+            $query = $this->model->where('status', 1)
+                ->where('type', '<>', 3)
+                ->order('sort asc, id asc')
+                ->field('id, parent_id, title, type');
 
-        if ($excludeId > 0) {
-            $query->where('id', '<>', $excludeId);
-        }
+            if ($excludeId > 0) {
+                $query->where('id', '<>', $excludeId);
+            }
 
-        $menus = $query->select()->toArray();
+            $menus = $query->select()->toArray();
 
-        array_unshift($menus, [
-            'id'        => 0,
-            'parent_id' => -1,
-            'title'     => '根目录',
-            'type'      => 0,
-        ]);
+            array_unshift($menus, [
+                'id'        => 0,
+                'parent_id' => -1,
+                'title'     => '根目录',
+                'type'      => 0,
+            ]);
 
-        return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', -1);
+            return ArrayHelper::toTree($menus, 'id', 'parent_id', 'children', -1);
+        });
     }
 
     /**
@@ -227,7 +237,9 @@ class MenuRepository extends Repository
     public function deleteWithChildren(int $id): bool
     {
         $childrenIds = $this->collectChildrenIds($id);
-        return $this->model->whereIn('id', $childrenIds)->delete() > 0;
+        $result = $this->model->whereIn('id', $childrenIds)->delete() > 0;
+        $this->cacheClear();
+        return $result;
     }
 
     /**
@@ -260,6 +272,7 @@ class MenuRepository extends Repository
 
         // 执行原生 SQL
         \think\facade\Db::execute($sql);
+        $this->cacheClear();
         return true;
     }
 }
