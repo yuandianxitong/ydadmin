@@ -3,9 +3,9 @@
     <view v-if="detail" class="detail">
       <text class="detail__title">{{ detail.title }}</text>
       <view class="detail__meta">
-        <wd-tag v-if="detail.type === 1" type="primary" size="small">通知</wd-tag>
-        <wd-tag v-else-if="detail.type === 2" type="warning" size="small">更新</wd-tag>
-        <wd-tag v-else type="success" size="small">活动</wd-tag>
+        <u-tag v-if="detail.type === 1" type="primary" size="small">通知</u-tag>
+        <u-tag v-else-if="detail.type === 2" type="warning" size="small">更新</u-tag>
+        <u-tag v-else type="success" size="small">活动</u-tag>
         <text class="detail__time">{{ detail.publish_at }}</text>
       </view>
       <view class="detail__divider" />

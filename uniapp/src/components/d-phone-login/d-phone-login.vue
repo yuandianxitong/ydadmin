@@ -1,39 +1,41 @@
 <template>
   <view class="d-phone-login">
     <view class="d-phone-login__field">
-      <wd-input
+      <u--input
         v-model="mobile"
         type="number"
         maxlength="11"
         :placeholder="placeholder"
         clearable
-        custom-style="flex: 1;"
+        border="none"
+        :customStyle="{ flex: 1 }"
       />
-      <wd-button
+      <u-button
         type="primary"
         size="small"
         :disabled="!isMobileValid || countdown > 0"
         :loading="sendingCode"
-        custom-style="margin-left: 20rpx; flex-shrink: 0;"
+        :customStyle="{ marginLeft: '20rpx', flexShrink: 0 }"
         @click="handleSendCode"
       >
         {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
-      </wd-button>
+      </u-button>
     </view>
 
     <view class="d-phone-login__field">
-      <wd-input
+      <u--input
         v-model="code"
         type="number"
         :maxlength="codeLength"
         placeholder="请输入验证码"
         clearable
-        custom-style="flex: 1;"
+        border="none"
+        :customStyle="{ flex: 1 }"
       />
     </view>
 
     <view class="d-phone-login__action">
-      <wd-button
+      <u-button
         type="primary"
         block
         round
@@ -42,7 +44,7 @@
         @click="handleLogin"
       >
         登录
-      </wd-button>
+      </u-button>
     </view>
   </view>
 </template>

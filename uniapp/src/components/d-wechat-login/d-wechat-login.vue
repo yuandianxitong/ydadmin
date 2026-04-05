@@ -1,5 +1,5 @@
 <template>
-  <wd-button
+  <u-button
     :type="type"
     :size="size"
     :block="block"
@@ -9,7 +9,7 @@
     @click="handleLogin"
   >
     {{ loading ? '登录中...' : text }}
-  </wd-button>
+  </u-button>
 </template>
 
 <script setup lang="ts">

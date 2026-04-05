@@ -3,7 +3,7 @@
     <view class="change-password-page">
       <!-- 提示信息 -->
       <view class="hint-card">
-        <wd-icon name="info-circle" color="#2979ff" size="36rpx" />
+        <view class="i-ri-information-line" style="font-size: 36rpx; color: #2979ff" />
         <text class="hint-text">修改密码后将自动退出登录，请重新登录</text>
       </view>
 
@@ -11,13 +11,13 @@
       <view class="form-card">
         <!-- 旧密码 -->
         <view class="input-group">
-          <wd-input
+          <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
+          <u--input
             v-model="form.old_password"
-            :show-password="true"
+            :password="true"
             placeholder="请输入当前密码"
-            prefix-icon="lock-on"
             clearable
-            no-border
+            border="none"
             class="custom-input"
           />
         </view>
@@ -26,13 +26,13 @@
 
         <!-- 新密码 -->
         <view class="input-group">
-          <wd-input
+          <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
+          <u--input
             v-model="form.new_password"
-            :show-password="true"
+            :password="true"
             placeholder="请输入新密码（6-20位）"
-            prefix-icon="lock-on"
             clearable
-            no-border
+            border="none"
             class="custom-input"
           />
         </view>
@@ -41,20 +41,20 @@
 
         <!-- 确认新密码 -->
         <view class="input-group">
-          <wd-input
+          <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
+          <u--input
             v-model="form.confirm_password"
-            :show-password="true"
+            :password="true"
             placeholder="请再次输入新密码"
-            prefix-icon="lock-on"
             clearable
-            no-border
+            border="none"
             class="custom-input"
           />
         </view>
       </view>
 
       <!-- 提交按钮 -->
-      <wd-button
+      <u-button
         block
         :loading="loading"
         :disabled="loading"
@@ -62,7 +62,7 @@
         @click="handleSubmit"
       >
         确认修改
-      </wd-button>
+      </u-button>
     </view>
   </d-page>
 </template>
@@ -137,9 +137,17 @@ async function handleSubmit() {
 }
 
 .input-group {
-  padding: 8rpx 0;
+  padding: 8rpx 24rpx;
+  display: flex;
+  align-items: center;
+
+  .input-prefix-icon {
+    flex-shrink: 0;
+    margin-right: 12rpx;
+  }
 
   .custom-input {
+    flex: 1;
     background: transparent;
   }
 }

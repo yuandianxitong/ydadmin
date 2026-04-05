@@ -1,7 +1,7 @@
 <template>
   <view class="d-list-loader">
     <view v-if="loading" class="d-list-loader__loading">
-      <wd-loading size="40rpx" />
+      <u-loading-icon size="40rpx" />
       <text class="d-list-loader__text">加载中...</text>
     </view>
     <view v-else-if="finished && total > 0" class="d-list-loader__finished">

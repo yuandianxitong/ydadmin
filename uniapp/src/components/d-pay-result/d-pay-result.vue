@@ -1,10 +1,9 @@
 <template>
   <view class="d-pay-result">
     <view class="d-pay-result__icon" :class="success ? 'd-pay-result__icon--success' : 'd-pay-result__icon--fail'">
-      <wd-icon
-        :name="success ? 'check-circle-filled' : 'close-circle-filled'"
-        :color="success ? '#19be6b' : '#fa3534'"
-        size="120rpx"
+      <view
+        :class="success ? 'i-ri-checkbox-circle-fill' : 'i-ri-close-circle-fill'"
+        :style="{ fontSize: '120rpx', color: success ? '#19be6b' : '#fa3534' }"
       />
     </view>
     <text class="d-pay-result__message">{{ message }}</text>

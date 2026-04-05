@@ -20,11 +20,10 @@
 
       <!-- Notice Bar -->
       <view v-if="latestNotice" class="notice-section" @tap="goNoticeDetail">
-        <wd-notice-bar
+        <u-notice-bar
           :text="latestNotice.title"
-          prefix="horn"
           color="#2979ff"
-          background-color="#f0f7ff"
+          bgColor="#f0f7ff"
         />
       </view>
 

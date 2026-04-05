@@ -5,9 +5,9 @@
       <view class="balance-header">
         <text class="balance-label">当前余额（元）</text>
         <text class="balance-amount">{{ balance }}</text>
-        <wd-button type="primary" size="medium" class="recharge-btn" @click="showRecharge = !showRecharge">
+        <u-button type="primary" size="medium" class="recharge-btn" @click="showRecharge = !showRecharge">
           {{ showRecharge ? '收起' : '立即充值' }}
-        </wd-button>
+        </u-button>
       </view>
 
       <!-- Recharge Section -->
@@ -26,11 +26,11 @@
         </view>
 
         <view class="custom-amount">
-          <wd-input
+          <u--input
             v-model="customAmount"
             type="digit"
             placeholder="自定义金额"
-            no-border
+            border="none"
             clearable
             class="custom-input"
             @focus="useCustom = true"
@@ -38,10 +38,10 @@
             <template #prefix>
               <text class="custom-prefix">¥</text>
             </template>
-          </wd-input>
+          </u--input>
         </view>
 
-        <wd-button
+        <u-button
           type="primary"
           block
           :loading="paying"
@@ -50,7 +50,7 @@
           @click="showPayPopup = true"
         >
           确认充值 ¥{{ finalAmount.toFixed(2) }}
-        </wd-button>
+        </u-button>
       </view>
 
       <!-- Balance Log List -->

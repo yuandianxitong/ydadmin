@@ -14,7 +14,7 @@
 
       <!-- Tags -->
       <view v-if="tagList.length > 0" class="article-detail__tags">
-        <wd-tag
+        <u-tag
           v-for="(tag, index) in tagList"
           :key="index"
           size="small"
@@ -23,7 +23,7 @@
           class="tag-item"
         >
           {{ tag }}
-        </wd-tag>
+        </u-tag>
       </view>
 
       <!-- Divider -->
@@ -37,7 +37,7 @@
 
     <!-- Loading -->
     <view v-else-if="loading" class="loading-wrap">
-      <wd-loading size="60rpx" />
+      <u-loading-icon size="60rpx" />
     </view>
 
     <d-empty v-else text="文章不存在" />

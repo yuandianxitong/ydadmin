@@ -2,9 +2,9 @@
   <view class="d-empty">
     <image v-if="icon" :src="icon" class="d-empty__icon" mode="aspectFit" />
     <text class="d-empty__text">{{ text }}</text>
-    <wd-button v-if="actionText" type="primary" size="small" @click="$emit('action')">
+    <u-button v-if="actionText" type="primary" size="small" @click="$emit('action')">
       {{ actionText }}
-    </wd-button>
+    </u-button>
   </view>
 </template>
 

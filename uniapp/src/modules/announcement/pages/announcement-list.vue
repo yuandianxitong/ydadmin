@@ -12,9 +12,9 @@
         @tap="goDetail(item.id)"
       >
         <view class="announcement-item__header">
-          <wd-tag v-if="item.type === 1" type="primary" size="small">通知</wd-tag>
-          <wd-tag v-else-if="item.type === 2" type="warning" size="small">更新</wd-tag>
-          <wd-tag v-else type="success" size="small">活动</wd-tag>
+          <u-tag v-if="item.type === 1" type="primary" size="small">通知</u-tag>
+          <u-tag v-else-if="item.type === 2" type="warning" size="small">更新</u-tag>
+          <u-tag v-else type="success" size="small">活动</u-tag>
           <text class="announcement-item__time">{{ item.publish_at }}</text>
         </view>
         <text class="announcement-item__title">{{ item.title }}</text>

@@ -21,7 +21,7 @@
         class="d-image-preview__delete"
         @tap.stop="handleDelete(index)"
       >
-        <wd-icon name="close" color="#ffffff" size="24rpx" />
+        <view class="i-ri-close-line" style="font-size: 24rpx; color: #ffffff" />
       </view>
       <image
         v-if="errorIndexes.has(index)"

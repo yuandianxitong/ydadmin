@@ -20,11 +20,11 @@
       <!-- 反馈内容 -->
       <view class="section-card">
         <view class="section-title">反馈内容</view>
-        <wd-textarea
+        <u--textarea
           v-model="form.content"
           placeholder="请详细描述您遇到的问题或建议..."
           :maxlength="500"
-          show-word-limit
+          count
           :rows="6"
           class="content-textarea"
         />
@@ -66,7 +66,7 @@
       </view>
 
       <!-- 提交按钮 -->
-      <wd-button
+      <u-button
         block
         :loading="loading"
         :disabled="!canSubmit"
@@ -74,7 +74,7 @@
         @click="handleSubmit"
       >
         提交反馈
-      </wd-button>
+      </u-button>
     </view>
   </d-page>
 </template>

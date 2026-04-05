@@ -23,7 +23,7 @@
           <text class="user-name">点击登录</text>
           <text class="user-phone">登录后享受更多功能</text>
         </view>
-        <wd-icon name="arrow-right" color="rgba(255,255,255,0.8)" size="36rpx" />
+        <view class="i-ri-arrow-right-s-line" style="font-size: 36rpx; color: rgba(255,255,255,0.8)" />
       </view>
 
       <!-- Balance & Points always visible in header area -->
@@ -44,53 +44,53 @@
     <view class="menu-body" :style="{ paddingTop: (statusBarHeight + 260) + 'px' }">
       <!-- Group 1: Profile -->
       <view class="menu-card">
-        <wd-cell-group>
-          <wd-cell title="个人资料" is-link @click="goAuthPage('/modules/user/pages/edit-profile')">
+        <u-cell-group>
+          <u-cell title="个人资料" isLink @click="goAuthPage('/modules/user/pages/edit-profile')">
             <template #icon>
               <text class="iconfont icon-person cell-icon" style="color: #2979ff" />
             </template>
-          </wd-cell>
-          <wd-cell title="修改密码" is-link @click="goAuthPage('/modules/user/pages/change-password')">
+          </u-cell>
+          <u-cell title="修改密码" isLink @click="goAuthPage('/modules/user/pages/change-password')">
             <template #icon>
               <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
             </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+        </u-cell-group>
       </view>
 
       <!-- Group 2: Interaction -->
       <view class="menu-card">
-        <wd-cell-group>
-          <wd-cell title="消息通知" is-link @click="goMessageTab">
+        <u-cell-group>
+          <u-cell title="消息通知" isLink @click="goMessageTab">
             <template #icon>
               <text class="iconfont icon-bell cell-icon" style="color: #ff9900" />
             </template>
             <template v-if="unreadCount > 0" #value>
-              <wd-badge :value="unreadCount" />
+              <u-badge :count="unreadCount" />
             </template>
-          </wd-cell>
-          <wd-cell title="意见反馈" is-link @click="goAuthPage('/modules/feedback/pages/feedback')">
+          </u-cell>
+          <u-cell title="意见反馈" isLink @click="goAuthPage('/modules/feedback/pages/feedback')">
             <template #icon>
               <text class="iconfont icon-chat-square-text cell-icon" style="color: #7c4dff" />
             </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+        </u-cell-group>
       </view>
 
       <!-- Group 3: Info -->
       <view class="menu-card">
-        <wd-cell-group>
-          <wd-cell title="关于我们" is-link @click="goPage('/modules/about/pages/about')">
+        <u-cell-group>
+          <u-cell title="关于我们" isLink @click="goPage('/modules/about/pages/about')">
             <template #icon>
               <text class="iconfont icon-question-circle cell-icon" style="color: #909399" />
             </template>
-          </wd-cell>
-          <wd-cell title="设置" is-link @click="goPage('/modules/user/pages/settings')">
+          </u-cell>
+          <u-cell title="设置" isLink @click="goPage('/modules/user/pages/settings')">
             <template #icon>
               <text class="iconfont icon-gear cell-icon" style="color: #fa3534" />
             </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+        </u-cell-group>
       </view>
 
       <!-- Version -->

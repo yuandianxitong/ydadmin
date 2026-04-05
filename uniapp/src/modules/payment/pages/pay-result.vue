@@ -2,12 +2,12 @@
   <d-page :safe-area="true">
     <d-pay-result :success="isSuccess" :message="resultMessage">
       <view class="result-actions">
-        <wd-button type="primary" block @click="goHome" class="action-btn">
+        <u-button type="primary" block @click="goHome" class="action-btn">
           返回首页
-        </wd-button>
-        <wd-button plain block @click="goOrderDetail" class="action-btn">
+        </u-button>
+        <u-button plain block @click="goOrderDetail" class="action-btn">
           查看订单
-        </wd-button>
+        </u-button>
       </view>
     </d-pay-result>
   </d-page>

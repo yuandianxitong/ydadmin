@@ -8,45 +8,43 @@
 
       <!-- 基本信息 -->
       <view class="section-card">
-        <wd-cell-group>
-          <wd-cell title="昵称">
+        <u-cell-group>
+          <u-cell title="昵称">
             <template #default>
-              <wd-input
+              <u--input
                 v-model="form.nickname"
                 placeholder="请输入昵称"
-                no-border
-                align-right
+                border="none"
+                inputAlign="right"
                 class="cell-input"
               />
             </template>
-          </wd-cell>
-          <wd-cell title="性别">
-            <template #default>
-              <wd-picker
-                v-model="form.gender"
-                :columns="genderOptions"
-                align-right
-                placeholder="请选择性别"
-                @confirm="onGenderConfirm"
-              />
-            </template>
-          </wd-cell>
-          <wd-cell title="生日">
-            <template #default>
-              <wd-datetime-picker
-                v-model="form.birthday"
-                type="date"
-                align-right
-                placeholder="请选择生日"
-                :max-date="maxDate"
-              />
-            </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+          <u-cell title="性别" isLink :value="genderLabel" @click="showGenderPicker = true" />
+          <u-cell title="生日" isLink :value="birthdayLabel" @click="showBirthdayPicker = true" />
+        </u-cell-group>
       </view>
 
+      <!-- Gender Picker -->
+      <u-picker
+        :show="showGenderPicker"
+        :columns="[genderOptions]"
+        keyName="label"
+        @confirm="onGenderConfirm"
+        @cancel="showGenderPicker = false"
+      />
+
+      <!-- Birthday Picker -->
+      <u-datetime-picker
+        :show="showBirthdayPicker"
+        mode="date"
+        :maxDate="maxDate"
+        @confirm="onBirthdayConfirm"
+        @cancel="showBirthdayPicker = false"
+      />
+
       <!-- 保存按钮 -->
-      <wd-button
+      <u-button
         block
         :loading="loading"
         :disabled="loading"
@@ -54,13 +52,13 @@
         @click="handleSave"
       >
         保存
-      </wd-button>
+      </u-button>
     </view>
   </d-page>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useUser } from '../composables/useUser'
 import { useUserStore } from '@/store/user.store'
 import { useAppStore } from '@/store/app.store'
@@ -76,12 +74,24 @@ const genderOptions = [
 ]
 
 const maxDate = new Date().getTime()
+const showGenderPicker = ref(false)
+const showBirthdayPicker = ref(false)
 
 const form = reactive({
   avatar: '',
   nickname: '',
   gender: 0,
   birthday: '' as string | number,
+})
+
+const genderLabel = computed(() => {
+  const found = genderOptions.find(o => o.value === form.gender)
+  return found ? found.label : '请选择性别'
+})
+
+const birthdayLabel = computed(() => {
+  const str = formatBirthday(form.birthday)
+  return str || '请选择生日'
 })
 
 // 时间戳转 YYYY-MM-DD
@@ -95,15 +105,21 @@ function formatBirthday(val: string | number): string {
   return `${y}-${m}-${day}`
 }
 
-// 日期字符串转时间戳（供 wd-datetime-picker 使用）
+// 日期字符串转时间戳（供 u-datetime-picker 使用）
 function parseBirthday(val: string): number {
   if (!val) return 0
   const d = new Date(val.replace(/-/g, '/'))
   return isNaN(d.getTime()) ? 0 : d.getTime()
 }
 
-function onGenderConfirm(val: { value: number }) {
-  form.gender = val.value
+function onGenderConfirm(e: { value: any[]; indexs: number[] }) {
+  form.gender = e.value[0].value
+  showGenderPicker.value = false
+}
+
+function onBirthdayConfirm(e: { value: number }) {
+  form.birthday = e.value
+  showBirthdayPicker.value = false
 }
 
 onMounted(async () => {

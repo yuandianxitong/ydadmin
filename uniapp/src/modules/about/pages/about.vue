@@ -20,11 +20,11 @@
 
       <!-- Info Cards -->
       <view class="info-card">
-        <wd-cell-group>
-          <wd-cell title="官方网站" value="dev007.cn" is-link @click="openWebsite" />
-          <wd-cell title="技术栈" value="Vue3 + ThinkPHP8" />
-          <wd-cell title="许可协议" value="MIT License" />
-        </wd-cell-group>
+        <u-cell-group>
+          <u-cell title="官方网站" value="dev007.cn" isLink @click="openWebsite" />
+          <u-cell title="技术栈" value="Vue3 + ThinkPHP8" />
+          <u-cell title="许可协议" value="MIT License" />
+        </u-cell-group>
       </view>
 
       <!-- Copyright -->

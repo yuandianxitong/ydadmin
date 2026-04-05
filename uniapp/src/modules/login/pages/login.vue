@@ -32,7 +32,7 @@
 
       <!-- 手机号输入 -->
       <view class="input-group">
-        <wd-icon name="mobile" size="36rpx" color="#999" class="input-prefix" />
+        <view class="i-ri-smartphone-line input-prefix" style="font-size: 36rpx; color: #999" />
         <input
           v-model="mobile"
           type="number"
@@ -45,7 +45,7 @@
 
       <!-- 密码输入 -->
       <view v-if="loginType === 'password'" class="input-group">
-        <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+        <view class="i-ri-lock-line input-prefix" style="font-size: 36rpx; color: #999" />
         <input
           v-model="password"
           :password="!showPwd"
@@ -60,7 +60,7 @@
 
       <!-- 验证码输入 -->
       <view v-else class="input-group sms-group">
-        <wd-icon name="secured" size="36rpx" color="#999" class="input-prefix" />
+        <view class="i-ri-shield-check-line input-prefix" style="font-size: 36rpx; color: #999" />
         <input
           v-model="smsCode"
           type="number"
@@ -82,7 +82,7 @@
       <d-agreement-check v-model="agreed" />
 
       <!-- 登录按钮 -->
-      <wd-button
+      <u-button
         block
         :loading="loading"
         :disabled="loading"
@@ -90,7 +90,7 @@
         @click="handleLogin"
       >
         登录
-      </wd-button>
+      </u-button>
 
       <!-- #ifdef MP-WEIXIN -->
       <view class="wechat-quick-section">

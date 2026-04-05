@@ -8,9 +8,12 @@ const uni = (uniModule as any).default || uniModule;
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [UnoCSS(), uni()],
-  // Ensure wot-design-uni is properly transpiled
-  optimizeDeps: {
-    exclude: ["wot-design-uni"],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['legacy-js-api', 'color-functions', 'import'],
+      },
+    },
   },
   // H5 开发模式代理，解决浏览器跨域问题
   server: {

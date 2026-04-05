@@ -22,50 +22,50 @@
 
     <!-- 菜单列表 -->
     <view class="menu-card">
-      <wd-cell-group>
-        <wd-cell
+      <u-cell-group>
+        <u-cell
           title="编辑资料"
-          is-link
+          isLink
           @click="goEditProfile"
         >
           <template #icon>
             <text class="iconfont icon-person cell-icon" style="color: #2979ff" />
           </template>
-        </wd-cell>
-        <wd-cell
+        </u-cell>
+        <u-cell
           title="修改密码"
-          is-link
+          isLink
           @click="goChangePassword"
         >
           <template #icon>
             <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
           </template>
-        </wd-cell>
-        <wd-cell
+        </u-cell>
+        <u-cell
           title="设置"
-          is-link
+          isLink
           @click="goSettings"
         >
           <template #icon>
             <text class="iconfont icon-gear cell-icon" style="color: #ff9900" />
           </template>
-        </wd-cell>
-        <wd-cell
+        </u-cell>
+        <u-cell
           title="关于"
-          is-link
+          isLink
           :value="version"
           @click="goAbout"
         >
           <template #icon>
             <text class="iconfont icon-question-circle cell-icon" style="color: #909399" />
           </template>
-        </wd-cell>
-      </wd-cell-group>
+        </u-cell>
+      </u-cell-group>
     </view>
 
     <!-- 退出登录 -->
     <view class="logout-area">
-      <wd-button
+      <u-button
         type="error"
         plain
         block
@@ -73,7 +73,7 @@
         class="logout-btn"
       >
         退出登录
-      </wd-button>
+      </u-button>
     </view>
   </d-page>
 </template>

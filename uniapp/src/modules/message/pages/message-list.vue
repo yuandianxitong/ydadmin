@@ -3,14 +3,14 @@
     <!-- 操作栏 -->
     <view class="action-bar">
       <text class="action-bar__title">共 {{ total }} 条消息</text>
-      <wd-button
+      <u-button
         type="text"
         size="small"
         :disabled="total === 0"
         @click="handleReadAll"
       >
         全部已读
-      </wd-button>
+      </u-button>
     </view>
 
     <!-- 消息列表 -->

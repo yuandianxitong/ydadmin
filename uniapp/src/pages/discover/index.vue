@@ -1,15 +1,7 @@
 <template>
   <view class="discover-page">
     <!-- Category Tabs -->
-    <wd-tabs v-model="activeTab" @change="handleTabChange">
-      <wd-tab :name="0" title="全部" />
-      <wd-tab
-        v-for="cat in categories"
-        :key="cat.id"
-        :name="cat.id"
-        :title="cat.name"
-      />
-    </wd-tabs>
+    <u-tabs :list="tabList" :current="currentTabIndex" @click="handleTabClick" />
 
     <!-- Article List -->
     <view class="article-list">
@@ -66,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useAppStore } from '@/store/app.store'
 import { articleApi, type ArticleItem, type ArticleCategory } from '@/api/article'
@@ -74,7 +66,13 @@ import { usePaging } from '@/hooks/usePaging'
 
 const appStore = useAppStore()
 const activeTab = ref(0)
+const currentTabIndex = ref(0)
 const categories = ref<ArticleCategory[]>([])
+
+const tabList = computed(() => {
+  const all = [{ name: '全部' }]
+  return all.concat(categories.value.map(c => ({ name: c.name })))
+})
 
 const filterParams = reactive<{ category_id?: number }>({})
 
@@ -91,11 +89,16 @@ function formatDate(dateStr: string): string {
   return dateStr.substring(0, 10)
 }
 
-function handleTabChange({ value }: { value: number }) {
-  if (value === 0) {
+function handleTabClick(item: { index: number }) {
+  const idx = item.index
+  currentTabIndex.value = idx
+  if (idx === 0) {
+    activeTab.value = 0
     filterParams.category_id = undefined
   } else {
-    filterParams.category_id = value
+    const cat = categories.value[idx - 1]
+    activeTab.value = cat.id
+    filterParams.category_id = cat.id
   }
   refresh()
 }

@@ -1,9 +1,8 @@
 <template>
   <view class="agreement" @tap="toggle">
-    <wd-icon
-      :name="modelValue ? 'check-circle-filled' : 'circle'"
-      :color="modelValue ? '#2979ff' : '#ccc'"
-      size="36rpx"
+    <view
+      :class="modelValue ? 'i-ri-checkbox-circle-fill' : 'i-ri-checkbox-blank-circle-line'"
+      :style="{ fontSize: '36rpx', color: modelValue ? '#2979ff' : '#ccc' }"
     />
     <text class="agreement-text">
       我已阅读并同意

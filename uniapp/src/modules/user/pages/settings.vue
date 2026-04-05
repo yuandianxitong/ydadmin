@@ -3,61 +3,61 @@
     <view class="settings-page">
       <!-- 存储设置 -->
       <view class="section-card">
-        <wd-cell-group>
-          <wd-cell
+        <u-cell-group>
+          <u-cell
             title="清除缓存"
-            is-link
+            isLink
             :value="cacheSize"
             @click="handleClearCache"
           >
             <template #icon>
               <text class="iconfont icon-trash3 cell-icon" style="color: #fa3534" />
             </template>
-          </wd-cell>
-          <wd-cell
+          </u-cell>
+          <u-cell
             title="检查更新"
-            is-link
+            isLink
             @click="handleCheckUpdate"
           >
             <template #icon>
               <text class="iconfont icon-phone-vibrate-fill cell-icon" style="color: #2979ff" />
             </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+        </u-cell-group>
       </view>
 
       <!-- 关于 -->
       <view class="section-card">
-        <wd-cell-group>
-          <wd-cell title="当前版本" :value="version">
+        <u-cell-group>
+          <u-cell title="当前版本" :value="version">
             <template #icon>
               <text class="iconfont icon-question-circle cell-icon" style="color: #2979ff" />
             </template>
-          </wd-cell>
-          <wd-cell
+          </u-cell>
+          <u-cell
             title="隐私政策"
-            is-link
+            isLink
             @click="openPrivacy"
           >
             <template #icon>
               <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
             </template>
-          </wd-cell>
-          <wd-cell
+          </u-cell>
+          <u-cell
             title="用户协议"
-            is-link
+            isLink
             @click="openTerms"
           >
             <template #icon>
               <text class="iconfont icon-file-earmark-text cell-icon" style="color: #ff9900" />
             </template>
-          </wd-cell>
-        </wd-cell-group>
+          </u-cell>
+        </u-cell-group>
       </view>
 
       <!-- 退出登录 -->
       <view v-if="userStore.isLoggedIn" class="logout-area">
-        <wd-button
+        <u-button
           type="error"
           plain
           block
@@ -65,7 +65,7 @@
           @click="handleLogout"
         >
           退出登录
-        </wd-button>
+        </u-button>
       </view>
     </view>
   </d-page>

@@ -11,7 +11,7 @@
       <view class="form-card">
         <!-- 手机号 -->
         <view class="input-group">
-          <wd-icon name="mobile" size="36rpx" color="#999" class="input-prefix" />
+          <view class="i-ri-smartphone-line input-prefix" style="font-size: 36rpx; color: #999" />
           <input
             v-model="form.mobile"
             type="number"
@@ -24,7 +24,7 @@
 
         <!-- 短信验证码 -->
         <view class="input-group sms-group">
-          <wd-icon name="secured" size="36rpx" color="#999" class="input-prefix" />
+          <view class="i-ri-shield-check-line input-prefix" style="font-size: 36rpx; color: #999" />
           <input
             v-model="form.code"
             type="number"
@@ -40,7 +40,7 @@
 
         <!-- 密码 -->
         <view class="input-group">
-          <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+          <view class="i-ri-lock-line input-prefix" style="font-size: 36rpx; color: #999" />
           <input
             v-model="form.password"
             :password="!showPwd"
@@ -55,7 +55,7 @@
 
         <!-- 确认密码 -->
         <view class="input-group">
-          <wd-icon name="lock-on" size="36rpx" color="#999" class="input-prefix" />
+          <view class="i-ri-lock-line input-prefix" style="font-size: 36rpx; color: #999" />
           <input
             v-model="form.confirmPassword"
             :password="!showConfirmPwd"
@@ -72,7 +72,7 @@
         <d-agreement-check v-model="agreed" />
 
         <!-- 注册按钮 -->
-        <wd-button
+        <u-button
           block
           :loading="loading"
           :disabled="loading"
@@ -80,7 +80,7 @@
           @click="handleRegister"
         >
           立即注册
-        </wd-button>
+        </u-button>
 
         <!-- 去登录 -->
         <view class="bottom-links">

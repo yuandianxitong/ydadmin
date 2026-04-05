@@ -15,6 +15,7 @@ onLaunch(async () => {
 </script>
 
 <style lang="scss">
+@import 'uview-plus/index.scss';
 @import './styles/common.scss';
 @import './static/fonts/iconfont.css';
 </style>

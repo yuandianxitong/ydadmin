@@ -228,7 +228,9 @@
 	"easycom": {
 		"autoscan": true,
 		"custom": {
-			"^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
+			"^u--(.*)": "uview-plus/components/u-$1/u-$1.vue",
+			"^up-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+			"^u-([^-].*)": "uview-plus/components/u-$1/u-$1.vue",
 			"^d-(.*)": "@/components/d-$1/d-$1.vue"
 		}
 	}

@@ -1,9 +1,9 @@
 <template>
-  <wd-popup
-    v-model="visible"
-    position="bottom"
-    :safe-area-inset-bottom="true"
-    custom-style="border-radius: 24rpx 24rpx 0 0;"
+  <u-popup
+    :show="visible"
+    mode="bottom"
+    :safeAreaInsetBottom="true"
+    :customStyle="{ borderRadius: '24rpx 24rpx 0 0' }"
     @close="visible = false"
   >
     <view class="d-payment-popup">
@@ -25,10 +25,9 @@
             <text class="iconfont icon-wechat" style="font-size: 40rpx; color: #ffffff" />
           </view>
           <text class="d-payment-popup__method-name">微信支付</text>
-          <wd-icon
-            :name="selected === 'wechat' ? 'check-circle-filled' : 'check-circle'"
-            :color="selected === 'wechat' ? '#07c160' : '#cccccc'"
-            size="40rpx"
+          <view
+            :class="selected === 'wechat' ? 'i-ri-checkbox-circle-fill' : 'i-ri-checkbox-blank-circle-line'"
+            :style="{ fontSize: '40rpx', color: selected === 'wechat' ? '#07c160' : '#cccccc' }"
           />
         </view>
 
@@ -41,16 +40,15 @@
             <text class="iconfont icon-alipay" style="font-size: 40rpx; color: #ffffff" />
           </view>
           <text class="d-payment-popup__method-name">支付宝支付</text>
-          <wd-icon
-            :name="selected === 'alipay' ? 'check-circle-filled' : 'check-circle'"
-            :color="selected === 'alipay' ? '#1677ff' : '#cccccc'"
-            size="40rpx"
+          <view
+            :class="selected === 'alipay' ? 'i-ri-checkbox-circle-fill' : 'i-ri-checkbox-blank-circle-line'"
+            :style="{ fontSize: '40rpx', color: selected === 'alipay' ? '#1677ff' : '#cccccc' }"
           />
         </view>
       </view>
 
       <view class="d-payment-popup__footer">
-        <wd-button
+        <u-button
           type="primary"
           block
           :loading="loading"
@@ -58,10 +56,10 @@
           @click="handlePay"
         >
           确认支付
-        </wd-button>
+        </u-button>
       </view>
     </view>
-  </wd-popup>
+  </u-popup>
 </template>
 
 <script setup lang="ts">
