@@ -45,4 +45,9 @@ class BalanceLog extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function operator(): \think\model\relation\BelongsTo
+    {
+        return $this->belongsTo(\app\model\system\Admin::class, 'operator_id');
+    }
 }
