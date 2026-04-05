@@ -4,6 +4,27 @@
 
 ## [Unreleased]
 
+### Added
+- 新增 `CacheableRepository` Trait，Repository 层声明式缓存抽象
+- 新增 Redis 队列异步处理（操作日志、消息通知）
+- 新增 `log:archive` 命令，定期清理过期管理员日志
+- 新增前端 `useDebounceRequest` Hook，搜索请求防抖
+- 新增前端 GET 请求去重机制
+
+### Changed
+- 缓存驱动由 file 切换为 Redis
+- 字典数据增加 7200s Redis 缓存
+- 菜单树增加 3600s Redis 缓存
+- SystemConfigRepository / Permission 缓存迁移到标签化管理
+- 操作日志由同步写 DB 改为异步队列
+- 消息通知由同步 API 调用改为异步队列
+- 余额/积分日志改用 eager loading，消除 enrichListWithNames 额外查询
+- AdminRepository.getDetailWithPermissions 改用 eager loading 消除 N+1
+- 前端删除 Auth Guard 冗余 menuApi.getAdminRoutes() fallback 请求
+
+### Fixed
+- 修复 admin_login_logs 缺少 (admin_id, login_time) 复合索引
+
 ## [1.3.0] - 2026-04-01
 
 ### Added
