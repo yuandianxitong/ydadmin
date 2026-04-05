@@ -57,13 +57,15 @@ class DictionaryService extends Service
             throw new BusinessException(lang('business.dict_code_exists'));
         }
 
-        return $this->dictRepo->create([
+        $result = $this->dictRepo->create([
             'name'        => $data['name'],
             'code'        => $data['code'],
             'description' => $data['description'] ?? '',
             'status'      => $data['status'] ?? 1,
             'sort'        => $data['sort'] ?? 0,
         ]);
+        $this->dictRepo->clearCache();
+        return $result;
     }
 
     /**
@@ -88,7 +90,9 @@ class DictionaryService extends Service
             'sort'        => isset($data['sort']) ? (int)$data['sort'] : null,
         ], fn($v) => $v !== null);
 
-        return $this->dictRepo->update($id, $updateData);
+        $result = $this->dictRepo->update($id, $updateData);
+        $this->dictRepo->clearCache();
+        return $result;
     }
 
     /**
@@ -108,6 +112,7 @@ class DictionaryService extends Service
             // 删除字典
             $result = $this->dictRepo->delete($id);
             Db::commit();
+            $this->dictRepo->clearCache();
             return $result;
         } catch (\Throwable $e) {
             Db::rollback();
@@ -164,7 +169,7 @@ class DictionaryService extends Service
             throw new BusinessException(lang('business.dict_item_value_exists'));
         }
 
-        return $this->itemRepo->create([
+        $result = $this->itemRepo->create([
             'dictionary_id' => $data['dictionary_id'],
             'label'         => $data['label'],
             'value'         => $data['value'],
@@ -173,6 +178,8 @@ class DictionaryService extends Service
             'status'        => $data['status'] ?? 1,
             'sort'          => $data['sort'] ?? 0,
         ]);
+        $this->dictRepo->clearCache();
+        return $result;
     }
 
     /**
@@ -198,6 +205,7 @@ class DictionaryService extends Service
             'sort'        => isset($data['sort']) ? (int)$data['sort'] : null,
         ], fn($v) => $v !== null);
 
+        $this->dictRepo->clearCache();
         return $this->itemRepo->update($id, $updateData);
     }
 
@@ -210,6 +218,7 @@ class DictionaryService extends Service
         if (!$item) {
             throw new BusinessException(lang('business.dict_item_not_found'));
         }
+        $this->dictRepo->clearCache();
         return $this->itemRepo->delete($id);
     }
 }

@@ -5,10 +5,16 @@ namespace app\repository\system;
 
 use app\model\system\Dictionary;
 use core\base\Repository;
+use core\cache\CacheableRepository;
 use think\Model;
 
 class DictionaryRepository extends Repository
 {
+    use CacheableRepository;
+
+    protected string $cacheTag = 'dictionary';
+    protected int $cacheTTL = 7200;
+
     protected function getModel(): Model
     {
         return new Dictionary();
@@ -52,14 +58,16 @@ class DictionaryRepository extends Repository
      */
     public function getByCode(string $code): ?array
     {
-        $result = $this->model
-            ->where('code', $code)
-            ->where('status', 1)
-            ->with(['items' => function ($query) {
-                $query->where('status', 1)->order('sort asc, id asc');
-            }])
-            ->find();
-        return $result ? $result->toArray() : null;
+        return $this->cacheRemember("dict:{$code}", function () use ($code) {
+            $result = $this->model
+                ->where('code', $code)
+                ->where('status', 1)
+                ->with(['items' => function ($query) {
+                    $query->where('status', 1)->order('sort asc, id asc');
+                }])
+                ->find();
+            return $result ? $result->toArray() : null;
+        });
     }
 
     /**
