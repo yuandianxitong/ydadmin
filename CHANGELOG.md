@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-04-05
+
 ### Added
 - 新增 `CacheableRepository` Trait，Repository 层声明式缓存抽象
 - 新增 Redis 队列异步处理（操作日志、消息通知）
