@@ -1,1 +1,0 @@
-import{_ as t}from"./TemplateForm.vue_vue_type_script_setup_true_lang.Bs5qOoOp.js";import"./index.CaUoXJ6M.js";/* empty css                *//* empty css               *//* empty css             *//* empty css                *//* empty css               *//* empty css                  *//* empty css              */import"./message.hRxM3VHR.js";export{t as default};
