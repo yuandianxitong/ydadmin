@@ -7,5 +7,6 @@ return [
     'commands' => [
         \app\command\MakeCrudCommand::class,
         \app\command\GenerateApiDocCommand::class,
+        'log:archive' => \app\command\LogArchiveCommand::class,
     ],
 ];
