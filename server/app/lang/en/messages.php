@@ -35,6 +35,7 @@ return [
     'mark_read_success'     => 'Marked as read',
     'mark_all_read_success' => 'All marked as read',
     'config_update_success' => 'Configuration updated successfully',
+    'cache_clear_success'   => 'Cache cleared successfully',
     'config_list_success'   => 'Configuration list retrieved',
     'config_group_success'  => 'Configuration groups retrieved',
     'config_get_success'    => 'Configuration retrieved',

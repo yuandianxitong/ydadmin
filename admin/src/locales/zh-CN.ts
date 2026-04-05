@@ -32,6 +32,13 @@ export default {
         ChannelAutoReply: '自动回复',
         ChannelMiniApp: '小程序',
         ChannelMiniAppConfig: '小程序配置',
+        ChannelOpen: '开放平台',
+        ChannelOpenConfig: '开放平台配置',
+        // 用户管理
+        User: '用户管理',
+        UserList: '用户列表',
+        UserBalanceLog: '余额记录',
+        UserPointsLog: '积分记录',
         // 内容管理
         Content: '内容管理',
         ContentAgreement: '协议管理',
@@ -196,7 +203,9 @@ export default {
     header: {
         fullscreen: '全屏模式',
         exitFullscreen: '退出全屏',
-        refresh: '刷新',
+        clearCache: '清除缓存',
+        clearCacheSuccess: '缓存清除成功',
+        clearCacheFailed: '缓存清除失败',
         settings: '系统设置'
     },
     // 通用操作
@@ -1152,6 +1161,131 @@ export default {
             deleteConfirm: '确定删除当前自定义菜单？',
             deleteSuccess: '菜单已删除',
             deleteFailed: '删除失败'
+        },
+        open: {
+            wechatOpenTitle: '微信开放平台',
+            wechatOpenAlert: '用于 PC 端微信扫码登录，需在微信开放平台创建「网站应用」并通过审核',
+            appIdPlaceholder: '请输入微信开放平台网站应用AppID',
+            appSecretPlaceholder: '请输入微信开放平台网站应用AppSecret',
+            callbackTitle: '回调配置',
+            callbackAlert: '请将以下回调域名配置到微信开放平台「网站应用 > 授权回调域」',
+            callbackDomain: '授权回调域',
+            callbackDomainTip: '不包含 http:// 或 https:// 前缀',
+            copyBtn: '复制',
+            saveBtn: '保存配置',
+            copySuccess: '复制成功',
+            loadFailed: '获取配置失败',
+            saveSuccess: '保存成功',
+            saveFailed: '保存失败'
+        }
+    },
+    // 用户管理
+    userMgmt: {
+        title: '用户列表',
+        keyword: '用户昵称/账号',
+        keywordPlaceholder: '请输入昵称或手机号',
+        status: '状态',
+        statusAll: '全部',
+        statusEnabled: '启用',
+        statusDisabled: '禁用',
+        avatar: '头像',
+        nickname: '昵称',
+        mobile: '账号',
+        balance: '余额',
+        points: '积分',
+        registerTime: '注册时间',
+        lastLogin: '最后登录',
+        actions: '操作',
+        viewDetail: '查看',
+        adjustBalance: '调整余额',
+        adjustPoints: '调整积分',
+        statusUpdateSuccess: '状态更新成功',
+        // 用户详情
+        detail: {
+            title: '用户详情',
+            noAvatar: '暂无头像',
+            loginCount: '登录次数',
+            lastLoginIp: '最后登录IP',
+            lastLoginTime: '最后登录时间',
+            createdAt: '注册时间',
+            close: '关闭'
+        },
+        // 调整余额
+        adjustBalanceDialog: {
+            title: '调整余额',
+            currentBalance: '当前余额',
+            amount: '调整金额',
+            amountPlaceholder: '正数增加，负数减少',
+            remark: '备注',
+            remarkPlaceholder: '请输入调整原因',
+            cancel: '取消',
+            confirm: '确定',
+            successMsg: '余额调整成功',
+            validate: {
+                amountRequired: '请输入调整金额',
+                amountNotZero: '调整金额不能为0',
+                remarkRequired: '请输入备注'
+            }
+        },
+        // 调整积分
+        adjustPointsDialog: {
+            title: '调整积分',
+            currentPoints: '当前积分',
+            points: '调整积分',
+            pointsPlaceholder: '正数增加，负数减少',
+            remark: '备注',
+            remarkPlaceholder: '请输入调整原因',
+            cancel: '取消',
+            confirm: '确定',
+            successMsg: '积分调整成功',
+            validate: {
+                pointsRequired: '请输入调整积分',
+                pointsNotZero: '调整积分不能为0',
+                remarkRequired: '请输入备注'
+            }
+        },
+        // 余额记录
+        balanceLog: {
+            title: '余额记录',
+            type: '类型',
+            typeAll: '全部',
+            typeRecharge: '充值',
+            typeConsume: '消费',
+            typeRefund: '退款',
+            typeAdmin: '后台调整',
+            dateRange: '时间范围',
+            changeAmount: '变动金额',
+            beforeBalance: '变动前余额',
+            afterBalance: '变动后余额',
+            operator: '操作人',
+            time: '时间'
+        },
+        // 积分记录
+        pointsLog: {
+            title: '积分记录',
+            type: '类型',
+            typeAll: '全部',
+            typeAdmin: '后台调整',
+            typeRegister: '注册赠送',
+            typeCheckin: '签到',
+            typeConsumeGift: '消费赠送',
+            typeConsumeDeduct: '消费扣减',
+            dateRange: '时间范围',
+            changePoints: '变动积分',
+            beforePoints: '变动前积分',
+            afterPoints: '变动后积分',
+            operator: '操作人',
+            time: '时间'
+        },
+        // 公共
+        common: {
+            userNickname: '用户昵称',
+            remark: '备注',
+            search: '搜索',
+            reset: '重置',
+            to: '至',
+            startDate: '开始日期',
+            endDate: '结束日期'
         }
     },
     // 公告管理

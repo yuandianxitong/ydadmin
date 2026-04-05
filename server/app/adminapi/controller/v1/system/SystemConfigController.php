@@ -176,6 +176,26 @@ class SystemConfigController extends Controller
     }
 
     #[PermissionSkip]
+    #[OA\Post(
+        path: '/system/config/clear-cache',
+        summary: '清除系统缓存',
+        security: [['bearerAuth' => []]],
+        tags: ['系统配置'],
+        responses: [
+            new OA\Response(response: 200, description: '清除成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')),
+        ]
+    )]
+    public function clearCache(): Response
+    {
+        try {
+            \think\facade\Cache::clear();
+            return $this->success(lang('messages.cache_clear_success'));
+        } catch (\Throwable $e) {
+            return $this->error($e->getMessage());
+        }
+    }
+
+    #[PermissionSkip]
     #[OA\Get(
         path: '/system/config/global',
         summary: '获取全局配置（用于前端应用初始化）',

@@ -32,6 +32,13 @@ export default {
         ChannelAutoReply: 'Auto Reply',
         ChannelMiniApp: 'Mini Program',
         ChannelMiniAppConfig: 'Mini Program Config',
+        ChannelOpen: 'Open Platform',
+        ChannelOpenConfig: 'Open Platform Config',
+        // User Management
+        User: 'Users',
+        UserList: 'User List',
+        UserBalanceLog: 'Balance Log',
+        UserPointsLog: 'Points Log',
         // Content Management
         Content: 'Content',
         ContentAgreement: 'Agreements',
@@ -202,7 +209,9 @@ export default {
     header: {
         fullscreen: 'Fullscreen',
         exitFullscreen: 'Exit Fullscreen',
-        refresh: 'Refresh',
+        clearCache: 'Clear Cache',
+        clearCacheSuccess: 'Cache cleared successfully',
+        clearCacheFailed: 'Failed to clear cache',
         settings: 'Settings'
     },
     // Common actions
@@ -1150,6 +1159,131 @@ export default {
             deleteConfirm: 'Are you sure you want to delete the current custom menu?',
             deleteSuccess: 'Menu deleted',
             deleteFailed: 'Delete failed'
+        },
+        open: {
+            wechatOpenTitle: 'WeChat Open Platform',
+            wechatOpenAlert: 'Used for PC-side WeChat QR login. Create a "Website Application" on WeChat Open Platform and get it approved.',
+            appIdPlaceholder: 'Enter WeChat Open Platform Website App AppID',
+            appSecretPlaceholder: 'Enter WeChat Open Platform Website App AppSecret',
+            callbackTitle: 'Callback Configuration',
+            callbackAlert: 'Configure the following callback domain in WeChat Open Platform > Website Application > Authorized Redirect Domain',
+            callbackDomain: 'Authorized Redirect Domain',
+            callbackDomainTip: 'Does not include http:// or https:// prefix',
+            copyBtn: 'Copy',
+            saveBtn: 'Save Configuration',
+            copySuccess: 'Copied successfully',
+            loadFailed: 'Failed to load configuration',
+            saveSuccess: 'Saved successfully',
+            saveFailed: 'Failed to save'
+        }
+    },
+    // User Management
+    userMgmt: {
+        title: 'User List',
+        keyword: 'Nickname / Account',
+        keywordPlaceholder: 'Enter nickname or phone number',
+        status: 'Status',
+        statusAll: 'All',
+        statusEnabled: 'Enabled',
+        statusDisabled: 'Disabled',
+        avatar: 'Avatar',
+        nickname: 'Nickname',
+        mobile: 'Account',
+        balance: 'Balance',
+        points: 'Points',
+        registerTime: 'Register Time',
+        lastLogin: 'Last Login',
+        actions: 'Actions',
+        viewDetail: 'View',
+        adjustBalance: 'Adjust Balance',
+        adjustPoints: 'Adjust Points',
+        statusUpdateSuccess: 'Status updated successfully',
+        // User detail
+        detail: {
+            title: 'User Detail',
+            noAvatar: 'No avatar',
+            loginCount: 'Login Count',
+            lastLoginIp: 'Last Login IP',
+            lastLoginTime: 'Last Login Time',
+            createdAt: 'Register Time',
+            close: 'Close'
+        },
+        // Adjust balance
+        adjustBalanceDialog: {
+            title: 'Adjust Balance',
+            currentBalance: 'Current Balance',
+            amount: 'Amount',
+            amountPlaceholder: 'Positive to add, negative to deduct',
+            remark: 'Remark',
+            remarkPlaceholder: 'Enter reason for adjustment',
+            cancel: 'Cancel',
+            confirm: 'Confirm',
+            successMsg: 'Balance adjusted successfully',
+            validate: {
+                amountRequired: 'Please enter adjustment amount',
+                amountNotZero: 'Amount cannot be zero',
+                remarkRequired: 'Please enter a remark'
+            }
+        },
+        // Adjust points
+        adjustPointsDialog: {
+            title: 'Adjust Points',
+            currentPoints: 'Current Points',
+            points: 'Points',
+            pointsPlaceholder: 'Positive to add, negative to deduct',
+            remark: 'Remark',
+            remarkPlaceholder: 'Enter reason for adjustment',
+            cancel: 'Cancel',
+            confirm: 'Confirm',
+            successMsg: 'Points adjusted successfully',
+            validate: {
+                pointsRequired: 'Please enter adjustment points',
+                pointsNotZero: 'Points cannot be zero',
+                remarkRequired: 'Please enter a remark'
+            }
+        },
+        // Balance log
+        balanceLog: {
+            title: 'Balance Log',
+            type: 'Type',
+            typeAll: 'All',
+            typeRecharge: 'Recharge',
+            typeConsume: 'Consume',
+            typeRefund: 'Refund',
+            typeAdmin: 'Admin Adjustment',
+            dateRange: 'Date Range',
+            changeAmount: 'Change Amount',
+            beforeBalance: 'Balance Before',
+            afterBalance: 'Balance After',
+            operator: 'Operator',
+            time: 'Time'
+        },
+        // Points log
+        pointsLog: {
+            title: 'Points Log',
+            type: 'Type',
+            typeAll: 'All',
+            typeAdmin: 'Admin Adjustment',
+            typeRegister: 'Register Gift',
+            typeCheckin: 'Check-in',
+            typeConsumeGift: 'Purchase Gift',
+            typeConsumeDeduct: 'Purchase Deduct',
+            dateRange: 'Date Range',
+            changePoints: 'Change Points',
+            beforePoints: 'Points Before',
+            afterPoints: 'Points After',
+            operator: 'Operator',
+            time: 'Time'
+        },
+        // Common
+        common: {
+            userNickname: 'User Nickname',
+            remark: 'Remark',
+            search: 'Search',
+            reset: 'Reset',
+            to: 'To',
+            startDate: 'Start Date',
+            endDate: 'End Date'
         }
     },
     // Announcement Management

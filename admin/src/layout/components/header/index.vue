@@ -24,9 +24,9 @@
                 <notification-bell />
                 <div
                     class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
-                    @click="appStore.refreshView()"
+                    @click="handleClearCache"
                 >
-                    <el-tooltip class="box-item" effect="dark" :content="$t('header.refresh')" placement="bottom">
+                    <el-tooltip class="box-item" effect="dark" :content="$t('header.clearCache')" placement="bottom">
                         <Icon name="i-svg:refresh-cw"></Icon>
                     </el-tooltip>
                 </div>
@@ -50,28 +50,45 @@
 
 <script setup lang="ts">
 import { useFullscreen } from '@vueuse/core'
+import { ElMessage } from 'element-plus'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+import { clearSystemCache } from '@/api/system/config'
 import useAppStore from '@/store/modules/app.store'
 import useSettingStore from '@/store/modules/settings.store'
 
 import LayoutSetting from '../setting/drawer.vue'
 import Breadcrumb from './breadcrumb.vue'
 import LangSelect from './lang-select.vue'
-import Fold from './fold.vue'
-import FullScreen from './full-screen.vue'
 import MultipleTabs from './multiple-tabs.vue'
 import NotificationBell from './notification-bell.vue'
-import Refresh from './refresh.vue'
 import UserDropDown from './user-drop-down.vue'
 
+const { t } = useI18n()
 const appStore = useAppStore()
 const isMobile = computed(() => appStore.isMobile)
 const isCollapsed = computed(() => appStore.isCollapsed)
 const settingStore = useSettingStore()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+const cacheClearing = ref(false)
 
 const openSetting = () => {
     settingStore.setSetting({ key: 'showDrawer', value: true })
+}
+
+const handleClearCache = async () => {
+    if (cacheClearing.value) return
+    cacheClearing.value = true
+    try {
+        await clearSystemCache()
+        ElMessage.success(t('header.clearCacheSuccess'))
+        appStore.refreshView()
+    } catch {
+        ElMessage.error(t('header.clearCacheFailed'))
+    } finally {
+        cacheClearing.value = false
+    }
 }
 </script>
 

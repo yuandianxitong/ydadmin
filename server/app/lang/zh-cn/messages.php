@@ -35,6 +35,7 @@ return [
     'mark_read_success'     => '已标记为已读',
     'mark_all_read_success' => '全部标记为已读',
     'config_update_success' => '配置更新成功',
+    'cache_clear_success'   => '缓存清除成功',
     'config_list_success'   => '获取配置列表成功',
     'config_group_success'  => '获取配置分组成功',
     'config_get_success'    => '获取配置成功',

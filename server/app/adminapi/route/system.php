@@ -137,6 +137,7 @@ Route::group('system', function () {
         Route::get('', 'v1.system.SystemConfigController/index');
         Route::get('groups', 'v1.system.SystemConfigController/groups');
         Route::get('global', 'v1.system.SystemConfigController/global');
+        Route::post('clear-cache', 'v1.system.SystemConfigController/clearCache');
         Route::get(':id', 'v1.system.SystemConfigController/show');
         Route::put(':id', 'v1.system.SystemConfigController/update');
         Route::post('batch-update', 'v1.system.SystemConfigController/batchUpdate');

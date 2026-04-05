@@ -30,3 +30,8 @@ export function updateConfig(id: number, data: Partial<ConfigReq>) {
 export function batchUpdateConfigs(configs: ConfigBatchUpdateItem[]) {
     return myRequest.post<void>('/adminapi/system/config/batch-update', { configs })
 }
+
+// 清除系统缓存
+export function clearSystemCache() {
+    return myRequest.post<void>('/adminapi/system/config/clear-cache')
+}
