@@ -14,6 +14,9 @@ use core\exception\PermissionException;
 
 class Permission
 {
+    protected const CACHE_TAG = 'permission';
+    protected const CACHE_TTL = 3600;
+
     protected array $permissions = [];
     protected array $roles = [];
 
@@ -47,7 +50,7 @@ class Permission
     {
         $cacheKey = "user_permissions:{$userId}";
 
-        return Cache::remember($cacheKey, function() use ($userId) {
+        return Cache::tag(self::CACHE_TAG)->remember($cacheKey, function() use ($userId) {
             $permissions = [];
 
             // 通过角色获取权限
@@ -62,7 +65,7 @@ class Permission
             $permissions = array_merge($permissions, $directPermissions);
 
             return array_unique($permissions);
-        }, 3600);
+        }, self::CACHE_TTL);
     }
 
     /**
@@ -72,14 +75,14 @@ class Permission
     {
         $cacheKey = "user_roles:{$userId}";
 
-        return Cache::remember($cacheKey, function() use ($userId) {
+        return Cache::tag(self::CACHE_TAG)->remember($cacheKey, function() use ($userId) {
             return db('admin_roles')
                 ->alias('ar')
                 ->join('roles r', 'ar.role_id = r.id')
                 ->where('ar.admin_id', $userId)
                 ->where('r.status', 1)
                 ->column('r.name');
-        }, 3600);
+        }, self::CACHE_TTL);
     }
 
     /**
@@ -89,7 +92,7 @@ class Permission
     {
         $cacheKey = "role_permissions:{$role}";
 
-        return Cache::remember($cacheKey, function() use ($role) {
+        return Cache::tag(self::CACHE_TAG)->remember($cacheKey, function() use ($role) {
             return db('role_menus')
                 ->alias('rm')
                 ->join('menus m', 'rm.menu_id = m.id')
@@ -99,7 +102,7 @@ class Permission
                 ->where('m.status', 1)
                 ->where('m.permission', '<>', '')
                 ->column('m.permission');
-        }, 3600);
+        }, self::CACHE_TTL);
     }
 
     /**
@@ -125,6 +128,14 @@ class Permission
     public function clearRoleCache(string $role): void
     {
         Cache::delete("role_permissions:{$role}");
+    }
+
+    /**
+     * 清除所有权限缓存
+     */
+    public function clearAllCache(): void
+    {
+        Cache::tag(self::CACHE_TAG)->clear();
     }
 
     /**
