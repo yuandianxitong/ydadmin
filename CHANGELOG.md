@@ -4,6 +4,112 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-04-07
+
+### Added
+
+#### 后端 (server)
+- `core\base\Service`：新增 `extractPagination()`、`findOrFail()`、`runInTransaction()` 三个基类方法
+- `core\base\Repository`：新增 `buildPagination()` 统一分页响应构造
+- `core\base\Model`：新增默认 `getStatusTextAttr()` 实现
+- 新增 `AbstractLedgerLogRepository` 账目流水抽象基类（BalanceLog/PointsLog 复用）
+- `MessageService::sendToUser()`：封装按用户 ID 发送模板消息
+- `RoleService::batchDeleteRole()`、`DictionaryService::batchDeleteDictionary()`：批量删除带事务
+- `AdminService::batchDeleteAdmin()`：批量删除带事务
+- 代码生成器生成的 Model 自动包含 `$append = ['status_text']` 声明
+- CronJobService 命令白名单 + Console::call 进程内调用替代 exec
+- 新增语言键：wechat_open_platform_not_configured / wechat_auth_failed / cron_command_empty / cron_command_not_allowed
+
+#### Admin 前端 (admin)
+- 新增 `hooks/useListPage.ts`：列表页通用 composable（分页/搜索/删除/批删/状态切换）
+- 新增 `hooks/useFormDialog.ts`：表单弹窗通用 composable
+- 新增 `utils/createCrudApi.ts`：标准 CRUD API 工厂
+- 新增 `styles/crud-layout.scss`：全局列表页布局样式
+- 新增 `constants/options.ts`：状态选项 hooks（useStatusOptions）
+- 错误页面白名单含 404/500，loadRouteView 找不到组件时降级到 404
+
+#### 移动端 (uniapp)
+- 新增 `hooks/useCountdown.ts`：SMS 倒计时 composable
+- 新增 `hooks/usePagingList.ts`：自动注册 onShow + onPullDownRefresh
+- 新增 `hooks/useMessageList.ts`：消息列表共享逻辑 + messageCache 跨页面传递
+- 新增 `utils/time.ts`：日期格式化工具（formatDate/formatDateTime/formatRelativeTime）
+- 新增 `utils/platform.ts::getStatusBarHeight()`：状态栏高度封装
+- 新增 `components/d-ledger-list/`：账目/积分流水列表通用组件
+- 全局样式新增 .d-submit-btn / .d-section-card / .d-section-title
+
+### Changed
+
+#### 后端 (server)
+- 分层架构合规：UserService 多处直接 Model 操作迁至 Repository
+- User Model 删除静态查询方法（findByMobile/findByOpenid/findByMiniOpenid），逻辑迁至 UserRepository
+- AdminLoginLog/AdminOperationLog 静态 record 方法迁至 Repository
+- SystemConfig 静态查询逐步迁移至 Repository（保留 core 层使用的静态方法，避免反向依赖）
+- MenuRepository.getAllChildrenIds 改为"一次全量查询 + BFS"消除 N+1
+- NotificationRepository.markAsRead/markAllAsRead 改为批量 SQL 消除 N+1
+- AlipayDriver create() 返回结构改为嵌套 data 字段，与 WechatPayDriver 对齐
+- AdminController/MenuService.batchDelete 加事务包裹
+- Listener 全部改为构造函数 DI（FeedbackCreated/UserRegister/PaymentSuccess/MessagePush/AdminLoginSuccess/AdminLoginFailed）
+- DashboardService 删除 getRelativeTime，统一使用 DateHelper::diffForHumans
+- ArticleCategoryService/DepartmentService 删除 buildTree，统一使用 ArrayHelper::toTree
+- upload 路由添加 admin_log 中间件
+- DashboardService 删除重复字段 newAdmins/newRoles/newMenus
+- Admin Model 移除冲突的 setPasswordAttr，密码 hash 统一在 Service 层
+- AuthController.wechatWebLogin 下沉至 UserService，使用 Guzzle 替代 file_get_contents
+- 8 个 Service 应用 extractPagination 消除分页参数解构样板
+- 5 处 findOrFail 替换样板代码
+- UserManageService.adjustBalance/adjustPoints 改用 runInTransaction
+- UserRepository.updateLastLogin 用 Db::raw 实现 login_count 原子自增
+
+#### Admin 前端 (admin)
+- 22 个列表页迁移到 useListPage（admin/role/department/cron-job/notification/dictionary/log×2/permission/file/announcement/agreement/article/article-category/feedback/region/version/auto-reply/balance-log/points-log/user/message-log/message-template）
+- 15 个 Form 组件迁移到 useFormDialog
+- v-has-perm 改用 removeChild 完全从 DOM 移除元素
+- API 类型定义集中到 types/api.d.ts（UserItem/BalanceLogItem/PointsLogItem）
+- usePaging 修复 res.data.list 数据解构对齐
+- settings.store 清理 @ts-ignore，改用 $patch
+- i18n 补全 feedback/article/article-category/announcement 等模块，合并 userMgmt.common.* 到顶层 common.*
+- 首页快速导航重新排版
+
+#### 移动端 (uniapp)
+- LoginResult 类型字段从 user 改为 user_info（与后端对齐）
+- user.store 新增 register 方法封装注册流程
+- balance.vue/points.vue 接入 d-ledger-list
+- register.vue 接入 useCountdown，移除手动 timer 管理
+- announcement-list 接入 usePagingList 自动注册生命周期
+- my/index.vue 头部高度通过 createSelectorQuery 动态测量替代硬编码
+- settings.vue 接入真实的 useVersionCheck，删除假"检查更新"实现
+- wechat-oauth 存储改用 uni.getStorageSync 跨端兼容
+- upload.ts BASE_URL 与 request.ts 对齐（H5 DEV 代理）
+- d-wechat-login 移除废弃的 uni.getUserProfile 调用
+- 安全区域适配修复（加 env(safe-area-inset-bottom)）
+- usePaging 新增 hasLoaded 状态供空状态组件防闪烁
+
+#### PC 网站 (pc)
+- 余额充值流程支持支付宝 PC page 支付（DOMParser 解析表单 + 新窗口手动提交）
+
+### Fixed
+
+#### 后端 (server)
+- 修复 CodeGeneratorService.getTableColumns SQL 注入风险（白名单校验）
+- 修复 FileService.deleteFile 物理文件删除失败未记录日志
+- 统一 SystemConfigService 异常类为 BusinessException
+
+#### Admin 前端 (admin)
+- 修复 file/index.vue 模板语法错误导致页面无法加载
+
+#### 移动端 (uniapp)
+- 修复 balance.vue 支付字段名 payment_data 类型
+- 修复 usePaging 初始 loading=true 导致 getList 阻塞（改为 hasLoaded 方案）
+- 修复 useMessageList 从 modules 子包移到 hooks 主包（修复主包不能引用子包的限制）
+
+### Removed
+
+#### Admin 前端 (admin)
+- 移除 ThemePicker 组件及 theme/apply.ts 遗留代码
+
+#### 移动端 (uniapp)
+- 移除 profile.vue 孤儿页面
+
 ## [1.4.0] - 2026-04-05
 
 ### Added
