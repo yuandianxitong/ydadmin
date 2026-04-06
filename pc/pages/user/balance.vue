@@ -84,6 +84,17 @@
       </div>
     </NModal>
 
+    <!-- Alipay wait dialog: 已在新窗口打开支付宝，等待支付完成 -->
+    <NModal v-model:show="showAlipayWaitDialog" preset="card" title="等待支付完成" class="max-w-400px" @after-leave="clearPollTimers">
+      <div class="text-center py-4">
+        <div class="text-gray-700 mb-3">已为你打开支付宝支付页面</div>
+        <div class="text-sm text-gray-500">完成支付后页面将自动刷新</div>
+        <button class="mt-6 text-sm text-gray-400 hover:text-gray-600" @click="showAlipayWaitDialog = false">
+          取消支付
+        </button>
+      </div>
+    </NModal>
+
     <!-- Recharge dialog -->
     <NModal v-model:show="showRechargeDialog" preset="card" title="余额充值" class="max-w-500px">
       <!-- Preset amounts -->
@@ -199,6 +210,7 @@ const useCustom = ref(false)
 const payChannel = ref<'wechat' | 'alipay'>('wechat')
 const recharging = ref(false)
 const showQrDialog = ref(false)
+const showAlipayWaitDialog = ref(false)
 const qrDataUrl = ref('')
 
 const finalAmount = computed(() => {
@@ -259,6 +271,7 @@ function pollPayment(orderNo: string) {
         clearPollTimers()
         showRechargeDialog.value = false
         showQrDialog.value = false
+        showAlipayWaitDialog.value = false
         recharging.value = false
         fetchBalance()
         fetchLogs()
@@ -282,11 +295,36 @@ async function handleRecharge() {
       const data = res.data as any
       const paymentData = data.payment_data?.data
 
-      // Native 支付：生成二维码
+      // 微信 Native 支付：生成二维码
       if (paymentData?.code_url) {
         qrDataUrl.value = await QRCode.toDataURL(paymentData.code_url, { width: 256, margin: 2 })
         showRechargeDialog.value = false
         showQrDialog.value = true
+      }
+      // 支付宝 PC page 支付：解析后端返回的表单 HTML，appendChild 到新窗口后提交
+      else if (paymentData?.body) {
+        const popup = window.open('', 'alipay_pay', 'width=900,height=700')
+        if (!popup) {
+          message.error('请允许浏览器弹窗后重试')
+          recharging.value = false
+          return
+        }
+        // 使用 DOMParser 解析 HTML 字符串，再用 importNode + appendChild 注入新窗口
+        // 这是最安全的方式：不调用 innerHTML 或类似的 sink，且 script 节点也不会被执行
+        const parser = new DOMParser()
+        const parsed = parser.parseFromString(paymentData.body, 'text/html')
+        const formNode = parsed.querySelector('form')
+        if (!formNode) {
+          popup.close()
+          message.error('支付宝表单解析失败')
+          recharging.value = false
+          return
+        }
+        const importedForm = popup.document.importNode(formNode, true) as HTMLFormElement
+        popup.document.body.appendChild(importedForm)
+        importedForm.submit()
+        showRechargeDialog.value = false
+        showAlipayWaitDialog.value = true
       }
 
       // 开始轮询支付状态

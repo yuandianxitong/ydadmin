@@ -65,7 +65,11 @@ class AlipayDriver implements PaymentInterface
 
             return [
                 'trade_type' => $tradeType,
-                'body'       => $result->body,
+                // 与 WechatPayDriver 保持一致的嵌套结构 `{trade_type, data: {...}}`，
+                // 前端统一通过 `payment_data.data.<field>` 访问
+                'data'       => [
+                    'body' => $result->body,
+                ],
             ];
         } catch (BusinessException $e) {
             throw $e;
