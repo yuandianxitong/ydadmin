@@ -22,8 +22,7 @@ class AgreementService extends Service
      */
     public function getList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->agreementRepository->getSearchList($params, $page, $limit);
     }
 
@@ -62,11 +61,7 @@ class AgreementService extends Service
      */
     public function update(int $id, array $data): bool
     {
-        $agreement = $this->agreementRepository->find($id);
-        if (!$agreement) {
-            throw new BusinessException(lang('business.record_not_found'));
-        }
-
+        $this->findOrFail($this->agreementRepository, $id);
         return $this->agreementRepository->update($id, $data);
     }
 

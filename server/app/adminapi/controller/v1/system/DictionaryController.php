@@ -175,9 +175,7 @@ class DictionaryController extends Controller
             return $this->error(lang('business.please_select_dict'));
         }
 
-        foreach ($ids as $id) {
-            $this->dictionaryService->deleteDictionary((int)$id);
-        }
+        $this->dictionaryService->batchDeleteDictionary($ids);
 
         return $this->success(lang('messages.batch_delete_success'));
     }

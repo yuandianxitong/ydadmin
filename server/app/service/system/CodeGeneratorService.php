@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\service\system;
 
 use core\base\Service;
+use core\exception\BusinessException;
 use think\facade\Db;
 use think\facade\Log;
 
@@ -29,9 +30,16 @@ class CodeGeneratorService extends Service
 
     /**
      * 获取表字段信息
+     *
+     * 出于安全考虑，表名必须存在于当前数据库的表清单中（白名单校验），
+     * 避免通过构造恶意表名进行 SQL 注入。
      */
     public function getTableColumns(string $tableName): array
     {
+        if (!$this->isValidTableName($tableName)) {
+            throw new BusinessException('非法的表名');
+        }
+
         $columns = Db::query("SHOW FULL COLUMNS FROM `{$tableName}`");
         $result = [];
         foreach ($columns as $col) {
@@ -51,6 +59,26 @@ class CodeGeneratorService extends Service
             ];
         }
         return $result;
+    }
+
+    /**
+     * 校验表名：必须是当前数据库真实存在的表（白名单）
+     */
+    protected function isValidTableName(string $tableName): bool
+    {
+        // 基础格式校验：仅允许字母、数字、下划线
+        if ($tableName === '' || !preg_match('/^[A-Za-z0-9_]+$/', $tableName)) {
+            return false;
+        }
+        // 与当前数据库实际存在的表清单比对
+        $existing = Db::query('SHOW TABLES');
+        foreach ($existing as $row) {
+            $first = reset($row);
+            if ($first === $tableName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -241,8 +269,11 @@ class CodeGeneratorService extends Service
         $fillableStr = $this->wrapArray($fillable, 8);
         $typeStr = $typeMap ? "\n" . implode("\n", $typeMap) . "\n    " : '';
 
+        // 有 status 字段时自动生成访问器 + $append 声明，确保 status_text 出现在 API 响应
+        $appendProperty = '';
         $statusAccessor = '';
         if ($hasStatus) {
+            $appendProperty = "\n    protected \$append = ['status_text'];\n";
             $statusAccessor = <<<'PHP'
 
 
@@ -270,7 +301,8 @@ class {$model} extends Model
 
     protected \$fillable = [{$fillableStr}];
 
-    protected \$type = [{$typeStr}];{$statusAccessor}
+    protected \$type = [{$typeStr}];
+{$appendProperty}{$statusAccessor}
 }
 PHP;
     }

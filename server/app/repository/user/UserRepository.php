@@ -5,6 +5,7 @@ namespace app\repository\user;
 
 use app\model\user\User;
 use core\base\Repository;
+use think\facade\Db;
 use think\Model;
 
 class UserRepository extends Repository
@@ -19,7 +20,7 @@ class UserRepository extends Repository
      */
     public function findByMobile(string $mobile): ?Model
     {
-        return User::findByMobile($mobile);
+        return $this->model->where('mobile', $mobile)->find();
     }
 
     /**
@@ -27,7 +28,7 @@ class UserRepository extends Repository
      */
     public function findByAccount(string $account): ?Model
     {
-        return User::findByMobile($account);
+        return $this->findByMobile($account);
     }
 
     /**
@@ -35,7 +36,7 @@ class UserRepository extends Repository
      */
     public function findByOpenid(string $openid): ?Model
     {
-        return User::findByOpenid($openid);
+        return $this->model->where('openid', $openid)->find();
     }
 
     /**
@@ -43,7 +44,7 @@ class UserRepository extends Repository
      */
     public function findByMiniOpenid(string $openid): ?Model
     {
-        return User::findByMiniOpenid($openid);
+        return $this->model->where('mini_openid', $openid)->find();
     }
 
     /**
@@ -79,7 +80,7 @@ class UserRepository extends Repository
      */
     public function getSearchList(array $params, int $page = 1, int $limit = 20): array
     {
-        $query = User::order('id', 'desc');
+        $query = $this->model->order('id', 'desc');
         if (!empty($params['keyword'])) {
             $query->where('nickname|mobile', 'like', "%{$params['keyword']}%");
         }
@@ -98,7 +99,7 @@ class UserRepository extends Repository
      */
     public function searchIdsByKeyword(string $keyword): array
     {
-        return User::where('nickname|mobile', 'like', "%{$keyword}%")->column('id');
+        return $this->model->where('nickname|mobile', 'like', "%{$keyword}%")->column('id');
     }
 
     /**
@@ -107,7 +108,9 @@ class UserRepository extends Repository
      */
     public function findForUpdate(int $id): ?User
     {
-        return User::where('id', $id)->lock(true)->find();
+        /** @var User|null $user */
+        $user = $this->model->where('id', $id)->lock(true)->find();
+        return $user;
     }
 
     /**
@@ -115,7 +118,7 @@ class UserRepository extends Repository
      */
     public function findByOaOpenid(string $openid): ?Model
     {
-        return User::where('oa_openid', $openid)->find();
+        return $this->model->where('oa_openid', $openid)->find();
     }
 
     /**
@@ -123,7 +126,7 @@ class UserRepository extends Repository
      */
     public function updateOaOpenid(int $userId, string $oaOpenid): bool
     {
-        return User::where('id', $userId)->update(['oa_openid' => $oaOpenid]) !== false;
+        return $this->model->where('id', $userId)->update(['oa_openid' => $oaOpenid]) !== false;
     }
 
     /**
@@ -135,7 +138,42 @@ class UserRepository extends Repository
         if ($unionid !== null) {
             $data['unionid'] = $unionid ?: null;
         }
-        return User::where('id', $userId)->update($data) !== false;
+        return $this->model->where('id', $userId)->update($data) !== false;
+    }
+
+    /**
+     * 将小程序 openid 关联到指定用户（通常在通过 unionid 匹配后调用）
+     */
+    public function bindMiniOpenid(int $userId, string $openid, ?string $unionid = null): bool
+    {
+        $data = ['mini_openid' => $openid];
+        if ($unionid !== null && $unionid !== '') {
+            $data['unionid'] = $unionid;
+        }
+        return $this->model->where('id', $userId)->update($data) !== false;
+    }
+
+    /**
+     * 将开放平台/公众号 openid 关联到指定用户
+     */
+    public function bindOpenid(int $userId, string $openid): bool
+    {
+        return $this->model->where('id', $userId)->update(['openid' => $openid]) !== false;
+    }
+
+    /**
+     * 登录成功后更新最后登录信息（ip、时间、次数）
+     *
+     * 使用 `Db::raw()` 表达式实现 `login_count = login_count + 1` 原子自增，
+     * 避免读取-修改-写入的竞态。
+     */
+    public function updateLastLogin(int $userId, string $ip): bool
+    {
+        return $this->model->where('id', $userId)->update([
+            'last_login_ip'   => $ip,
+            'last_login_time' => date('Y-m-d H:i:s'),
+            'login_count'     => Db::raw('login_count + 1'),
+        ]) !== false;
     }
 
     /**
@@ -143,7 +181,7 @@ class UserRepository extends Repository
      */
     public function getFieldById(int $userId, string $field): mixed
     {
-        $user = User::where('id', $userId)->field($field)->find();
+        $user = $this->model->where('id', $userId)->field($field)->find();
         return $user?->$field;
     }
 
@@ -152,7 +190,7 @@ class UserRepository extends Repository
      */
     public function getTotalCount(): int
     {
-        return User::count();
+        return $this->model->count();
     }
 
     /**
@@ -160,7 +198,7 @@ class UserRepository extends Repository
      */
     public function getTodayNewCount(): int
     {
-        return User::whereTime('created_at', 'today')->count();
+        return $this->model->whereTime('created_at', 'today')->count();
     }
 
     /**
@@ -169,7 +207,7 @@ class UserRepository extends Repository
     public function getLastWeekSameDayNewCount(): int
     {
         $date = date('Y-m-d', strtotime('-7 days'));
-        return User::whereDay('created_at', $date)->count();
+        return $this->model->whereDay('created_at', $date)->count();
     }
 
     /**
@@ -178,7 +216,7 @@ class UserRepository extends Repository
     public function getActiveCount(int $days = 7): int
     {
         $startDate = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-        return User::where('last_login_time', '>=', $startDate)->count();
+        return $this->model->where('last_login_time', '>=', $startDate)->count();
     }
 
     /**
@@ -188,7 +226,7 @@ class UserRepository extends Repository
     {
         $lastWeekStart = date('Y-m-d H:i:s', strtotime('-14 days'));
         $lastWeekEnd = date('Y-m-d H:i:s', strtotime('-7 days'));
-        return User::where('last_login_time', '>=', $lastWeekStart)
+        return $this->model->where('last_login_time', '>=', $lastWeekStart)
             ->where('last_login_time', '<', $lastWeekEnd)
             ->count();
     }
@@ -199,7 +237,7 @@ class UserRepository extends Repository
     public function getRegisterTrend(int $days = 7): array
     {
         $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
-        $rows = User::where('created_at', '>=', $startDate . ' 00:00:00')
+        $rows = $this->model->where('created_at', '>=', $startDate . ' 00:00:00')
             ->fieldRaw("DATE(created_at) as date, COUNT(*) as count")
             ->group('date')
             ->select()

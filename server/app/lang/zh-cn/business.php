@@ -2,6 +2,14 @@
 // 业务逻辑错误 - 中文
 
 return [
+    // 微信开放平台
+    'wechat_open_platform_not_configured' => '微信开放平台未配置',
+    'wechat_auth_failed'                  => '微信授权失败',
+
+    // 定时任务
+    'cron_command_empty'        => '命令不能为空',
+    'cron_command_not_allowed'  => '命令不在允许的白名单中',
+
     // 菜单
     'menu_name_exists'          => '菜单名称已存在',
     'route_path_exists'         => '路由路径已存在',

@@ -26,37 +26,12 @@ class SystemConfig extends Model
         'status' => 'integer'
     ];
 
-    // 使用标准的时间戳字段（与基类一致）
-    // protected $createTime = 'created_at';  // 基类默认值
-    // protected $updateTime = 'updated_at';  // 基类默认值
-    // protected $deleteTime = 'deleted_at';  // 基类默认值
-
-    /**
-     * 获取配置值并根据类型转换
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
-     */
-    public static function getConfigValue(string $key, $default = null)
-    {
-        $config = self::where('config_key', $key)
-            ->where('status', 1)
-            ->find();
-
-        if (!$config) {
-            return $default;
-        }
-
-        return self::convertValueByType($config->config_value, $config->config_type);
-    }
-
     /**
      * 根据类型转换配置值
-     * @param string $value
-     * @param string $type
-     * @return mixed
+     *
+     * 保留在 Model 上是因为这是纯粹的值转换（无查询），Repository 和 Service 都会用到。
      */
-    protected static function convertValueByType(string $value, string $type)
+    public static function convertValueByType(string $value, string $type)
     {
         switch ($type) {
             case 'boolean':
@@ -70,14 +45,38 @@ class SystemConfig extends Model
         }
     }
 
+    // ============================================================
+    // core 层访问入口
+    //
+    // 以下静态方法**仅供 core/* 基础设施层使用**（如 WechatManager、PaymentManager、
+    // StorageManager），它们不允许反向依赖 app/repository。
+    //
+    // app 层（Controller/Service）应统一通过 SystemConfigRepository 访问，
+    // 不要直接调用这些静态方法。
+    // ============================================================
+
     /**
-     * 获取分组配置
-     * @param string $group
-     * @return array
+     * 获取配置值（供 core 层使用，自动类型转换）
+     */
+    public static function getConfigValue(string $key, $default = null)
+    {
+        $config = static::where('config_key', $key)
+            ->where('status', 1)
+            ->find();
+
+        if (!$config) {
+            return $default;
+        }
+
+        return self::convertValueByType((string) $config->config_value, (string) $config->config_type);
+    }
+
+    /**
+     * 根据分组获取配置键值对（供 core 层使用，带类型转换）
      */
     public static function getConfigsByGroup(string $group): array
     {
-        $configs = self::where('config_group', $group)
+        $configs = static::where('config_group', $group)
             ->where('status', 1)
             ->order('sort_order', 'asc')
             ->select()
@@ -85,67 +84,11 @@ class SystemConfig extends Model
 
         $result = [];
         foreach ($configs as $config) {
-            $result[$config['config_key']] = self::convertValueByType($config['config_value'], $config['config_type']);
+            $result[$config['config_key']] = self::convertValueByType(
+                (string) $config['config_value'],
+                (string) $config['config_type']
+            );
         }
-
         return $result;
-    }
-
-    /**
-     * 获取所有配置（返回键值对数组）
-     * @return array
-     */
-    public static function getAllConfigs(): array
-    {
-        $configs = self::where('status', 1)
-            ->order('sort_order', 'asc')
-            ->select()
-            ->toArray();
-
-        $result = [];
-        foreach ($configs as $config) {
-            $result[$config['config_key']] = self::convertValueByType($config['config_value'], $config['config_type']);
-        }
-
-        return $result;
-    }
-
-    /**
-     * 设置配置值
-     * @param string $key
-     * @param mixed $value
-     * @return bool
-     */
-    public static function setConfigValue(string $key, $value): bool
-    {
-        $config = self::where('config_key', $key)->find();
-        if (!$config) {
-            return false;
-        }
-
-        // 根据类型处理值
-        if ($config->config_type === 'json') {
-            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-        } else {
-            $value = (string)$value;
-        }
-
-        $config->config_value = $value;
-
-
-        return $config->save();
-    }
-
-    /**
-     * 批量设置配置
-     * @param array $configs
-     * @return bool
-     */
-    public static function setConfigs(array $configs): bool
-    {
-        foreach ($configs as $key => $value) {
-            self::setConfigValue($key, $value);
-        }
-        return true;
     }
 }

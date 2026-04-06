@@ -23,8 +23,7 @@ class AnnouncementService extends Service
      */
     public function getList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->announcementRepository->getSearchList($params, $page, $limit);
     }
 
@@ -61,10 +60,7 @@ class AnnouncementService extends Service
      */
     public function update(int $id, array $data): bool
     {
-        $announcement = $this->announcementRepository->find($id);
-        if (!$announcement) {
-            throw new BusinessException(lang('business.record_not_found'));
-        }
+        $announcement = $this->findOrFail($this->announcementRepository, $id);
 
         // 如果从草稿变为已发布且没有发布时间，设置发布时间
         if (isset($data['status']) && (int) $data['status'] === Announcement::STATUS_PUBLISHED
@@ -80,10 +76,7 @@ class AnnouncementService extends Service
      */
     public function updateStatus(int $id, int $status): bool
     {
-        $announcement = $this->announcementRepository->find($id);
-        if (!$announcement) {
-            throw new BusinessException(lang('business.record_not_found'));
-        }
+        $announcement = $this->findOrFail($this->announcementRepository, $id);
 
         $updateData = ['status' => $status];
 
@@ -100,8 +93,7 @@ class AnnouncementService extends Service
      */
     public function getPublishedList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->announcementRepository->getPublishedList($page, $limit);
     }
 

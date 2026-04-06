@@ -192,12 +192,34 @@ abstract class Controller
 
     /**
      * 获取请求参数
+     *
+     * 分页字段自动双向归一化：
+     *   - 前端无论传 `page/limit` 还是 `page_no/page_size`，两套 key 都会存在
+     *   - 统一约定：**新写的 Service 优先使用 `page/limit`**；
+     *     历史遗留 Service 读取 `page_no/page_size` 也能正常工作
      */
     protected function getRequestData(array $rules = []): array
     {
         $data = $this->request->param();
 
+        // 分页参数双向归一化
+        if (isset($data['page']) && !isset($data['page_no'])) {
+            $data['page_no'] = $data['page'];
+        } elseif (isset($data['page_no']) && !isset($data['page'])) {
+            $data['page'] = $data['page_no'];
+        }
+        if (isset($data['limit']) && !isset($data['page_size'])) {
+            $data['page_size'] = $data['limit'];
+        } elseif (isset($data['page_size']) && !isset($data['limit'])) {
+            $data['limit'] = $data['page_size'];
+        }
+
         if (!empty($rules)) {
+            // 允许 page/limit 始终透传（即使 rules 只声明了 page_no/page_size）
+            $rules = array_merge([
+                'page' => null, 'limit' => null,
+                'page_no' => null, 'page_size' => null,
+            ], $rules);
             $data = array_intersect_key($data, $rules);
         }
 

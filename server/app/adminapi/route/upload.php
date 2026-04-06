@@ -8,7 +8,8 @@
 use think\facade\Route;
 
 // 文件上传相关路由
+// 注：需记录到操作日志以便后续审计敏感文件上传
 Route::group('upload', function () {
     Route::post('image', 'v1.upload.UploadController/image');
     Route::post('file', 'v1.upload.UploadController/file');
-})->middleware(['admin_auth']);
+})->middleware(['admin_auth', 'admin_log']);

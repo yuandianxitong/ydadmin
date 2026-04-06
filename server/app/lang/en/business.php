@@ -2,6 +2,14 @@
 // Business logic errors - English
 
 return [
+    // WeChat Open Platform
+    'wechat_open_platform_not_configured' => 'WeChat Open Platform not configured',
+    'wechat_auth_failed'                  => 'WeChat authorization failed',
+
+    // Cron
+    'cron_command_empty'        => 'Command is required',
+    'cron_command_not_allowed'  => 'Command is not in the allowed whitelist',
+
     // Menu
     'menu_name_exists'          => 'Menu name already exists',
     'route_path_exists'         => 'Route path already exists',

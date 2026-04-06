@@ -39,25 +39,4 @@ class AdminOperationLog extends Model
     {
         return $this->belongsTo(Admin::class, 'admin_id');
     }
-
-    /**
-     * 记录操作日志
-     */
-    public static function record(array $data): void
-    {
-        self::create([
-            'admin_id' => $data['admin_id'] ?? 0,
-            'username' => $data['username'] ?? '',
-            'method' => $data['method'] ?? '',
-            'path' => $data['path'] ?? '',
-            'ip' => $data['ip'] ?? '',
-            'user_agent' => $data['user_agent'] ?? '',
-            'action' => $data['action'] ?? '',
-            'description' => $data['description'] ?? '',
-            'params' => $data['params'] ?? [],
-            'result' => $data['result'] ?? [],
-            'operation_time' => date('Y-m-d H:i:s'),
-            'execution_time' => $data['execution_time'] ?? 0,
-        ]);
-    }
 }

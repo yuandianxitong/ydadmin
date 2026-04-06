@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace app\listener\user;
 
-use app\repository\user\UserRepository;
 use app\service\message\MessageService;
 use think\facade\Log;
 
@@ -22,6 +21,11 @@ use think\facade\Log;
  */
 class UserRegisterListener
 {
+    public function __construct(
+        protected MessageService $messageService,
+    ) {
+    }
+
     public function handle(array $event): void
     {
         Log::info('新用户注册', [
@@ -29,24 +33,9 @@ class UserRegisterListener
             'channel' => $event['channel'] ?? 'sms',
         ]);
 
-        $userId = (int) ($event['user_id'] ?? 0);
-        if (!$userId) {
-            return;
-        }
-
-        $user = app(UserRepository::class)->findModel($userId);
-        if (!$user) {
-            return;
-        }
-
-        $receivers = array_filter([
-            'phone'       => $user->mobile ?? '',
-            'openid'      => $user->oa_openid ?? '',
-            'mini_openid' => $user->mini_openid ?? '',
-        ]);
-
-        if (!empty($receivers)) {
-            app(MessageService::class)->trySend('user_register', $receivers, []);
-        }
+        $this->messageService->sendToUser(
+            (int) ($event['user_id'] ?? 0),
+            'user_register',
+        );
     }
 }

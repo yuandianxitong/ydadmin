@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\service\system;
 
 use core\base\Service;
+use core\helper\ArrayHelper;
 use app\repository\system\DepartmentRepository;
 use think\facade\Db;
 
@@ -17,7 +18,7 @@ class DepartmentService extends Service
     public function getDepartmentTree(array $params): array
     {
         $list = $this->repo->getTree($params);
-        return $this->buildTree($list);
+        return ArrayHelper::toTree($list);
     }
 
     /**
@@ -34,7 +35,7 @@ class DepartmentService extends Service
     public function getDepartmentOptions(): array
     {
         $list = $this->repo->getAllEnabled();
-        return $this->buildTree($list);
+        return ArrayHelper::toTree($list);
     }
 
     /**
@@ -123,21 +124,4 @@ class DepartmentService extends Service
         return $this->repo->update($id, ['status' => $status]);
     }
 
-    /**
-     * 构建树形结构
-     */
-    protected function buildTree(array $list, int $parentId = 0): array
-    {
-        $tree = [];
-        foreach ($list as $item) {
-            if ((int) $item['parent_id'] === $parentId) {
-                $children = $this->buildTree($list, (int) $item['id']);
-                if (!empty($children)) {
-                    $item['children'] = $children;
-                }
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
 }

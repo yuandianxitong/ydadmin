@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace app\listener\feedback;
 
-use app\repository\user\UserRepository;
 use app\service\message\MessageService;
 use think\facade\Log;
 
@@ -23,6 +22,11 @@ use think\facade\Log;
  */
 class FeedbackCreatedListener
 {
+    public function __construct(
+        protected MessageService $messageService,
+    ) {
+    }
+
     public function handle(array $event): void
     {
         Log::info('用户提交反馈', [
@@ -31,24 +35,9 @@ class FeedbackCreatedListener
             'type'        => $event['type'],
         ]);
 
-        $userId = (int) ($event['user_id'] ?? 0);
-        if (!$userId) {
-            return;
-        }
-
-        $user = app(UserRepository::class)->findModel($userId);
-        if (!$user) {
-            return;
-        }
-
-        $receivers = array_filter([
-            'phone'       => $user->mobile ?? '',
-            'openid'      => $user->oa_openid ?? '',
-            'mini_openid' => $user->mini_openid ?? '',
-        ]);
-
-        if (!empty($receivers)) {
-            app(MessageService::class)->trySend('feedback_received', $receivers, []);
-        }
+        $this->messageService->sendToUser(
+            (int) ($event['user_id'] ?? 0),
+            'feedback_received',
+        );
     }
 }

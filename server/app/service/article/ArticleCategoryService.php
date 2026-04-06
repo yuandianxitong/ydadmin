@@ -11,6 +11,7 @@ namespace app\service\article;
 
 use app\repository\article\ArticleCategoryRepository;
 use core\base\Service;
+use core\helper\ArrayHelper;
 
 class ArticleCategoryService extends Service
 {
@@ -22,7 +23,7 @@ class ArticleCategoryService extends Service
     public function getList(bool $onlyEnabled = false): array
     {
         $list = $this->articleCategoryRepository->getCategoryTree($onlyEnabled);
-        return $this->buildTree($list);
+        return ArrayHelper::toTree($list);
     }
 
     /**
@@ -31,7 +32,7 @@ class ArticleCategoryService extends Service
     public function getOptions(int $excludeId = 0): array
     {
         $list = $this->articleCategoryRepository->getOptions($excludeId);
-        return $this->buildTree($list);
+        return ArrayHelper::toTree($list);
     }
 
     /**
@@ -111,21 +112,4 @@ class ArticleCategoryService extends Service
         return $this->articleCategoryRepository->update($id, ['status' => $status]);
     }
 
-    /**
-     * 构建树形结构
-     */
-    protected function buildTree(array $list, int $parentId = 0): array
-    {
-        $tree = [];
-        foreach ($list as $item) {
-            if ((int) $item['parent_id'] === $parentId) {
-                $children = $this->buildTree($list, (int) $item['id']);
-                if (!empty($children)) {
-                    $item['children'] = $children;
-                }
-                $tree[] = $item;
-            }
-        }
-        return $tree;
-    }
 }

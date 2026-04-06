@@ -225,9 +225,7 @@ class RoleController extends Controller
             return $this->error(lang('business.please_select_role'));
         }
 
-        foreach ($ids as $id) {
-            $this->roleService->deleteRole($id);
-        }
+        $this->roleService->batchDeleteRole($ids);
 
         return $this->success(lang('messages.batch_delete_success'));
     }

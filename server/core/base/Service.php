@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace core\base;
 
+use think\facade\Db;
 use think\facade\Log;
 use think\facade\Cache;
 use think\facade\Event;
@@ -97,6 +98,62 @@ abstract class Service
     protected function trigger(string $event, $data = null): void
     {
         Event::trigger($event, $data);
+    }
+
+    /**
+     * 从请求参数中解构分页参数
+     *
+     * 兼容两种命名：`page/limit`（优先）与 `page_no/page_size`（历史遗留）。
+     * 后端 `Controller::getRequestData()` 已做双向归一化，这里只是一个语义更清晰的入口。
+     *
+     * @return array{0: int, 1: int} [page, limit]
+     */
+    protected function extractPagination(array $params, int $defaultLimit = 20, int $defaultPage = 1): array
+    {
+        $page = (int) ($params['page'] ?? $params['page_no'] ?? $defaultPage);
+        $limit = (int) ($params['limit'] ?? $params['page_size'] ?? $defaultLimit);
+        return [$page, $limit];
+    }
+
+    /**
+     * 查找记录，不存在则抛出业务异常
+     *
+     * 替代所有 Service 中手写的 `if (!$entity) throw new BusinessException(...)` 样板。
+     *
+     * @param Repository $repo
+     * @param int $id
+     * @param string $langKey 业务异常的 lang() 键，默认 `business.record_not_found`
+     * @return array Repository find() 返回的数组
+     */
+    protected function findOrFail(Repository $repo, int $id, string $langKey = 'business.record_not_found'): array
+    {
+        $entity = $repo->find($id);
+        if (!$entity) {
+            throw new BusinessException(lang($langKey));
+        }
+        return $entity;
+    }
+
+    /**
+     * 在事务中执行回调
+     *
+     * 替代所有 `Db::startTrans(); try { ... commit(); } catch { rollback(); throw; }` 样板。
+     *
+     * @template T
+     * @param callable(): T $callback
+     * @return T
+     */
+    protected function runInTransaction(callable $callback): mixed
+    {
+        Db::startTrans();
+        try {
+            $result = $callback();
+            Db::commit();
+            return $result;
+        } catch (\Throwable $e) {
+            Db::rollback();
+            throw $e;
+        }
     }
 
     /**

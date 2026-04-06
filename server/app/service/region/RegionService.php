@@ -22,8 +22,7 @@ class RegionService extends Service
      */
     public function getList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->regionRepository->getSearchList($params, $page, $limit);
     }
 

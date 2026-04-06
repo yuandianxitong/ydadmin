@@ -178,6 +178,24 @@ class RoleService extends Service
     }
 
     /**
+     * 批量删除角色
+     *
+     * 使用事务包裹：任一删除失败则整体回滚。
+     */
+    public function batchDeleteRole(array $ids): bool
+    {
+        if (empty($ids)) {
+            return true;
+        }
+        return $this->runInTransaction(function () use ($ids) {
+            foreach ($ids as $id) {
+                $this->deleteRole((int) $id);
+            }
+            return true;
+        });
+    }
+
+    /**
      * 获取角色权限
      */
     public function getRolePermissions(int $id): array

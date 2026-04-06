@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace app\listener\system;
 
-use app\model\system\AdminLoginLog;
+use app\repository\system\AdminLoginLogRepository;
 
 /**
  * 管理员登录失败监听器
@@ -23,15 +23,20 @@ use app\model\system\AdminLoginLog;
  */
 class AdminLoginFailedListener
 {
+    public function __construct(
+        protected AdminLoginLogRepository $loginLogRepository,
+    ) {
+    }
+
     public function handle(array $event): void
     {
-        AdminLoginLog::record([
+        $this->loginLogRepository->record([
             'admin_id'      => $event['admin_id'] ?? 0,
-            'username'       => $event['username'],
-            'ip'             => $event['ip'],
-            'user_agent'     => $event['user_agent'],
-            'login_result'   => false,
-            'login_message'  => $event['message'],
+            'username'      => $event['username'],
+            'ip'            => $event['ip'],
+            'user_agent'    => $event['user_agent'],
+            'login_result'  => false,
+            'login_message' => $event['message'],
         ]);
     }
 }

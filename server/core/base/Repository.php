@@ -128,14 +128,25 @@ abstract class Repository
         $total = $query->count();
         $list = $query->page($page, $limit)->order($order)->select()->toArray();
 
+        return $this->buildPagination($list, $page, $limit, $total);
+    }
+
+    /**
+     * 构造统一的分页响应结构
+     *
+     * 用于 Repository 的自定义 `getSearchList` 方法：当查询条件复杂无法直接复用 `getList` 时，
+     * 各子类只需查询出 $list 和 $total，然后调用此方法返回统一结构，避免到处手写 `pagination` 数组。
+     */
+    protected function buildPagination(array $list, int $page, int $limit, int $total): array
+    {
         return [
             'list' => $list,
             'pagination' => [
                 'current_page' => $page,
-                'per_page' => $limit,
-                'total' => $total,
-                'last_page' => ceil($total / $limit)
-            ]
+                'per_page'     => $limit,
+                'total'        => $total,
+                'last_page'    => $limit > 0 ? (int) ceil($total / $limit) : 1,
+            ],
         ];
     }
 

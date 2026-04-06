@@ -46,8 +46,7 @@ class FeedbackService extends Service
      */
     public function getUserList(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 10);
+        [$page, $limit] = $this->extractPagination($params, 10);
         return $this->feedbackRepository->getUserFeedbacks($userId, $page, $limit);
     }
 
@@ -56,8 +55,7 @@ class FeedbackService extends Service
      */
     public function getList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->feedbackRepository->getSearchList($params, $page, $limit);
     }
 

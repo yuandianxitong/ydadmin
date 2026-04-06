@@ -24,28 +24,4 @@ class User extends Model
         'balance'     => 'float',
         'points'      => 'integer',
     ];
-
-    /**
-     * 根据手机号查找
-     */
-    public static function findByMobile(string $mobile): ?static
-    {
-        return static::where('mobile', $mobile)->find();
-    }
-
-    /**
-     * 根据 openid 查找
-     */
-    public static function findByOpenid(string $openid): ?static
-    {
-        return static::where('openid', $openid)->find();
-    }
-
-    /**
-     * 根据小程序 openid 查找
-     */
-    public static function findByMiniOpenid(string $openid): ?static
-    {
-        return static::where('mini_openid', $openid)->find();
-    }
 }

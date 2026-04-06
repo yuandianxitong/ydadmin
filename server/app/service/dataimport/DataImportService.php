@@ -149,8 +149,7 @@ class DataImportService extends Service
      */
     public function getHistory(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->dataImportRepository->getSearchList($params, $page, $limit);
     }
 }

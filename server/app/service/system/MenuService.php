@@ -12,6 +12,7 @@ namespace app\service\system;
 use app\repository\system\MenuRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use think\facade\Db;
 
 class MenuService extends Service
 {
@@ -208,15 +209,27 @@ class MenuService extends Service
     }
 
     /**
-     * 批量删除菜单（包含子菜单）
+     * 批量删除菜单
+     *
+     * 使用事务包裹：任一菜单删除失败则整体回滚，避免部分成功导致数据不一致。
      */
     public function batchDeleteMenu(array $ids): bool
     {
-        foreach ($ids as $id) {
-            $this->deleteMenu($id);
+        if (empty($ids)) {
+            return true;
         }
 
-        return true;
+        Db::startTrans();
+        try {
+            foreach ($ids as $id) {
+                $this->deleteMenu((int) $id);
+            }
+            Db::commit();
+            return true;
+        } catch (\Throwable $e) {
+            Db::rollback();
+            throw $e;
+        }
     }
 
     /**
@@ -242,7 +255,7 @@ class MenuService extends Service
         }
 
         // 逐组校验与更新（事务）
-        \think\facade\Db::startTrans();
+        Db::startTrans();
         try {
             foreach ($groups as $parentId => $rows) {
                 // 取该父级下数据库中真实存在的所有直接子节点 id
@@ -266,11 +279,11 @@ class MenuService extends Service
                 $this->menuRepository->batchUpdateSortCase($rows);
             }
 
-            \think\facade\Db::commit();
+            Db::commit();
             $this->log('菜单批量排序成功', ['group_count' => count($groups)]);
             return true;
         } catch (\Throwable $e) {
-            \think\facade\Db::rollback();
+            Db::rollback();
             throw $e;
         }
     }

@@ -159,13 +159,13 @@ class AdminService extends Service
 
         Db::startTrans();
         try {
-            // 创建管理员
+            // 创建管理员（密码在 Service 层统一 hash，Model 不再使用修改器）
             $departmentId = !empty($data['department_id']) ? (int) $data['department_id'] : null;
             $adminData = [
                 'username' => $data['username'],
                 'email' => $data['email'],
                 'mobile' => $data['mobile'] ?? '',
-                'password' => $data['password'],
+                'password' => password_hash((string) $data['password'], PASSWORD_DEFAULT),
                 'nickname' => $data['nickname'] ?? $data['username'],
                 'avatar' => $data['avatar'] ?? '',
                 'department_id' => $departmentId,
@@ -292,6 +292,30 @@ class AdminService extends Service
         }
 
         return $result;
+    }
+
+    /**
+     * 批量删除管理员
+     *
+     * 使用事务包裹：任一删除失败则整体回滚，避免部分删除导致数据不一致。
+     */
+    public function batchDeleteAdmin(array $ids): bool
+    {
+        if (empty($ids)) {
+            return true;
+        }
+
+        Db::startTrans();
+        try {
+            foreach ($ids as $id) {
+                $this->deleteAdmin((int) $id);
+            }
+            Db::commit();
+            return true;
+        } catch (\Throwable $e) {
+            Db::rollback();
+            throw $e;
+        }
     }
 
     /**

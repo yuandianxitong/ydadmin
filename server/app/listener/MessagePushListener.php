@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace app\listener;
 
+use app\repository\user\UserRepository;
+use app\service\message\MessageService;
 use think\facade\Log;
 
 /**
@@ -15,6 +17,12 @@ use think\facade\Log;
  */
 class MessagePushListener
 {
+    public function __construct(
+        protected UserRepository $userRepository,
+        protected MessageService $messageService,
+    ) {
+    }
+
     /**
      * 处理消息推送事件
      *
@@ -119,7 +127,7 @@ class MessagePushListener
             return;
         }
 
-        $user = app(\app\repository\user\UserRepository::class)->findModel($userId);
+        $user = $this->userRepository->findModel($userId);
         if (!$user || empty($user->mini_openid)) {
             Log::debug("MessagePush: user {$userId} has no mini_openid, skip wechat subscribe");
             return;
@@ -132,7 +140,7 @@ class MessagePushListener
             'content' => $message['content'] ?? '',
         ];
 
-        app(\app\service\message\MessageService::class)->trySend($templateCode, $receivers, $data);
+        $this->messageService->trySend($templateCode, $receivers, $data);
     }
 
     /**

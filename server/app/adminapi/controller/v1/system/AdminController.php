@@ -194,9 +194,7 @@ class AdminController extends Controller
             return $this->error(lang('business.please_select_admin'));
         }
 
-        foreach ($ids as $id) {
-            $this->adminService->deleteAdmin($id);
-        }
+        $this->adminService->batchDeleteAdmin($ids);
 
         return $this->success(lang('messages.batch_delete_success'));
     }

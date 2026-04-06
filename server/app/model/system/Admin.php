@@ -72,12 +72,6 @@ class Admin extends Model
         return request()->domain() . $data['avatar'];
     }
 
-    // 修改器
-    public function setPasswordAttr($value): string
-    {
-        return password_hash($value, PASSWORD_DEFAULT);
-    }
-
     /**
      * 验证密码
      */

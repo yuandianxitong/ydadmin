@@ -132,34 +132,25 @@ class NotificationRepository extends Repository
     }
 
     /**
-     * 标记已读
+     * 标记单条已读（基于 uk_notification_admin 唯一索引的幂等 upsert，单条 SQL）
      */
     public function markAsRead(int $notificationId, int $adminId): void
     {
-        $exists = NotificationRead::where('notification_id', $notificationId)
-            ->where('admin_id', $adminId)
-            ->find();
-
-        if ($exists) {
-            if (!$exists->read_at) {
-                $exists->read_at = date('Y-m-d H:i:s');
-                $exists->save();
-            }
-        } else {
-            NotificationRead::create([
-                'notification_id' => $notificationId,
-                'admin_id'        => $adminId,
-                'read_at'         => date('Y-m-d H:i:s'),
-            ]);
-        }
+        $now = date('Y-m-d H:i:s');
+        Db::execute(
+            'INSERT INTO notification_reads (notification_id, admin_id, read_at, created_at)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE read_at = IFNULL(read_at, VALUES(read_at))',
+            [$notificationId, $adminId, $now, $now]
+        );
     }
 
     /**
-     * 全部标记已读
+     * 全部标记已读（批量 upsert，固定 3 条 SQL 无论未读数量多少）
      */
     public function markAllAsRead(int $adminId): void
     {
-        // 获取所有未读的通知
+        // 1. 一次性取出该用户所有未读的广播通知 ID
         $readNotificationIds = NotificationRead::where('admin_id', $adminId)
             ->whereNotNull('read_at')
             ->column('notification_id');
@@ -174,22 +165,35 @@ class NotificationRepository extends Repository
 
         $unreadIds = $unreadQuery->column('id');
 
-        $now = date('Y-m-d H:i:s');
-        foreach ($unreadIds as $nid) {
-            $exists = NotificationRead::where('notification_id', $nid)
-                ->where('admin_id', $adminId)
-                ->find();
+        if (empty($unreadIds)) {
+            return;
+        }
 
-            if ($exists) {
-                $exists->read_at = $now;
-                $exists->save();
-            } else {
-                NotificationRead::create([
+        $now = date('Y-m-d H:i:s');
+
+        // 2. 一次 UPDATE 将已存在但 read_at 为空的记录置为已读
+        NotificationRead::where('admin_id', $adminId)
+            ->whereIn('notification_id', $unreadIds)
+            ->whereNull('read_at')
+            ->update(['read_at' => $now]);
+
+        // 3. 找出还没有对应 notification_read 记录的通知 ID，批量 insert
+        $existingIds = NotificationRead::where('admin_id', $adminId)
+            ->whereIn('notification_id', $unreadIds)
+            ->column('notification_id');
+
+        $missingIds = array_diff($unreadIds, $existingIds);
+        if (!empty($missingIds)) {
+            $rows = [];
+            foreach ($missingIds as $nid) {
+                $rows[] = [
                     'notification_id' => $nid,
                     'admin_id'        => $adminId,
                     'read_at'         => $now,
-                ]);
+                    'created_at'      => $now,
+                ];
             }
+            (new NotificationRead())->insertAll($rows);
         }
     }
 }

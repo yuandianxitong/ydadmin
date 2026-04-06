@@ -17,6 +17,7 @@ use app\repository\user\UserRepository;
 use app\repository\system\AdminOperationLogRepository;
 use app\repository\system\SystemConfigRepository;
 use core\base\Service;
+use core\helper\DateHelper;
 use think\facade\Cache;
 
 class DashboardService extends Service
@@ -62,9 +63,6 @@ class DashboardService extends Service
                     'todayNewUsers'   => $this->calcTrend($todayNewUsers, $lastWeekNewUsers),
                     'todayLoginCount' => $this->calcTrend($todayLoginCount, $lastWeekLogin),
                 ],
-                'newAdmins'        => $this->adminRepository->count(),
-                'newRoles'         => $this->roleRepository->count(),
-                'newMenus'         => $this->menuRepository->count(),
                 'operationLogCount' => $this->operationLogRepository->getTodayCount(),
                 'loginTrend'       => $this->loginLogRepository->getRecentTrend($days, true),
                 'registerTrend'    => $this->userRepository->getRegisterTrend($days),
@@ -96,7 +94,7 @@ class DashboardService extends Service
                 'username'      => $log['username'],
                 'description'   => $log['username'] . ($log['login_result'] ? ' 登录系统' : ' 登录失败'),
                 'time'          => $log['login_time'],
-                'relative_time' => $this->getRelativeTime($log['login_time']),
+                'relative_time' => DateHelper::diffForHumans($log['login_time']),
             ];
         }
 
@@ -106,7 +104,7 @@ class DashboardService extends Service
                 'username'      => $log['username'],
                 'description'   => $log['username'] . ' ' . ($log['description'] ?: $log['action']),
                 'time'          => $log['operation_time'],
-                'relative_time' => $this->getRelativeTime($log['operation_time']),
+                'relative_time' => DateHelper::diffForHumans($log['operation_time']),
             ];
         }
 
@@ -165,16 +163,4 @@ class DashboardService extends Service
         ];
     }
 
-    /**
-     * 获取相对时间描述
-     */
-    private function getRelativeTime(string $datetime): string
-    {
-        $diff = time() - strtotime($datetime);
-        if ($diff < 60) return '刚刚';
-        if ($diff < 3600) return intval($diff / 60) . '分钟前';
-        if ($diff < 86400) return intval($diff / 3600) . '小时前';
-        if ($diff < 259200) return intval($diff / 86400) . '天前';
-        return date('m-d H:i', strtotime($datetime));
-    }
 }

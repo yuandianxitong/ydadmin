@@ -3,14 +3,17 @@ declare(strict_types=1);
 
 namespace app\service\user;
 
+use app\repository\system\SystemConfigRepository;
 use app\repository\user\UserRepository;
 use core\auth\TokenManager;
 use core\base\Service;
 use core\exception\BusinessException;
+use GuzzleHttp\Client as HttpClient;
 
 class UserService extends Service
 {
     protected UserRepository $userRepository;
+    protected SystemConfigRepository $systemConfigRepository;
     protected TokenManager $tokenManager;
     protected \app\service\wechat\MiniAppService $miniAppService;
     protected \app\service\wechat\OfficialAccountService $officialAccountService;
@@ -73,8 +76,8 @@ class UserService extends Service
             // 尝试通过 unionid 关联已有账号
             $user = $this->userRepository->findByUnionid($unionid);
             if ($user) {
-                $user->mini_openid = $openid;
-                $user->save();
+                $this->userRepository->bindMiniOpenid((int) $user->id, $openid);
+                $user = $this->userRepository->findByMiniOpenid($openid);
             }
         }
 
@@ -127,6 +130,62 @@ class UserService extends Service
     }
 
     /**
+     * 微信开放平台 code 换登录（PC 端扫码）
+     *
+     * 流程：读取开放平台配置 → 用 code 换 access_token 和 openid → 获取用户信息 → 调用 loginByWechatWeb
+     */
+    public function loginByWechatOpenPlatformCode(string $code, string $ip = ''): array
+    {
+        $appId     = (string) $this->systemConfigRepository->getConfigValue('wechat_open_app_id', '');
+        $appSecret = (string) $this->systemConfigRepository->getConfigValue('wechat_open_app_secret', '');
+        if ($appId === '' || $appSecret === '') {
+            throw new BusinessException(lang('business.wechat_open_platform_not_configured'));
+        }
+
+        $http = new HttpClient(['timeout' => 5.0]);
+
+        // 用 code 换取 access_token 和 openid
+        $tokenRes = $http->get('https://api.weixin.qq.com/sns/oauth2/access_token', [
+            'query' => [
+                'appid'      => $appId,
+                'secret'     => $appSecret,
+                'code'       => $code,
+                'grant_type' => 'authorization_code',
+            ],
+        ]);
+        $tokenData = json_decode((string) $tokenRes->getBody(), true) ?: [];
+
+        if (empty($tokenData['openid'])) {
+            throw new BusinessException($tokenData['errmsg'] ?? lang('business.wechat_auth_failed'));
+        }
+
+        $openid  = (string) $tokenData['openid'];
+        $unionid = (string) ($tokenData['unionid'] ?? '');
+        $accessToken = (string) ($tokenData['access_token'] ?? '');
+
+        // 获取用户资料（失败时降级为空）
+        $wxUser = [];
+        if ($accessToken !== '') {
+            try {
+                $userRes = $http->get('https://api.weixin.qq.com/sns/userinfo', [
+                    'query' => [
+                        'access_token' => $accessToken,
+                        'openid'       => $openid,
+                    ],
+                ]);
+                $wxUser = json_decode((string) $userRes->getBody(), true) ?: [];
+            } catch (\Throwable $e) {
+                $this->log('获取微信用户信息失败: ' . $e->getMessage(), [], 'warning');
+            }
+        }
+
+        return $this->loginByWechatWeb($openid, $unionid, [
+            'nickname' => (string) ($wxUser['nickname'] ?? ''),
+            'avatar'   => (string) ($wxUser['headimgurl'] ?? ''),
+        ], $ip);
+    }
+
+    /**
      * 微信开放平台网页登录（PC端扫码）
      */
     public function loginByWechatWeb(string $openid, string $unionid = '', array $userInfo = [], string $ip = ''): array
@@ -138,8 +197,8 @@ class UserService extends Service
         if (!$user && $unionid) {
             $user = $this->userRepository->findByUnionid($unionid);
             if ($user && empty($user->openid)) {
-                $user->openid = $openid;
-                $user->save();
+                $this->userRepository->bindOpenid((int) $user->id, $openid);
+                $user = $this->userRepository->findByOpenid($openid);
             }
         }
 
@@ -182,7 +241,7 @@ class UserService extends Service
      */
     public function updateProfile(int $userId, array $data): bool
     {
-        $user = $this->userRepository->findModel($userId);
+        $user = $this->userRepository->find($userId);
         if (!$user) {
             throw new BusinessException(lang('business.user_not_found'));
         }
@@ -194,11 +253,7 @@ class UserService extends Service
             throw new BusinessException(lang('business.no_updatable_fields'));
         }
 
-        foreach ($updateData as $key => $value) {
-            $user->$key = $value;
-        }
-
-        return $user->save();
+        return $this->userRepository->update($userId, $updateData);
     }
 
     /**
@@ -215,8 +270,9 @@ class UserService extends Service
             throw new BusinessException(lang('business.user_old_password_error'));
         }
 
-        $user->password = password_hash($newPassword, PASSWORD_DEFAULT);
-        return $user->save();
+        return $this->userRepository->update($userId, [
+            'password' => password_hash($newPassword, PASSWORD_DEFAULT),
+        ]);
     }
 
     /**
@@ -235,8 +291,8 @@ class UserService extends Service
         if (!$user && $unionid) {
             $user = $this->userRepository->findByUnionid($unionid);
             if ($user && empty($user->mini_openid)) {
-                $user->mini_openid = $openid;
-                $user->save();
+                $this->userRepository->bindMiniOpenid((int) $user->id, $openid);
+                $user = $this->userRepository->findByMiniOpenid($openid);
             }
         }
 
@@ -284,11 +340,9 @@ class UserService extends Service
         // 查找已有手机号用户
         $user = $this->userRepository->findByMobile($mobile);
         if ($user) {
-            $user->mini_openid = $openid;
-            if ($unionid && empty($user->unionid)) {
-                $user->unionid = $unionid;
-            }
-            $user->save();
+            $bindUnionid = ($unionid && empty($user->unionid)) ? $unionid : null;
+            $this->userRepository->bindMiniOpenid((int) $user->id, $openid, $bindUnionid);
+            $user = $this->userRepository->findByMobile($mobile);
         } else {
             $this->userRepository->create([
                 'mobile'      => $mobile,
@@ -313,11 +367,8 @@ class UserService extends Service
      */
     protected function loginSuccess($user, string $ip = ''): array
     {
-        // 更新登录信息
-        $user->last_login_ip = $ip;
-        $user->last_login_time = date('Y-m-d H:i:s');
-        $user->login_count = $user->login_count + 1;
-        $user->save();
+        // 更新登录信息（走 Repository，避免在 Service 里直接操作 Model）
+        $this->userRepository->updateLastLogin((int) $user->id, $ip);
 
         // 生成Token
         $token = $this->tokenManager->generate([
@@ -376,8 +427,8 @@ class UserService extends Service
         if (!$user && $unionid) {
             $user = $this->userRepository->findByUnionid($unionid);
             if ($user && empty($user->oa_openid)) {
-                $user->oa_openid = $openid;
-                $user->save();
+                $this->userRepository->updateOaOpenid((int) $user->id, $openid);
+                $user = $this->userRepository->findByOaOpenid($openid);
             }
         }
 

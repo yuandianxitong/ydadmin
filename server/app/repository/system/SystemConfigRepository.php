@@ -63,16 +63,60 @@ class SystemConfigRepository extends Repository
     public function getAllConfigs(): array
     {
         return $this->cacheRemember('system_configs', function () {
-            return SystemConfig::getAllConfigs();
+            $configs = $this->model->where('status', 1)
+                ->order('sort_order', 'asc')
+                ->select()
+                ->toArray();
+
+            $result = [];
+            foreach ($configs as $config) {
+                $result[$config['config_key']] = SystemConfig::convertValueByType(
+                    (string) $config['config_value'],
+                    (string) $config['config_type']
+                );
+            }
+            return $result;
         });
     }
 
     /**
-     * 获取配置值
+     * 根据分组获取配置键值对（带类型转换）
+     */
+    public function getConfigsByGroup(string $group): array
+    {
+        $configs = $this->model->where('config_group', $group)
+            ->where('status', 1)
+            ->order('sort_order', 'asc')
+            ->select()
+            ->toArray();
+
+        $result = [];
+        foreach ($configs as $config) {
+            $result[$config['config_key']] = SystemConfig::convertValueByType(
+                (string) $config['config_value'],
+                (string) $config['config_type']
+            );
+        }
+        return $result;
+    }
+
+    /**
+     * 获取配置值（带类型转换）
      */
     public function getConfigValue(string $key, $default = null)
     {
-        return SystemConfig::getConfigValue($key, $default);
+        $config = $this->model->where('config_key', $key)
+            ->where('status', 1)
+            ->find();
+
+        if (!$config) {
+            return $default;
+        }
+
+        return SystemConfig::convertValueByType(
+            (string) $config->config_value,
+            (string) $config->config_type
+        );
     }
 
     /**
@@ -80,7 +124,18 @@ class SystemConfigRepository extends Repository
      */
     public function setConfigValue(string $key, $value): bool
     {
-        return SystemConfig::setConfigValue($key, $value);
+        $config = $this->model->where('config_key', $key)->find();
+        if (!$config) {
+            return false;
+        }
+
+        if ($config->config_type === 'json') {
+            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+        } else {
+            $value = (string) $value;
+        }
+
+        return $this->model->where('config_key', $key)->update(['config_value' => $value]) !== false;
     }
 
     /**

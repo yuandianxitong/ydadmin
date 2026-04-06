@@ -11,6 +11,7 @@ namespace app\service\system;
 
 use app\repository\system\SystemConfigRepository;
 use core\base\Service;
+use core\exception\BusinessException;
 
 class SystemConfigService extends Service
 {
@@ -43,15 +44,13 @@ class SystemConfigService extends Service
 
     /**
      * 获取单个配置
-     * @param int $id
-     * @return array
-     * @throws \Exception
+     * @throws BusinessException
      */
     public function getConfigById(int $id): array
     {
         $config = $this->configRepository->find($id);
         if (!$config) {
-            throw new \Exception(lang('business.config_not_found'));
+            throw new BusinessException(lang('business.config_not_found'));
         }
 
         return $config;
@@ -59,16 +58,13 @@ class SystemConfigService extends Service
 
     /**
      * 更新配置
-     * @param int $id
-     * @param array $data
-     * @return bool
-     * @throws \Exception
+     * @throws BusinessException
      */
     public function updateConfig(int $id, array $data): bool
     {
         $config = $this->configRepository->find($id);
         if (!$config) {
-            throw new \Exception(lang('business.config_not_found'));
+            throw new BusinessException(lang('business.config_not_found'));
         }
 
         // 根据类型处理值
@@ -88,9 +84,7 @@ class SystemConfigService extends Service
 
     /**
      * 批量更新配置
-     * @param array $configs
-     * @return bool
-     * @throws \Exception
+     * @throws BusinessException
      */
     public function batchUpdateConfigs(array $configs): bool
     {
@@ -102,7 +96,7 @@ class SystemConfigService extends Service
 
             $config = $this->configRepository->findByKey($configData['config_key']);
             if (!$config) {
-                throw new \Exception(lang('business.config_not_found') . ': ' . $configData['config_key']);
+                throw new BusinessException(lang('business.config_not_found') . ': ' . $configData['config_key']);
             }
 
             // 根据类型处理值

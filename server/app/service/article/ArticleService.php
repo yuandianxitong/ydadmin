@@ -22,8 +22,7 @@ class ArticleService extends Service
      */
     public function getArticleList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->articleRepository->getSearchList($params, $page, $limit);
     }
 
@@ -68,10 +67,7 @@ class ArticleService extends Service
      */
     public function updateArticle(int $id, array $data): bool
     {
-        $article = $this->articleRepository->find($id);
-        if (!$article) {
-            $this->throwBusinessException(lang('business.record_not_found'));
-        }
+        $article = $this->findOrFail($this->articleRepository, $id);
 
         // 如果从草稿变为已发布且没有发布时间，设置发布时间
         if (isset($data['status']) && (int) $data['status'] === Article::STATUS_PUBLISHED
@@ -87,11 +83,7 @@ class ArticleService extends Service
      */
     public function deleteArticle(int $id): bool
     {
-        $article = $this->articleRepository->find($id);
-        if (!$article) {
-            $this->throwBusinessException(lang('business.record_not_found'));
-        }
-
+        $this->findOrFail($this->articleRepository, $id);
         return $this->articleRepository->delete($id);
     }
 
@@ -100,10 +92,7 @@ class ArticleService extends Service
      */
     public function updateStatus(int $id, int $status): bool
     {
-        $article = $this->articleRepository->find($id);
-        if (!$article) {
-            $this->throwBusinessException(lang('business.record_not_found'));
-        }
+        $article = $this->findOrFail($this->articleRepository, $id);
 
         $updateData = ['status' => $status];
 
@@ -120,8 +109,7 @@ class ArticleService extends Service
      */
     public function getPublishedList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         $categoryId = (int) ($params['category_id'] ?? 0);
         return $this->articleRepository->getPublishedList($page, $limit, $categoryId);
     }

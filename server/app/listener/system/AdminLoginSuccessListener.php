@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace app\listener\system;
 
-use app\model\system\AdminLoginLog;
+use app\repository\system\AdminLoginLogRepository;
 use app\repository\system\AdminRepository;
 
 /**
@@ -23,20 +23,25 @@ use app\repository\system\AdminRepository;
  */
 class AdminLoginSuccessListener
 {
+    public function __construct(
+        protected AdminRepository $adminRepository,
+        protected AdminLoginLogRepository $loginLogRepository,
+    ) {
+    }
+
     public function handle(array $event): void
     {
         // 更新最后登录信息
-        app()->make(AdminRepository::class)
-            ->updateLastLogin((int)$event['admin_id'], $event['ip']);
+        $this->adminRepository->updateLastLogin((int) $event['admin_id'], $event['ip']);
 
         // 记录登录成功日志
-        AdminLoginLog::record([
+        $this->loginLogRepository->record([
             'admin_id'      => $event['admin_id'],
-            'username'       => $event['username'],
-            'ip'             => $event['ip'],
-            'user_agent'     => $event['user_agent'],
-            'login_result'   => true,
-            'login_message'  => lang('messages.login_success'),
+            'username'      => $event['username'],
+            'ip'            => $event['ip'],
+            'user_agent'    => $event['user_agent'],
+            'login_result'  => true,
+            'login_message' => lang('messages.login_success'),
         ]);
     }
 }

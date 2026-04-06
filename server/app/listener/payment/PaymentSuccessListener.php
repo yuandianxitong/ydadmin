@@ -3,13 +3,18 @@ declare(strict_types=1);
 namespace app\listener\payment;
 
 use app\model\user\BalanceLog;
-use app\repository\user\UserRepository;
 use app\service\message\MessageService;
 use app\service\user\UserManageService;
 use think\facade\Log;
 
 class PaymentSuccessListener
 {
+    public function __construct(
+        protected MessageService $messageService,
+        protected UserManageService $userManageService,
+    ) {
+    }
+
     public function handle(array $event): void
     {
         Log::info('支付成功', [
@@ -46,8 +51,7 @@ class PaymentSuccessListener
         }
 
         try {
-            $service = app(UserManageService::class);
-            $service->adjustBalance(
+            $this->userManageService->adjustBalance(
                 $userId, $amount, '在线充值',
                 BalanceLog::TYPE_RECHARGE,
                 'payment:' . $orderNo
@@ -60,27 +64,13 @@ class PaymentSuccessListener
 
     protected function sendPaymentNotification(array $event): void
     {
-        $userId = (int) ($event['user_id'] ?? 0);
-        if (!$userId) {
-            return;
-        }
-
-        $user = app(UserRepository::class)->findModel($userId);
-        if (!$user) {
-            return;
-        }
-
-        $receivers = array_filter([
-            'phone'       => $user->mobile ?? '',
-            'openid'      => $user->oa_openid ?? '',
-            'mini_openid' => $user->mini_openid ?? '',
-        ]);
-
-        if (!empty($receivers)) {
-            app(MessageService::class)->trySend('payment_success', $receivers, [
+        $this->messageService->sendToUser(
+            (int) ($event['user_id'] ?? 0),
+            'payment_success',
+            [
                 'amount'   => (string) ($event['amount'] ?? ''),
                 'order_no' => $event['order_no'] ?? '',
-            ]);
-        }
+            ],
+        );
     }
 }

@@ -167,26 +167,45 @@ class MenuRepository extends Repository
     }
 
     /**
-     * 获取菜单的所有子菜单ID（含自身，递归）
+     * 获取菜单的所有子菜单ID（含自身）
+     *
+     * 采用"一次全量查询 + 内存 BFS"策略，避免深度递归的数据库往返和潜在栈溢出。
+     * 无论菜单树多深，整个方法只会产生 1 次 SELECT。
      */
     public function getAllChildrenIds(int $id): array
     {
-        return $this->collectChildrenIds($id);
-    }
+        // 一次性取出所有菜单的 id/parent_id 映射
+        $rows = $this->model->field('id, parent_id')->select()->toArray();
 
-    /**
-     * 递归收集菜单ID（含自身）
-     */
-    private function collectChildrenIds(int $id): array
-    {
+        // 构建 parent_id => [child_ids] 索引
+        $childrenMap = [];
+        foreach ($rows as $row) {
+            $pid = (int) $row['parent_id'];
+            $childrenMap[$pid][] = (int) $row['id'];
+        }
+
+        // BFS 遍历
         $ids = [$id];
-        $children = $this->model->where('parent_id', $id)->column('id');
-
-        foreach ($children as $childId) {
-            $ids = array_merge($ids, $this->collectChildrenIds((int)$childId));
+        $queue = [$id];
+        while (!empty($queue)) {
+            $current = array_shift($queue);
+            if (!empty($childrenMap[$current])) {
+                foreach ($childrenMap[$current] as $childId) {
+                    $ids[] = $childId;
+                    $queue[] = $childId;
+                }
+            }
         }
 
         return $ids;
+    }
+
+    /**
+     * @deprecated 使用 getAllChildrenIds 代替，保留仅为兼容 deleteWithChildren
+     */
+    private function collectChildrenIds(int $id): array
+    {
+        return $this->getAllChildrenIds($id);
     }
 
     /**

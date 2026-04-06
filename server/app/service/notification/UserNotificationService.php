@@ -15,9 +15,7 @@ class UserNotificationService extends Service
      */
     public function getUserMessages(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? 10);
-
+        [$page, $limit] = $this->extractPagination($params, 10);
         return $this->repo->getUserMessages($userId, $page, $limit);
     }
 

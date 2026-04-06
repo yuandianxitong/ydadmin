@@ -87,8 +87,14 @@ class FileService extends Service
             try {
                 $storage = StorageManager::disk($storageType);
                 $storage->delete($path);
-            } catch (\Exception $e) {
-                // 物理文件删除失败不阻断数据库记录删除
+            } catch (\Throwable $e) {
+                // 物理文件删除失败不阻断数据库记录删除，但记录日志以便运维排查
+                Log::warning('物理文件删除失败', [
+                    'file_id' => $id,
+                    'path'    => $path,
+                    'storage' => $storageType,
+                    'error'   => $e->getMessage(),
+                ]);
             }
         }
 

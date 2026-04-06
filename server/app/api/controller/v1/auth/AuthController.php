@@ -7,7 +7,6 @@ use core\base\Controller;
 use core\auth\TokenManager;
 use app\service\user\UserService;
 use app\service\wechat\MiniAppService;
-use app\model\system\SystemConfig;
 use think\Response;
 use OpenApi\Attributes as OA;
 
@@ -170,37 +169,7 @@ class AuthController extends Controller
                 return $this->error(lang('business.missing_code_param'));
             }
 
-            $appId = (string)SystemConfig::getConfigValue('wechat_open_app_id', '');
-            $appSecret = (string)SystemConfig::getConfigValue('wechat_open_app_secret', '');
-            if (empty($appId) || empty($appSecret)) {
-                return $this->error('微信开放平台未配置');
-            }
-
-            // 用 code 换取 access_token
-            $tokenUrl = "https://api.weixin.qq.com/sns/oauth2/access_token?appid={$appId}&secret={$appSecret}&code={$code}&grant_type=authorization_code";
-            $tokenRes = json_decode(file_get_contents($tokenUrl), true);
-            if (empty($tokenRes['openid'])) {
-                return $this->error($tokenRes['errmsg'] ?? '微信授权失败');
-            }
-
-            $openid = $tokenRes['openid'];
-            $unionid = $tokenRes['unionid'] ?? '';
-            $accessToken = $tokenRes['access_token'];
-
-            // 获取用户信息
-            $userInfoUrl = "https://api.weixin.qq.com/sns/userinfo?access_token={$accessToken}&openid={$openid}";
-            $wxUser = json_decode(file_get_contents($userInfoUrl), true);
-
-            $result = $this->userService->loginByWechatWeb(
-                $openid,
-                $unionid,
-                [
-                    'nickname' => $wxUser['nickname'] ?? '',
-                    'avatar'   => $wxUser['headimgurl'] ?? '',
-                ],
-                $this->request->ip()
-            );
-
+            $result = $this->userService->loginByWechatOpenPlatformCode($code, $this->request->ip());
             return $this->success(lang('messages.login_success'), $result);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());

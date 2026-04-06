@@ -100,24 +100,34 @@ class DictionaryService extends Service
      */
     public function deleteDictionary(int $id): bool
     {
-        $dict = $this->dictRepo->find($id);
-        if (!$dict) {
-            throw new BusinessException(lang('business.dict_not_found'));
-        }
+        $this->findOrFail($this->dictRepo, $id, 'business.dict_not_found');
 
-        Db::startTrans();
-        try {
+        return $this->runInTransaction(function () use ($id) {
             // 删除字典项
             $this->itemRepo->deleteWhere(['dictionary_id' => $id]);
             // 删除字典
             $result = $this->dictRepo->delete($id);
-            Db::commit();
             $this->dictRepo->clearCache();
             return $result;
-        } catch (\Throwable $e) {
-            Db::rollback();
-            throw $e;
+        });
+    }
+
+    /**
+     * 批量删除字典
+     *
+     * 使用事务包裹：任一删除失败则整体回滚。
+     */
+    public function batchDeleteDictionary(array $ids): bool
+    {
+        if (empty($ids)) {
+            return true;
         }
+        return $this->runInTransaction(function () use ($ids) {
+            foreach ($ids as $id) {
+                $this->deleteDictionary((int) $id);
+            }
+            return true;
+        });
     }
 
     /**

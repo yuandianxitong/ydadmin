@@ -5,6 +5,7 @@ namespace app\service\message;
 
 use app\repository\message\MessageLogRepository;
 use app\repository\message\MessageTemplateRepository;
+use app\repository\user\UserRepository;
 use core\base\Service;
 use core\exception\BusinessException;
 use think\facade\Log;
@@ -13,6 +14,7 @@ class MessageService extends Service
 {
     protected MessageTemplateRepository $templateRepository;
     protected MessageLogRepository $logRepository;
+    protected UserRepository $userRepository;
 
     /**
      * 获取模板列表
@@ -148,6 +150,40 @@ class MessageService extends Service
             Log::warning("消息发送跳过 [{$code}]: " . $e->getMessage());
             return ['error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * 根据用户 ID 发送模板消息
+     *
+     * 封装"查找用户 → 构造 receivers（phone/openid/mini_openid）→ trySend"的固定流程，
+     * 供 Listener 等调用方避免重复编写查找 + 构造 receivers 的样板代码。
+     *
+     * @param int    $userId       用户 ID，为 0 或用户不存在时静默返回 error
+     * @param string $templateCode 模板编码
+     * @param array  $variables    模板变量
+     */
+    public function sendToUser(int $userId, string $templateCode, array $variables = []): array
+    {
+        if ($userId <= 0) {
+            return ['error' => 'invalid user id'];
+        }
+
+        $user = $this->userRepository->findModel($userId);
+        if (!$user) {
+            return ['error' => 'user not found'];
+        }
+
+        $receivers = array_filter([
+            'phone'       => $user->mobile ?? '',
+            'openid'      => $user->oa_openid ?? '',
+            'mini_openid' => $user->mini_openid ?? '',
+        ]);
+
+        if (empty($receivers)) {
+            return ['error' => 'no receivers'];
+        }
+
+        return $this->trySend($templateCode, $receivers, $variables);
     }
 
     /**

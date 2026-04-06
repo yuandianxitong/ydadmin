@@ -19,8 +19,7 @@ class UserManageService extends Service
 
     public function getUserList(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
         return $this->userRepository->getSearchList($params, $page, $limit);
     }
 
@@ -42,19 +41,16 @@ class UserManageService extends Service
             return true;
         }
 
-        Db::startTrans();
-        try {
+        return $this->runInTransaction(function () use ($userId, $amount, $type, $source, $remark, $operatorId) {
             $user = $this->userRepository->findForUpdate($userId);
             if (!$user) {
-                Db::rollback();
                 $this->throwBusinessException('用户不存在');
             }
 
             $beforeBalance = (float) $user->balance;
-            $afterBalance = $beforeBalance + $amount;
+            $afterBalance  = $beforeBalance + $amount;
 
             if ($afterBalance < 0) {
-                Db::rollback();
                 $this->throwBusinessException('余额不足');
             }
 
@@ -72,29 +68,22 @@ class UserManageService extends Service
                 'operator_id'    => $operatorId,
             ]);
 
-            Db::commit();
             return true;
-        } catch (\Throwable $e) {
-            Db::rollback();
-            throw $e;
-        }
+        });
     }
 
     public function adjustPoints(int $userId, int $points, string $remark = '', int $type = PointsLog::TYPE_ADMIN_ADJUST, string $source = 'admin_adjust', ?int $operatorId = null): bool
     {
-        Db::startTrans();
-        try {
+        return $this->runInTransaction(function () use ($userId, $points, $type, $source, $remark, $operatorId) {
             $user = $this->userRepository->findForUpdate($userId);
             if (!$user) {
-                Db::rollback();
                 $this->throwBusinessException('用户不存在');
             }
 
             $beforePoints = (int) $user->points;
-            $afterPoints = $beforePoints + $points;
+            $afterPoints  = $beforePoints + $points;
 
             if ($afterPoints < 0) {
-                Db::rollback();
                 $this->throwBusinessException('积分不足');
             }
 
@@ -112,18 +101,13 @@ class UserManageService extends Service
                 'operator_id'   => $operatorId,
             ]);
 
-            Db::commit();
             return true;
-        } catch (\Throwable $e) {
-            Db::rollback();
-            throw $e;
-        }
+        });
     }
 
     public function getBalanceLogs(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
 
         if (!empty($params['keyword'])) {
             $params['user_ids'] = $this->userRepository->searchIdsByKeyword($params['keyword']) ?: [0];
@@ -134,8 +118,7 @@ class UserManageService extends Service
 
     public function getPointsLogs(array $params): array
     {
-        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 20);
+        [$page, $limit] = $this->extractPagination($params);
 
         if (!empty($params['keyword'])) {
             $params['user_ids'] = $this->userRepository->searchIdsByKeyword($params['keyword']) ?: [0];
@@ -158,15 +141,13 @@ class UserManageService extends Service
 
     public function getUserBalanceLogs(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 10);
+        [$page, $limit] = $this->extractPagination($params, 10);
         return $this->balanceLogRepository->getUserLogs($userId, $page, $limit);
     }
 
     public function getUserPointsLogs(int $userId, array $params): array
     {
-        $page = (int) ($params['page_no'] ?? $params['page'] ?? 1);
-        $limit = (int) ($params['page_size'] ?? $params['limit'] ?? 10);
+        [$page, $limit] = $this->extractPagination($params, 10);
         return $this->pointsLogRepository->getUserLogs($userId, $page, $limit);
     }
 }

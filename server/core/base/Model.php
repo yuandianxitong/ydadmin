@@ -110,11 +110,30 @@ abstract class Model extends BaseModel
     }
 
     /**
-     * 状态文本获取器
+     * 状态文本获取器（辅助方法）
+     *
+     * @param int $status
+     * @param array $statusMap 自定义状态映射
      */
     protected function getStatusText(int $status, array $statusMap): string
     {
         return $statusMap[$status] ?? '未知';
+    }
+
+    /**
+     * 默认状态文本访问器
+     *
+     * 所有含 `status` 字段且使用通用启/禁用语义的 Model 可以直接继承此默认实现，
+     * 只需要在子类声明 `protected $append = ['status_text']`。
+     *
+     * 若业务语义不同（如草稿/已发布/审核中），子类 override 此方法。
+     */
+    public function getStatusTextAttr($value, $data): string
+    {
+        if (!isset($data['status'])) {
+            return '';
+        }
+        return $this->getStatusText((int) $data['status'], [1 => '启用', 0 => '禁用']);
     }
 
     /**
