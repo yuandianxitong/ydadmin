@@ -17,7 +17,10 @@
                             label-position="left"
                         >
                             <template v-for="config in visibleConfigs" :key="config.id">
-                                <el-form-item :label="getItemName(config)" :prop="config.config_key">
+                                <el-form-item
+                                    :label="getItemName(config)"
+                                    :prop="config.config_key"
+                                >
                                     <!-- select 下拉选择 -->
                                     <template v-if="config.config_type === 'select'">
                                         <el-select
@@ -30,7 +33,13 @@
                                                     config.config_options
                                                 )"
                                                 :key="optValue"
-                                                :label="getOptionLabel(config.config_key, String(optValue), String(optLabel))"
+                                                :label="
+                                                    getOptionLabel(
+                                                        config.config_key,
+                                                        String(optValue),
+                                                        String(optLabel)
+                                                    )
+                                                "
                                                 :value="optValue"
                                             />
                                         </el-select>
@@ -62,7 +71,10 @@
                                                 :show-file-list="false"
                                                 :on-success="
                                                     (response: any) =>
-                                                        handleUploadSuccess(response, config.config_key)
+                                                        handleUploadSuccess(
+                                                            response,
+                                                            config.config_key
+                                                        )
                                                 "
                                                 :before-upload="beforeUpload"
                                                 action="/adminapi/upload/image"
@@ -79,7 +91,9 @@
                                                 </el-icon>
                                             </el-upload>
                                             <div class="upload-tip">
-                                                {{ getItemDesc(config) }}，{{ $t('config.fileTip') }}
+                                                {{ getItemDesc(config) }}，{{
+                                                    $t('config.fileTip')
+                                                }}
                                             </div>
                                         </div>
                                     </template>
@@ -119,7 +133,9 @@
                             <el-button type="primary" :loading="loading" @click="handleSave">
                                 {{ $t('config.saveConfig') }}
                             </el-button>
-                            <el-button @click="handleReset">{{ $t('config.resetConfig') }}</el-button>
+                            <el-button @click="handleReset">{{
+                                $t('config.resetConfig')
+                            }}</el-button>
                         </div>
                     </div>
                 </el-tab-pane>
@@ -175,12 +191,16 @@ const uploadHeaders = computed(() => ({
 }))
 
 const rules: FormRules = {
-    site_name: [{ required: true, message: t('config.validate.siteNameRequired'), trigger: 'blur' }],
+    site_name: [
+        { required: true, message: t('config.validate.siteNameRequired'), trigger: 'blur' }
+    ],
     site_url: [
         { required: true, message: t('config.validate.siteUrlRequired'), trigger: 'blur' },
         { type: 'url', message: t('config.validate.siteUrlFormat'), trigger: 'blur' }
     ],
-    site_phone: [{ pattern: /^1[3-9]\d{9}$/, message: t('config.validate.mobileFormat'), trigger: 'blur' }]
+    site_phone: [
+        { pattern: /^1[3-9]\d{9}$/, message: t('config.validate.mobileFormat'), trigger: 'blur' }
+    ]
 }
 
 const currentConfigs = computed(() => {

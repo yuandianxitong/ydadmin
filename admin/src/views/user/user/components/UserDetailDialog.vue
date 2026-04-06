@@ -36,7 +36,11 @@
             </el-descriptions-item>
             <el-descriptions-item :label="t('userMgmt.status')">
                 <el-tag :type="userData?.status === 1 ? 'success' : 'danger'" size="small">
-                    {{ userData?.status === 1 ? t('userMgmt.statusEnabled') : t('userMgmt.statusDisabled') }}
+                    {{
+                        userData?.status === 1
+                            ? t('userMgmt.statusEnabled')
+                            : t('userMgmt.statusDisabled')
+                    }}
                 </el-tag>
             </el-descriptions-item>
             <el-descriptions-item :label="t('userMgmt.detail.loginCount')">

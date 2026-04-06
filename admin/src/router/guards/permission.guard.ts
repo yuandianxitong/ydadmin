@@ -6,7 +6,6 @@ import NProgress from 'nprogress'
 import type { Router, RouteRecordRaw } from 'vue-router'
 
 import { appConfig } from '@/constants' // 全局配置（比如站点标题）
-import { translateRouteTitle } from '@/utils/i18n'
 import { PageEnum } from '@/constants/page' // 路由常量
 import router from '@/router' // 路由实例（src/router/index.ts）
 import { filterAsyncRoutes, findFirstValidPath } from '@/router/index' // 从 router/index 导出
@@ -14,6 +13,7 @@ import { INDEX_ROUTE, INDEX_ROUTE_NAME } from '@/router/routes.config' // 从 ro
 import useTabsStore from '@/store/modules/multipleTabs.store'
 import useUserStore from '@/store/modules/user.store' // Pinia: 用户信息 store
 import { clearAuthInfo } from '@/utils/auth' // 清除本地登录态（比如清空 Token)
+import { translateRouteTitle } from '@/utils/i18n'
 import { isExternal } from '@/utils/validate' // 工具：判断 URL 是否外部链接
 
 /**
@@ -21,7 +21,13 @@ import { isExternal } from '@/utils/validate' // 工具：判断 URL 是否外�
  */
 export default function createPermissionGuard(router: Router): void {
     // 白名单：无需登录即可访问的 path
-    const whiteList: string[] = [PageEnum.LOGIN, PageEnum.ERROR_403]
+    // 包含错误页面避免后端故障时守卫触发循环跳转
+    const whiteList: string[] = [
+        PageEnum.LOGIN,
+        PageEnum.ERROR_403,
+        PageEnum.ERROR_404,
+        PageEnum.ERROR_500
+    ]
 
     router.beforeEach(async (to, from, next) => {
         // 顶部进度条开始
@@ -29,7 +35,10 @@ export default function createPermissionGuard(router: Router): void {
 
         // 设置页面标题，如果 meta.title 不是字符串，就使用默认 appConfig.title
         const metaTitle = to.meta.title
-        const translatedTitle = translateRouteTitle(typeof metaTitle === 'string' ? metaTitle : '', to.name)
+        const translatedTitle = translateRouteTitle(
+            typeof metaTitle === 'string' ? metaTitle : '',
+            to.name
+        )
         document.title = translatedTitle || appConfig.title
 
         const userStore = useUserStore()

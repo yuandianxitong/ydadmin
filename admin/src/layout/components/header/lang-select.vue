@@ -27,7 +27,7 @@ import { ElMessage } from 'element-plus'
 import { computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { getLocale, localeOptions, setLocale, type LocaleType } from '@/locales/setupI18n'
+import { getLocale, localeOptions, type LocaleType, setLocale } from '@/locales/setupI18n'
 
 const { t } = useI18n()
 const currentLocale = computed(() => getLocale())

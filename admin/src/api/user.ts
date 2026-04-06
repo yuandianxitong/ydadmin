@@ -1,51 +1,8 @@
-import type { PageResult } from '@/types/api'
+import type { BalanceLogItem, PageResult, PointsLogItem, UserItem } from '@/types/api'
 import { myRequest } from '@/utils/request'
 
-export interface UserItem {
-    id: number
-    nickname: string
-    avatar: string
-    mobile: string
-    balance: string
-    points: number
-    status: number
-    last_login_ip: string
-    last_login_time: string
-    login_count: number
-    created_at: string
-}
-
-export interface BalanceLogItem {
-    id: number
-    user_id: number
-    user_nickname: string
-    amount: string
-    before_balance: string
-    after_balance: string
-    type: number
-    type_text: string
-    source: string
-    remark: string
-    operator_id: number | null
-    operator_name: string | null
-    created_at: string
-}
-
-export interface PointsLogItem {
-    id: number
-    user_id: number
-    user_nickname: string
-    points: number
-    before_points: number
-    after_points: number
-    type: number
-    type_text: string
-    source: string
-    remark: string
-    operator_id: number | null
-    operator_name: string | null
-    created_at: string
-}
+// 向后兼容：视图文件直接 `import { UserItem } from '@/api/user'` 仍可工作
+export type { BalanceLogItem, PointsLogItem, UserItem }
 
 /**
  * 用户管理API

@@ -2,7 +2,9 @@
     <div class="cron-builder">
         <!-- 模式切换 -->
         <div class="cron-builder__header">
-            <span class="cron-builder__label">{{ mode === 'simple' ? '简单模式' : '高级模式' }}</span>
+            <span class="cron-builder__label">{{
+                mode === 'simple' ? '简单模式' : '高级模式'
+            }}</span>
             <el-switch
                 v-model="isAdvanced"
                 inline-prompt
@@ -15,7 +17,12 @@
         <!-- 简单模式 -->
         <div v-if="mode === 'simple'" class="cron-builder__simple">
             <!-- 频率选择 -->
-            <el-select v-model="frequency" placeholder="请选择执行频率" style="width: 100%" @change="handleFrequencyChange">
+            <el-select
+                v-model="frequency"
+                placeholder="请选择执行频率"
+                style="width: 100%"
+                @change="handleFrequencyChange"
+            >
                 <el-option label="每分钟" value="minute" />
                 <el-option label="每N分钟" value="everyNMinute" />
                 <el-option label="每小时" value="hour" />
@@ -30,7 +37,13 @@
                 <!-- 每N分钟 -->
                 <div v-if="frequency === 'everyNMinute'" class="cron-builder__param-row">
                     <span>每</span>
-                    <el-input-number v-model="interval" :min="1" :max="59" size="default" controls-position="right" />
+                    <el-input-number
+                        v-model="interval"
+                        :min="1"
+                        :max="59"
+                        size="default"
+                        controls-position="right"
+                    />
                     <span>分钟执行一次</span>
                 </div>
 
@@ -38,7 +51,12 @@
                 <div v-if="frequency === 'hour'" class="cron-builder__param-row">
                     <span>每小时第</span>
                     <el-select v-model="minute" style="width: 100px">
-                        <el-option v-for="m in 60" :key="m - 1" :label="`${m - 1} 分`" :value="m - 1" />
+                        <el-option
+                            v-for="m in 60"
+                            :key="m - 1"
+                            :label="`${m - 1} 分`"
+                            :value="m - 1"
+                        />
                     </el-select>
                     <span>执行</span>
                 </div>
@@ -46,10 +64,21 @@
                 <!-- 每N小时 -->
                 <div v-if="frequency === 'everyNHour'" class="cron-builder__param-row">
                     <span>每</span>
-                    <el-input-number v-model="interval" :min="1" :max="23" size="default" controls-position="right" />
+                    <el-input-number
+                        v-model="interval"
+                        :min="1"
+                        :max="23"
+                        size="default"
+                        controls-position="right"
+                    />
                     <span>小时，第</span>
                     <el-select v-model="minute" style="width: 100px">
-                        <el-option v-for="m in 60" :key="m - 1" :label="`${m - 1} 分`" :value="m - 1" />
+                        <el-option
+                            v-for="m in 60"
+                            :key="m - 1"
+                            :label="`${m - 1} 分`"
+                            :value="m - 1"
+                        />
                     </el-select>
                     <span>执行</span>
                 </div>
@@ -94,10 +123,11 @@
                     <div class="cron-builder__param-row">
                         <span>选择日期：</span>
                     </div>
-                    <el-checkbox-group v-model="monthDays" class="cron-builder__checkbox-group cron-builder__checkbox-group--days">
-                        <el-checkbox v-for="d in 31" :key="d" :value="d">
-                            {{ d }}日
-                        </el-checkbox>
+                    <el-checkbox-group
+                        v-model="monthDays"
+                        class="cron-builder__checkbox-group cron-builder__checkbox-group--days"
+                    >
+                        <el-checkbox v-for="d in 31" :key="d" :value="d"> {{ d }}日 </el-checkbox>
                     </el-checkbox-group>
                     <div class="cron-builder__param-row">
                         <span>执行时间：</span>
@@ -371,14 +401,11 @@ const parseExpression = (expr: string) => {
 }
 
 // 监听简单模式下生成的表达式变化，同步给外部
-watch(
-    generatedExpression,
-    (val) => {
-        if (mode.value === 'simple') {
-            emit('update:modelValue', val)
-        }
+watch(generatedExpression, (val) => {
+    if (mode.value === 'simple') {
+        emit('update:modelValue', val)
     }
-)
+})
 
 // 监听外部传入值的变化（编辑模式）
 watch(

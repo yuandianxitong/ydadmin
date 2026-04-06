@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="fetchDictList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -51,7 +51,7 @@
                 </div>
             </div>
 
-            <el-table v-loading="dictLoading" :data="dictList">
+            <el-table v-loading="loading" :data="list">
                 <el-table-column :label="$t('common.id')" prop="id" width="80" />
                 <el-table-column :label="$t('dictionary.dictName')" prop="name" min-width="140" />
                 <el-table-column :label="$t('dictionary.dictCode')" prop="code" min-width="160" />
@@ -89,7 +89,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDeleteDict(row)"
+                            @click="handleDelete(row.id, row.name)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -104,8 +104,8 @@
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="fetchDictList"
-                @current-change="fetchDictList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
@@ -130,7 +130,12 @@
             <el-table v-loading="itemLoading" :data="itemList" size="small">
                 <el-table-column prop="label" :label="$t('dictionary.label')" min-width="100" />
                 <el-table-column prop="value" :label="$t('dictionary.value')" min-width="80" />
-                <el-table-column prop="tag_type" :label="$t('dictionary.tagType')" width="100" align="center">
+                <el-table-column
+                    prop="tag_type"
+                    :label="$t('dictionary.tagType')"
+                    width="100"
+                    align="center"
+                >
                     <template #default="{ row }">
                         <el-tag v-if="row.tag_type" :type="row.tag_type" size="small">{{
                             row.tag_type
@@ -139,7 +144,12 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="sort" :label="$t('common.sort')" width="60" align="center" />
-                <el-table-column prop="status" :label="$t('common.status')" width="80" align="center">
+                <el-table-column
+                    prop="status"
+                    :label="$t('common.status')"
+                    width="80"
+                    align="center"
+                >
                     <template #default="{ row }">
                         <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
                             {{ row.status === 1 ? $t('common.enable') : $t('common.disable') }}
@@ -176,7 +186,7 @@
         </el-dialog>
 
         <!-- 字典表单弹窗 -->
-        <DictForm v-model="showDictForm" :form-data="dictFormData" @success="fetchDictList" />
+        <DictForm v-model="showDictForm" :form-data="dictFormData" @success="getList" />
 
         <!-- 字典项表单弹窗 -->
         <DictItemForm
@@ -191,10 +201,11 @@
 <script setup lang="ts">
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { dictionaryApi } from '@/api/dictionary'
+import { useListPage } from '@/hooks/useListPage'
 
 import DictForm from './components/DictForm.vue'
 import DictItemForm from './components/DictItemForm.vue'
@@ -202,34 +213,22 @@ import DictItemForm from './components/DictItemForm.vue'
 const { t } = useI18n()
 
 // ========== 字典列表 ==========
-const dictLoading = ref(false)
-const dictList = ref<any[]>([])
-const searchForm = reactive({ keyword: '', status: undefined as number | undefined })
-const pagination = reactive({ page: 1, limit: 20, total: 0 })
-
-const fetchDictList = async () => {
-    dictLoading.value = true
-    try {
-        const res = await dictionaryApi.getList({
-            ...searchForm,
-            page: pagination.page,
-            limit: pagination.limit
-        })
-        dictList.value = res.data.list || []
-        pagination.total = res.data.pagination?.total || 0
-    } catch (error) {
-        console.error('获取字典列表失败:', error)
-    } finally {
-        dictLoading.value = false
-    }
-}
-
-const resetSearch = () => {
-    searchForm.keyword = ''
-    searchForm.status = undefined
-    pagination.page = 1
-    fetchDictList()
-}
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete
+} = useListPage<any, { keyword: string; status?: number }>({
+    fetchFn: (params) => dictionaryApi.getList(params),
+    deleteFn: (id) => dictionaryApi.delete(id),
+    defaultSearchForm: { keyword: '', status: undefined }
+})
 
 // 字典表单
 const showDictForm = ref(false)
@@ -243,15 +242,6 @@ const handleAddDict = () => {
 const handleEditDict = (row: any) => {
     dictFormData.value = { ...row }
     showDictForm.value = true
-}
-
-const handleDeleteDict = async (row: any) => {
-    await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.name }), t('common.tip'), {
-        type: 'warning'
-    })
-    await dictionaryApi.delete(row.id)
-    ElMessage.success(t('message.deleteSuccess'))
-    fetchDictList()
 }
 
 // ========== 字典项 ==========
@@ -295,51 +285,13 @@ const handleEditItem = (row: any) => {
 }
 
 const handleDeleteItem = async (row: any) => {
-    await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.label }), t('common.tip'), { type: 'warning' })
+    await ElMessageBox.confirm(
+        t('message.deleteConfirmName', { name: row.label }),
+        t('common.tip'),
+        { type: 'warning' }
+    )
     await dictionaryApi.deleteItem(row.id)
     ElMessage.success(t('message.deleteSuccess'))
     fetchItemList()
 }
-
-onMounted(() => {
-    fetchDictList()
-})
 </script>
-
-<style lang="scss" scoped>
-.dictionary-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
-}
-</style>

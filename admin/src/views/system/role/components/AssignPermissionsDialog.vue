@@ -225,7 +225,11 @@ const getMenuTypeText = (type: number) => {
 
 // 获取菜单类型标签
 const getMenuTypeTag = (type: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
-    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = { 1: 'info', 2: 'success', 3: 'warning' }
+    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+        1: 'info',
+        2: 'success',
+        3: 'warning'
+    }
     return typeMap[type] || 'info'
 }
 
@@ -238,7 +242,9 @@ const handleSubmit = async () => {
 
         // 获取选中的菜单ID（包含半选的父节点）
         const checkedKeys = (menuTreeRef.value?.getCheckedKeys() || []).map(Number).filter(Boolean)
-        const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() || []).map(Number).filter(Boolean)
+        const halfCheckedKeys = (menuTreeRef.value?.getHalfCheckedKeys() || [])
+            .map(Number)
+            .filter(Boolean)
 
         const menuIds = [...checkedKeys, ...halfCheckedKeys]
 

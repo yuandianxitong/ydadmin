@@ -27,14 +27,23 @@
                 @current-change="handleTableSelect"
             >
                 <el-table-column prop="name" :label="$t('generator.tableName')" min-width="200" />
-                <el-table-column prop="comment" :label="$t('generator.tableComment')" min-width="200" />
+                <el-table-column
+                    prop="comment"
+                    :label="$t('generator.tableComment')"
+                    min-width="200"
+                />
                 <el-table-column prop="engine" :label="$t('generator.engine')" width="100" />
-                <el-table-column prop="rows" :label="$t('generator.rows')" width="80" align="center" />
+                <el-table-column
+                    prop="rows"
+                    :label="$t('generator.rows')"
+                    width="80"
+                    align="center"
+                />
             </el-table>
             <div class="mt-4 flex justify-end">
-                <el-button type="primary" :disabled="!selectedTable" @click="goStep2"
-                    >{{ $t('generator.nextStep') }}</el-button
-                >
+                <el-button type="primary" :disabled="!selectedTable" @click="goStep2">{{
+                    $t('generator.nextStep')
+                }}</el-button>
             </div>
         </el-card>
 
@@ -61,7 +70,10 @@
                     </el-col>
                     <el-col :span="8">
                         <el-form-item :label="$t('generator.cnName')">
-                            <el-input v-model="config.table_comment" :placeholder="$t('generator.cnNamePlaceholder')" />
+                            <el-input
+                                v-model="config.table_comment"
+                                :placeholder="$t('generator.cnNamePlaceholder')"
+                            />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -75,13 +87,34 @@
                 <el-table-column :label="$t('generator.formType')" width="130">
                     <template #default="{ row }">
                         <el-select v-model="row.form_type" size="small" :disabled="!row.in_form">
-                            <el-option :label="$t('generator.formTypeOptions.input')" value="input" />
-                            <el-option :label="$t('generator.formTypeOptions.textarea')" value="textarea" />
-                            <el-option :label="$t('generator.formTypeOptions.number')" value="number" />
-                            <el-option :label="$t('generator.formTypeOptions.switch')" value="switch" />
-                            <el-option :label="$t('generator.formTypeOptions.select')" value="select" />
-                            <el-option :label="$t('generator.formTypeOptions.date')" value="datepicker" />
-                            <el-option :label="$t('generator.formTypeOptions.image')" value="image" />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.input')"
+                                value="input"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.textarea')"
+                                value="textarea"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.number')"
+                                value="number"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.switch')"
+                                value="switch"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.select')"
+                                value="select"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.date')"
+                                value="datepicker"
+                            />
+                            <el-option
+                                :label="$t('generator.formTypeOptions.image')"
+                                value="image"
+                            />
                         </el-select>
                     </template>
                 </el-table-column>
@@ -103,9 +136,9 @@
             </el-table>
             <div class="mt-4 flex justify-between">
                 <el-button @click="step = 0">{{ $t('generator.prevStep') }}</el-button>
-                <el-button type="primary" :loading="previewLoading" @click="handlePreview"
-                    >{{ $t('generator.previewCode') }}</el-button
-                >
+                <el-button type="primary" :loading="previewLoading" @click="handlePreview">{{
+                    $t('generator.previewCode')
+                }}</el-button>
             </div>
         </el-card>
 
@@ -127,9 +160,9 @@
             </el-tabs>
             <div class="mt-4 flex justify-between">
                 <el-button @click="step = 1">{{ $t('generator.prevStep') }}</el-button>
-                <el-button type="primary" :loading="generateLoading" @click="handleGenerate"
-                    >{{ $t('generator.confirmGenerate') }}</el-button
-                >
+                <el-button type="primary" :loading="generateLoading" @click="handleGenerate">{{
+                    $t('generator.confirmGenerate')
+                }}</el-button>
             </div>
         </el-card>
 
@@ -137,12 +170,21 @@
         <el-dialog v-model="showResult" :title="$t('generator.resultTitle')" width="600px">
             <el-table :data="generateResult" size="small" border>
                 <el-table-column prop="path" :label="$t('generator.filePath')" min-width="300" />
-                <el-table-column prop="status" :label="$t('generator.statusLabel')" width="100" align="center">
+                <el-table-column
+                    prop="status"
+                    :label="$t('generator.statusLabel')"
+                    width="100"
+                    align="center"
+                >
                     <template #default="{ row }">
                         <el-tag
                             :type="row.status === 'created' ? 'success' : 'warning'"
                             size="small"
-                            >{{ row.status === 'created' ? $t('generator.statusCreated') : $t('generator.statusSkipped') }}</el-tag
+                            >{{
+                                row.status === 'created'
+                                    ? $t('generator.statusCreated')
+                                    : $t('generator.statusSkipped')
+                            }}</el-tag
                         >
                     </template>
                 </el-table-column>

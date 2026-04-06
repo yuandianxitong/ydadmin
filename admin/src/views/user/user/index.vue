@@ -23,13 +23,13 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getUserList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
-                        {{ t('userMgmt.common.search') }}
+                        {{ t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
                         <el-icon><Refresh /></el-icon>
-                        {{ t('userMgmt.common.reset') }}
+                        {{ t('common.reset') }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -41,7 +41,7 @@
                 <div class="table-title">{{ t('userMgmt.title') }}</div>
             </div>
 
-            <el-table v-loading="loading" :data="userList" style="width: 100%">
+            <el-table v-loading="loading" :data="list" style="width: 100%">
                 <el-table-column label="ID" prop="id" width="80" />
 
                 <el-table-column :label="t('userMgmt.avatar')" width="80">
@@ -61,7 +61,12 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="t('userMgmt.nickname')" prop="nickname" min-width="120" show-overflow-tooltip />
+                <el-table-column
+                    :label="t('userMgmt.nickname')"
+                    prop="nickname"
+                    min-width="120"
+                    show-overflow-tooltip
+                />
 
                 <el-table-column :label="t('userMgmt.mobile')" prop="mobile" width="140" />
 
@@ -88,19 +93,37 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="t('userMgmt.registerTime')" prop="created_at" width="170" />
+                <el-table-column
+                    :label="t('userMgmt.registerTime')"
+                    prop="created_at"
+                    width="170"
+                />
 
-                <el-table-column :label="t('userMgmt.lastLogin')" prop="last_login_time" width="170" />
+                <el-table-column
+                    :label="t('userMgmt.lastLogin')"
+                    prop="last_login_time"
+                    width="170"
+                />
 
                 <el-table-column :label="t('userMgmt.actions')" width="240" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" size="small" text @click="handleDetail(row)">
                             {{ t('userMgmt.viewDetail') }}
                         </el-button>
-                        <el-button type="warning" size="small" text @click="handleAdjustBalance(row)">
+                        <el-button
+                            type="warning"
+                            size="small"
+                            text
+                            @click="handleAdjustBalance(row)"
+                        >
                             {{ t('userMgmt.adjustBalance') }}
                         </el-button>
-                        <el-button type="success" size="small" text @click="handleAdjustPoints(row)">
+                        <el-button
+                            type="success"
+                            size="small"
+                            text
+                            @click="handleAdjustPoints(row)"
+                        >
                             {{ t('userMgmt.adjustPoints') }}
                         </el-button>
                     </template>
@@ -115,23 +138,20 @@
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getUserList"
-                @current-change="getUserList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
         <!-- 用户详情弹窗 -->
-        <UserDetailDialog
-            v-model="detailVisible"
-            :user-data="currentUser"
-        />
+        <UserDetailDialog v-model="detailVisible" :user-data="currentUser" />
 
         <!-- 调整余额弹窗 -->
         <AdjustBalanceDialog
             v-model="balanceVisible"
             :user-id="currentUser?.id || 0"
             :current-balance="currentUser?.balance || '0.00'"
-            @success="getUserList"
+            @success="getList"
         />
 
         <!-- 调整积分弹窗 -->
@@ -139,19 +159,19 @@
             v-model="pointsVisible"
             :user-id="currentUser?.id || 0"
             :current-points="currentUser?.points || 0"
-            @success="getUserList"
+            @success="getList"
         />
     </div>
 </template>
 
 <script setup lang="ts" name="UserList">
 import { Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { userManageApi } from '@/api/user'
 import type { UserItem } from '@/api/user'
+import { userManageApi } from '@/api/user'
+import { useListPage } from '@/hooks/useListPage'
 import useAppStore from '@/store/modules/app.store'
 
 import AdjustBalanceDialog from './components/AdjustBalanceDialog.vue'
@@ -161,21 +181,22 @@ import UserDetailDialog from './components/UserDetailDialog.vue'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-// 搜索表单
-const searchForm = reactive({
-    keyword: '',
-    status: undefined as number | undefined
-})
-
-// 用户列表
-const userList = ref<UserItem[]>([])
-const loading = ref(false)
-
-// 分页信息
-const pagination = reactive({
-    page: 1,
-    limit: 20,
-    total: 0
+// 使用统一的列表页 composable
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleStatusChange
+} = useListPage<UserItem, { keyword: string; status?: number }>({
+    fetchFn: (params) => userManageApi.getUserList(params),
+    updateStatusFn: (id, status) => userManageApi.updateStatus(id, { status }),
+    defaultSearchForm: { keyword: '', status: undefined }
 })
 
 // 弹窗相关
@@ -183,48 +204,6 @@ const detailVisible = ref(false)
 const balanceVisible = ref(false)
 const pointsVisible = ref(false)
 const currentUser = ref<UserItem | null>(null)
-
-// 获取用户列表
-const getUserList = async () => {
-    try {
-        loading.value = true
-        const params = {
-            ...searchForm,
-            page: pagination.page,
-            limit: pagination.limit
-        }
-
-        const response = await userManageApi.getUserList(params)
-        userList.value = response.data.list
-        pagination.total = response.data.pagination.total
-    } catch (error) {
-        console.error('获取用户列表失败:', error)
-    } finally {
-        loading.value = false
-    }
-}
-
-// 重置搜索
-const resetSearch = () => {
-    Object.assign(searchForm, {
-        keyword: '',
-        status: undefined
-    })
-    pagination.page = 1
-    getUserList()
-}
-
-// 状态变更
-const handleStatusChange = async (row: UserItem) => {
-    try {
-        await userManageApi.updateStatus(row.id, { status: row.status })
-        ElMessage.success(t('userMgmt.statusUpdateSuccess'))
-    } catch (error) {
-        // 恢复状态
-        row.status = row.status === 1 ? 0 : 1
-        console.error('状态更新失败:', error)
-    }
-}
 
 // 查看详情
 const handleDetail = (row: UserItem) => {
@@ -243,43 +222,10 @@ const handleAdjustPoints = (row: UserItem) => {
     currentUser.value = row
     pointsVisible.value = true
 }
-
-onMounted(() => {
-    getUserList()
-})
 </script>
 
 <style lang="scss" scoped>
 .user-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-        }
-
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
-
     .avatar-fallback {
         width: 40px;
         height: 40px;

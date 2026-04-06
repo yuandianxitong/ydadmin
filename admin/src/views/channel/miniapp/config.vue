@@ -15,7 +15,10 @@
                 style="max-width: 600px"
             >
                 <el-form-item :label="$t('channel.miniapp.name')">
-                    <el-input v-model="formData.wechat_mini_name" :placeholder="$t('channel.miniapp.namePlaceholder')" />
+                    <el-input
+                        v-model="formData.wechat_mini_name"
+                        :placeholder="$t('channel.miniapp.namePlaceholder')"
+                    />
                 </el-form-item>
                 <el-form-item :label="$t('channel.miniapp.originalId')">
                     <el-input
@@ -65,7 +68,10 @@
                 style="max-width: 600px"
             >
                 <el-form-item label="AppID">
-                    <el-input v-model="formData.wechat_mini_app_id" :placeholder="$t('channel.miniapp.appIdPlaceholder')" />
+                    <el-input
+                        v-model="formData.wechat_mini_app_id"
+                        :placeholder="$t('channel.miniapp.appIdPlaceholder')"
+                    />
                 </el-form-item>
                 <el-form-item label="AppSecret">
                     <el-input
@@ -90,12 +96,11 @@
                 <template #title>{{ $t('channel.miniapp.serverAlertTitle') }}</template>
                 <template #default>
                     <div class="server-url">
-                        {{ $t('channel.miniapp.serverUrlLabel') }}<el-text type="primary" tag="code">{{
-                            serverUrl
-                        }}</el-text>
-                        <el-button type="primary" text size="small" @click="copyUrl"
-                            >{{ $t('common.copy') }}</el-button
-                        >
+                        {{ $t('channel.miniapp.serverUrlLabel')
+                        }}<el-text type="primary" tag="code">{{ serverUrl }}</el-text>
+                        <el-button type="primary" text size="small" @click="copyUrl">{{
+                            $t('common.copy')
+                        }}</el-button>
                     </div>
                 </template>
             </el-alert>
@@ -130,7 +135,9 @@
                         <el-radio value="2">兼容模式</el-radio>
                         <el-radio value="3">安全模式</el-radio>
                     </el-radio-group>
-                    <div class="form-tip">需与微信小程序后台「开发管理 > 开发设置」中的加密方式保持一致</div>
+                    <div class="form-tip">
+                        需与微信小程序后台「开发管理 > 开发设置」中的加密方式保持一致
+                    </div>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -144,7 +151,9 @@
                 </div>
             </template>
             <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>请将以下域名配置到微信小程序后台「开发管理 > 开发设置 > 服务器域名」</template>
+                <template #title
+                    >请将以下域名配置到微信小程序后台「开发管理 > 开发设置 > 服务器域名」</template
+                >
             </el-alert>
             <el-form label-width="180px" label-position="left" style="max-width: 650px">
                 <el-form-item label="request合法域名">
@@ -187,7 +196,9 @@
 
         <!-- 保存按钮 -->
         <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">{{ $t('channel.saveConfig') }}</el-button>
+            <el-button type="primary" :loading="loading" @click="handleSave">{{
+                $t('channel.saveConfig')
+            }}</el-button>
         </div>
     </div>
 </template>

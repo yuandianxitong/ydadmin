@@ -1,31 +1,35 @@
 <template>
     <el-drawer
-        :model-value="modelValue"
-        :title="formData.id ? '编辑文章' : '新增文章'"
+        v-model="visible"
+        :title="form.id ? t('articleMgmt.editArticle') : t('articleMgmt.addArticle')"
         size="60%"
         :close-on-click-modal="false"
-        @update:model-value="$emit('update:modelValue', $event)"
         @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-            <el-form-item label="文章标题" prop="title">
-                <el-input v-model="form.title" placeholder="请输入文章标题" maxlength="200" show-word-limit />
+            <el-form-item :label="t('articleMgmt.articleTitle')" prop="title">
+                <el-input
+                    v-model="form.title"
+                    :placeholder="t('articleMgmt.titlePlaceholder')"
+                    maxlength="200"
+                    show-word-limit
+                />
             </el-form-item>
 
-            <el-form-item label="文章分类" prop="category_id">
+            <el-form-item :label="t('articleMgmt.category')" prop="category_id">
                 <el-tree-select
                     v-model="form.category_id"
                     :data="categoryTreeData"
                     node-key="id"
                     :props="{ label: 'name' }"
-                    placeholder="请选择文章分类"
+                    :placeholder="t('articleMgmt.selectCategory')"
                     check-strictly
                     clearable
                     style="width: 100%"
                 />
             </el-form-item>
 
-            <el-form-item label="封面图片" prop="cover">
+            <el-form-item :label="t('articleMgmt.cover')" prop="cover">
                 <div>
                     <el-upload
                         class="cover-uploader"
@@ -39,30 +43,30 @@
                             v-if="form.cover"
                             :src="appStore.getImageUrl(form.cover)"
                             class="cover-image"
-                            alt="封面"
+                            :alt="t('articleMgmt.coverAlt')"
                         />
                         <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
                     </el-upload>
-                    <div class="upload-tip">建议尺寸 800x450，支持 jpg/png/gif，不超过 2MB</div>
+                    <div class="upload-tip">{{ t('articleMgmt.coverUploadTip') }}</div>
                 </div>
             </el-form-item>
 
-            <el-form-item label="文章摘要" prop="summary">
+            <el-form-item :label="t('articleMgmt.summary')" prop="summary">
                 <el-input
                     v-model="form.summary"
                     type="textarea"
                     :rows="3"
-                    placeholder="请输入文章摘要"
+                    :placeholder="t('articleMgmt.summaryPlaceholder')"
                     maxlength="500"
                     show-word-limit
                 />
             </el-form-item>
 
-            <el-form-item label="文章内容" prop="content">
+            <el-form-item :label="t('articleMgmt.content')" prop="content">
                 <WangEditor v-model="form.content" :height="400" />
             </el-form-item>
 
-            <el-form-item label="标签" prop="tags">
+            <el-form-item :label="t('articleMgmt.tags')" prop="tags">
                 <div class="tags-container">
                     <el-tag
                         v-for="tag in form.tags"
@@ -82,28 +86,27 @@
                         @keyup.enter="handleTagConfirm"
                         @blur="handleTagConfirm"
                     />
-                    <el-button
-                        v-else
-                        size="small"
-                        @click="showTagInput"
-                    >
-                        + 添加标签
+                    <el-button v-else size="small" @click="showTagInput">
+                        + {{ t('articleMgmt.addTag') }}
                     </el-button>
                 </div>
             </el-form-item>
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="作者" prop="author">
-                        <el-input v-model="form.author" placeholder="请输入作者" />
+                    <el-form-item :label="t('articleMgmt.author')" prop="author">
+                        <el-input
+                            v-model="form.author"
+                            :placeholder="t('articleMgmt.authorPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                    <el-form-item label="发布时间" prop="publish_at">
+                    <el-form-item :label="t('articleMgmt.publishAt')" prop="publish_at">
                         <el-date-picker
                             v-model="form.publish_at"
                             type="datetime"
-                            placeholder="请选择发布时间"
+                            :placeholder="t('articleMgmt.publishTimePlaceholder')"
                             value-format="YYYY-MM-DD HH:mm:ss"
                             style="width: 100%"
                         />
@@ -111,35 +114,51 @@
                 </el-col>
             </el-row>
 
-            <el-form-item :label="$t('common.status')" prop="status">
+            <el-form-item :label="t('common.status')" prop="status">
                 <el-radio-group v-model="form.status">
-                    <el-radio :value="0">草稿</el-radio>
-                    <el-radio :value="1">已发布</el-radio>
+                    <el-radio :value="0">{{ t('articleMgmt.draft') }}</el-radio>
+                    <el-radio :value="1">{{ t('articleMgmt.published') }}</el-radio>
                 </el-radio-group>
             </el-form-item>
         </el-form>
 
         <template #footer>
-            <el-button @click="$emit('update:modelValue', false)">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+            <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                t('common.confirm')
+            }}</el-button>
         </template>
     </el-drawer>
 </template>
 
 <script setup lang="ts">
 import { Plus } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { articleApi } from '@/api/article'
 import WangEditor from '@/components/WangEditor/index.vue'
+import { useFormDialog } from '@/hooks/useFormDialog'
 import { useAppStore } from '@/store'
 import { getToken } from '@/utils/auth'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+
+interface ArticleFormData {
+    id?: number
+    title: string
+    category_id?: number
+    cover: string
+    summary: string
+    content: string
+    tags: string[]
+    author: string
+    status: number
+    publish_at: string
+}
 
 const props = defineProps<{
     modelValue: boolean
@@ -152,31 +171,37 @@ const emit = defineEmits<{
     success: []
 }>()
 
-const formRef = ref<FormInstance>()
-const submitting = ref(false)
-
 // 上传请求头（computed 确保 Token 刷新后仍有效）
 const uploadHeaders = computed(() => ({
     Authorization: `Bearer ${getToken()}`
 }))
 
-const form = reactive({
-    id: undefined as number | undefined,
-    title: '',
-    category_id: undefined as number | undefined,
-    cover: '',
-    summary: '',
-    content: '',
-    tags: [] as string[],
-    author: '',
-    status: 0,
-    publish_at: ''
-})
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<ArticleFormData>({
+        defaultForm: {
+            id: undefined,
+            title: '',
+            category_id: undefined,
+            cover: '',
+            summary: '',
+            content: '',
+            tags: [],
+            author: '',
+            status: 0,
+            publish_at: ''
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => articleApi.create(data),
+        updateFn: (id, data) => articleApi.update(id, data),
+        sourceData: () => props.formData as Partial<ArticleFormData>
+    })
 
 // 标签输入相关
 const tagInputVisible = ref(false)
 const tagInputValue = ref('')
-const tagInputRef = ref<InstanceType<typeof import('element-plus')['ElInput']>>()
+const tagInputRef = ref<InstanceType<(typeof import('element-plus'))['ElInput']>>()
 
 // 分类树形数据
 const categoryTreeData = computed(() => {
@@ -184,40 +209,16 @@ const categoryTreeData = computed(() => {
 })
 
 const rules = computed<FormRules>(() => ({
-    title: [{ required: true, message: '请输入文章标题', trigger: 'blur' }]
+    title: [{ required: true, message: t('articleMgmt.validate.titleRequired'), trigger: 'blur' }]
 }))
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && props.formData) {
-            // 先重置为初始状态，再赋新值，确保编辑→新增时旧数据被清空
-            resetForm()
-            nextTick(() => {
-                Object.assign(form, {
-                    id: props.formData.id || undefined,
-                    title: props.formData.title || '',
-                    category_id: props.formData.category_id || undefined,
-                    cover: props.formData.cover || '',
-                    summary: props.formData.summary || '',
-                    content: props.formData.content || '',
-                    tags: Array.isArray(props.formData.tags) ? [...props.formData.tags] : [],
-                    author: props.formData.author || '',
-                    status: props.formData.status ?? 0,
-                    publish_at: props.formData.publish_at || ''
-                })
-            })
-        }
-    }
-)
 
 // 封面上传成功
 const handleCoverSuccess = (response: any) => {
     if (response.code === 200 || response.code === 0) {
         form.cover = response.data?.url || response.data?.path || response.data
-        ElMessage.success('封面上传成功')
+        ElMessage.success(t('articleMgmt.coverUploadSuccess'))
     } else {
-        ElMessage.error(response.message || '上传失败')
+        ElMessage.error(response.message || t('articleMgmt.uploadFailed'))
     }
 }
 
@@ -225,12 +226,12 @@ const handleCoverSuccess = (response: any) => {
 const beforeCoverUpload = (file: File) => {
     const isImage = file.type.startsWith('image/')
     if (!isImage) {
-        ElMessage.error('只能上传图片文件')
+        ElMessage.error(t('articleMgmt.onlyImageAllowed'))
         return false
     }
     const isLt2M = file.size / 1024 / 1024 < 2
     if (!isLt2M) {
-        ElMessage.error('图片大小不能超过 2MB')
+        ElMessage.error(t('articleMgmt.imageSizeLimit'))
         return false
     }
     return true
@@ -257,45 +258,6 @@ const handleTagConfirm = () => {
     }
     tagInputVisible.value = false
     tagInputValue.value = ''
-}
-
-const resetForm = () => {
-    formRef.value?.resetFields()
-    Object.assign(form, {
-        id: undefined,
-        title: '',
-        category_id: undefined,
-        cover: '',
-        summary: '',
-        content: '',
-        tags: [],
-        author: '',
-        status: 0,
-        publish_at: ''
-    })
-}
-
-const handleSubmit = async () => {
-    if (!formRef.value) return
-    await formRef.value.validate()
-
-    submitting.value = true
-    try {
-        const submitData = { ...form }
-        if (form.id) {
-            await articleApi.update(form.id, submitData)
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            await articleApi.create(submitData)
-            ElMessage.success(t('message.createSuccess'))
-        }
-        emit('update:modelValue', false)
-        emit('success')
-    } catch (error: any) {
-        ElMessage.error(error?.message || t('common.error'))
-    } finally {
-        submitting.value = false
-    }
 }
 </script>
 

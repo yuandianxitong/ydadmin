@@ -19,7 +19,7 @@
                     />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -87,7 +87,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.title)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -102,8 +102,8 @@
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getList"
-                @current-change="getList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
@@ -116,13 +116,22 @@
         >
             <el-form ref="formRef" :model="formData" :rules="rules" label-width="90px">
                 <el-form-item :label="$t('permission.permCode')" prop="name">
-                    <el-input v-model="formData.name" :placeholder="$t('permission.codePlaceholder')" />
+                    <el-input
+                        v-model="formData.name"
+                        :placeholder="$t('permission.codePlaceholder')"
+                    />
                 </el-form-item>
                 <el-form-item :label="$t('permission.permName')" prop="title">
-                    <el-input v-model="formData.title" :placeholder="$t('permission.namePlaceholder')" />
+                    <el-input
+                        v-model="formData.title"
+                        :placeholder="$t('permission.namePlaceholder')"
+                    />
                 </el-form-item>
                 <el-form-item :label="$t('permission.group')" prop="group">
-                    <el-input v-model="formData.group" :placeholder="$t('permission.groupInputPlaceholder')" />
+                    <el-input
+                        v-model="formData.group"
+                        :placeholder="$t('permission.groupInputPlaceholder')"
+                    />
                 </el-form-item>
                 <el-form-item :label="$t('permission.description')" prop="description">
                     <el-input
@@ -141,9 +150,9 @@
             </el-form>
             <template #footer>
                 <el-button @click="formVisible = false">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitLoading" @click="handleSubmit"
-                    >{{ $t('common.confirm') }}</el-button
-                >
+                <el-button type="primary" :loading="submitLoading" @click="handleSubmit">{{
+                    $t('common.confirm')
+                }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -151,22 +160,31 @@
 
 <script setup lang="ts">
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { permissionApi } from '@/api/permission'
+import { useListPage } from '@/hooks/useListPage'
 
 const { t } = useI18n()
 
-const searchForm = reactive({
-    keyword: '',
-    group: ''
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete
+} = useListPage<any, { keyword: string; group: string }>({
+    fetchFn: (params) => permissionApi.getPermissionList(params),
+    deleteFn: (id) => permissionApi.deletePermission(id),
+    defaultSearchForm: { keyword: '', group: '' }
 })
-
-const list = ref<any[]>([])
-const loading = ref(false)
-const pagination = reactive({ page: 1, limit: 20, total: 0 })
 
 const formVisible = ref(false)
 const formData = ref<any>({ status: 1, sort: 0 })
@@ -174,33 +192,15 @@ const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
 
 const rules: FormRules = {
-    name: [{ required: true, message: () => t('permission.validate.codeRequired'), trigger: 'blur' }],
-    title: [{ required: true, message: () => t('permission.validate.nameRequired'), trigger: 'blur' }],
-    group: [{ required: true, message: () => t('permission.validate.groupRequired'), trigger: 'blur' }]
-}
-
-const getList = async () => {
-    try {
-        loading.value = true
-        const response = await permissionApi.getPermissionList({
-            ...searchForm,
-            page: pagination.page,
-            limit: pagination.limit
-        })
-        list.value = response.data.list
-        pagination.total = response.data.pagination.total
-    } catch (error) {
-        console.error('获取权限列表失败:', error)
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetSearch = () => {
-    searchForm.keyword = ''
-    searchForm.group = ''
-    pagination.page = 1
-    getList()
+    name: [
+        { required: true, message: () => t('permission.validate.codeRequired'), trigger: 'blur' }
+    ],
+    title: [
+        { required: true, message: () => t('permission.validate.nameRequired'), trigger: 'blur' }
+    ],
+    group: [
+        { required: true, message: () => t('permission.validate.groupRequired'), trigger: 'blur' }
+    ]
 }
 
 const handleAdd = () => {
@@ -233,52 +233,10 @@ const handleSubmit = async () => {
         submitLoading.value = false
     }
 }
-
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.title }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await permissionApi.deletePermission(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
-    } catch (error) {
-        if (error !== 'cancel') console.error('删除失败:', error)
-    }
-}
-
-onMounted(() => {
-    getList()
-})
 </script>
 
 <style lang="scss" scoped>
 .permission-container {
-    .search-card {
-        margin-bottom: 16px;
-        .search-form {
-            margin: 0;
-        }
-    }
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-        }
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
+    // 业务特有样式（search-card / table-header / pagination 已在全局）
 }
 </style>

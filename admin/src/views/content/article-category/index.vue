@@ -3,10 +3,10 @@
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
-                <el-form-item label="分类名称">
+                <el-form-item :label="$t('articleCategoryMgmt.categoryName')">
                     <el-input
                         v-model="searchForm.keyword"
-                        placeholder="请输入分类名称"
+                        :placeholder="$t('articleCategoryMgmt.namePlaceholder')"
                         clearable
                         style="width: 200px"
                     />
@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -38,7 +38,7 @@
         <!-- 操作区域 -->
         <el-card class="table-card" shadow="never">
             <div class="table-header">
-                <div class="table-title">文章分类</div>
+                <div class="table-title">{{ $t('articleCategoryMgmt.title') }}</div>
                 <div class="table-actions">
                     <el-button
                         v-has-perm="['article_category.create']"
@@ -59,9 +59,13 @@
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
                 default-expand-all
             >
-                <el-table-column label="分类名称" prop="name" min-width="200" />
+                <el-table-column
+                    :label="$t('articleCategoryMgmt.categoryName')"
+                    prop="name"
+                    min-width="200"
+                />
 
-                <el-table-column label="图标" prop="icon" width="80">
+                <el-table-column :label="$t('articleCategoryMgmt.icon')" prop="icon" width="80">
                     <template #default="{ row }">
                         <el-icon v-if="row.icon">
                             <component :is="row.icon" />
@@ -111,7 +115,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.name)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -132,11 +136,12 @@
 
 <script setup lang="ts" name="ArticleCategoryList">
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { articleCategoryApi } from '@/api/article-category'
+import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
 
 import ArticleCategoryForm from './components/ArticleCategoryForm.vue'
@@ -144,37 +149,37 @@ import ArticleCategoryForm from './components/ArticleCategoryForm.vue'
 const { t } = useI18n()
 const userStore = useUserStore()
 
-// 搜索表单
-const searchForm = reactive({
-    keyword: '',
-    status: undefined as number | undefined
+// 树形结构 API 不分页，返回结构为 { code, data: Tree[] }
+// 这里通过包装 fetchFn，把树形数据塞进 useListPage 期望的 { list, pagination } 形态
+const {
+    list,
+    loading,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleDelete,
+    handleStatusChange
+} = useListPage<any, { keyword: string; status?: number }>({
+    fetchFn: async (params) => {
+        const res = await articleCategoryApi.getList(params)
+        return {
+            ...res,
+            data: {
+                list: (res.data || []) as any[],
+                pagination: { total: 0, page: 1, limit: 0, total_pages: 0 }
+            }
+        } as any
+    },
+    deleteFn: (id) => articleCategoryApi.delete(id),
+    updateStatusFn: (id, status) => articleCategoryApi.updateStatus(id, status),
+    defaultSearchForm: { keyword: '', status: undefined }
 })
-
-// 列表数据
-const list = ref<any[]>([])
-const loading = ref(false)
 
 // 弹窗相关
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
 const parentOptions = ref<any[]>([])
-
-// 获取列表
-const getList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {}
-        if (searchForm.keyword?.trim()) params.keyword = searchForm.keyword.trim()
-        if (searchForm.status !== undefined) params.status = searchForm.status
-
-        const res = await articleCategoryApi.getList(params)
-        list.value = res.data
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
 
 // 获取父级选项
 const getParentOptions = async (excludeId?: number) => {
@@ -183,23 +188,6 @@ const getParentOptions = async (excludeId?: number) => {
         parentOptions.value = res.data
     } catch {
         ElMessage.error(t('message.fetchFailed'))
-    }
-}
-
-// 重置搜索
-const resetSearch = () => {
-    Object.assign(searchForm, { keyword: '', status: undefined })
-    getList()
-}
-
-// 状态变更
-const handleStatusChange = async (row: any) => {
-    try {
-        await articleCategoryApi.updateStatus(row.id, row.status)
-        ElMessage.success(t('message.statusUpdateSuccess'))
-    } catch {
-        row.status = row.status === 1 ? 0 : 1
-        ElMessage.error(t('common.error'))
     }
 }
 
@@ -223,56 +211,4 @@ const handleEdit = (row: any) => {
     getParentOptions(row.id)
     formVisible.value = true
 }
-
-// 删除
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.name }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await articleCategoryApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
-    } catch (error) {
-        if (error !== 'cancel') ElMessage.error(t('common.error'))
-    }
-}
-
-onMounted(() => {
-    getList()
-})
 </script>
-
-<style lang="scss" scoped>
-.article-category-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-    }
-}
-</style>

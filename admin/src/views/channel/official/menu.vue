@@ -5,12 +5,12 @@
                 <div class="card-header">
                     <span>{{ $t('channel.menu.title') }}</span>
                     <div>
-                        <el-button type="danger" :loading="deleting" @click="handleDeleteMenu"
-                            >{{ $t('channel.menu.deleteMenu') }}</el-button
-                        >
-                        <el-button type="primary" :loading="saving" @click="handleSaveMenu"
-                            >{{ $t('channel.menu.publishMenu') }}</el-button
-                        >
+                        <el-button type="danger" :loading="deleting" @click="handleDeleteMenu">{{
+                            $t('channel.menu.deleteMenu')
+                        }}</el-button>
+                        <el-button type="primary" :loading="saving" @click="handleSaveMenu">{{
+                            $t('channel.menu.publishMenu')
+                        }}</el-button>
                     </div>
                 </div>
             </template>
@@ -26,7 +26,10 @@
                         <div class="phone-header">{{ $t('channel.menu.title') }}</div>
                         <div class="phone-body">
                             <!-- 子菜单区域（悬浮在一级菜单上方） -->
-                            <div v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]" class="sub-menu-popup">
+                            <div
+                                v-if="activeIndex[0] >= 0 && menuData[activeIndex[0]]"
+                                class="sub-menu-popup"
+                            >
                                 <div
                                     v-for="(sub, sIdx) in menuData[activeIndex[0]].sub_button"
                                     :key="sIdx"
@@ -34,8 +37,14 @@
                                     :class="{ active: activeIndex[1] === sIdx }"
                                     @click="selectMenu(activeIndex[0], sIdx)"
                                 >
-                                    <span>{{ sub.name || $t('channel.menu.subMenuPrefix') + (sIdx + 1) }}</span>
-                                    <el-icon class="del-icon" @click.stop="removeSubMenu(activeIndex[0], sIdx)"><Close /></el-icon>
+                                    <span>{{
+                                        sub.name || $t('channel.menu.subMenuPrefix') + (sIdx + 1)
+                                    }}</span>
+                                    <el-icon
+                                        class="del-icon"
+                                        @click.stop="removeSubMenu(activeIndex[0], sIdx)"
+                                        ><Close
+                                    /></el-icon>
                                 </div>
                                 <div
                                     v-if="(menuData[activeIndex[0]].sub_button || []).length < 5"
@@ -58,8 +67,12 @@
                                 :class="{ active: activeIndex[0] === idx }"
                                 @click="selectMenu(idx, -1)"
                             >
-                                <span class="menu-btn-text">{{ menu.name || $t('channel.menu.menuPrefix') + (idx + 1) }}</span>
-                                <el-icon class="del-icon" @click.stop="removeMenu(idx)"><Close /></el-icon>
+                                <span class="menu-btn-text">{{
+                                    menu.name || $t('channel.menu.menuPrefix') + (idx + 1)
+                                }}</span>
+                                <el-icon class="del-icon" @click.stop="removeMenu(idx)"
+                                    ><Close
+                                /></el-icon>
                             </div>
                             <div v-if="menuData.length < 3" class="menu-btn add" @click="addMenu">
                                 <el-icon :size="14"><Plus /></el-icon>
@@ -78,14 +91,26 @@
                             <el-select v-model="currentMenu.type" style="width: 100%">
                                 <el-option :label="$t('channel.menu.typeView')" value="view" />
                                 <el-option :label="$t('channel.menu.typeClick')" value="click" />
-                                <el-option :label="$t('channel.menu.typeMiniprogram')" value="miniprogram" />
+                                <el-option
+                                    :label="$t('channel.menu.typeMiniprogram')"
+                                    value="miniprogram"
+                                />
                             </el-select>
                         </el-form-item>
-                        <el-form-item v-if="currentMenu.type === 'view'" :label="$t('channel.menu.webUrl')">
+                        <el-form-item
+                            v-if="currentMenu.type === 'view'"
+                            :label="$t('channel.menu.webUrl')"
+                        >
                             <el-input v-model="currentMenu.url" placeholder="https://" />
                         </el-form-item>
-                        <el-form-item v-if="currentMenu.type === 'click'" :label="$t('channel.menu.eventKey')">
-                            <el-input v-model="currentMenu.key" :placeholder="$t('channel.menu.eventKeyPlaceholder')" />
+                        <el-form-item
+                            v-if="currentMenu.type === 'click'"
+                            :label="$t('channel.menu.eventKey')"
+                        >
+                            <el-input
+                                v-model="currentMenu.key"
+                                :placeholder="$t('channel.menu.eventKeyPlaceholder')"
+                            />
                         </el-form-item>
                         <template v-if="currentMenu.type === 'miniprogram'">
                             <el-form-item :label="$t('channel.menu.miniprogramAppId')">
@@ -174,7 +199,9 @@ const handleSaveMenu = async () => {
 
 const handleDeleteMenu = async () => {
     try {
-        await ElMessageBox.confirm(t('channel.menu.deleteConfirm'), t('common.tip'), { type: 'warning' })
+        await ElMessageBox.confirm(t('channel.menu.deleteConfirm'), t('common.tip'), {
+            type: 'warning'
+        })
         deleting.value = true
         await officialAccountApi.deleteMenu()
         menuData.splice(0, menuData.length)

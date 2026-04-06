@@ -4,14 +4,18 @@
             <el-menu-item :index="routePath">
                 <Icon :name="`${routeMeta?.icon}`" :size="24" />
                 <template #title>
-                    <span class="ml-2">{{ translateRouteTitle(routeMeta?.title as string, route.name) }}</span>
+                    <span class="ml-2">{{
+                        translateRouteTitle(routeMeta?.title as string, route.name)
+                    }}</span>
                 </template>
             </el-menu-item>
         </app-link>
         <el-sub-menu v-else :index="routePath" :popper-class="popperClass">
             <template #title>
                 <Icon v-if="routeMeta?.icon" :size="24" :name="routeMeta?.icon" />
-                <span class="ml-2">{{ translateRouteTitle(routeMeta?.title as string, route.name) }}</span>
+                <span class="ml-2">{{
+                    translateRouteTitle(routeMeta?.title as string, route.name)
+                }}</span>
             </template>
             <menu-item
                 v-for="item in route?.children"

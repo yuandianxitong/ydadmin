@@ -16,7 +16,9 @@ export function useDebounceRequest<T extends (...args: any[]) => Promise<any>>(
         }
         return new Promise((resolve, reject) => {
             timer = setTimeout(() => {
-                fn(...args).then(resolve).catch(reject)
+                fn(...args)
+                    .then(resolve)
+                    .catch(reject)
             }, delay)
         })
     }

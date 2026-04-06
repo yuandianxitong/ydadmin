@@ -8,7 +8,7 @@
             <div class="group-list">
                 <div
                     :class="['group-item', { active: currentGroup === '' }]"
-                    @click="currentGroup = ''; fetchFileList()"
+                    @click="selectGroup('')"
                 >
                     <span>{{ $t('file.allFiles') }}</span>
                 </div>
@@ -16,7 +16,7 @@
                     v-for="g in groups"
                     :key="g.group"
                     :class="['group-item', { active: currentGroup === g.group }]"
-                    @click="currentGroup = g.group; fetchFileList()"
+                    @click="selectGroup(g.group)"
                 >
                     <span>{{ g.group }}</span>
                     <el-tag size="small" type="info">{{ g.count }}</el-tag>
@@ -85,8 +85,18 @@
                         <el-icon v-else :size="24" color="#909399"><Document /></el-icon>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" :label="$t('file.fileName')" min-width="180" show-overflow-tooltip />
-                <el-table-column prop="extension" :label="$t('file.type')" width="70" align="center" />
+                <el-table-column
+                    prop="name"
+                    :label="$t('file.fileName')"
+                    min-width="180"
+                    show-overflow-tooltip
+                />
+                <el-table-column
+                    prop="extension"
+                    :label="$t('file.type')"
+                    width="70"
+                    align="center"
+                />
                 <el-table-column :label="$t('file.size')" width="90" align="center">
                     <template #default="{ row }">
                         {{ formatSize(row.size) }}
@@ -96,9 +106,9 @@
                 <el-table-column prop="created_at" :label="$t('file.uploadTime')" width="160" />
                 <el-table-column :label="$t('common.operation')" width="140" align="center">
                     <template #default="{ row }">
-                        <el-button link type="primary" size="small" @click="handleCopyUrl(row)"
-                            >{{ $t('common.copy') }}</el-button
-                        >
+                        <el-button link type="primary" size="small" @click="handleCopyUrl(row)">{{
+                            $t('common.copy')
+                        }}</el-button>
                         <el-button
                             v-has-perm="'system.file.update'"
                             link
@@ -191,6 +201,11 @@ const fetchGroups = async () => {
     }
 }
 
+const selectGroup = (group: string) => {
+    currentGroup.value = group
+    fetchFileList()
+}
+
 const handleSelectionChange = (rows: any[]) => {
     selectedIds.value = rows.map((r) => r.id)
 }
@@ -214,7 +229,9 @@ const handleRename = async (row: any) => {
 }
 
 const handleDelete = async (row: any) => {
-    await ElMessageBox.confirm(t('file.deleteFileConfirm', { name: row.name }), t('common.tip'), { type: 'warning' })
+    await ElMessageBox.confirm(t('file.deleteFileConfirm', { name: row.name }), t('common.tip'), {
+        type: 'warning'
+    })
     await fileApi.delete(row.id)
     ElMessage.success(t('message.deleteSuccess'))
     fetchFileList()
@@ -222,9 +239,13 @@ const handleDelete = async (row: any) => {
 }
 
 const handleBatchDelete = async () => {
-    await ElMessageBox.confirm(t('file.batchDeleteFileConfirm', { count: selectedIds.value.length }), t('common.tip'), {
-        type: 'warning'
-    })
+    await ElMessageBox.confirm(
+        t('file.batchDeleteFileConfirm', { count: selectedIds.value.length }),
+        t('common.tip'),
+        {
+            type: 'warning'
+        }
+    )
     await fileApi.batchDelete(selectedIds.value)
     ElMessage.success(t('message.batchDeleteSuccess'))
     selectedIds.value = []

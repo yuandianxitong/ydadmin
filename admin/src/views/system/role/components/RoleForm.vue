@@ -1,14 +1,18 @@
 <template>
     <el-dialog
         v-model="visible"
-        :title="isEdit ? $t('role.editRole') : $t('role.addRole')"
+        :title="form.id ? $t('role.editRole') : $t('role.addRole')"
         width="600px"
         :close-on-click-modal="false"
-        @close="handleClose"
+        @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
             <el-form-item :label="$t('role.roleCode')" prop="name">
-                <el-input v-model="form.name" :placeholder="$t('role.codePlaceholder')" :disabled="isEdit" />
+                <el-input
+                    v-model="form.name"
+                    :placeholder="$t('role.codePlaceholder')"
+                    :disabled="!!form.id"
+                />
                 <div class="form-tip">{{ $t('role.codeTip') }}</div>
             </el-form-item>
 
@@ -46,7 +50,7 @@
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+                <el-button type="primary" :loading="submitting" @click="handleSubmit">
                     {{ $t('common.confirm') }}
                 </el-button>
             </span>
@@ -55,14 +59,17 @@
 </template>
 
 <script setup lang="ts" name="RoleForm">
-import { ElForm, ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { roleApi } from '@/api/role'
+import { useFormDialog } from '@/hooks/useFormDialog'
 import type { RoleInfo, RoleReq } from '@/types/api'
 
 const { t } = useI18n()
+
+type RoleFormData = RoleReq & { id?: number }
 
 interface Props {
     modelValue: boolean
@@ -77,29 +84,26 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 表单引用
-const formRef = ref<InstanceType<typeof ElForm>>()
-
-// 弹窗显示状态
-const visible = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
-
-// 是否编辑模式
-const isEdit = computed(() => !!props.formData.id)
-
-// 表单数据
-const form = reactive<RoleReq>({
-    name: '',
-    title: '',
-    description: '',
-    data_scope: 1,
-    status: 1
-})
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<RoleFormData>({
+        defaultForm: {
+            id: undefined,
+            name: '',
+            title: '',
+            description: '',
+            data_scope: 1,
+            status: 1
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => roleApi.createRole(data),
+        updateFn: (id, data) => roleApi.updateRole(id, data),
+        sourceData: () => props.formData as Partial<RoleFormData>
+    })
 
 // 表单验证规则
-const rules = computed(() => ({
+const rules = computed<FormRules>(() => ({
     name: [
         { required: true, message: t('role.validate.codeRequired'), trigger: 'blur' },
         { min: 2, max: 50, message: t('role.validate.codeRequired'), trigger: 'blur' },
@@ -115,60 +119,6 @@ const rules = computed(() => ({
     ],
     data_scope: [{ required: true, message: t('common.selectPlaceholder'), trigger: 'change' }]
 }))
-
-// 提交加载状态
-const submitLoading = ref(false)
-
-// 监听表单数据变化
-watch(
-    () => props.formData,
-    (newData) => {
-        if (newData) {
-            Object.assign(form, {
-                name: newData.name || '',
-                title: newData.title || '',
-                description: newData.description || '',
-                data_scope: newData.data_scope || 1,
-                status: newData.status || 1
-            })
-        }
-    },
-    { deep: true, immediate: true }
-)
-
-// 提交表单
-const handleSubmit = async () => {
-    if (!formRef.value) return
-
-    try {
-        await formRef.value.validate()
-
-        submitLoading.value = true
-
-        if (isEdit.value && props.formData.id) {
-            // 编辑
-            await roleApi.updateRole(props.formData.id, form)
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            // 新增
-            await roleApi.createRole(form)
-            ElMessage.success(t('message.createSuccess'))
-        }
-
-        emit('success')
-        handleClose()
-    } catch (error) {
-        console.error('提交失败:', error)
-    } finally {
-        submitLoading.value = false
-    }
-}
-
-// 关闭弹窗
-const handleClose = () => {
-    formRef.value?.resetFields()
-    visible.value = false
-}
 </script>
 
 <style lang="scss" scoped>

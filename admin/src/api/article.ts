@@ -18,5 +18,5 @@ export const articleApi = {
     },
     updateStatus(id: number, status: number) {
         return myRequest.put(`/adminapi/article/${id}/status`, { status })
-    },
+    }
 }

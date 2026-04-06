@@ -56,11 +56,12 @@ export const useSettingStore = defineStore('setting', {
     },
     actions: {
         /** 修改单个配置项并同步到缓存 */
-        setSetting(data: { key: keyof SettingState; value: any }): void {
+        setSetting<K extends keyof SettingState>(data: { key: K; value: SettingState[K] }): void {
             const { key, value } = data
             if (Object.prototype.hasOwnProperty.call(this, key)) {
-                // @ts-ignore
-                this[key] = value
+                // Pinia action 中 `this` 的类型是 store 实例（含 action 方法），
+                // 用 $patch 按 state key 赋值可以避免 TS 类型交集冲突，也等价直接赋值。
+                this.$patch({ [key]: value } as Partial<SettingState>)
             }
             // 把除了 showDrawer / _mediaCleanup 外的设置保存到缓存中
             const settings: Partial<SettingState> = { ...this.$state }
@@ -119,10 +120,13 @@ export const useSettingStore = defineStore('setting', {
         /** 恢复默认主题（删除缓存并重置状态） */
         resetTheme(): void {
             // 把 defaultSetting 的所有键值覆盖回 this
-            for (const key in defaultSetting) {
-                // @ts-ignore
-                this[key as keyof SettingState] = (defaultSetting as any)[key]
-            }
+            const defaults = defaultSetting as Partial<SettingState>
+            ;(Object.keys(defaults) as (keyof SettingState)[]).forEach((key) => {
+                const value = defaults[key]
+                if (value !== undefined) {
+                    ;(this as any)[key] = value
+                }
+            })
             cache.remove(SETTING_KEY)
             this.applyThemeMode()
         }

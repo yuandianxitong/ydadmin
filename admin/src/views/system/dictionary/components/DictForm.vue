@@ -1,21 +1,25 @@
 <template>
     <el-dialog
-        :model-value="modelValue"
-        :title="isEdit ? $t('dictionary.editDict') : $t('dictionary.addDict')"
+        v-model="visible"
+        :title="form.id ? $t('dictionary.editDict') : $t('dictionary.addDict')"
         width="500px"
         destroy-on-close
-        @close="handleClose"
+        @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
             <el-form-item :label="$t('dictionary.dictName')" prop="name">
-                <el-input v-model="form.name" :placeholder="$t('dictionary.namePlaceholder')" maxlength="100" />
+                <el-input
+                    v-model="form.name"
+                    :placeholder="$t('dictionary.namePlaceholder')"
+                    maxlength="100"
+                />
             </el-form-item>
             <el-form-item :label="$t('dictionary.dictCode')" prop="code">
                 <el-input
                     v-model="form.code"
                     :placeholder="$t('dictionary.codePlaceholder')"
                     maxlength="100"
-                    :disabled="isEdit"
+                    :disabled="!!form.id"
                 />
             </el-form-item>
             <el-form-item :label="$t('common.description')" prop="description">
@@ -37,19 +41,31 @@
 
         <template #footer>
             <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="loading" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                $t('common.confirm')
+            }}</el-button>
         </template>
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ElForm, ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { dictionaryApi } from '@/api/dictionary'
+import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()
+
+interface DictionaryForm {
+    id?: number
+    name: string
+    code: string
+    description: string
+    sort: number
+    status: number
+}
 
 interface Props {
     modelValue: boolean
@@ -64,20 +80,25 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const formRef = ref<InstanceType<typeof ElForm>>()
-const loading = ref(false)
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<DictionaryForm>({
+        defaultForm: {
+            id: undefined,
+            name: '',
+            code: '',
+            description: '',
+            sort: 0,
+            status: 1
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => dictionaryApi.create(data),
+        updateFn: (id, data) => dictionaryApi.update(id, data),
+        sourceData: () => props.formData as Partial<DictionaryForm>
+    })
 
-const isEdit = computed(() => !!props.formData?.id)
-
-const form = reactive({
-    name: '',
-    code: '',
-    description: '',
-    sort: 0,
-    status: 1
-})
-
-const rules = {
+const rules = computed<FormRules>(() => ({
     name: [{ required: true, message: t('dictionary.validate.nameRequired'), trigger: 'blur' }],
     code: [
         { required: true, message: t('dictionary.validate.codeRequired'), trigger: 'blur' },
@@ -87,45 +108,5 @@ const rules = {
             trigger: 'blur'
         }
     ]
-}
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && props.formData) {
-            Object.assign(form, {
-                name: props.formData.name || '',
-                code: props.formData.code || '',
-                description: props.formData.description || '',
-                sort: props.formData.sort ?? 0,
-                status: props.formData.status ?? 1
-            })
-        }
-    }
-)
-
-const handleClose = () => {
-    emit('update:modelValue', false)
-}
-
-const handleSubmit = async () => {
-    if (!formRef.value) return
-    await formRef.value.validate()
-    loading.value = true
-    try {
-        if (isEdit.value) {
-            await dictionaryApi.update(props.formData.id, { ...form })
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            await dictionaryApi.create({ ...form })
-            ElMessage.success(t('message.createSuccess'))
-        }
-        emit('success')
-        handleClose()
-    } catch (error) {
-        console.error('保存失败:', error)
-    } finally {
-        loading.value = false
-    }
-}
+}))
 </script>

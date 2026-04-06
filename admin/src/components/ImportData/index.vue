@@ -71,7 +71,10 @@
                         </el-alert>
                     </div>
                     <!-- Error list -->
-                    <div v-if="result.errors && result.errors.length > 0" class="import-result__errors mt-4">
+                    <div
+                        v-if="result.errors && result.errors.length > 0"
+                        class="import-result__errors mt-4"
+                    >
                         <div class="text-sm font-bold mb-2">{{ $t('importData.errorList') }}</div>
                         <el-scrollbar max-height="200px">
                             <div

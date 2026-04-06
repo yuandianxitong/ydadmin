@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getRoleList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -52,7 +52,7 @@
                         v-has-perm="['system.role.delete']"
                         type="danger"
                         :disabled="!multipleSelection.length"
-                        @click="handleBatchDelete"
+                        @click="handleBatchDelete(multipleSelection.map((item) => item.id))"
                     >
                         <el-icon><Delete /></el-icon>
                         {{ $t('common.batchDelete') }}
@@ -61,11 +61,7 @@
             </div>
 
             <!-- 表格 -->
-            <el-table
-                v-loading="loading"
-                :data="roleList"
-                @selection-change="handleSelectionChange"
-            >
+            <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" />
 
                 <el-table-column label="ID" prop="id" width="80" />
@@ -74,7 +70,11 @@
 
                 <el-table-column :label="$t('role.roleName')" prop="title" width="150" />
 
-                <el-table-column :label="$t('role.description')" prop="description" show-overflow-tooltip />
+                <el-table-column
+                    :label="$t('role.description')"
+                    prop="description"
+                    show-overflow-tooltip
+                />
 
                 <el-table-column :label="$t('role.dataScope')" prop="data_scope" width="120">
                     <template #default="{ row }">
@@ -135,7 +135,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.title)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -151,32 +151,32 @@
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getRoleList"
-                @current-change="getRoleList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
         <!-- 新增/编辑弹窗 -->
-        <RoleForm v-model="formVisible" :form-data="formData" @success="getRoleList" />
+        <RoleForm v-model="formVisible" :form-data="formData" @success="getList" />
 
         <!-- 权限分配弹窗 -->
         <AssignPermissionsDialog
             v-model="assignVisible"
             :role-info="currentRole"
-            @success="getRoleList"
+            @success="getList"
         />
     </div>
 </template>
 
 <script setup lang="ts" name="RoleList">
 import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { roleApi } from '@/api/role'
+import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
-import type { RoleInfo, RoleQuery } from '@/types/api'
+import type { RoleInfo } from '@/types/api'
 
 import AssignPermissionsDialog from './components/AssignPermissionsDialog.vue'
 import RoleForm from './components/RoleForm.vue'
@@ -184,23 +184,29 @@ import RoleForm from './components/RoleForm.vue'
 const { t } = useI18n()
 const userStore = useUserStore()
 
-// 搜索表单
-const searchForm = reactive<RoleQuery>({
-    keyword: '',
-    status: undefined,
-    page: 1,
-    limit: 20
-})
-
-// 角色列表
-const roleList = ref<RoleInfo[]>([])
-const loading = ref(false)
-
-// 分页信息
-const pagination = reactive({
-    page: 1,
-    limit: 20,
-    total: 0
+// 使用统一的列表页 composable
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete,
+    handleBatchDelete,
+    handleStatusChange
+} = useListPage<RoleInfo, { keyword: string; status?: number }>({
+    fetchFn: (params) => roleApi.getRoleList(params),
+    deleteFn: (id) => roleApi.deleteRole(id),
+    batchDeleteFn: (ids) => roleApi.batchDeleteRole({ ids }),
+    updateStatusFn: (id, status) => roleApi.updateRoleStatus(id, { status }),
+    defaultSearchForm: {
+        keyword: '',
+        status: undefined
+    }
 })
 
 // 表格选择
@@ -212,51 +218,9 @@ const formData = ref<Partial<RoleInfo>>({})
 const assignVisible = ref(false)
 const currentRole = ref<RoleInfo | null>(null)
 
-// 获取角色列表
-const getRoleList = async () => {
-    try {
-        loading.value = true
-        const params = {
-            ...searchForm,
-            page: pagination.page,
-            limit: pagination.limit
-        }
-
-        const response = await roleApi.getRoleList(params)
-        roleList.value = response.data.list
-        pagination.total = response.data.pagination.total
-    } catch (error) {
-        console.error('获取角色列表失败:', error)
-    } finally {
-        loading.value = false
-    }
-}
-
-// 重置搜索
-const resetSearch = () => {
-    Object.assign(searchForm, {
-        keyword: '',
-        status: undefined
-    })
-    pagination.page = 1
-    getRoleList()
-}
-
 // 表格选择变化
 const handleSelectionChange = (selection: RoleInfo[]) => {
     multipleSelection.value = selection
-}
-
-// 状态变更
-const handleStatusChange = async (row: RoleInfo) => {
-    try {
-        await roleApi.updateRoleStatus(row.id, { status: row.status })
-        ElMessage.success(t('message.statusUpdateSuccess'))
-    } catch (error) {
-        // 恢复状态
-        row.status = row.status === 1 ? 0 : 1
-        console.error('状态更新失败:', error)
-    }
 }
 
 // 新增角色
@@ -280,53 +244,6 @@ const handleAssignPermissions = (row: RoleInfo) => {
     assignVisible.value = true
 }
 
-// 删除角色
-const handleDelete = async (row: RoleInfo) => {
-    try {
-        await ElMessageBox.confirm(
-            t('message.deleteConfirmName', { name: row.title }),
-            t('message.confirmDelete'),
-            {
-                confirmButtonText: t('common.confirm'),
-                cancelButtonText: t('common.cancel'),
-                type: 'warning'
-            }
-        )
-
-        await roleApi.deleteRole(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getRoleList()
-    } catch (error) {
-        if (error !== 'cancel') {
-            console.error('删除失败:', error)
-        }
-    }
-}
-
-// 批量删除
-const handleBatchDelete = async () => {
-    try {
-        await ElMessageBox.confirm(
-            t('message.batchDeleteConfirmCount', { count: multipleSelection.value.length, type: t('role.title') }),
-            t('message.confirmBatchDelete'),
-            {
-                confirmButtonText: t('common.confirm'),
-                cancelButtonText: t('common.cancel'),
-                type: 'warning'
-            }
-        )
-
-        const ids = multipleSelection.value.map((item) => item.id)
-        await roleApi.batchDeleteRole({ ids })
-        ElMessage.success(t('message.batchDeleteSuccess'))
-        getRoleList()
-    } catch (error) {
-        if (error !== 'cancel') {
-            console.error('批量删除失败:', error)
-        }
-    }
-}
-
 // 获取数据权限文本
 const getDataScopeText = (dataScope: number) => {
     const scopeMap: Record<number, string> = {
@@ -340,7 +257,9 @@ const getDataScopeText = (dataScope: number) => {
 }
 
 // 获取数据权限标签类型
-const getDataScopeTagType = (dataScope: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+const getDataScopeTagType = (
+    dataScope: number
+): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
     const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
         1: 'danger',
         2: 'warning',
@@ -350,46 +269,4 @@ const getDataScopeTagType = (dataScope: number): 'primary' | 'success' | 'warnin
     }
     return typeMap[dataScope] || 'info'
 }
-
-onMounted(() => {
-    getRoleList()
-})
 </script>
-
-<style lang="scss" scoped>
-.role-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
-}
-</style>

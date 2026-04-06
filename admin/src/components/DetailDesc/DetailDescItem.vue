@@ -19,7 +19,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
     span: 1,
-    labelWidth: '120px',
+    labelWidth: '120px'
 })
 </script>
 

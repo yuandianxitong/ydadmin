@@ -8,7 +8,10 @@
                 @tab-remove="removeTab"
             >
                 <template v-for="item in tabsLists" :key="item.fullPath">
-                    <el-tab-pane :label="translateRouteTitle(item.title, item.name)" :name="item.fullPath"></el-tab-pane>
+                    <el-tab-pane
+                        :label="translateRouteTitle(item.title, item.name)"
+                        :name="item.fullPath"
+                    ></el-tab-pane>
                 </template>
             </el-tabs>
         </div>
@@ -18,9 +21,15 @@
             </span>
             <template #dropdown>
                 <el-dropdown-menu>
-                    <el-dropdown-item command="closeCurrent">{{ $t('tabs.closeCurrent') }}</el-dropdown-item>
-                    <el-dropdown-item command="closeOther">{{ $t('tabs.closeOther') }}</el-dropdown-item>
-                    <el-dropdown-item command="closeAll">{{ $t('tabs.closeAll') }}</el-dropdown-item>
+                    <el-dropdown-item command="closeCurrent">{{
+                        $t('tabs.closeCurrent')
+                    }}</el-dropdown-item>
+                    <el-dropdown-item command="closeOther">{{
+                        $t('tabs.closeOther')
+                    }}</el-dropdown-item>
+                    <el-dropdown-item command="closeAll">{{
+                        $t('tabs.closeAll')
+                    }}</el-dropdown-item>
                 </el-dropdown-menu>
             </template>
         </el-dropdown>
@@ -31,9 +40,9 @@
 import { useRouter } from 'vue-router'
 
 import useMultipleTabs from '@/hooks/useMultipleTabs'
-import { translateRouteTitle } from '@/utils/i18n'
 import { useWatchRoute } from '@/hooks/useWatchRoute'
 import useTabsStore from '@/store/modules/multipleTabs.store'
+import { translateRouteTitle } from '@/utils/i18n'
 
 const router = useRouter()
 const tabsStore = useTabsStore()

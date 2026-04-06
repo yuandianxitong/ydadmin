@@ -108,8 +108,13 @@
                             </div>
                             <span
                                 class="text-xs mt-1"
-                                :class="settingStore.layoutMode === 'classic' ? 'text-[var(--el-color-primary)]' : 'text-[var(--color-text-tertiary)]'"
-                            >{{ $t('settings.layoutModes.classic') }}</span>
+                                :class="
+                                    settingStore.layoutMode === 'classic'
+                                        ? 'text-[var(--el-color-primary)]'
+                                        : 'text-[var(--color-text-tertiary)]'
+                                "
+                                >{{ $t('settings.layoutModes.classic') }}</span
+                            >
                         </div>
                         <!-- 正常侧栏 -->
                         <div class="layout-option" @click="changeLayout('sidebar')">
@@ -127,8 +132,13 @@
                             </div>
                             <span
                                 class="text-xs mt-1"
-                                :class="settingStore.layoutMode === 'sidebar' ? 'text-[var(--el-color-primary)]' : 'text-[var(--color-text-tertiary)]'"
-                            >{{ $t('settings.layoutModes.sidebar') }}</span>
+                                :class="
+                                    settingStore.layoutMode === 'sidebar'
+                                        ? 'text-[var(--el-color-primary)]'
+                                        : 'text-[var(--color-text-tertiary)]'
+                                "
+                                >{{ $t('settings.layoutModes.sidebar') }}</span
+                            >
                         </div>
                     </div>
                 </div>

@@ -7,7 +7,11 @@
         @close="handleClose"
     >
         <div class="current-info">
-            <p>{{ t('userMgmt.adjustPointsDialog.currentPoints') }}：<strong>{{ currentPoints }}</strong></p>
+            <p>
+                {{ t('userMgmt.adjustPointsDialog.currentPoints') }}：<strong>{{
+                    currentPoints
+                }}</strong>
+            </p>
         </div>
 
         <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
@@ -34,7 +38,9 @@
 
         <template #footer>
             <span class="dialog-footer">
-                <el-button @click="handleClose">{{ t('userMgmt.adjustPointsDialog.cancel') }}</el-button>
+                <el-button @click="handleClose">{{
+                    t('userMgmt.adjustPointsDialog.cancel')
+                }}</el-button>
                 <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
                     {{ t('userMgmt.adjustPointsDialog.confirm') }}
                 </el-button>
@@ -84,7 +90,11 @@ const form = reactive({
 // 表单验证规则
 const rules = {
     points: [
-        { required: true, message: () => t('userMgmt.adjustPointsDialog.validate.pointsRequired'), trigger: 'blur' },
+        {
+            required: true,
+            message: () => t('userMgmt.adjustPointsDialog.validate.pointsRequired'),
+            trigger: 'blur'
+        },
         {
             validator: (_rule: any, value: number, callback: (error?: Error) => void) => {
                 if (value === 0) {
@@ -96,7 +106,13 @@ const rules = {
             trigger: 'blur'
         }
     ],
-    remark: [{ required: true, message: () => t('userMgmt.adjustPointsDialog.validate.remarkRequired'), trigger: 'blur' }]
+    remark: [
+        {
+            required: true,
+            message: () => t('userMgmt.adjustPointsDialog.validate.remarkRequired'),
+            trigger: 'blur'
+        }
+    ]
 }
 
 // 提交加载状态

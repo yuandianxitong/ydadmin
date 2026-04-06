@@ -41,7 +41,9 @@ export const cronJobApi = {
 
     /** 手动执行 */
     run(id: number) {
-        return myRequest.post<{ status: number; output?: string }>(`/adminapi/system/cron-job/${id}/run`)
+        return myRequest.post<{ status: number; output?: string }>(
+            `/adminapi/system/cron-job/${id}/run`
+        )
     },
 
     /** 获取执行日志 */

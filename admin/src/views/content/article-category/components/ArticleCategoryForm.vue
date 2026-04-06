@@ -1,32 +1,42 @@
 <template>
     <el-dialog
-        :model-value="modelValue"
-        :title="formData.id ? '编辑分类' : '新增分类'"
+        v-model="visible"
+        :title="
+            form.id
+                ? t('articleCategoryMgmt.editCategory')
+                : t('articleCategoryMgmt.addCategory')
+        "
         width="520px"
         :close-on-click-modal="false"
-        @update:model-value="$emit('update:modelValue', $event)"
         @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-            <el-form-item label="上级分类" prop="parent_id">
+            <el-form-item :label="t('articleCategoryMgmt.parentCategory')" prop="parent_id">
                 <el-tree-select
                     v-model="form.parent_id"
                     :data="parentTreeData"
                     node-key="id"
                     :props="{ label: 'name' }"
-                    placeholder="请选择上级分类"
+                    :placeholder="t('articleCategoryMgmt.parentPlaceholder')"
                     check-strictly
                     clearable
                     style="width: 100%"
                 />
             </el-form-item>
 
-            <el-form-item label="分类名称" prop="name">
-                <el-input v-model="form.name" placeholder="请输入分类名称" maxlength="50" />
+            <el-form-item :label="t('articleCategoryMgmt.categoryName')" prop="name">
+                <el-input
+                    v-model="form.name"
+                    :placeholder="t('articleCategoryMgmt.namePlaceholder')"
+                    maxlength="50"
+                />
             </el-form-item>
 
-            <el-form-item label="图标" prop="icon">
-                <el-input v-model="form.icon" placeholder="请输入图标名称">
+            <el-form-item :label="t('articleCategoryMgmt.icon')" prop="icon">
+                <el-input
+                    v-model="form.icon"
+                    :placeholder="t('articleCategoryMgmt.iconPlaceholder')"
+                >
                     <template #prepend>
                         <el-icon v-if="form.icon">
                             <component :is="form.icon" />
@@ -54,21 +64,32 @@
         </el-form>
 
         <template #footer>
-            <el-button @click="$emit('update:modelValue', false)">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+            <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                $t('common.confirm')
+            }}</el-button>
         </template>
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { articleCategoryApi } from '@/api/article-category'
+import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()
+
+interface ArticleCategoryFormData {
+    id?: number
+    parent_id: number
+    name: string
+    icon: string
+    sort: number
+    status: number
+}
 
 const props = defineProps<{
     modelValue: boolean
@@ -81,75 +102,33 @@ const emit = defineEmits<{
     success: []
 }>()
 
-const formRef = ref<FormInstance>()
-const submitting = ref(false)
-
-const form = reactive({
-    id: undefined as number | undefined,
-    parent_id: 0 as number,
-    name: '',
-    icon: '',
-    sort: 0,
-    status: 1
-})
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<ArticleCategoryFormData>({
+        defaultForm: {
+            id: undefined,
+            parent_id: 0,
+            name: '',
+            icon: '',
+            sort: 0,
+            status: 1
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => articleCategoryApi.create(data),
+        updateFn: (id, data) => articleCategoryApi.update(id, data),
+        sourceData: () => props.formData as Partial<ArticleCategoryFormData>
+    })
 
 // 构建树形选项
 const parentTreeData = computed(() => {
-    const topNode = { id: 0, name: '顶级分类', children: [] as any[] }
+    const topNode = { id: 0, name: t('articleCategoryMgmt.topCategory'), children: [] as any[] }
     return [topNode, ...props.parentOptions]
 })
 
 const rules = computed<FormRules>(() => ({
-    name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }]
+    name: [
+        { required: true, message: t('articleCategoryMgmt.validate.nameRequired'), trigger: 'blur' }
+    ]
 }))
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && props.formData) {
-            Object.assign(form, {
-                id: props.formData.id || undefined,
-                parent_id: props.formData.parent_id ?? 0,
-                name: props.formData.name || '',
-                icon: props.formData.icon || '',
-                sort: props.formData.sort ?? 0,
-                status: props.formData.status ?? 1
-            })
-        }
-    }
-)
-
-const resetForm = () => {
-    formRef.value?.resetFields()
-    Object.assign(form, {
-        id: undefined,
-        parent_id: 0,
-        name: '',
-        icon: '',
-        sort: 0,
-        status: 1
-    })
-}
-
-const handleSubmit = async () => {
-    if (!formRef.value) return
-    await formRef.value.validate()
-
-    submitting.value = true
-    try {
-        if (form.id) {
-            await articleCategoryApi.update(form.id, { ...form })
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            await articleCategoryApi.create({ ...form })
-            ElMessage.success(t('message.createSuccess'))
-        }
-        emit('update:modelValue', false)
-        emit('success')
-    } catch (error: any) {
-        ElMessage.error(error?.message || t('common.error'))
-    } finally {
-        submitting.value = false
-    }
-}
 </script>

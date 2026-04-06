@@ -11,7 +11,10 @@
                         style="width: 140px"
                     >
                         <el-option :label="$t('messageTemplate.sms')" value="sms" />
-                        <el-option :label="$t('messageTemplate.official')" value="wechat_official" />
+                        <el-option
+                            :label="$t('messageTemplate.official')"
+                            value="wechat_official"
+                        />
                         <el-option :label="$t('messageTemplate.miniapp')" value="wechat_mini" />
                     </el-select>
                 </el-form-item>
@@ -36,7 +39,9 @@
                     />
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">{{ $t('common.search') }}</el-button>
+                    <el-button type="primary" @click="handleSearch">{{
+                        $t('common.search')
+                    }}</el-button>
                     <el-button @click="resetSearch">{{ $t('common.reset') }}</el-button>
                 </el-form-item>
             </el-form>
@@ -49,7 +54,11 @@
             </div>
 
             <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('messageTemplate.templateCode')" prop="template_code" width="160" />
+                <el-table-column
+                    :label="$t('messageTemplate.templateCode')"
+                    prop="template_code"
+                    width="160"
+                />
                 <el-table-column :label="$t('messageLog.channel')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag size="small" :type="channelTagType[row.channel]">
@@ -81,36 +90,27 @@
             </el-table>
 
             <el-pagination
-                v-model:current-page="pagination.current_page"
-                v-model:page-size="pagination.per_page"
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.limit"
                 :total="pagination.total"
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getList"
-                @current-change="getList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
     </div>
 </template>
 
 <script setup lang="ts" name="MessageLog">
-import { ElMessage } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { messageLogApi } from '@/api/message'
+import { useListPage } from '@/hooks/useListPage'
 
 const { t } = useI18n()
-
-const searchForm = reactive({
-    channel: '' as string,
-    status: undefined as number | undefined,
-    receiver: ''
-})
-const list = ref<any[]>([])
-const loading = ref(false)
-const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
 
 const channelTextMap = computed<Record<string, string>>(() => ({
     sms: t('messageTemplate.sms'),
@@ -129,56 +129,23 @@ const statusTextMap = computed<Record<number, string>>(() => ({
 }))
 const statusTagType: Record<number, any> = { 0: 'info', 1: 'success', 2: 'danger' }
 
-const getList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {
-            page: pagination.current_page,
-            limit: pagination.per_page
-        }
-        if (searchForm.channel) params.channel = searchForm.channel
-        if (searchForm.status !== undefined) params.status = searchForm.status
-        if (searchForm.receiver?.trim()) params.receiver = searchForm.receiver.trim()
-
-        const res = await messageLogApi.getList(params)
-        list.value = res.data.list
-        Object.assign(pagination, res.data.pagination)
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetSearch = () => {
-    Object.assign(searchForm, { channel: '', status: undefined, receiver: '' })
-    pagination.current_page = 1
-    getList()
-}
-
-onMounted(() => getList())
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange
+} = useListPage<any, { channel: string; status?: number; receiver: string }>({
+    fetchFn: (params) => messageLogApi.getList(params),
+    defaultSearchForm: { channel: '', status: undefined, receiver: '' }
+})
 </script>
 
 <style lang="scss" scoped>
 .message-log {
-    .search-card {
-        margin-bottom: 16px;
-    }
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        .table-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-        }
-    }
-    .pagination {
-        margin-top: 16px;
-        display: flex;
-        justify-content: flex-end;
-    }
+    // 业务特有样式（search-card / table-header / pagination 已在全局）
 }
 </style>

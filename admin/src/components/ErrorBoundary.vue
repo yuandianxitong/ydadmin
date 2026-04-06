@@ -48,7 +48,9 @@ function handleRefresh() {
             <pre v-if="errorInfo.stack" class="error-boundary__stack">{{ errorInfo.stack }}</pre>
             <div class="error-boundary__actions">
                 <el-button @click="handleReload">{{ $t('errorPage.retry') }}</el-button>
-                <el-button type="primary" @click="handleRefresh">{{ $t('errorPage.refreshPage') }}</el-button>
+                <el-button type="primary" @click="handleRefresh">{{
+                    $t('errorPage.refreshPage')
+                }}</el-button>
             </div>
         </div>
     </div>

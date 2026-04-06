@@ -8,7 +8,11 @@
                         <a @click.prevent="navigateTo(-1)">{{ $t('regionMgmt.title') }}</a>
                     </el-breadcrumb-item>
                     <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="item.id">
-                        <a v-if="index < breadcrumbs.length - 1" @click.prevent="navigateTo(index)">{{ item.name }}</a>
+                        <a
+                            v-if="index < breadcrumbs.length - 1"
+                            @click.prevent="navigateTo(index)"
+                            >{{ item.name }}</a
+                        >
                         <span v-else>{{ item.name }}</span>
                     </el-breadcrumb-item>
                 </el-breadcrumb>
@@ -39,32 +43,25 @@
                     <el-tag v-if="currentParentId > 0" type="info" size="small" class="level-tag">
                         {{ levelTextMap[currentLevel] || `Level ${currentLevel}` }}
                     </el-tag>
-                    {{ currentParentId === 0 ? $t('regionMgmt.title') : breadcrumbs[breadcrumbs.length - 1]?.name }}
+                    {{
+                        currentParentId === 0
+                            ? $t('regionMgmt.title')
+                            : breadcrumbs[breadcrumbs.length - 1]?.name
+                    }}
                 </div>
                 <div class="table-actions">
-                    <el-button
-                        v-if="currentParentId > 0"
-                        @click="goBack"
-                    >
+                    <el-button v-if="currentParentId > 0" @click="goBack">
                         <el-icon><Back /></el-icon>
                         返回上级
                     </el-button>
-                    <el-button
-                        v-has-perm="['region.create']"
-                        type="primary"
-                        @click="handleAdd"
-                    >
+                    <el-button v-has-perm="['region.create']" type="primary" @click="handleAdd">
                         <el-icon><Plus /></el-icon>
                         {{ $t('regionMgmt.addRegion') }}
                     </el-button>
                 </div>
             </div>
 
-            <el-table
-                v-loading="loading"
-                :data="tableData"
-                border
-            >
+            <el-table v-loading="loading" :data="list" border>
                 <el-table-column :label="$t('regionMgmt.regionName')" prop="name" min-width="200" />
 
                 <el-table-column :label="$t('regionMgmt.regionCode')" prop="code" width="150" />
@@ -89,12 +86,7 @@
 
                 <el-table-column :label="$t('common.operation')" width="320" fixed="right">
                     <template #default="{ row }">
-                        <el-button
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleDrillDown(row)"
-                        >
+                        <el-button type="primary" size="small" text @click="handleDrillDown(row)">
                             下级管理
                         </el-button>
                         <el-button
@@ -120,7 +112,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.name)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -129,32 +121,31 @@
             </el-table>
 
             <!-- 分页 -->
-            <div class="pagination-wrap">
-                <el-pagination
-                    v-model:current-page="pagination.page"
-                    v-model:page-size="pagination.pageSize"
-                    :total="pagination.total"
-                    :page-sizes="[20, 50, 100]"
-                    layout="total, sizes, prev, pager, next, jumper"
-                    background
-                    @size-change="fetchList"
-                    @current-change="fetchList"
-                />
-            </div>
+            <el-pagination
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.limit"
+                :total="pagination.total"
+                :page-sizes="[20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                class="pagination"
+                background
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
+            />
         </el-card>
 
         <!-- 表单弹窗 -->
-        <RegionForm v-model="formVisible" :form-data="formData" @success="fetchList" />
+        <RegionForm v-model="formVisible" :form-data="formData" @success="getList" />
     </div>
 </template>
 
 <script setup lang="ts" name="RegionList">
 import { Back, Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { regionApi } from '@/api/region'
+import { useListPage } from '@/hooks/useListPage'
 
 import RegionForm from './components/RegionForm.vue'
 
@@ -166,66 +157,54 @@ interface BreadcrumbItem {
     level: number
 }
 
-const searchForm = reactive({ keyword: '' })
-const tableData = ref<any[]>([])
-const loading = ref(false)
-
 const currentParentId = ref(0)
 const currentLevel = ref(0)
 const breadcrumbs = ref<BreadcrumbItem[]>([])
 
-const pagination = reactive({
-    page: 1,
-    pageSize: 20,
-    total: 0
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete
+} = useListPage<any, { keyword: string }>({
+    fetchFn: (params) => {
+        const query: Record<string, any> = {
+            page_no: params.page,
+            page_size: params.limit,
+            parent_id: currentParentId.value
+        }
+        if (params.keyword?.trim()) {
+            query.keyword = params.keyword.trim()
+        }
+        return regionApi.getList(query)
+    },
+    deleteFn: (id) => regionApi.delete(id),
+    defaultSearchForm: { keyword: '' }
 })
 
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
 
-const levelTextMap = computed(() => ({
-    1: t('regionMgmt.levelOptions.province'),
-    2: t('regionMgmt.levelOptions.city'),
-    3: t('regionMgmt.levelOptions.district'),
-    4: t('regionMgmt.levelOptions.street')
-} as Record<number, string>))
+const levelTextMap = computed(
+    () =>
+        ({
+            1: t('regionMgmt.levelOptions.province'),
+            2: t('regionMgmt.levelOptions.city'),
+            3: t('regionMgmt.levelOptions.district'),
+            4: t('regionMgmt.levelOptions.street')
+        }) as Record<number, string>
+)
 const levelTagMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
     1: 'primary',
     2: 'success',
     3: 'warning',
     4: 'info'
-}
-
-const fetchList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {
-            page_no: pagination.page,
-            page_size: pagination.pageSize,
-            parent_id: currentParentId.value
-        }
-        if (searchForm.keyword?.trim()) {
-            params.keyword = searchForm.keyword.trim()
-        }
-        const res = await regionApi.getList(params)
-        tableData.value = res.data.list || []
-        pagination.total = res.data.pagination?.total || 0
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
-
-const handleSearch = () => {
-    pagination.page = 1
-    fetchList()
-}
-
-const resetSearch = () => {
-    searchForm.keyword = ''
-    pagination.page = 1
-    fetchList()
 }
 
 const handleDrillDown = (row: any) => {
@@ -234,7 +213,7 @@ const handleDrillDown = (row: any) => {
     currentLevel.value = row.level
     searchForm.keyword = ''
     pagination.page = 1
-    fetchList()
+    getList()
 }
 
 const navigateTo = (index: number) => {
@@ -252,7 +231,7 @@ const navigateTo = (index: number) => {
     }
     searchForm.keyword = ''
     pagination.page = 1
-    fetchList()
+    getList()
 }
 
 const goBack = () => {
@@ -268,18 +247,31 @@ const goBack = () => {
     }
     searchForm.keyword = ''
     pagination.page = 1
-    fetchList()
+    getList()
 }
 
 const handleAdd = () => {
     const level = currentParentId.value === 0 ? 1 : currentLevel.value + 1
-    const parentName = breadcrumbs.value.length > 0 ? breadcrumbs.value[breadcrumbs.value.length - 1].name : ''
-    formData.value = { parent_id: currentParentId.value, parent_name: parentName, level, sort: 0, status: 1 }
+    const parentName =
+        breadcrumbs.value.length > 0 ? breadcrumbs.value[breadcrumbs.value.length - 1].name : ''
+    formData.value = {
+        parent_id: currentParentId.value,
+        parent_name: parentName,
+        level,
+        sort: 0,
+        status: 1
+    }
     formVisible.value = true
 }
 
 const handleAddChild = (row: any) => {
-    formData.value = { parent_id: row.id, parent_name: row.name, level: (row.level || 0) + 1, sort: 0, status: 1 }
+    formData.value = {
+        parent_id: row.id,
+        parent_name: row.name,
+        level: (row.level || 0) + 1,
+        sort: 0,
+        status: 1
+    }
     formVisible.value = true
 }
 
@@ -287,32 +279,11 @@ const handleEdit = (row: any) => {
     formData.value = { ...row }
     formVisible.value = true
 }
-
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.name }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await regionApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        fetchList()
-    } catch (error) {
-        if (error !== 'cancel') ElMessage.error(t('common.error'))
-    }
-}
-
-onMounted(() => {
-    fetchList()
-})
 </script>
 
 <style lang="scss" scoped>
 .region-container {
     .search-card {
-        margin-bottom: 16px;
-
         .breadcrumb-bar {
             display: flex;
             justify-content: space-between;
@@ -343,30 +314,11 @@ onMounted(() => {
 
     .table-card {
         .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
             .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
                 display: flex;
                 align-items: center;
                 gap: 8px;
             }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-
-        .pagination-wrap {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 16px;
         }
     }
 }

@@ -4,7 +4,7 @@
         :title="isEdit ? $t('admin.editAdmin') : $t('admin.addAdmin')"
         width="680px"
         :close-on-click-modal="false"
-        @close="handleClose"
+        @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
             <el-row :gutter="16">
@@ -20,7 +20,10 @@
 
                 <el-col :span="12">
                     <el-form-item :label="$t('admin.nickname')" prop="nickname">
-                        <el-input v-model="form.nickname" :placeholder="$t('admin.nicknamePlaceholder')" />
+                        <el-input
+                            v-model="form.nickname"
+                            :placeholder="$t('admin.nicknamePlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -28,13 +31,19 @@
             <el-row :gutter="16">
                 <el-col :span="12">
                     <el-form-item :label="$t('admin.email')" prop="email">
-                        <el-input v-model="form.email" :placeholder="$t('admin.emailPlaceholder')" />
+                        <el-input
+                            v-model="form.email"
+                            :placeholder="$t('admin.emailPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
 
                 <el-col :span="12">
                     <el-form-item :label="$t('admin.mobile')" prop="mobile">
-                        <el-input v-model="form.mobile" :placeholder="$t('admin.mobilePlaceholder')" />
+                        <el-input
+                            v-model="form.mobile"
+                            :placeholder="$t('admin.mobilePlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -81,7 +90,10 @@
 
                 <el-col :span="12">
                     <el-form-item :label="$t('admin.position')" prop="position">
-                        <el-input v-model="form.position" :placeholder="$t('admin.positionPlaceholder')" />
+                        <el-input
+                            v-model="form.position"
+                            :placeholder="$t('admin.positionPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -134,7 +146,7 @@
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+                <el-button type="primary" :loading="submitting" @click="handleSubmit">
                     {{ $t('common.confirm') }}
                 </el-button>
             </span>
@@ -144,12 +156,13 @@
 
 <script setup lang="ts" name="AdminForm">
 import { Plus } from '@element-plus/icons-vue'
-import type { UploadProps } from 'element-plus'
-import { ElForm, ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules, UploadProps } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { adminApi } from '@/api/admin'
+import { useFormDialog } from '@/hooks/useFormDialog'
 import { useUserStore } from '@/store'
 import useAppStore from '@/store/modules/app.store'
 import type { AdminInfo, AdminReq } from '@/types/api'
@@ -173,32 +186,66 @@ const { t } = useI18n()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-// 表单引用
-const formRef = ref<InstanceType<typeof ElForm>>()
-
-// 弹窗显示状态
-const visible = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
+// 表单内部完整字段（包含 confirmPassword 仅做前端校验）
+type AdminFormData = AdminReq & {
+    id?: number
+    confirmPassword?: string
+}
 
 // 是否编辑模式
 const isEdit = computed(() => !!props.formData.id)
 
-// 表单数据
-const form = reactive<AdminReq & { confirmPassword?: string }>({
-    username: '',
-    email: '',
-    mobile: '',
-    password: '',
-    confirmPassword: '',
-    nickname: '',
-    avatar: '',
-    department_id: null,
-    position: '',
-    status: 1,
-    role_ids: []
+// 把外部 formData 中的 roles[] 转成 role_ids[]，并清空密码字段
+const sourceData = computed<Partial<AdminFormData> | undefined>(() => {
+    const data = props.formData
+    if (!data || !data.id) return undefined
+    return {
+        id: data.id,
+        username: data.username || '',
+        email: data.email || '',
+        mobile: data.mobile || '',
+        password: '',
+        confirmPassword: '',
+        nickname: data.nickname || '',
+        avatar: data.avatar || '',
+        department_id: data.department_id || null,
+        position: data.position || '',
+        status: data.status ?? 1,
+        role_ids: data.roles?.map((role) => role.id) || []
+    }
 })
+
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<AdminFormData>({
+        defaultForm: {
+            id: undefined,
+            username: '',
+            email: '',
+            mobile: '',
+            password: '',
+            confirmPassword: '',
+            nickname: '',
+            avatar: '',
+            department_id: null,
+            position: '',
+            status: 1,
+            role_ids: []
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        // 创建时携带 password，去除 confirmPassword
+        createFn: (data) => {
+            const { confirmPassword: _c, id: _id, ...payload } = data
+            return adminApi.createAdmin(payload)
+        },
+        // 编辑时去除 password / confirmPassword（重置密码走单独接口）
+        updateFn: (id, data) => {
+            const { confirmPassword: _c, password: _p, id: _id, ...payload } = data
+            return adminApi.updateAdmin(id, payload)
+        },
+        sourceData: () => sourceData.value
+    })
 
 // 上传请求头
 const uploadHeaders = computed(() => ({
@@ -206,7 +253,7 @@ const uploadHeaders = computed(() => ({
 }))
 
 // 表单验证规则
-const rules = computed(() => ({
+const rules = computed<FormRules>(() => ({
     username: [
         { required: true, message: t('admin.validate.usernameRequired'), trigger: 'blur' },
         { min: 3, max: 20, message: t('admin.validate.usernameLength'), trigger: 'blur' },
@@ -216,7 +263,9 @@ const rules = computed(() => ({
         { required: true, message: t('admin.validate.emailRequired'), trigger: 'blur' },
         { type: 'email' as const, message: t('admin.validate.emailFormat'), trigger: 'blur' }
     ],
-    mobile: [{ pattern: /^1[3-9]\d{9}$/, message: t('admin.validate.mobileFormat'), trigger: 'blur' }],
+    mobile: [
+        { pattern: /^1[3-9]\d{9}$/, message: t('admin.validate.mobileFormat'), trigger: 'blur' }
+    ],
     password: isEdit.value
         ? []
         : [
@@ -244,32 +293,6 @@ const rules = computed(() => ({
     ]
 }))
 
-// 提交加载状态
-const submitLoading = ref(false)
-
-// 监听表单数据变化
-watch(
-    () => props.formData,
-    (newData) => {
-        if (newData) {
-            Object.assign(form, {
-                username: newData.username || '',
-                email: newData.email || '',
-                mobile: newData.mobile || '',
-                password: '',
-                confirmPassword: '',
-                nickname: newData.nickname || '',
-                avatar: newData.avatar || '',
-                department_id: newData.department_id || null,
-                position: newData.position || '',
-                status: newData.status || 1,
-                role_ids: newData.roles?.map((role) => role.id) || []
-            })
-        }
-    },
-    { deep: true, immediate: true }
-)
-
 // 头像上传成功
 const handleAvatarSuccess: UploadProps['onSuccess'] = (response) => {
     if (response.code === 200) {
@@ -294,57 +317,6 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
         return false
     }
     return true
-}
-
-// 提交表单
-const handleSubmit = async () => {
-    if (!formRef.value) return
-
-    try {
-        await formRef.value.validate()
-
-        submitLoading.value = true
-
-        // 准备提交数据
-        const submitData: AdminReq = {
-            username: form.username,
-            email: form.email,
-            mobile: form.mobile,
-            nickname: form.nickname,
-            avatar: form.avatar,
-            department_id: form.department_id,
-            position: form.position,
-            status: form.status,
-            role_ids: form.role_ids
-        }
-
-        if (!isEdit.value) {
-            submitData.password = form.password
-        }
-
-        if (isEdit.value && props.formData.id) {
-            // 编辑
-            await adminApi.updateAdmin(props.formData.id, submitData)
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            // 新增
-            await adminApi.createAdmin(submitData)
-            ElMessage.success(t('message.createSuccess'))
-        }
-
-        emit('success')
-        handleClose()
-    } catch (error) {
-        console.error('提交失败:', error)
-    } finally {
-        submitLoading.value = false
-    }
-}
-
-// 关闭弹窗
-const handleClose = () => {
-    formRef.value?.resetFields()
-    visible.value = false
 }
 </script>
 

@@ -5,7 +5,9 @@ export const articleCategoryApi = {
         return myRequest.get('/adminapi/article-category/list', { params })
     },
     getOptions(excludeId?: number) {
-        return myRequest.get('/adminapi/article-category/options', { params: { exclude_id: excludeId } })
+        return myRequest.get('/adminapi/article-category/options', {
+            params: { exclude_id: excludeId }
+        })
     },
     create(data: any) {
         return myRequest.post('/adminapi/article-category', data)
@@ -18,5 +20,5 @@ export const articleCategoryApi = {
     },
     updateStatus(id: number, status: number) {
         return myRequest.put(`/adminapi/article-category/${id}/status`, { status })
-    },
+    }
 }

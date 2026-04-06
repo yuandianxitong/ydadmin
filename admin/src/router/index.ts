@@ -16,15 +16,22 @@ export function getModulesKey(): string[] {
     )
 }
 
+/**
+ * 动态加载菜单对应的 .vue 组件
+ *
+ * 找不到时返回 404 组件而不是 RouterView（空白透传），让菜单配置错误可被立刻发现。
+ */
 export function loadRouteView(component: string) {
-    try {
-        const key = Object.keys(modules).find((key) => key.includes(`/${component}.vue`))
-        if (key) return modules[key]
-        throw new Error(`Component not found: ${component}, ensure src/views/${component}.vue exists`)
-    } catch (error) {
-        console.error(error)
-        return RouterView
-    }
+    const key = Object.keys(modules).find((key) => key.includes(`/${component}.vue`))
+    if (key) return modules[key]
+
+    console.error(
+        `[Router] Component not found: ${component}，请确认 src/views/${component}.vue 是否存在。`
+    )
+
+    // 降级到 404 页面，避免用户看到纯空白
+    const notFoundKey = Object.keys(modules).find((k) => k.endsWith('/error/404.vue'))
+    return notFoundKey ? modules[notFoundKey] : RouterView
 }
 
 export function filterAsyncRoutes(routes: MenuInfo[], firstRoute = true): RouteRecordRaw[] {

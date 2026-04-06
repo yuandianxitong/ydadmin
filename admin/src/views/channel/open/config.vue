@@ -9,7 +9,12 @@
                 </div>
             </template>
             <el-alert type="info" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>{{ t('channel.open.wechatOpenAlert') }}<el-link type="primary" href="https://open.weixin.qq.com" target="_blank">{{ t('channel.open.wechatOpenTitle') }}</el-link></template>
+                <template #title
+                    >{{ t('channel.open.wechatOpenAlert')
+                    }}<el-link type="primary" href="https://open.weixin.qq.com" target="_blank">{{
+                        t('channel.open.wechatOpenTitle')
+                    }}</el-link></template
+                >
             </el-alert>
             <el-form
                 :model="formData"
@@ -49,7 +54,9 @@
                 <el-form-item :label="t('channel.open.callbackDomain')">
                     <el-input :model-value="callbackDomain" disabled>
                         <template #append>
-                            <el-button @click="copyText(callbackDomain)">{{ t('channel.open.copyBtn') }}</el-button>
+                            <el-button @click="copyText(callbackDomain)">{{
+                                t('channel.open.copyBtn')
+                            }}</el-button>
                         </template>
                     </el-input>
                     <div class="form-tip">{{ t('channel.open.callbackDomainTip') }}</div>
@@ -59,7 +66,9 @@
 
         <!-- 保存按钮 -->
         <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">{{ t('channel.open.saveBtn') }}</el-button>
+            <el-button type="primary" :loading="loading" @click="handleSave">{{
+                t('channel.open.saveBtn')
+            }}</el-button>
         </div>
     </div>
 </template>
@@ -79,7 +88,7 @@ const appStore = useAppStore()
 
 const formData = reactive<Record<string, string>>({
     wechat_open_app_id: '',
-    wechat_open_app_secret: '',
+    wechat_open_app_secret: ''
 })
 
 const callbackDomain = computed(() => {
@@ -119,7 +128,7 @@ const handleSave = async () => {
         loading.value = true
         const configs = Object.entries(formData).map(([key, value]) => ({
             config_key: key,
-            config_value: value,
+            config_value: value
         }))
         await batchUpdateConfigs(configs)
         ElMessage.success(t('channel.open.saveSuccess'))

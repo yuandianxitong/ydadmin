@@ -91,7 +91,8 @@ export default {
         quickFill: 'Quick Fill',
         reg: 'Register',
         title: 'Welcome to YuanDian Admin',
-        subtitle: 'A modern, efficient, and ready-to-use admin solution to rapidly build your business system',
+        subtitle:
+            'A modern, efficient, and ready-to-use admin solution to rapidly build your business system',
         welcome: 'Welcome',
         enterCredentials: 'Enter your credentials',
         feature1: 'Vue 3 + TypeScript modern stack',
@@ -264,7 +265,12 @@ export default {
         assignPermission: 'Assign Permissions',
         systemRole: 'System Role',
         lastLogin: 'Last Login',
-        noRole: 'No role'
+        noRole: 'No role',
+        userNickname: 'User Nickname',
+        to: 'To',
+        startDate: 'Start Date',
+        endDate: 'End Date',
+        detail: 'Detail'
     },
     // Messages
     message: {
@@ -296,7 +302,9 @@ export default {
         imageOnly: 'Only image files are allowed!',
         fileSizeLimit: 'File size cannot exceed 2MB!',
         deleteConfirmName: 'Are you sure you want to delete "{name}"? This cannot be undone!',
-        batchDeleteConfirmCount: 'Are you sure you want to delete the selected {count} {type}? This cannot be undone!'
+        batchDeleteConfirmCount:
+            'Are you sure you want to delete the selected {count} {type}? This cannot be undone!',
+        pleaseSelect: 'Please select at least one item'
     },
     // Admin management
     admin: {
@@ -683,7 +691,8 @@ export default {
             storage_qiniu_access_key: 'Qiniu Cloud AccessKey',
             storage_qiniu_secret_key: 'Qiniu Cloud SecretKey',
             storage_qiniu_bucket: 'Qiniu Cloud storage space name',
-            storage_qiniu_domain: 'Domain bound to storage space (with protocol, e.g. https://cdn.example.com)',
+            storage_qiniu_domain:
+                'Domain bound to storage space (with protocol, e.g. https://cdn.example.com)',
             wechat_official_name: 'WeChat Official Account name',
             wechat_official_original_id: 'Original ID, e.g. gh_xxxxxxxx',
             wechat_official_qrcode: 'QR code image, recommended 200x200',
@@ -704,7 +713,12 @@ export default {
         options: {
             smtp_encryption: { ssl: 'SSL', tls: 'TLS', none: 'No Encryption' },
             sms_driver: { aliyun: 'Alibaba Cloud', tencent: 'Tencent Cloud' },
-            storage_driver: { local: 'Local Storage', aliyun: 'Alibaba Cloud OSS', tencent: 'Tencent Cloud COS', qiniu: 'Qiniu Cloud' },
+            storage_driver: {
+                local: 'Local Storage',
+                aliyun: 'Alibaba Cloud OSS',
+                tencent: 'Tencent Cloud COS',
+                qiniu: 'Qiniu Cloud'
+            },
             wechat_mini_msg_format: { JSON: 'JSON', XML: 'XML' }
         }
     },
@@ -952,7 +966,7 @@ export default {
             systemConfig: 'Settings',
             loginLog: 'Login Logs',
             article: 'Articles',
-            announcement: 'Notices',
+            announcement: 'Notices'
         },
         activeRanking: 'Active Ranking',
         rankPeriod: { day: 'Day', week: 'Week', month: 'Month' },
@@ -967,7 +981,7 @@ export default {
         backendFramework: 'Backend',
         frontendFramework: 'Frontend',
         uiLibrary: 'UI Library',
-        buildTool: 'Build Tool',
+        buildTool: 'Build Tool'
     },
     // Message template
     messageTemplate: {
@@ -1030,7 +1044,8 @@ export default {
     },
     // Error pages
     errorPage: {
-        noPermission: 'Your account does not have sufficient permissions. Please contact the administrator.',
+        noPermission:
+            'Your account does not have sufficient permissions. Please contact the administrator.',
         notFound: 'Oops! The page you visited does not exist.',
         serverError: 'Something went wrong on our end. Please try again later.',
         countdownBack: 'Returning in {second} seconds',
@@ -1058,9 +1073,6 @@ export default {
         colorPicker: {
             reset: 'Reset'
         },
-        themePicker: {
-            label: 'Theme'
-        },
         copy: {
             success: 'Copied successfully',
             failed: 'Copy failed'
@@ -1082,7 +1094,8 @@ export default {
             appIdPlaceholder: 'WeChat Official Account AppID (Developer ID)',
             appSecretPlaceholder: 'WeChat Official Account AppSecret (Developer Secret)',
             serverConfig: 'Server Configuration',
-            serverAlertTitle: 'Please fill in the server URL below in WeChat Official Platform > Development > Basic Configuration',
+            serverAlertTitle:
+                'Please fill in the server URL below in WeChat Official Platform > Development > Basic Configuration',
             serverUrlLabel: 'Server URL: ',
             tokenPlaceholder: 'Message verification Token, must match the platform',
             aesKeyPlaceholder: 'Message encryption key, 43 characters',
@@ -1101,7 +1114,8 @@ export default {
             appIdPlaceholder: 'WeChat Mini Program AppID',
             appSecretPlaceholder: 'WeChat Mini Program AppSecret',
             messagePush: 'Message Push Configuration',
-            serverAlertTitle: 'Please fill in the server URL below in WeChat Mini Program Console > Development > Settings > Message Push',
+            serverAlertTitle:
+                'Please fill in the server URL below in WeChat Mini Program Console > Development > Settings > Message Push',
             serverUrlLabel: 'Server URL: ',
             tokenPlaceholder: 'Message push verification Token',
             aesKeyPlaceholder: 'Message push encryption key, 43 characters',
@@ -1137,7 +1151,8 @@ export default {
             title: 'Custom Menu',
             deleteMenu: 'Delete Menu',
             publishMenu: 'Publish Menu',
-            alertTip: 'Maximum 3 top-level menus, each with up to 5 sub-menus. Changes take effect in about 5 minutes after publishing.',
+            alertTip:
+                'Maximum 3 top-level menus, each with up to 5 sub-menus. Changes take effect in about 5 minutes after publishing.',
             menuPrefix: 'Menu ',
             subMenuPrefix: 'Sub-menu ',
             addSubMenu: 'Add Sub-menu',
@@ -1162,11 +1177,13 @@ export default {
         },
         open: {
             wechatOpenTitle: 'WeChat Open Platform',
-            wechatOpenAlert: 'Used for PC-side WeChat QR login. Create a "Website Application" on WeChat Open Platform and get it approved.',
+            wechatOpenAlert:
+                'Used for PC-side WeChat QR login. Create a "Website Application" on WeChat Open Platform and get it approved.',
             appIdPlaceholder: 'Enter WeChat Open Platform Website App AppID',
             appSecretPlaceholder: 'Enter WeChat Open Platform Website App AppSecret',
             callbackTitle: 'Callback Configuration',
-            callbackAlert: 'Configure the following callback domain in WeChat Open Platform > Website Application > Authorized Redirect Domain',
+            callbackAlert:
+                'Configure the following callback domain in WeChat Open Platform > Website Application > Authorized Redirect Domain',
             callbackDomain: 'Authorized Redirect Domain',
             callbackDomainTip: 'Does not include http:// or https:// prefix',
             copyBtn: 'Copy',
@@ -1274,16 +1291,6 @@ export default {
             afterPoints: 'Points After',
             operator: 'Operator',
             time: 'Time'
-        },
-        // Common
-        common: {
-            userNickname: 'User Nickname',
-            remark: 'Remark',
-            search: 'Search',
-            reset: 'Reset',
-            to: 'To',
-            startDate: 'Start Date',
-            endDate: 'End Date'
         }
     },
     // Announcement Management
@@ -1308,6 +1315,92 @@ export default {
         validate: {
             titleRequired: 'Please enter title',
             contentRequired: 'Please enter content'
+        }
+    },
+    // Article Category Management
+    articleCategoryMgmt: {
+        title: 'Article Category',
+        categoryName: 'Category Name',
+        namePlaceholder: 'Please enter category name',
+        icon: 'Icon',
+        iconPlaceholder: 'Please enter icon name',
+        parentCategory: 'Parent Category',
+        parentPlaceholder: 'Please select parent category',
+        topCategory: 'Top Category',
+        addCategory: 'Add Category',
+        editCategory: 'Edit Category',
+        validate: {
+            nameRequired: 'Please enter category name'
+        }
+    },
+    // Article Management
+    articleMgmt: {
+        title: 'Article List',
+        articleTitle: 'Article Title',
+        titlePlaceholder: 'Please enter article title',
+        category: 'Category',
+        categoryPlaceholder: 'Please select category',
+        cover: 'Cover',
+        tags: 'Tags',
+        addTag: 'Add Tag',
+        viewCount: 'Views',
+        publishAt: 'Publish Time',
+        publishTimePlaceholder: 'Please select publish time',
+        author: 'Author',
+        authorPlaceholder: 'Please enter author',
+        summary: 'Summary',
+        summaryPlaceholder: 'Please enter summary',
+        content: 'Content',
+        published: 'Published',
+        draft: 'Draft',
+        addArticle: 'Add Article',
+        editArticle: 'Edit Article',
+        selectCategory: 'Please select category',
+        coverUploadTip: 'Recommended 800x450, jpg/png/gif, max 2MB',
+        coverAlt: 'Cover',
+        coverUploadSuccess: 'Cover uploaded successfully',
+        uploadFailed: 'Upload failed',
+        onlyImageAllowed: 'Only image files allowed',
+        imageSizeLimit: 'Image size must be less than 2MB',
+        validate: {
+            titleRequired: 'Please enter article title'
+        }
+    },
+    // Feedback Management
+    feedbackMgmt: {
+        title: 'Feedback Management',
+        type: 'Feedback Type',
+        typePlaceholder: 'All types',
+        statusPlaceholder: 'All statuses',
+        content: 'Content',
+        contact: 'Contact',
+        submittedAt: 'Submitted At',
+        reply: 'Reply',
+        close: 'Close',
+        replyDialog: 'Reply to Feedback',
+        detailDialog: 'Feedback Detail',
+        feedbackId: 'Feedback ID',
+        replyContent: 'Reply Content',
+        repliedAt: 'Replied At',
+        replyPlaceholder: 'Please enter reply content',
+        submitReply: 'Submit Reply',
+        replyContentRequired: 'Please enter reply content',
+        replySuccess: 'Reply successfully',
+        closeConfirm: 'Are you sure to close this feedback?',
+        closeSuccess: 'Closed',
+        deleteConfirm: 'Are you sure to delete this feedback? This operation cannot be undone.',
+        unknown: 'Unknown',
+        types: {
+            suggestion: 'Suggestion',
+            bug: 'Bug',
+            complaint: 'Complaint',
+            other: 'Other'
+        },
+        statusTexts: {
+            pending: 'Pending',
+            processing: 'Processing',
+            replied: 'Replied',
+            closed: 'Closed'
         }
     },
     // Agreement Management

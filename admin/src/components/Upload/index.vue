@@ -43,7 +43,6 @@
 <script lang="ts">
 import type { ElUpload } from 'element-plus'
 import { computed, defineComponent, ref, shallowRef } from 'vue'
-
 import { useI18n } from 'vue-i18n'
 
 import { appConfig } from '@/constants/appSetting'
@@ -87,7 +86,7 @@ export default defineComponent({
         const uploadRefs = shallowRef<InstanceType<typeof ElUpload>>()
         const action = ref(`${appConfig.baseUrl}/${appConfig.urlPrefix}/upload/${props.type}`)
         const headers = computed(() => ({
-            Authorization: `Bearer ${userStore.token}`,
+            Authorization: `Bearer ${userStore.token}`
         }))
         const visible = ref(false)
         const fileList = ref<any[]>([])

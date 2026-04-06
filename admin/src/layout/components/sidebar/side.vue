@@ -12,7 +12,10 @@
                 ]"
                 @click="onFirstSelect(item.path)"
             >
-                <el-tooltip :content="translateRouteTitle(item.meta?.title, item.name)" placement="right">
+                <el-tooltip
+                    :content="translateRouteTitle(item.meta?.title, item.name)"
+                    placement="right"
+                >
                     <Icon
                         :name="item.meta?.icon ?? ''"
                         :size="item.meta?.icon?.startsWith('i-svg:') ? 20 : 22"
@@ -35,7 +38,9 @@
                 size="18"
                 class="text-[var(--el-color-primary)]"
             />
-            <span>{{ translateRouteTitle(selectedFirstRoute.meta?.title, selectedFirstRoute.name) }}</span>
+            <span>{{
+                translateRouteTitle(selectedFirstRoute.meta?.title, selectedFirstRoute.name)
+            }}</span>
         </div>
         <el-scrollbar class="flex-1">
             <el-menu
@@ -55,7 +60,9 @@
                         class="flex items-center"
                     >
                         <Icon v-if="item.meta?.icon" :name="item.meta.icon" size="20" />
-                        <span class="ml-2">{{ translateRouteTitle(item.meta?.title, item.name) }}</span>
+                        <span class="ml-2">{{
+                            translateRouteTitle(item.meta?.title, item.name)
+                        }}</span>
                     </el-menu-item>
                     <el-sub-menu
                         v-else
@@ -64,7 +71,9 @@
                     >
                         <template #title>
                             <Icon v-if="item.meta?.icon" :name="item.meta.icon" size="20" />
-                            <span class="ml-2">{{ translateRouteTitle(item.meta?.title, item.name) }}</span>
+                            <span class="ml-2">{{
+                                translateRouteTitle(item.meta?.title, item.name)
+                            }}</span>
                         </template>
                         <el-menu-item
                             v-for="sub in item.children"

@@ -1,5 +1,5 @@
 import type { App, DirectiveBinding } from 'vue'
-import { nextTick, watch } from 'vue'
+import { watch } from 'vue'
 
 import { useUserStore } from '@/store'
 
@@ -16,45 +16,39 @@ function checkPermission(permissions: string | string[], userStore: any): boolea
     }
 }
 
-// 权限指令实现
+/**
+ * 无权限时直接从 DOM 移除元素（而不是 display:none）
+ *
+ * 理由：display:none 元素在浏览器 devtools 里仍然可见，
+ * 按钮 HTML 对没有权限的用户是暴露的。直接 remove() 更符合安全直觉。
+ */
+function removeElement(el: HTMLElement) {
+    if (el.parentNode) {
+        el.parentNode.removeChild(el)
+    }
+}
+
+// 权限指令实现（OR 关系）
 const permission = {
     mounted(el: HTMLElement, binding: DirectiveBinding) {
         const userStore = useUserStore()
-        const apply = () => {
-            const ok = checkPermission(binding.value, userStore)
-            if (!ok) {
-                el.style.display = 'none'
-                el.setAttribute('data-permission-hidden', 'true')
-            } else {
-                el.style.display = ''
-                el.removeAttribute('data-permission-hidden')
-            }
+        if (!checkPermission(binding.value, userStore)) {
+            removeElement(el)
+            return
         }
 
-        // 首次应用
-        apply()
-
-        // 监听权限变化，动态更新
+        // 已有权限：监听权限变化，如果后续被撤销则移除元素
         const stop = watch(
             () => userStore.permissions,
             () => {
-                apply()
+                if (!checkPermission(binding.value, userStore)) {
+                    removeElement(el)
+                    stop()
+                }
             },
             { deep: true }
         )
         ;(el as any).__permStop = stop
-    },
-
-    updated(el: HTMLElement, binding: DirectiveBinding) {
-        const userStore = useUserStore()
-        const ok = checkPermission(binding.value, userStore)
-        if (!ok) {
-            el.style.display = 'none'
-            el.setAttribute('data-permission-hidden', 'true')
-        } else {
-            el.style.display = ''
-            el.removeAttribute('data-permission-hidden')
-        }
     },
 
     unmounted(el: HTMLElement) {
@@ -64,41 +58,28 @@ const permission = {
     }
 }
 
-// 严格权限指令（需要满足所有权限，AND关系）
+// 严格权限指令（AND 关系：需要满足所有权限）
 const strictPermission = {
     mounted(el: HTMLElement, binding: DirectiveBinding) {
         const userStore = useUserStore()
         const permissions = Array.isArray(binding.value) ? binding.value : [binding.value]
-        const apply = () => {
-            const ok = userStore.hasAllPermissions(permissions)
-            if (!ok) {
-                el.style.display = 'none'
-                el.setAttribute('data-permission-hidden', 'true')
-            } else {
-                el.style.display = ''
-                el.removeAttribute('data-permission-hidden')
-            }
+
+        if (!userStore.hasAllPermissions(permissions)) {
+            removeElement(el)
+            return
         }
-        apply()
+
         const stop = watch(
             () => userStore.permissions,
-            () => apply(),
+            () => {
+                if (!userStore.hasAllPermissions(permissions)) {
+                    removeElement(el)
+                    stop()
+                }
+            },
             { deep: true }
         )
         ;(el as any).__permAllStop = stop
-    },
-
-    updated(el: HTMLElement, binding: DirectiveBinding) {
-        const userStore = useUserStore()
-        const permissions = Array.isArray(binding.value) ? binding.value : [binding.value]
-        const ok = userStore.hasAllPermissions(permissions)
-        if (!ok) {
-            el.style.display = 'none'
-            el.setAttribute('data-permission-hidden', 'true')
-        } else {
-            el.style.display = ''
-            el.removeAttribute('data-permission-hidden')
-        }
     },
 
     unmounted(el: HTMLElement) {

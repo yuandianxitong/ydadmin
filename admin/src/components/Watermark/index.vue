@@ -1,5 +1,5 @@
 <template>
-    <div class="watermark-wrapper" ref="wrapperRef">
+    <div ref="wrapperRef" class="watermark-wrapper">
         <slot />
         <div class="watermark-layer" :style="watermarkStyle" />
     </div>
@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
     color: 'rgba(0, 0, 0, 0.08)',
     rotate: -22,
     gap: 100,
-    zIndex: 9,
+    zIndex: 9
 })
 
 const watermarkUrl = ref('')
@@ -61,7 +61,7 @@ const watermarkStyle = computed(() => ({
     pointerEvents: 'none' as const,
     backgroundImage: watermarkUrl.value ? `url(${watermarkUrl.value})` : 'none',
     backgroundRepeat: 'repeat',
-    zIndex: props.zIndex,
+    zIndex: props.zIndex
 }))
 
 onMounted(generateWatermark)

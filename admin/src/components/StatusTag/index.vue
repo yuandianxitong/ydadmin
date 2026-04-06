@@ -23,7 +23,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     effect: 'light',
     size: 'default',
-    round: false,
+    round: false
 })
 
 // Default status mapping
@@ -31,7 +31,7 @@ const defaultMap: Record<string | number, StatusConfig> = {
     0: { label: '禁用', type: 'danger' },
     1: { label: '启用', type: 'success' },
     2: { label: '待审核', type: 'warning' },
-    3: { label: '已驳回', type: 'info' },
+    3: { label: '已驳回', type: 'info' }
 }
 
 const config = computed<StatusConfig>(() => {

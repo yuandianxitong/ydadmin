@@ -310,11 +310,15 @@ const handleEdit = (row: MenuInfo) => {
 // 删除菜单
 const handleDelete = async (row: MenuInfo) => {
     try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.title }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
+        await ElMessageBox.confirm(
+            t('message.deleteConfirmName', { name: row.title }),
+            t('message.confirmDelete'),
+            {
+                confirmButtonText: t('common.confirm'),
+                cancelButtonText: t('common.cancel'),
+                type: 'warning'
+            }
+        )
 
         await menuApi.deleteMenu(row.id)
         ElMessage.success(t('message.deleteSuccess'))
@@ -330,7 +334,10 @@ const handleDelete = async (row: MenuInfo) => {
 const handleBatchDelete = async () => {
     try {
         await ElMessageBox.confirm(
-            t('message.batchDeleteConfirmCount', { count: multipleSelection.value.length, type: t('menu.title') }),
+            t('message.batchDeleteConfirmCount', {
+                count: multipleSelection.value.length,
+                type: t('menu.title')
+            }),
             t('message.confirmBatchDelete'),
             {
                 confirmButtonText: t('common.confirm'),

@@ -39,8 +39,8 @@ export const searchFormContextKey: InjectionKey<SearchFormContext> = Symbol('sea
 </script>
 
 <script lang="ts" setup>
+import { ArrowDown, ArrowUp, Refresh, Search } from '@element-plus/icons-vue'
 import { Fragment } from 'vue'
-import { Search, Refresh, ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 
 type Props = SearchFormProps
 

@@ -5,7 +5,11 @@
                 <div
                     class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer"
                 >
-                    <el-tooltip effect="dark" :content="$t('notification.title')" placement="bottom">
+                    <el-tooltip
+                        effect="dark"
+                        :content="$t('notification.title')"
+                        placement="bottom"
+                    >
                         <Icon name="i-svg:bell" />
                     </el-tooltip>
                 </div>
@@ -27,7 +31,9 @@
             </div>
 
             <el-scrollbar max-height="360px">
-                <div v-if="notifications.length === 0" class="empty-text">{{ $t('notification.noNotification') }}</div>
+                <div v-if="notifications.length === 0" class="empty-text">
+                    {{ $t('notification.noNotification') }}
+                </div>
                 <div
                     v-for="item in notifications"
                     :key="item.id"
@@ -44,7 +50,9 @@
             </el-scrollbar>
 
             <div class="popover-footer">
-                <router-link to="/system/notification" class="view-all">{{ $t('notification.viewAll') }}</router-link>
+                <router-link to="/system/notification" class="view-all">{{
+                    $t('notification.viewAll')
+                }}</router-link>
             </div>
         </div>
     </el-popover>

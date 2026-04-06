@@ -68,7 +68,11 @@
                                 :title="$t('login.captchaRefresh')"
                                 @click="refreshCaptcha"
                             >
-                                <img v-if="captchaImage" :src="captchaImage" :alt="$t('login.captchaAlt')" />
+                                <img
+                                    v-if="captchaImage"
+                                    :src="captchaImage"
+                                    :alt="$t('login.captchaAlt')"
+                                />
                                 <div v-else class="captcha-loading">
                                     <el-icon class="is-loading"><Loading /></el-icon>
                                 </div>

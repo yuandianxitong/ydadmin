@@ -20,8 +20,8 @@
 <script setup lang="ts">
 import '@wangeditor/editor/dist/css/style.css'
 
-import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor'
+import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 import request from '@/utils/request'
@@ -55,7 +55,10 @@ const editorConfig: Partial<IEditorConfig> = {
             maxNumberOfFiles: 20,
             allowedFileTypes: ['image/*'],
             // 通过 axios 实例上传，自动携带最新 Token
-            async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
+            async customUpload(
+                file: File,
+                insertFn: (url: string, alt?: string, href?: string) => void
+            ) {
                 const formData = new FormData()
                 formData.append('file', file)
                 const res = await request.post('/adminapi/upload/image', formData, {

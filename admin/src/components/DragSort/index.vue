@@ -31,7 +31,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     rowKey: 'id',
-    showHandle: true,
+    showHandle: true
 })
 
 const emit = defineEmits<{

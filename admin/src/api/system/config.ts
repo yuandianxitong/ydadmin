@@ -1,9 +1,5 @@
 /* cspell:disable */
-import type {
-    ConfigBatchUpdateItem,
-    ConfigInfo,
-    ConfigReq
-} from '@/types/api'
+import type { ConfigBatchUpdateItem, ConfigInfo, ConfigReq } from '@/types/api'
 import { myRequest } from '@/utils/request'
 
 // 获取配置分组

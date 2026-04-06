@@ -1,15 +1,18 @@
 <template>
     <el-dialog
-        :model-value="modelValue"
-        :title="formData.id ? $t('cronJob.editTask') : $t('cronJob.addTask')"
+        v-model="visible"
+        :title="form.id ? $t('cronJob.editTask') : $t('cronJob.addTask')"
         width="560px"
         :close-on-click-modal="false"
-        @update:model-value="$emit('update:modelValue', $event)"
         @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
             <el-form-item :label="$t('cronJob.taskName')" prop="name">
-                <el-input v-model="form.name" :placeholder="$t('cronJob.namePlaceholder')" maxlength="100" />
+                <el-input
+                    v-model="form.name"
+                    :placeholder="$t('cronJob.namePlaceholder')"
+                    maxlength="100"
+                />
             </el-form-item>
 
             <el-form-item :label="$t('cronJob.command')" prop="command">
@@ -20,8 +23,8 @@
                 />
             </el-form-item>
 
-            <el-form-item :label="$t('cronJob.cronExpression')" prop="expression">
-                <CronBuilder v-model="form.expression" />
+            <el-form-item :label="$t('cronJob.cronExpression')" prop="cron_expression">
+                <CronBuilder v-model="form.cron_expression" />
             </el-form-item>
 
             <el-form-item :label="$t('cronJob.taskDesc')" prop="description">
@@ -58,22 +61,34 @@
         </el-form>
 
         <template #footer>
-            <el-button @click="$emit('update:modelValue', false)">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+            <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                $t('common.confirm')
+            }}</el-button>
         </template>
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { cronJobApi } from '@/api/cron-job'
 import CronBuilder from '@/components/CronBuilder/index.vue'
+import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()
+
+interface CronJobForm {
+    id?: number
+    name: string
+    command: string
+    cron_expression: string
+    description: string
+    status: number
+    sort: number
+}
 
 const props = defineProps<{
     modelValue: boolean
@@ -85,76 +100,42 @@ const emit = defineEmits<{
     success: []
 }>()
 
-const formRef = ref<FormInstance>()
-const submitting = ref(false)
-
-const form = reactive({
-    id: undefined as number | undefined,
-    name: '',
-    command: '',
-    expression: '',
-    description: '',
-    status: 1,
-    sort: 0
-})
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<CronJobForm>({
+        defaultForm: {
+            id: undefined,
+            name: '',
+            command: '',
+            cron_expression: '',
+            description: '',
+            status: 1,
+            sort: 0
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => cronJobApi.create(data),
+        updateFn: (id, data) => cronJobApi.update(id, data),
+        sourceData: () => {
+            const src = props.formData
+            if (!src) return null
+            return {
+                id: src.id || undefined,
+                name: src.name || '',
+                command: src.command || '',
+                cron_expression: src.cron_expression || src.expression || '',
+                description: src.description || '',
+                status: src.status ?? 1,
+                sort: src.sort ?? 0
+            }
+        }
+    })
 
 const rules = computed<FormRules>(() => ({
     name: [{ required: true, message: t('cronJob.validate.nameRequired'), trigger: 'blur' }],
     command: [{ required: true, message: t('cronJob.validate.commandRequired'), trigger: 'blur' }],
-    expression: [{ required: true, message: t('cronJob.validate.cronRequired'), trigger: 'blur' }]
+    cron_expression: [
+        { required: true, message: t('cronJob.validate.cronRequired'), trigger: 'blur' }
+    ]
 }))
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && props.formData) {
-            Object.assign(form, {
-                id: props.formData.id || undefined,
-                name: props.formData.name || '',
-                command: props.formData.command || '',
-                expression: props.formData.cron_expression || props.formData.expression || '',
-                description: props.formData.description || '',
-                status: props.formData.status ?? 1,
-                sort: props.formData.sort ?? 0
-            })
-        }
-    }
-)
-
-const resetForm = () => {
-    formRef.value?.resetFields()
-    Object.assign(form, {
-        id: undefined,
-        name: '',
-        command: '',
-        expression: '',
-        description: '',
-        status: 1,
-        sort: 0
-    })
-}
-
-const handleSubmit = async () => {
-    if (!formRef.value) return
-    await formRef.value.validate()
-
-    submitting.value = true
-    try {
-        const { expression, id, ...rest } = form
-        const payload = { ...rest, cron_expression: expression }
-        if (id) {
-            await cronJobApi.update(id, payload)
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            await cronJobApi.create(payload)
-            ElMessage.success(t('message.createSuccess'))
-        }
-        emit('update:modelValue', false)
-        emit('success')
-    } catch (error: any) {
-        ElMessage.error(error?.message || t('common.error'))
-    } finally {
-        submitting.value = false
-    }
-}
 </script>

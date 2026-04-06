@@ -1,20 +1,29 @@
 <template>
     <el-dialog
-        :model-value="modelValue"
-        :title="formData.id ? $t('versionMgmt.editVersion') : $t('versionMgmt.addVersion')"
+        v-model="visible"
+        :title="form.id ? $t('versionMgmt.editVersion') : $t('versionMgmt.addVersion')"
         width="640px"
         :close-on-click-modal="false"
-        @update:model-value="$emit('update:modelValue', $event)"
         @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item :label="$t('versionMgmt.platform')" prop="platform">
-                        <el-select v-model="form.platform" :placeholder="$t('versionMgmt.platformPlaceholder')" style="width: 100%">
-                            <el-option :label="$t('versionMgmt.platformOptions.android')" value="android" />
+                        <el-select
+                            v-model="form.platform"
+                            :placeholder="$t('versionMgmt.platformPlaceholder')"
+                            style="width: 100%"
+                        >
+                            <el-option
+                                :label="$t('versionMgmt.platformOptions.android')"
+                                value="android"
+                            />
                             <el-option :label="$t('versionMgmt.platformOptions.ios')" value="ios" />
-                            <el-option :label="$t('versionMgmt.platformOptions.harmony')" value="harmony" />
+                            <el-option
+                                :label="$t('versionMgmt.platformOptions.harmony')"
+                                value="harmony"
+                            />
                         </el-select>
                     </el-form-item>
                 </el-col>
@@ -75,21 +84,34 @@
         </el-form>
 
         <template #footer>
-            <el-button @click="$emit('update:modelValue', false)">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ $t('common.confirm') }}</el-button>
+            <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                $t('common.confirm')
+            }}</el-button>
         </template>
     </el-dialog>
 </template>
 
 <script setup lang="ts">
-import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { versionApi } from '@/api/version'
+import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()
+
+interface VersionFormData {
+    id?: number
+    platform: string
+    version: string
+    version_code: number
+    download_url: string
+    description: string
+    force_update: number
+    status: number
+}
 
 const props = defineProps<{
     modelValue: boolean
@@ -101,78 +123,38 @@ const emit = defineEmits<{
     success: []
 }>()
 
-const formRef = ref<FormInstance>()
-const submitting = ref(false)
-
-const form = reactive({
-    id: undefined as number | undefined,
-    platform: '',
-    version: '',
-    version_code: 1,
-    download_url: '',
-    description: '',
-    force_update: 0,
-    status: 1
-})
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<VersionFormData>({
+        defaultForm: {
+            id: undefined,
+            platform: '',
+            version: '',
+            version_code: 1,
+            download_url: '',
+            description: '',
+            force_update: 0,
+            status: 1
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        createFn: (data) => versionApi.create(data),
+        updateFn: (id, data) => versionApi.update(id, data),
+        sourceData: () => props.formData as Partial<VersionFormData>
+    })
 
 const rules = computed<FormRules>(() => ({
-    platform: [{ required: true, message: t('versionMgmt.validate.platformRequired'), trigger: 'change' }],
-    version: [{ required: true, message: t('versionMgmt.validate.versionRequired'), trigger: 'blur' }],
-    version_code: [{ required: true, message: t('versionMgmt.validate.versionCodeRequired'), trigger: 'blur' }],
-    download_url: [{ required: true, message: t('versionMgmt.validate.downloadUrlRequired'), trigger: 'blur' }]
+    platform: [
+        { required: true, message: t('versionMgmt.validate.platformRequired'), trigger: 'change' }
+    ],
+    version: [
+        { required: true, message: t('versionMgmt.validate.versionRequired'), trigger: 'blur' }
+    ],
+    version_code: [
+        { required: true, message: t('versionMgmt.validate.versionCodeRequired'), trigger: 'blur' }
+    ],
+    download_url: [
+        { required: true, message: t('versionMgmt.validate.downloadUrlRequired'), trigger: 'blur' }
+    ]
 }))
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && props.formData) {
-            Object.assign(form, {
-                id: props.formData.id || undefined,
-                platform: props.formData.platform || '',
-                version: props.formData.version || '',
-                version_code: props.formData.version_code ?? 1,
-                download_url: props.formData.download_url || '',
-                description: props.formData.description || '',
-                force_update: props.formData.force_update ?? 0,
-                status: props.formData.status ?? 1
-            })
-        }
-    }
-)
-
-const resetForm = () => {
-    formRef.value?.resetFields()
-    Object.assign(form, {
-        id: undefined,
-        platform: '',
-        version: '',
-        version_code: 1,
-        download_url: '',
-        description: '',
-        force_update: 0,
-        status: 1
-    })
-}
-
-const handleSubmit = async () => {
-    if (!formRef.value) return
-    await formRef.value.validate()
-
-    submitting.value = true
-    try {
-        if (form.id) {
-            await versionApi.update(form.id, { ...form })
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            await versionApi.create({ ...form })
-            ElMessage.success(t('message.createSuccess'))
-        }
-        emit('update:modelValue', false)
-        emit('success')
-    } catch (error: any) {
-        ElMessage.error(error?.message || t('common.error'))
-    } finally {
-        submitting.value = false
-    }
-}
 </script>

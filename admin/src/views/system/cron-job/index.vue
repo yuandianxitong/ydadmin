@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -69,7 +69,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('cronJob.cronExpression')" prop="expression" width="140" />
+                <el-table-column
+                    :label="$t('cronJob.cronExpression')"
+                    prop="expression"
+                    width="140"
+                />
 
                 <el-table-column :label="$t('common.status')" prop="status" width="100">
                     <template #default="{ row }">
@@ -92,14 +96,22 @@
                                 size="small"
                                 class="ml-2"
                             >
-                                {{ row.last_status === 1 ? $t('common.success') : $t('common.error') }}
+                                {{
+                                    row.last_status === 1
+                                        ? $t('common.success')
+                                        : $t('common.error')
+                                }}
                             </el-tag>
                         </template>
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('cronJob.executionCount')" prop="run_count" width="90" />
+                <el-table-column
+                    :label="$t('cronJob.executionCount')"
+                    prop="run_count"
+                    width="90"
+                />
 
                 <el-table-column :label="$t('common.operation')" width="280" fixed="right">
                     <template #default="{ row }">
@@ -130,7 +142,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.name)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -140,14 +152,14 @@
 
             <!-- 分页 -->
             <el-pagination
-                v-model:current-page="pagination.current_page"
-                v-model:page-size="pagination.per_page"
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.limit"
                 :total="pagination.total"
                 :page-sizes="[10, 20, 50]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getList"
-                @current-change="getList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
@@ -155,25 +167,54 @@
         <CronJobForm v-model="formVisible" :form-data="formData" @success="getList" />
 
         <!-- 日志弹窗 -->
-        <el-dialog v-model="logsVisible" :title="`${$t('cronJob.executionLog')} - ${logsJobName}`" width="800px">
+        <el-dialog
+            v-model="logsVisible"
+            :title="`${$t('cronJob.executionLog')} - ${logsJobName}`"
+            width="800px"
+        >
             <el-table v-loading="logsLoading" :data="logs" size="small">
-                <el-table-column :label="$t('common.status')" prop="status" width="80" align="center">
+                <el-table-column
+                    :label="$t('common.status')"
+                    prop="status"
+                    width="80"
+                    align="center"
+                >
                     <template #default="{ row }">
                         <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
                             {{ row.status === 1 ? $t('common.success') : $t('common.error') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('cronJob.output')" prop="output" min-width="200" show-overflow-tooltip />
-                <el-table-column :label="$t('cronJob.errorMsg')" prop="error" width="200" show-overflow-tooltip>
+                <el-table-column
+                    :label="$t('cronJob.output')"
+                    prop="output"
+                    min-width="200"
+                    show-overflow-tooltip
+                />
+                <el-table-column
+                    :label="$t('cronJob.errorMsg')"
+                    prop="error"
+                    width="200"
+                    show-overflow-tooltip
+                >
                     <template #default="{ row }">
                         <span class="text-red-500">{{ row.error || '-' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('cronJob.executionDuration')" prop="duration" width="90" align="center">
+                <el-table-column
+                    :label="$t('cronJob.executionDuration')"
+                    prop="duration"
+                    width="90"
+                    align="center"
+                >
                     <template #default="{ row }"> {{ row.duration }}ms </template>
                 </el-table-column>
-                <el-table-column :label="$t('cronJob.executionTime')" prop="started_at" width="160" align="center" />
+                <el-table-column
+                    :label="$t('cronJob.executionTime')"
+                    prop="started_at"
+                    width="160"
+                    align="center"
+                />
             </el-table>
             <div
                 v-if="logsPagination.total > 0"
@@ -193,12 +234,13 @@
 </template>
 
 <script setup lang="ts" name="CronJobList">
-import { Delete, Document, Edit, Plus, Refresh, Search, VideoPlay } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { cronJobApi } from '@/api/cron-job'
+import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
 
 import CronJobForm from './components/CronJobForm.vue'
@@ -206,10 +248,33 @@ import CronJobForm from './components/CronJobForm.vue'
 const { t } = useI18n()
 const userStore = useUserStore()
 
-const searchForm = reactive({ keyword: '', status: undefined as number | undefined })
-const list = ref<any[]>([])
-const loading = ref(false)
-const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
+// 使用统一的列表页 composable
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete,
+    handleStatusChange
+} = useListPage<any, { keyword: string; status?: number }>({
+    fetchFn: (params) => {
+        const query: Record<string, any> = {
+            page: params.page,
+            limit: params.limit
+        }
+        if (params.keyword?.trim()) query.keyword = params.keyword.trim()
+        if (params.status !== undefined) query.status = params.status
+        return cronJobApi.getList(query)
+    },
+    deleteFn: (id) => cronJobApi.delete(id),
+    updateStatusFn: (id, status) => cronJobApi.updateStatus(id, status),
+    defaultSearchForm: { keyword: '', status: undefined }
+})
 
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
@@ -222,42 +287,6 @@ const logs = ref<any[]>([])
 const logsLoading = ref(false)
 const logsPagination = reactive({ current_page: 1, per_page: 20, total: 0 })
 
-const getList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {
-            page: pagination.current_page,
-            limit: pagination.per_page
-        }
-        if (searchForm.keyword?.trim()) params.keyword = searchForm.keyword.trim()
-        if (searchForm.status !== undefined) params.status = searchForm.status
-
-        const res = await cronJobApi.getList(params)
-        list.value = res.data.list
-        Object.assign(pagination, res.data.pagination)
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetSearch = () => {
-    Object.assign(searchForm, { keyword: '', status: undefined })
-    pagination.current_page = 1
-    getList()
-}
-
-const handleStatusChange = async (row: any) => {
-    try {
-        await cronJobApi.updateStatus(row.id, row.status)
-        ElMessage.success(t('message.statusUpdateSuccess'))
-    } catch {
-        row.status = row.status === 1 ? 0 : 1
-        ElMessage.error(t('message.statusUpdateFailed'))
-    }
-}
-
 const handleAdd = () => {
     formData.value = { status: 1, sort: 0 }
     formVisible.value = true
@@ -268,28 +297,17 @@ const handleEdit = (row: any) => {
     formVisible.value = true
 }
 
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.name }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await cronJobApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
-    } catch (error) {
-        if (error !== 'cancel') ElMessage.error(t('common.error'))
-    }
-}
-
 const handleRun = async (row: any) => {
     try {
-        await ElMessageBox.confirm(t('cronJob.runConfirm', { name: row.name }), t('common.confirm'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
+        await ElMessageBox.confirm(
+            t('cronJob.runConfirm', { name: row.name }),
+            t('common.confirm'),
+            {
+                confirmButtonText: t('common.confirm'),
+                cancelButtonText: t('common.cancel'),
+                type: 'warning'
+            }
+        )
         row._running = true
         const res = await cronJobApi.run(row.id)
         if (res.data?.status === 1) {
@@ -328,46 +346,4 @@ const loadLogs = async () => {
         logsLoading.value = false
     }
 }
-
-onMounted(() => {
-    getList()
-})
 </script>
-
-<style lang="scss" scoped>
-.cron-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
-}
-</style>

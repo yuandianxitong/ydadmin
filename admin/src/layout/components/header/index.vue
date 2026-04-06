@@ -1,6 +1,8 @@
 <template>
     <header class="header">
-        <div class="navbar flex items-center border-b border-b-solid border-b-[var(--color-divider)] px-4 py-2.5">
+        <div
+            class="navbar flex items-center border-b border-b-solid border-b-[var(--color-divider)] px-4 py-2.5"
+        >
             <div class="flex-1 flex">
                 <div v-if="!isMobile && settingStore.showCrumb" class="flex items-center px-2">
                     <breadcrumb />
@@ -14,7 +16,9 @@
                 >
                     <el-tooltip
                         effect="dark"
-                        :content="isFullscreen ? $t('header.exitFullscreen') : $t('header.fullscreen')"
+                        :content="
+                            isFullscreen ? $t('header.exitFullscreen') : $t('header.fullscreen')
+                        "
                         placement="bottom"
                     >
                         <Icon name="i-svg:maximize"></Icon>
@@ -26,7 +30,12 @@
                     class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
                     @click="handleClearCache"
                 >
-                    <el-tooltip class="box-item" effect="dark" :content="$t('header.clearCache')" placement="bottom">
+                    <el-tooltip
+                        class="box-item"
+                        effect="dark"
+                        :content="$t('header.clearCache')"
+                        placement="bottom"
+                    >
                         <Icon name="i-svg:refresh-cw"></Icon>
                     </el-tooltip>
                 </div>

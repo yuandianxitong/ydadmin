@@ -1,4 +1,4 @@
-import type { DashboardStats, LoginLogInfo, ActivityItem, ActiveRanking } from '@/types/api'
+import type { ActiveRanking, ActivityItem, DashboardStats, LoginLogInfo } from '@/types/api'
 import { myRequest } from '@/utils/request'
 
 // 获取仪表板统计数据
@@ -18,5 +18,7 @@ export const getRecentActivities = () => {
 
 // 获取活跃排行
 export const getActiveRanking = (period: string = 'day') => {
-    return myRequest.get<ActiveRanking>('/adminapi/dashboard/active-ranking', { params: { period } })
+    return myRequest.get<ActiveRanking>('/adminapi/dashboard/active-ranking', {
+        params: { period }
+    })
 }

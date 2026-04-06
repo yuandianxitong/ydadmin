@@ -98,12 +98,11 @@
                 <template #title>{{ $t('channel.official.serverAlertTitle') }}</template>
                 <template #default>
                     <div class="server-url">
-                        {{ $t('channel.official.serverUrlLabel') }}<el-text type="primary" tag="code">{{
-                            serverUrl
-                        }}</el-text>
-                        <el-button type="primary" text size="small" @click="copyUrl"
-                            >{{ $t('common.copy') }}</el-button
-                        >
+                        {{ $t('channel.official.serverUrlLabel')
+                        }}<el-text type="primary" tag="code">{{ serverUrl }}</el-text>
+                        <el-button type="primary" text size="small" @click="copyUrl">{{
+                            $t('common.copy')
+                        }}</el-button>
                     </div>
                 </template>
             </el-alert>
@@ -133,7 +132,9 @@
                         <el-radio value="2">兼容模式</el-radio>
                         <el-radio value="3">安全模式</el-radio>
                     </el-radio-group>
-                    <div class="form-tip">需与微信公众号后台「开发 > 基本配置」中的加密方式保持一致</div>
+                    <div class="form-tip">
+                        需与微信公众号后台「开发 > 基本配置」中的加密方式保持一致
+                    </div>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -176,7 +177,9 @@
 
         <!-- 保存按钮 -->
         <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">{{ $t('channel.saveConfig') }}</el-button>
+            <el-button type="primary" :loading="loading" @click="handleSave">{{
+                $t('channel.saveConfig')
+            }}</el-button>
         </div>
     </div>
 </template>

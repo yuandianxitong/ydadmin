@@ -258,7 +258,12 @@ export default {
         assignPermission: '分配权限',
         systemRole: '系统角色',
         lastLogin: '最后登录',
-        noRole: '暂无角色'
+        noRole: '暂无角色',
+        userNickname: '用户昵称',
+        to: '至',
+        startDate: '开始日期',
+        endDate: '结束日期',
+        detail: '详情'
     },
     // 提示消息
     message: {
@@ -290,7 +295,8 @@ export default {
         imageOnly: '只能上传图片文件!',
         fileSizeLimit: '上传文件大小不能超过 2MB!',
         deleteConfirmName: '确定要删除"{name}"吗？删除后不可恢复！',
-        batchDeleteConfirmCount: '确定要删除选中的{count}个{type}吗？删除后不可恢复！'
+        batchDeleteConfirmCount: '确定要删除选中的{count}个{type}吗？删除后不可恢复！',
+        pleaseSelect: '请至少选择一项'
     },
     // 管理员管理
     admin: {
@@ -698,7 +704,12 @@ export default {
         options: {
             smtp_encryption: { ssl: 'SSL', tls: 'TLS', none: '不加密' },
             sms_driver: { aliyun: '阿里云', tencent: '腾讯云' },
-            storage_driver: { local: '本地存储', aliyun: '阿里云OSS', tencent: '腾讯云COS', qiniu: '七牛云' },
+            storage_driver: {
+                local: '本地存储',
+                aliyun: '阿里云OSS',
+                tencent: '腾讯云COS',
+                qiniu: '七牛云'
+            },
             wechat_mini_msg_format: { JSON: 'JSON', XML: 'XML' }
         }
     },
@@ -951,7 +962,7 @@ export default {
             systemConfig: '系统配置',
             loginLog: '登录日志',
             article: '文章管理',
-            announcement: '公告管理',
+            announcement: '公告管理'
         },
         // 活跃排行
         activeRanking: '活跃排行',
@@ -969,7 +980,7 @@ export default {
         backendFramework: '后端框架',
         frontendFramework: '前端框架',
         uiLibrary: 'UI 组件库',
-        buildTool: '构建工具',
+        buildTool: '构建工具'
     },
     // 消息模板
     messageTemplate: {
@@ -1060,9 +1071,6 @@ export default {
         colorPicker: {
             reset: '重置'
         },
-        themePicker: {
-            label: '主题'
-        },
         copy: {
             success: '复制成功',
             failed: '复制失败'
@@ -1103,7 +1111,8 @@ export default {
             appIdPlaceholder: '微信小程序AppID',
             appSecretPlaceholder: '微信小程序AppSecret',
             messagePush: '消息推送配置',
-            serverAlertTitle: '请将以下服务器地址填写到微信小程序后台 → 开发管理 → 开发设置 → 消息推送',
+            serverAlertTitle:
+                '请将以下服务器地址填写到微信小程序后台 → 开发管理 → 开发设置 → 消息推送',
             serverUrlLabel: '服务器地址(URL)：',
             tokenPlaceholder: '消息推送校验Token',
             aesKeyPlaceholder: '消息推送加解密密钥，43位字符',
@@ -1139,7 +1148,8 @@ export default {
             title: '自定义菜单',
             deleteMenu: '删除菜单',
             publishMenu: '发布菜单',
-            alertTip: '菜单最多 3 个一级菜单，每个一级菜单最多 5 个二级菜单。发布后需等待约 5 分钟生效。',
+            alertTip:
+                '菜单最多 3 个一级菜单，每个一级菜单最多 5 个二级菜单。发布后需等待约 5 分钟生效。',
             menuPrefix: '菜单',
             subMenuPrefix: '子菜单',
             addSubMenu: '添加子菜单',
@@ -1276,16 +1286,6 @@ export default {
             afterPoints: '变动后积分',
             operator: '操作人',
             time: '时间'
-        },
-        // 公共
-        common: {
-            userNickname: '用户昵称',
-            remark: '备注',
-            search: '搜索',
-            reset: '重置',
-            to: '至',
-            startDate: '开始日期',
-            endDate: '结束日期'
         }
     },
     // 公告管理
@@ -1310,6 +1310,92 @@ export default {
         validate: {
             titleRequired: '请输入公告标题',
             contentRequired: '请输入公告内容'
+        }
+    },
+    // 文章分类管理
+    articleCategoryMgmt: {
+        title: '文章分类',
+        categoryName: '分类名称',
+        namePlaceholder: '请输入分类名称',
+        icon: '图标',
+        iconPlaceholder: '请输入图标名称',
+        parentCategory: '上级分类',
+        parentPlaceholder: '请选择上级分类',
+        topCategory: '顶级分类',
+        addCategory: '新增分类',
+        editCategory: '编辑分类',
+        validate: {
+            nameRequired: '请输入分类名称'
+        }
+    },
+    // 文章管理
+    articleMgmt: {
+        title: '文章列表',
+        articleTitle: '文章标题',
+        titlePlaceholder: '请输入文章标题',
+        category: '文章分类',
+        categoryPlaceholder: '请选择分类',
+        cover: '封面',
+        tags: '标签',
+        addTag: '添加标签',
+        viewCount: '浏览量',
+        publishAt: '发布时间',
+        publishTimePlaceholder: '请选择发布时间',
+        author: '作者',
+        authorPlaceholder: '请输入作者',
+        summary: '文章摘要',
+        summaryPlaceholder: '请输入文章摘要',
+        content: '文章内容',
+        published: '已发布',
+        draft: '草稿',
+        addArticle: '新增文章',
+        editArticle: '编辑文章',
+        selectCategory: '请选择文章分类',
+        coverUploadTip: '建议尺寸 800x450，支持 jpg/png/gif，不超过 2MB',
+        coverAlt: '封面',
+        coverUploadSuccess: '封面上传成功',
+        uploadFailed: '上传失败',
+        onlyImageAllowed: '只能上传图片文件',
+        imageSizeLimit: '图片大小不能超过 2MB',
+        validate: {
+            titleRequired: '请输入文章标题'
+        }
+    },
+    // 反馈管理
+    feedbackMgmt: {
+        title: '反馈管理',
+        type: '反馈类型',
+        typePlaceholder: '全部类型',
+        statusPlaceholder: '全部状态',
+        content: '反馈内容',
+        contact: '联系方式',
+        submittedAt: '提交时间',
+        reply: '回复',
+        close: '关闭',
+        replyDialog: '回复反馈',
+        detailDialog: '反馈详情',
+        feedbackId: '反馈ID',
+        replyContent: '回复内容',
+        repliedAt: '回复时间',
+        replyPlaceholder: '请输入回复内容',
+        submitReply: '提交回复',
+        replyContentRequired: '请输入回复内容',
+        replySuccess: '回复成功',
+        closeConfirm: '确定关闭该反馈？',
+        closeSuccess: '已关闭',
+        deleteConfirm: '确定删除该反馈？此操作不可恢复。',
+        unknown: '未知',
+        types: {
+            suggestion: '建议',
+            bug: 'Bug',
+            complaint: '投诉',
+            other: '其他'
+        },
+        statusTexts: {
+            pending: '待处理',
+            processing: '处理中',
+            replied: '已回复',
+            closed: '已关闭'
         }
     },
     // 协议管理

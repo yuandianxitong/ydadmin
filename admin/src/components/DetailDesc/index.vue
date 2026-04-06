@@ -21,7 +21,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
     column: 3,
-    border: true,
+    border: true
 })
 </script>
 

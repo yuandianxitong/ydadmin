@@ -11,12 +11,17 @@
                         style="width: 140px"
                     >
                         <el-option :label="$t('channel.autoReply.typeKeyword')" value="keyword" />
-                        <el-option :label="$t('channel.autoReply.typeSubscribe')" value="subscribe" />
+                        <el-option
+                            :label="$t('channel.autoReply.typeSubscribe')"
+                            value="subscribe"
+                        />
                         <el-option :label="$t('channel.autoReply.typeDefault')" value="default" />
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">{{ $t('common.search') }}</el-button>
+                    <el-button type="primary" @click="handleSearch">{{
+                        $t('common.search')
+                    }}</el-button>
                     <el-button @click="resetSearch">{{ $t('common.reset') }}</el-button>
                 </el-form-item>
             </el-form>
@@ -26,7 +31,9 @@
         <el-card class="table-card" shadow="never">
             <div class="table-header">
                 <div class="table-title">{{ $t('channel.autoReply.title') }}</div>
-                <el-button type="primary" @click="handleAdd">{{ $t('channel.autoReply.addReply') }}</el-button>
+                <el-button type="primary" @click="handleAdd">{{
+                    $t('channel.autoReply.addReply')
+                }}</el-button>
             </div>
 
             <el-table v-loading="loading" :data="list">
@@ -37,10 +44,19 @@
                         }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('channel.autoReply.keyword')" prop="keyword" width="200" show-overflow-tooltip />
+                <el-table-column
+                    :label="$t('channel.autoReply.keyword')"
+                    prop="keyword"
+                    width="200"
+                    show-overflow-tooltip
+                />
                 <el-table-column :label="$t('channel.autoReply.matchType')" width="100">
                     <template #default="{ row }">
-                        {{ row.match_type === 'exact' ? $t('channel.autoReply.matchExact') : $t('channel.autoReply.matchFuzzy') }}
+                        {{
+                            row.match_type === 'exact'
+                                ? $t('channel.autoReply.matchExact')
+                                : $t('channel.autoReply.matchFuzzy')
+                        }}
                     </template>
                 </el-table-column>
                 <el-table-column
@@ -58,10 +74,14 @@
                 </el-table-column>
                 <el-table-column :label="$t('common.operation')" width="150" fixed="right">
                     <template #default="{ row }">
-                        <el-button type="primary" size="small" text @click="handleEdit(row)"
-                            >{{ $t('common.edit') }}</el-button
-                        >
-                        <el-button type="danger" size="small" text @click="handleDelete(row)"
+                        <el-button type="primary" size="small" text @click="handleEdit(row)">{{
+                            $t('common.edit')
+                        }}</el-button>
+                        <el-button
+                            type="danger"
+                            size="small"
+                            text
+                            @click="handleDelete(row.id, row.keyword || row.content)"
                             >{{ $t('common.delete') }}</el-button
                         >
                     </template>
@@ -69,14 +89,14 @@
             </el-table>
 
             <el-pagination
-                v-model:current-page="pagination.current_page"
-                v-model:page-size="pagination.per_page"
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.limit"
                 :total="pagination.total"
                 :page-sizes="[10, 20, 50]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getList"
-                @current-change="getList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
@@ -92,18 +112,28 @@
                 <el-form-item :label="$t('channel.autoReply.replyType')" prop="type">
                     <el-select v-model="form.type" style="width: 100%">
                         <el-option :label="$t('channel.autoReply.typeKeyword')" value="keyword" />
-                        <el-option :label="$t('channel.autoReply.typeSubscribe')" value="subscribe" />
+                        <el-option
+                            :label="$t('channel.autoReply.typeSubscribe')"
+                            value="subscribe"
+                        />
                         <el-option :label="$t('channel.autoReply.typeDefault')" value="default" />
                     </el-select>
                 </el-form-item>
                 <template v-if="form.type === 'keyword'">
                     <el-form-item :label="$t('channel.autoReply.keyword')" prop="keyword">
-                        <el-input v-model="form.keyword" :placeholder="$t('channel.autoReply.keywordPlaceholder')" />
+                        <el-input
+                            v-model="form.keyword"
+                            :placeholder="$t('channel.autoReply.keywordPlaceholder')"
+                        />
                     </el-form-item>
                     <el-form-item :label="$t('channel.autoReply.matchType')">
                         <el-radio-group v-model="form.match_type">
-                            <el-radio value="exact">{{ $t('channel.autoReply.matchExactFull') }}</el-radio>
-                            <el-radio value="fuzzy">{{ $t('channel.autoReply.matchFuzzyFull') }}</el-radio>
+                            <el-radio value="exact">{{
+                                $t('channel.autoReply.matchExactFull')
+                            }}</el-radio>
+                            <el-radio value="fuzzy">{{
+                                $t('channel.autoReply.matchFuzzyFull')
+                            }}</el-radio>
                         </el-radio-group>
                     </el-form-item>
                 </template>
@@ -124,9 +154,9 @@
             </el-form>
             <template #footer>
                 <el-button @click="formVisible = false">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitting" @click="handleSubmit"
-                    >{{ $t('common.confirm') }}</el-button
-                >
+                <el-button type="primary" :loading="submitting" @click="handleSubmit">{{
+                    $t('common.confirm')
+                }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -134,17 +164,38 @@
 
 <script setup lang="ts" name="WechatAutoReply">
 import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { autoReplyApi } from '@/api/wechat'
+import { useListPage } from '@/hooks/useListPage'
 
 const { t } = useI18n()
-const searchForm = reactive({ type: '' as string })
-const list = ref<any[]>([])
-const loading = ref(false)
-const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
+
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete
+} = useListPage<any, { type: string }>({
+    fetchFn: (params) => {
+        const query: Record<string, any> = {
+            page: params.page,
+            limit: params.limit
+        }
+        if (params.type) query.type = params.type
+        return autoReplyApi.getList(query)
+    },
+    deleteFn: (id) => autoReplyApi.delete(id),
+    defaultSearchForm: { type: '' }
+})
 
 const formVisible = ref(false)
 const submitting = ref(false)
@@ -170,33 +221,17 @@ const typeTagMap: Record<string, any> = {
 }
 
 const rules = computed<FormRules>(() => ({
-    type: [{ required: true, message: t('channel.autoReply.validate.typeRequired'), trigger: 'change' }],
-    content: [{ required: true, message: t('channel.autoReply.validate.contentRequired'), trigger: 'blur' }]
-}))
-
-const getList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {
-            page: pagination.current_page,
-            limit: pagination.per_page
+    type: [
+        { required: true, message: t('channel.autoReply.validate.typeRequired'), trigger: 'change' }
+    ],
+    content: [
+        {
+            required: true,
+            message: t('channel.autoReply.validate.contentRequired'),
+            trigger: 'blur'
         }
-        if (searchForm.type) params.type = searchForm.type
-        const res = await autoReplyApi.getList(params)
-        list.value = res.data.list
-        Object.assign(pagination, res.data.pagination)
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetSearch = () => {
-    searchForm.type = ''
-    pagination.current_page = 1
-    getList()
-}
+    ]
+}))
 
 const handleAdd = () => {
     Object.assign(form, {
@@ -214,17 +249,6 @@ const handleAdd = () => {
 const handleEdit = (row: any) => {
     Object.assign(form, row)
     formVisible.value = true
-}
-
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('channel.autoReply.deleteConfirm'), t('common.tip'), { type: 'warning' })
-        await autoReplyApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
-    } catch (e) {
-        if (e !== 'cancel') ElMessage.error(t('channel.autoReply.deleteFailed'))
-    }
 }
 
 const handleSubmit = async () => {
@@ -245,30 +269,9 @@ const handleSubmit = async () => {
         submitting.value = false
     }
 }
-
-onMounted(() => getList())
 </script>
 
 <style lang="scss" scoped>
 .auto-reply {
-    .search-card {
-        margin-bottom: 16px;
-    }
-    .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-        .table-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-        }
-    }
-    .pagination {
-        margin-top: 16px;
-        display: flex;
-        justify-content: flex-end;
-    }
 }
 </style>

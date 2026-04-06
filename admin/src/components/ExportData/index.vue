@@ -15,10 +15,21 @@
             <div>
                 <el-form ref="formRef" :model="formData" label-width="120px" :rules="formRules">
                     <el-form-item :label="$t('exportData.dataCount')">
-                        {{ $t('exportData.dataCountDesc', { count: exportData.count, pages: exportData.sum_page, size: exportData.page_size }) }}
+                        {{
+                            $t('exportData.dataCountDesc', {
+                                count: exportData.count,
+                                pages: exportData.sum_page,
+                                size: exportData.page_size
+                            })
+                        }}
                     </el-form-item>
                     <el-form-item :label="$t('exportData.exportLimit')">
-                        {{ $t('exportData.exportLimitDesc', { maxPages: exportData.max_page, maxSize: exportData.all_max_size }) }}
+                        {{
+                            $t('exportData.exportLimitDesc', {
+                                maxPages: exportData.max_page,
+                                maxSize: exportData.all_max_size
+                            })
+                        }}
                     </el-form-item>
                     <el-form-item prop="page_type" :label="$t('exportData.exportRange')" required>
                         <el-radio-group v-model="formData.page_type">
@@ -26,7 +37,10 @@
                             <el-radio :value="1">{{ $t('exportData.exportByPage') }}</el-radio>
                         </el-radio-group>
                     </el-form-item>
-                    <el-form-item v-if="formData.page_type == 1" :label="$t('exportData.pageRange')">
+                    <el-form-item
+                        v-if="formData.page_type == 1"
+                        :label="$t('exportData.pageRange')"
+                    >
                         <div class="flex">
                             <el-form-item prop="page_start">
                                 <el-input

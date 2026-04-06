@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getList">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -40,11 +40,7 @@
             <div class="table-header">
                 <div class="table-title">{{ $t('agreementMgmt.title') }}</div>
                 <div class="table-actions">
-                    <el-button
-                        v-has-perm="['agreement.create']"
-                        type="primary"
-                        @click="handleAdd"
-                    >
+                    <el-button v-has-perm="['agreement.create']" type="primary" @click="handleAdd">
                         <el-icon><Plus /></el-icon>
                         {{ $t('agreementMgmt.addAgreement') }}
                     </el-button>
@@ -52,7 +48,12 @@
             </div>
 
             <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('agreementMgmt.agreementTitle')" prop="title" min-width="250" show-overflow-tooltip />
+                <el-table-column
+                    :label="$t('agreementMgmt.agreementTitle')"
+                    prop="title"
+                    min-width="250"
+                    show-overflow-tooltip
+                />
 
                 <el-table-column :label="$t('agreementMgmt.agreementCode')" prop="code" width="180">
                     <template #default="{ row }">
@@ -88,7 +89,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.title)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -98,14 +99,14 @@
 
             <!-- 分页 -->
             <el-pagination
-                v-model:current-page="pagination.current_page"
-                v-model:page-size="pagination.per_page"
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.limit"
                 :total="pagination.total"
                 :page-sizes="[10, 20, 50, 100]"
                 layout="total, sizes, prev, pager, next, jumper"
                 class="pagination"
-                @size-change="getList"
-                @current-change="getList"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
             />
         </el-card>
 
@@ -116,52 +117,33 @@
 
 <script setup lang="ts" name="AgreementList">
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref } from 'vue'
 
 import { agreementApi } from '@/api/agreement'
+import { useListPage } from '@/hooks/useListPage'
 
 import AgreementForm from './components/AgreementForm.vue'
 
-const { t } = useI18n()
-
-const searchForm = reactive({
-    keyword: '',
-    status: undefined as number | undefined
+// 使用统一的列表页 composable
+const {
+    list,
+    loading,
+    pagination,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleSizeChange,
+    handlePageChange,
+    handleDelete
+} = useListPage<any, { keyword: string; status?: number }>({
+    fetchFn: (params) => agreementApi.getList(params),
+    deleteFn: (id) => agreementApi.delete(id),
+    defaultSearchForm: { keyword: '', status: undefined }
 })
-const list = ref<any[]>([])
-const loading = ref(false)
-const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
 
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
-
-const getList = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {
-            page: pagination.current_page,
-            limit: pagination.per_page
-        }
-        if (searchForm.keyword?.trim()) params.keyword = searchForm.keyword.trim()
-        if (searchForm.status !== undefined) params.status = searchForm.status
-
-        const res = await agreementApi.getList(params)
-        list.value = res.data.list
-        Object.assign(pagination, res.data.pagination)
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
-
-const resetSearch = () => {
-    Object.assign(searchForm, { keyword: '', status: undefined })
-    pagination.current_page = 1
-    getList()
-}
 
 const handleAdd = () => {
     formData.value = { status: 1 }
@@ -172,61 +154,4 @@ const handleEdit = (row: any) => {
     formData.value = { ...row }
     formVisible.value = true
 }
-
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.title }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await agreementApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
-    } catch (error) {
-        if (error !== 'cancel') ElMessage.error(t('common.error'))
-    }
-}
-
-onMounted(() => {
-    getList()
-})
 </script>
-
-<style lang="scss" scoped>
-.agreement-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-
-        .pagination {
-            margin-top: 16px;
-            display: flex;
-            justify-content: flex-end;
-        }
-    }
-}
-</style>

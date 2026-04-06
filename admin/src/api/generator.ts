@@ -23,6 +23,9 @@ export const generatorApi = {
         return myRequest.post<GeneratorPreviewResult>('/adminapi/system/generator/preview', data)
     },
     generate(data: GeneratorConfig) {
-        return myRequest.post<{ files: Array<{ path: string; status: string; reason?: string }>; route?: string }>('/adminapi/system/generator/generate', data)
+        return myRequest.post<{
+            files: Array<{ path: string; status: string; reason?: string }>
+            route?: string
+        }>('/adminapi/system/generator/generate', data)
     }
 }

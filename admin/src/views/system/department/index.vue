@@ -23,7 +23,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="getDeptTree">
+                    <el-button type="primary" @click="handleSearch">
                         <el-icon><Search /></el-icon>
                         {{ $t('common.search') }}
                     </el-button>
@@ -57,7 +57,7 @@
             <el-table
                 :key="tableKey"
                 v-loading="loading"
-                :data="deptTree"
+                :data="list"
                 row-key="id"
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
                 :default-expand-all="isExpandAll"
@@ -129,7 +129,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row.id, row.name)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>
@@ -143,18 +143,19 @@
             v-model="formVisible"
             :form-data="formData"
             :parent-options="parentOptions"
-            @success="getDeptTree"
+            @success="getList"
         />
     </div>
 </template>
 
 <script setup lang="ts" name="DepartmentList">
-import { Delete, Edit, Plus, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { departmentApi } from '@/api/department'
+import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
 
 import DeptForm from './components/DeptForm.vue'
@@ -162,9 +163,6 @@ import DeptForm from './components/DeptForm.vue'
 const { t } = useI18n()
 const userStore = useUserStore()
 
-const searchForm = reactive({ keyword: '', status: undefined as number | undefined })
-const deptTree = ref<any[]>([])
-const loading = ref(false)
 const isExpandAll = ref(true)
 const tableKey = ref(0)
 
@@ -173,20 +171,40 @@ const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
 const parentOptions = ref<any[]>([])
 
-const getDeptTree = async () => {
-    try {
-        loading.value = true
-        const params: Record<string, any> = {}
-        if (searchForm.keyword?.trim()) params.keyword = searchForm.keyword.trim()
-        if (searchForm.status !== undefined) params.status = searchForm.status
-        const res = await departmentApi.getTree(params)
-        deptTree.value = res.data
-    } catch {
-        ElMessage.error(t('message.fetchFailed'))
-    } finally {
-        loading.value = false
-    }
-}
+// 部门接口返回的是树形结构（无分页），用自定义 fetchFn 包装成通用 PageResult 形式
+const {
+    list,
+    loading,
+    searchForm,
+    getList,
+    handleSearch,
+    resetSearch,
+    handleDelete,
+    handleStatusChange
+} = useListPage<any, { keyword: string; status?: number }>({
+    fetchFn: async (params) => {
+        const query: Record<string, any> = {}
+        if (params.keyword?.trim()) query.keyword = params.keyword.trim()
+        if (params.status !== undefined) query.status = params.status
+        const res = await departmentApi.getTree(query)
+        const tree = (res.data || []) as any[]
+        return {
+            ...res,
+            data: {
+                list: tree,
+                pagination: {
+                    current_page: 1,
+                    per_page: tree.length,
+                    total: tree.length,
+                    last_page: 1
+                }
+            }
+        } as any
+    },
+    deleteFn: (id) => departmentApi.delete(id),
+    updateStatusFn: (id, status) => departmentApi.updateStatus(id, status),
+    defaultSearchForm: { keyword: '', status: undefined }
+})
 
 const getParentOptions = async () => {
     try {
@@ -198,24 +216,9 @@ const getParentOptions = async () => {
     }
 }
 
-const resetSearch = () => {
-    Object.assign(searchForm, { keyword: '', status: undefined })
-    getDeptTree()
-}
-
 const expandAll = () => {
     isExpandAll.value = !isExpandAll.value
     tableKey.value++
-}
-
-const handleStatusChange = async (row: any) => {
-    try {
-        await departmentApi.updateStatus(row.id, row.status)
-        ElMessage.success(t('message.statusUpdateSuccess'))
-    } catch {
-        row.status = row.status === 1 ? 0 : 1
-        ElMessage.error(t('message.statusUpdateFailed'))
-    }
 }
 
 const handleAdd = (parent?: any) => {
@@ -229,55 +232,4 @@ const handleEdit = (row: any) => {
     getParentOptions()
     formVisible.value = true
 }
-
-const handleDelete = async (row: any) => {
-    try {
-        await ElMessageBox.confirm(t('message.deleteConfirmName', { name: row.name }), t('message.confirmDelete'), {
-            confirmButtonText: t('common.confirm'),
-            cancelButtonText: t('common.cancel'),
-            type: 'warning'
-        })
-        await departmentApi.delete(row.id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getDeptTree()
-    } catch (error) {
-        if (error !== 'cancel') ElMessage.error(t('common.error'))
-    }
-}
-
-onMounted(() => {
-    getDeptTree()
-})
 </script>
-
-<style lang="scss" scoped>
-.dept-container {
-    .search-card {
-        margin-bottom: 16px;
-
-        .search-form {
-            margin: 0;
-        }
-    }
-
-    .table-card {
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            .table-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: var(--el-text-color-primary);
-            }
-
-            .table-actions {
-                display: flex;
-                gap: 8px;
-            }
-        }
-    }
-}
-</style>

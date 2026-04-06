@@ -2,11 +2,14 @@ import { getI18n } from '@/locales/setupI18n'
 
 /**
  * 全局翻译函数（可在非组件中使用，如 request.ts、feedback.ts）
+ *
+ * @param key 翻译 key
+ * @param params 可选的插值参数
  */
-export function t(key: string): string {
+export function t(key: string, params?: Record<string, any>): string {
     const i18n = getI18n()
     if (!i18n) return key
-    return (i18n.global as any).t(key)
+    return (i18n.global as any).t(key, params ?? {})
 }
 
 /**

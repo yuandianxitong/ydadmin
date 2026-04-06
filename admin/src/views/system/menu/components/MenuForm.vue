@@ -1,10 +1,10 @@
 <template>
     <el-dialog
         v-model="visible"
-        :title="isEdit ? $t('menu.editMenu') : $t('menu.addMenu')"
+        :title="form.id ? $t('menu.editMenu') : $t('menu.addMenu')"
         width="680px"
         :close-on-click-modal="false"
-        @close="handleClose"
+        @closed="handleDialogClosed"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
             <el-row :gutter="16">
@@ -42,7 +42,10 @@
 
                 <el-col :span="12">
                     <el-form-item v-if="form.type !== 3" :label="$t('menu.routeName')" prop="name">
-                        <el-input v-model="form.name" :placeholder="$t('menu.routeNamePlaceholder')" />
+                        <el-input
+                            v-model="form.name"
+                            :placeholder="$t('menu.routeNamePlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -50,13 +53,23 @@
             <el-row v-if="form.type !== 3" :gutter="16">
                 <el-col :span="12">
                     <el-form-item :label="$t('menu.routePath')" prop="path">
-                        <el-input v-model="form.path" :placeholder="$t('menu.routePathPlaceholder')" />
+                        <el-input
+                            v-model="form.path"
+                            :placeholder="$t('menu.routePathPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
 
                 <el-col :span="12">
-                    <el-form-item v-if="form.type === 2" :label="$t('menu.componentPath')" prop="component">
-                        <el-input v-model="form.component" :placeholder="$t('menu.componentPlaceholder')" />
+                    <el-form-item
+                        v-if="form.type === 2"
+                        :label="$t('menu.componentPath')"
+                        prop="component"
+                    >
+                        <el-input
+                            v-model="form.component"
+                            :placeholder="$t('menu.componentPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -76,7 +89,10 @@
 
                 <el-col :span="12">
                     <el-form-item :label="$t('menu.permCode')" prop="permission">
-                        <el-input v-model="form.permission" :placeholder="$t('menu.permPlaceholder')" />
+                        <el-input
+                            v-model="form.permission"
+                            :placeholder="$t('menu.permPlaceholder')"
+                        />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -130,13 +146,19 @@
                     <el-row :gutter="16">
                         <el-col :span="12">
                             <el-form-item :label="$t('menu.badgeText')">
-                                <el-input v-model="metaForm.badge" :placeholder="$t('menu.badgeText')" />
+                                <el-input
+                                    v-model="metaForm.badge"
+                                    :placeholder="$t('menu.badgeText')"
+                                />
                             </el-form-item>
                         </el-col>
 
                         <el-col :span="12">
                             <el-form-item :label="$t('menu.externalLink')">
-                                <el-input v-model="metaForm.iframe" :placeholder="$t('menu.externalLinkPlaceholder')" />
+                                <el-input
+                                    v-model="metaForm.iframe"
+                                    :placeholder="$t('menu.externalLinkPlaceholder')"
+                                />
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -147,7 +169,7 @@
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+                <el-button type="primary" :loading="submitting" @click="handleSubmit">
                     {{ $t('common.confirm') }}
                 </el-button>
             </span>
@@ -156,14 +178,17 @@
 </template>
 
 <script setup lang="ts" name="MenuForm">
-import { ElForm, ElMessage } from 'element-plus'
-import { computed, reactive, ref, watch } from 'vue'
+import type { FormRules } from 'element-plus'
+import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { menuApi } from '@/api/menu'
+import { useFormDialog } from '@/hooks/useFormDialog'
 import type { MenuInfo, MenuMeta, MenuReq } from '@/types/api'
 
 const { t } = useI18n()
+
+type MenuFormData = MenuReq & { id?: number }
 
 interface Props {
     modelValue: boolean
@@ -179,40 +204,65 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 表单引用
-const formRef = ref<InstanceType<typeof ElForm>>()
-
-// 弹窗显示状态
-const visible = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
-
-// 是否编辑模式
-const isEdit = computed(() => !!props.formData.id)
-
-// 表单数据
-const form = reactive<MenuReq>({
-    parent_id: 0,
-    type: 1,
-    title: '',
-    name: '',
-    path: '',
-    component: '',
-    icon: '',
-    permission: '',
-    sort: 100,
-    status: 1
-})
-
-// 元数据表单
-const metaForm = reactive<MenuMeta>({
+// 元数据表单（独立于主 form，因为接口字段是嵌套的 meta 对象）
+const defaultMeta: MenuMeta = {
     hidden: false,
     cache: true,
     affix: false,
     badge: '',
     iframe: ''
-})
+}
+
+const metaForm = reactive<MenuMeta>({ ...defaultMeta })
+
+const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
+    useFormDialog<MenuFormData>({
+        defaultForm: {
+            id: undefined,
+            parent_id: 0,
+            type: 1,
+            title: '',
+            name: '',
+            path: '',
+            component: '',
+            icon: '',
+            permission: '',
+            sort: 100,
+            status: 1
+        },
+        modelValue: () => props.modelValue,
+        onUpdate: (v) => emit('update:modelValue', v),
+        onSuccess: () => emit('success'),
+        // 创建/更新时合并 metaForm 到 meta 字段（按钮类型不需要 meta）
+        createFn: (data) => {
+            const { id: _id, ...payload } = data
+            return menuApi.createMenu({
+                ...payload,
+                meta: payload.type !== 3 ? { ...metaForm } : undefined
+            } as MenuReq)
+        },
+        updateFn: (id, data) => {
+            const { id: _id, ...payload } = data
+            return menuApi.updateMenu(id, {
+                ...payload,
+                meta: payload.type !== 3 ? { ...metaForm } : undefined
+            } as MenuReq)
+        },
+        sourceData: () => props.formData as Partial<MenuFormData>
+    })
+
+// 同步外部 formData.meta 到 metaForm
+watch(
+    () => props.formData,
+    (newData) => {
+        if (newData?.meta) {
+            Object.assign(metaForm, defaultMeta, newData.meta)
+        } else {
+            Object.assign(metaForm, defaultMeta)
+        }
+    },
+    { deep: true, immediate: true }
+)
 
 // 父级菜单树形数据
 const parentTreeData = computed(() => {
@@ -230,7 +280,7 @@ const buildTreeData = (options: Array<{ id: number; title: string; level: number
 }
 
 // 表单验证规则
-const rules = computed(() => ({
+const rules = computed<FormRules>(() => ({
     title: [{ required: true, message: t('menu.validate.nameRequired'), trigger: 'blur' }],
     type: [{ required: true, message: t('menu.validate.typeRequired'), trigger: 'change' }],
     name: [
@@ -289,44 +339,6 @@ const rules = computed(() => ({
     ]
 }))
 
-// 提交加载状态
-const submitLoading = ref(false)
-
-// 监听表单数据变化
-watch(
-    () => props.formData,
-    (newData) => {
-        if (newData) {
-            Object.assign(form, {
-                parent_id: newData.parent_id || 0,
-                type: newData.type || 1,
-                title: newData.title || '',
-                name: newData.name || '',
-                path: newData.path || '',
-                component: newData.component || '',
-                icon: newData.icon || '',
-                permission: newData.permission || '',
-                sort: newData.sort || 100,
-                status: newData.status || 1
-            })
-
-            // 处理元数据
-            if (newData.meta) {
-                Object.assign(metaForm, newData.meta)
-            } else {
-                Object.assign(metaForm, {
-                    hidden: false,
-                    cache: true,
-                    affix: false,
-                    badge: '',
-                    iframe: ''
-                })
-            }
-        }
-    },
-    { deep: true, immediate: true }
-)
-
 // 类型变更处理
 const handleTypeChange = () => {
     if (form.type === 3) {
@@ -338,51 +350,10 @@ const handleTypeChange = () => {
     }
 }
 
-// 提交表单
-const handleSubmit = async () => {
-    if (!formRef.value) return
-
-    try {
-        await formRef.value.validate()
-
-        submitLoading.value = true
-
-        // 准备提交数据
-        const submitData: MenuReq = {
-            ...form,
-            meta: form.type !== 3 ? metaForm : undefined
-        }
-
-        if (isEdit.value && props.formData.id) {
-            // 编辑
-            await menuApi.updateMenu(props.formData.id, submitData)
-            ElMessage.success(t('message.updateSuccess'))
-        } else {
-            // 新增
-            await menuApi.createMenu(submitData)
-            ElMessage.success(t('message.createSuccess'))
-        }
-
-        emit('success')
-        handleClose()
-    } catch (error) {
-        console.error('提交失败:', error)
-    } finally {
-        submitLoading.value = false
-    }
-}
-
-// 关闭弹窗
-const handleClose = () => {
-    formRef.value?.resetFields()
-    Object.assign(metaForm, {
-        hidden: false,
-        cache: true,
-        affix: false,
-        badge: '',
-        iframe: ''
-    })
-    visible.value = false
+// 弹窗关闭后重置表单与 metaForm
+const handleDialogClosed = () => {
+    resetForm()
+    Object.assign(metaForm, defaultMeta)
 }
 </script>
 

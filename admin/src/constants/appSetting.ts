@@ -7,7 +7,7 @@ export const defaultSetting = {
     sideWidth: 200, // 侧边栏宽度
     sideTheme: 'light', // 侧边栏主题
     openMultipleTabs: true, // 是否开启多标签 tab 栏
-    layoutMode: 'classic' as 'classic' | 'sidebar',  // 布局模式
+    layoutMode: 'classic' as 'classic' | 'sidebar', // 布局模式
     themeMode: 'light' as 'system' | 'light' | 'dark', // 主题模式，默认亮色
     darkTheme: 'cinder', // 暗色主题配色名
     theme: '#1f4fff', // 主题色
