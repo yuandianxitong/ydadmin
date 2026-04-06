@@ -15,7 +15,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { authApi } from '@/api/auth'
-import type { LoginResult, UserInfo } from '@/types/api'
+import type { LoginResult } from '@/types/api'
 
 withDefaults(defineProps<{
   text?: string
@@ -56,18 +56,8 @@ async function handleLogin() {
       throw new Error('获取微信登录凭证失败')
     }
 
-    // 尝试获取用户信息
-    try {
-      await new Promise<any>((resolve, reject) => {
-        uni.getUserProfile({
-          desc: '用于展示用户信息',
-          success: resolve,
-          fail: reject,
-        })
-      })
-    } catch {
-      // 用户拒绝授权，仍可继续登录
-    }
+    // 注：微信 2.27.1+ 基础库起 uni.getUserProfile 已被废弃，调用会直接返回 fail 且无弹窗。
+    // 用户昵称/头像应通过用户自己在"个人资料"页设置，此处不再尝试调用。
 
     const res = await authApi.wechatMiniLogin({ code: loginRes.code })
     emit('success', res as unknown as LoginResult)

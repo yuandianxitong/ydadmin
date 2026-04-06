@@ -93,11 +93,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { authApi } from '@/api/auth'
-import { isPassword } from '@/utils/validate'
-import { setToken } from '@/utils/auth'
+import { isPassword, isMobile } from '@/utils/validate'
 import { useUserStore } from '@/store/user.store'
+import { useCountdown } from '@/hooks/useCountdown'
 
 const userStore = useUserStore()
 
@@ -105,8 +105,7 @@ const loading = ref(false)
 const agreed = ref(false)
 const showPwd = ref(false)
 const showConfirmPwd = ref(false)
-const countdown = ref(0)
-let countdownTimer: ReturnType<typeof setInterval> | null = null
+const { countdown, start: startCountdown } = useCountdown(60)
 
 const form = reactive({
   mobile: '',
@@ -115,20 +114,9 @@ const form = reactive({
   confirmPassword: '',
 })
 
-function startCountdown() {
-  countdown.value = 60
-  countdownTimer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(countdownTimer!)
-      countdownTimer = null
-    }
-  }, 1000)
-}
-
 async function handleSendCode() {
   if (countdown.value > 0) return
-  if (!/^1[3-9]\d{9}$/.test(form.mobile)) {
+  if (!isMobile(form.mobile)) {
     uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
     return
   }
@@ -142,7 +130,7 @@ async function handleSendCode() {
 }
 
 async function handleRegister() {
-  if (!/^1[3-9]\d{9}$/.test(form.mobile)) {
+  if (!isMobile(form.mobile)) {
     uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
     return
   }
@@ -165,22 +153,13 @@ async function handleRegister() {
 
   loading.value = true
   try {
-    const result = await authApi.register({
+    // 通过 store 封装方法注册，store 内部统一处理 token、userInfo 和 H5 OAuth 绑定
+    await userStore.register({
       mobile: form.mobile,
       code: form.code,
       password: form.password,
       password_confirmation: form.confirmPassword,
     })
-    if (result.token) {
-      setToken(result.token)
-      userStore.token = result.token
-      userStore.userInfo = (result as any).user_info || (result as any).user || null
-      // #ifdef H5
-      import('@/utils/wechat-oauth').then(({ bindOaOpenidAfterLogin }) => {
-        bindOaOpenidAfterLogin()
-      }).catch(() => {})
-      // #endif
-    }
     uni.showToast({ title: '注册成功' })
     setTimeout(() => {
       uni.reLaunch({ url: '/pages/index/index' })
@@ -193,13 +172,6 @@ async function handleRegister() {
 function goLogin() {
   uni.navigateBack()
 }
-
-onUnmounted(() => {
-  if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-})
 </script>
 
 <style lang="scss" scoped>

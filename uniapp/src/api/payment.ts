@@ -13,12 +13,17 @@ export interface CreateOrderParams {
   trade_type: TradeType
 }
 
-/** 创建订单返回 */
+/** 创建订单返回（与后端 PaymentService.createOrder 对齐） */
 export interface CreateOrderResult {
-  /** 支付参数，传给 uni.requestPayment */
-  payment_params: Record<string, any>
   /** 订单号 */
   order_no: string
+  /** 支付订单 ID */
+  payment_id: number
+  /** 支付参数容器：trade_type 为交易类型，data 为传给 uni.requestPayment / JSBridge 的参数 */
+  payment_data: {
+    trade_type: TradeType | 'native'
+    data: Record<string, any>
+  }
 }
 
 /** 订单查询结果 */

@@ -80,12 +80,6 @@
 			"root": "modules/user",
 			"pages": [
 				{
-					"path": "pages/profile",
-					"style": {
-						"navigationBarTitleText": "个人中心"
-					}
-				},
-				{
 					"path": "pages/edit-profile",
 					"style": {
 						"navigationBarTitleText": "编辑资料"

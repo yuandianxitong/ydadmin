@@ -24,7 +24,17 @@ export const userApi = {
     http.get<PageResult<PointsLogItem>>('/api/user/points-logs', params),
 
   recharge: (data: { amount: number; channel: string }) =>
-    http.post<{ payment_params: Record<string, any>; order_no: string }>('/api/user/recharge', data),
+    http.post<RechargeResult>('/api/user/recharge', data),
+}
+
+/** 充值接口返回结构（与后端 PaymentService.createOrder 对齐） */
+export interface RechargeResult {
+  order_no: string
+  payment_id: number
+  payment_data: {
+    trade_type: 'jsapi' | 'app' | 'h5' | 'native'
+    data: Record<string, any>
+  }
 }
 
 /** 余额明细项 */

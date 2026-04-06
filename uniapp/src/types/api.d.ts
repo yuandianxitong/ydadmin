@@ -27,8 +27,8 @@ export interface UserInfo {
   birthday: string
 }
 
-/** 登录响应 */
+/** 登录/注册响应（后端字段名为 user_info，非 user） */
 export interface LoginResult {
   token: string
-  user: UserInfo
+  user_info: UserInfo
 }

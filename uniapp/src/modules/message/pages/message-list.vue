@@ -49,12 +49,19 @@
 
 <script setup lang="ts">
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import { messageApi, type NotificationInfo } from '@/api/message'
-import { usePaging } from '@/hooks/usePaging'
+import { useMessageList } from '@/hooks/useMessageList'
 
-const { list, loading, finished, total, getList, refresh } = usePaging<NotificationInfo>({
-  fetchFun: (params) => messageApi.getList(params),
-})
+const {
+  list,
+  loading,
+  finished,
+  total,
+  getList,
+  refresh,
+  formatTime,
+  handleTap,
+  handleReadAll,
+} = useMessageList()
 
 const typeMap: Record<string, string> = {
   system: '系统通知',
@@ -65,49 +72,6 @@ const typeMap: Record<string, string> = {
 
 function getTypeLabel(type: string): string {
   return typeMap[type] || '通知'
-}
-
-function formatTime(time: string): string {
-  if (!time) return ''
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${month}-${day}`
-}
-
-function handleTap(item: NotificationInfo) {
-  // Mark single message as read
-  if (!item.is_read) {
-    messageApi.markAsRead([item.id]).then(() => {
-      item.is_read = true
-    })
-  }
-  // Navigate to detail
-  const data = encodeURIComponent(JSON.stringify(item))
-  uni.navigateTo({
-    url: `/modules/message/pages/message-detail?data=${data}`,
-  })
-}
-
-async function handleReadAll() {
-  try {
-    await messageApi.markAsRead()
-    uni.showToast({ title: '全部已读', icon: 'success' })
-    list.value.forEach((item) => {
-      item.is_read = true
-    })
-  } catch {
-    // error handled by request interceptor
-  }
 }
 
 onShow(() => {
@@ -136,7 +100,8 @@ onPullDownRefresh(async () => {
 }
 
 .message-scroll {
-  height: calc(100vh - 200rpx);
+  // 顶部操作栏高度 + 底部安全区域
+  height: calc(100vh - 200rpx - env(safe-area-inset-bottom));
 }
 
 .message-item {

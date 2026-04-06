@@ -13,3 +13,35 @@ page {
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ============================================================
+ * 全局主操作按钮样式
+ *
+ * 统一覆盖 uview-plus u-button 的默认尺寸，
+ * 替代各页面 scoped SCSS 中的 `.login-btn/.submit-btn/.pay-btn` 重复定义。
+ * 使用方式：<u-button class="d-submit-btn">...</u-button>
+ * ============================================================ */
+.d-submit-btn {
+  border-radius: 16rpx !important;
+  height: 96rpx !important;
+  font-size: 32rpx !important;
+}
+
+/* ============================================================
+ * 通用卡片容器样式
+ * ============================================================ */
+.d-section-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.d-section-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: $text-color;
+  margin-bottom: 24rpx;
+}

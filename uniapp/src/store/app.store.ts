@@ -37,5 +37,12 @@ export const useAppStore = defineStore('app', () => {
     return baseUrl + url
   }
 
-  return { config, isConfigLoaded, getConfig, getImageUrl }
+  /** 清理内存中的全局配置，下次调用 getConfig 时会重新拉取 */
+  function resetConfig() {
+    config.value = {}
+    isConfigLoaded.value = false
+    configPromise = null
+  }
+
+  return { config, isConfigLoaded, getConfig, getImageUrl, resetConfig }
 })

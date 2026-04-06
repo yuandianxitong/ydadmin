@@ -31,22 +31,17 @@
 </template>
 
 <script setup lang="ts">
-import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { announcementApi, type AnnouncementItem } from '@/api/announcement'
-import { usePaging } from '@/hooks/usePaging'
+import { usePagingList } from '@/hooks/usePagingList'
 
-const { list, loading, finished, total, getList, refresh } = usePaging<AnnouncementItem>({
+// usePagingList 自动注册 onShow + onPullDownRefresh 生命周期
+const { list, loading, finished, total, getList } = usePagingList<AnnouncementItem>({
   fetchFun: (params) => announcementApi.getList(params),
 })
 
 function goDetail(id: number) {
   uni.navigateTo({ url: `/modules/announcement/pages/announcement-detail?id=${id}` })
 }
-
-onPullDownRefresh(async () => {
-  await refresh()
-  uni.stopPullDownRefresh()
-})
 
 getList()
 </script>
@@ -55,7 +50,8 @@ getList()
 @import '@/styles/variables.scss';
 
 .announcement-scroll {
-  height: calc(100vh - 100rpx);
+  // 减去顶部容器内边距 + 底部安全区域，避免 iPhone 刘海屏遮挡最后一条
+  height: calc(100vh - 100rpx - env(safe-area-inset-bottom));
 }
 
 .announcement-item {

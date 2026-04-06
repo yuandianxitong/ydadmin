@@ -1,25 +1,32 @@
+/**
+ * 微信 H5（公众号）OAuth 静默授权工具
+ *
+ * 存储层统一使用 uni.getStorageSync / setStorageSync，兼容多端；
+ * 业务流程 initWechatOAuth 涉及 window/navigator，只在 H5 编译。
+ */
 const OA_OPENID_KEY = 'wechat_oa_openid'
 const OA_BINDPENDING_KEY = 'wechat_oa_bind_pending'
 
 export function getOaOpenid(): string | null {
-  return localStorage.getItem(OA_OPENID_KEY)
+  const v = uni.getStorageSync(OA_OPENID_KEY)
+  return v ? String(v) : null
 }
 
 export function setOaOpenid(openid: string) {
-  localStorage.setItem(OA_OPENID_KEY, openid)
+  uni.setStorageSync(OA_OPENID_KEY, openid)
 }
 
 /** 标记 oa_openid 待绑定（登录后自动关联到用户） */
 export function setBindPending(pending: boolean) {
   if (pending) {
-    localStorage.setItem(OA_BINDPENDING_KEY, '1')
+    uni.setStorageSync(OA_BINDPENDING_KEY, '1')
   } else {
-    localStorage.removeItem(OA_BINDPENDING_KEY)
+    uni.removeStorageSync(OA_BINDPENDING_KEY)
   }
 }
 
 export function isBindPending(): boolean {
-  return localStorage.getItem(OA_BINDPENDING_KEY) === '1'
+  return uni.getStorageSync(OA_BINDPENDING_KEY) === '1'
 }
 
 /**
@@ -45,9 +52,13 @@ export async function bindOaOpenidAfterLogin() {
  * 流程：
  * 1. 首次进入 → 无 oa_openid → 跳转微信授权
  * 2. 微信回调 → URL 带 code → 调后端登录接口 → 已有用户自动登录 / 新用户跳转登录页
- * 3. 后续访问 → localStorage 有 oa_openid → 跳过
+ * 3. 后续访问 → storage 中有 oa_openid → 跳过
+ *
+ * 注意：此函数使用 window/navigator 浏览器 API，仅在 H5 平台编译。
  */
 export async function initWechatOAuth() {
+  // 仅 H5 平台执行具体逻辑，其他平台直接返回
+  // #ifdef H5
   if (typeof navigator === 'undefined') return
   const ua = navigator.userAgent.toLowerCase()
   if (!ua.includes('micromessenger')) return
@@ -112,4 +123,5 @@ export async function initWechatOAuth() {
   } catch (e) {
     console.error('获取 OAuth URL 失败', e)
   }
+  // #endif
 }

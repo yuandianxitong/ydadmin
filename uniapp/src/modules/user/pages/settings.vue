@@ -75,12 +75,25 @@
 import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/store/app.store'
 import { useUserStore } from '@/store/user.store'
+import { useVersionCheck } from '@/hooks/useVersionCheck'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
+const { checking, checkUpdate } = useVersionCheck()
 
-const version = ref('v1.0.0')
+// 从 uniapp 运行时读取当前版本号，统一展示
+const version = ref(getCurrentVersionText())
 const cacheSize = ref('计算中...')
+
+function getCurrentVersionText(): string {
+  try {
+    const appBaseInfo = uni.getAppBaseInfo?.() as any
+    const v = appBaseInfo?.appVersion
+    return v ? `v${v}` : 'v1.0.0'
+  } catch {
+    return 'v1.0.0'
+  }
+}
 
 onMounted(() => {
   calculateCache()
@@ -114,7 +127,7 @@ function handleClearCache() {
             uni.setStorageSync('dev007_token', token)
           }
           // Reset app store config
-          appStore.isConfigLoaded = false
+          appStore.resetConfig()
           cacheSize.value = '0 KB'
           uni.showToast({ title: '缓存已清除' })
         } catch {
@@ -125,12 +138,14 @@ function handleClearCache() {
   })
 }
 
-function handleCheckUpdate() {
+async function handleCheckUpdate() {
+  if (checking.value) return
   uni.showLoading({ title: '检查中...' })
-  setTimeout(() => {
+  try {
+    await checkUpdate(false)
+  } finally {
     uni.hideLoading()
-    uni.showToast({ title: '已是最新版本', icon: 'success' })
-  }, 1500)
+  }
 }
 
 function handleLogout() {

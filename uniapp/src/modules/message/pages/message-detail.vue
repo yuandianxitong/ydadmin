@@ -17,6 +17,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import type { NotificationInfo } from '@/api/message'
+import { consumeMessageCache } from '@/hooks/useMessageList'
 
 const message = ref<NotificationInfo | null>(null)
 
@@ -32,12 +33,9 @@ function getTypeLabel(type: string): string {
 }
 
 onLoad((options) => {
-  if (options?.data) {
-    try {
-      message.value = JSON.parse(decodeURIComponent(options.data))
-    } catch {
-      message.value = null
-    }
+  const id = Number(options?.id)
+  if (id) {
+    message.value = consumeMessageCache(id)
   }
 })
 </script>

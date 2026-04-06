@@ -1,7 +1,7 @@
 <template>
   <view class="my-page">
     <!-- User Card with gradient background -->
-    <view class="user-header">
+    <view id="my-user-header" class="user-header">
       <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
       <view class="user-card" @tap="goUserAction">
         <view class="avatar-wrap">
@@ -41,7 +41,7 @@
     </view>
 
     <!-- Menu Groups -->
-    <view class="menu-body" :style="{ paddingTop: (statusBarHeight + 260) + 'px' }">
+    <view class="menu-body" :style="{ paddingTop: headerHeight + 'px' }">
       <!-- Group 1: Profile -->
       <view class="menu-card">
         <u-cell-group>
@@ -102,25 +102,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.store'
 import { useAppStore } from '@/store/app.store'
 import { messageApi } from '@/api/message'
 import { userApi } from '@/api/user'
+import { getStatusBarHeight } from '@/utils/platform'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-const statusBarHeight = ref(0)
+const statusBarHeight = ref(getStatusBarHeight())
+const headerHeight = ref(280) // 占位高度，mount 后通过实际测量覆盖
 const unreadCount = ref(0)
 const balanceInfo = ref({ balance: '0.00', points: 0 })
 
-try {
-  const sysInfo = uni.getSystemInfoSync()
-  statusBarHeight.value = sysInfo.statusBarHeight || 0
-} catch {
-  statusBarHeight.value = 44
+/**
+ * 动态测量 user-header 实际高度
+ *
+ * 替代原先硬编码的 `statusBarHeight + 260`，260 是按默认屏幕估算的固定值，
+ * 在折叠屏、异形屏以及不同字号设置下会出现偏差。改为 createSelectorQuery 取真实值。
+ */
+function measureHeaderHeight() {
+  nextTick(() => {
+    const query = uni.createSelectorQuery()
+    query
+      .select('#my-user-header')
+      .boundingClientRect((rect: any) => {
+        if (rect && rect.height) {
+          headerHeight.value = Math.ceil(rect.height)
+        }
+      })
+      .exec()
+  })
 }
 
 const avatarUrl = computed(() => {
@@ -196,6 +211,8 @@ onShow(() => {
   }
   loadUnreadCount()
   loadAssets()
+  // 头部高度可能随登录状态变化（登录前/后文案不同），每次显示都重新测量
+  measureHeaderHeight()
 })
 </script>
 

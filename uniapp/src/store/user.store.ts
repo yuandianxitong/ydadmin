@@ -14,20 +14,41 @@ export const useUserStore = defineStore('user', () => {
 
   async function login(params: { mobile: string; password: string }): Promise<LoginResult> {
     const result = await authApi.login(params)
-    token.value = result.token
-    userInfo.value = result.user
-    setToken(result.token)
+    applyLoginResult(result)
     await afterLogin()
     return result
   }
 
   async function smsLogin(params: { mobile: string; code: string }): Promise<LoginResult> {
     const result = await authApi.smsLogin(params)
-    token.value = result.token
-    userInfo.value = result.user
-    setToken(result.token)
+    applyLoginResult(result)
     await afterLogin()
     return result
+  }
+
+  /**
+   * 注册：手机号 + 验证码 + 密码
+   *
+   * 成功后自动完成登录流程（写入 token、userInfo、触发 afterLogin 钩子），
+   * 调用方无需再直接操作 store 字段。
+   */
+  async function register(params: {
+    mobile: string
+    code: string
+    password: string
+    password_confirmation: string
+  }): Promise<LoginResult> {
+    const result = await authApi.register(params)
+    applyLoginResult(result)
+    await afterLogin()
+    return result
+  }
+
+  /** 统一的登录结果写入逻辑 */
+  function applyLoginResult(result: LoginResult) {
+    token.value = result.token
+    userInfo.value = result.user_info ?? null
+    setToken(result.token)
   }
 
   /** 登录成功后的通用钩子 */
@@ -56,5 +77,5 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, userInfo, isLoggedIn, nickname, avatar, login, smsLogin, getUserInfo, logout }
+  return { token, userInfo, isLoggedIn, nickname, avatar, login, smsLogin, register, getUserInfo, logout }
 })

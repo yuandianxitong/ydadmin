@@ -15,25 +15,7 @@
           class="log-scroll"
           @scrolltolower="getList"
         >
-          <view
-            v-for="item in list"
-            :key="item.id"
-            class="log-item"
-          >
-            <view class="log-item__left">
-              <text class="log-item__type">{{ item.type_text }}</text>
-              <text class="log-item__remark">{{ item.remark || '无备注' }}</text>
-            </view>
-            <view class="log-item__right">
-              <text
-                class="log-item__points"
-                :class="item.points >= 0 ? 'is-income' : 'is-expense'"
-              >
-                {{ item.points >= 0 ? '+' : '' }}{{ item.points }}
-              </text>
-              <text class="log-item__time">{{ item.created_at }}</text>
-            </view>
-          </view>
+          <d-ledger-list :items="list" value-key="points" value-mode="integer" />
 
           <d-list-loader
             :loading="loading"
@@ -119,62 +101,5 @@ onMounted(() => {
 
 .log-scroll {
   max-height: 1000rpx;
-}
-
-.log-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid $border-color;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &__left {
-    flex: 1;
-  }
-
-  &__type {
-    display: block;
-    font-size: 28rpx;
-    color: $text-color;
-    font-weight: 500;
-    margin-bottom: 8rpx;
-  }
-
-  &__remark {
-    display: block;
-    font-size: 24rpx;
-    color: $text-color-secondary;
-  }
-
-  &__right {
-    text-align: right;
-    flex-shrink: 0;
-    margin-left: 20rpx;
-  }
-
-  &__points {
-    display: block;
-    font-size: 30rpx;
-    font-weight: 600;
-    margin-bottom: 8rpx;
-
-    &.is-income {
-      color: $success-color;
-    }
-
-    &.is-expense {
-      color: $danger-color;
-    }
-  }
-
-  &__time {
-    display: block;
-    font-size: 22rpx;
-    color: $text-color-secondary;
-  }
 }
 </style>

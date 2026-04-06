@@ -55,12 +55,20 @@
 
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
-import { messageApi, type NotificationInfo } from '@/api/message'
-import { usePaging } from '@/hooks/usePaging'
+import { useMessageList } from '@/hooks/useMessageList'
 
-const { list, loading, finished, refreshing, total, getList, refresh } = usePaging<NotificationInfo>({
-  fetchFun: (params) => messageApi.getList(params),
-})
+const {
+  list,
+  loading,
+  finished,
+  refreshing,
+  total,
+  getList,
+  refresh,
+  formatTime,
+  handleTap,
+  handleReadAll,
+} = useMessageList()
 
 function getTypeClass(type: string): string {
   const map: Record<string, string> = {
@@ -70,48 +78,6 @@ function getTypeClass(type: string): string {
     activity: 'type-activity',
   }
   return map[type] || 'type-system'
-}
-
-function formatTime(time: string): string {
-  if (!time) return ''
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}小时前`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}天前`
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${month}-${day}`
-}
-
-function handleTap(item: NotificationInfo) {
-  if (!item.is_read) {
-    messageApi.markAsRead([item.id]).then(() => {
-      item.is_read = true
-    })
-  }
-  const data = encodeURIComponent(JSON.stringify(item))
-  uni.navigateTo({
-    url: `/modules/message/pages/message-detail?data=${data}`,
-  })
-}
-
-async function handleReadAll() {
-  if (total.value === 0) return
-  try {
-    await messageApi.markAsRead()
-    uni.showToast({ title: '全部已读', icon: 'success' })
-    list.value.forEach((item) => {
-      item.is_read = true
-    })
-  } catch {
-    // error handled by request interceptor
-  }
 }
 
 function handleRefresh() {

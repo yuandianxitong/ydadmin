@@ -46,7 +46,7 @@
           block
           :loading="paying"
           :disabled="paying || finalAmount <= 0"
-          class="pay-btn"
+          class="d-submit-btn"
           @click="showPayPopup = true"
         >
           确认充值 ¥{{ finalAmount.toFixed(2) }}
@@ -61,25 +61,7 @@
           class="log-scroll"
           @scrolltolower="getList"
         >
-          <view
-            v-for="item in list"
-            :key="item.id"
-            class="log-item"
-          >
-            <view class="log-item__left">
-              <text class="log-item__type">{{ item.type_text }}</text>
-              <text class="log-item__remark">{{ item.remark || '无备注' }}</text>
-            </view>
-            <view class="log-item__right">
-              <text
-                class="log-item__amount"
-                :class="parseFloat(item.amount) >= 0 ? 'is-income' : 'is-expense'"
-              >
-                {{ parseFloat(item.amount) >= 0 ? '+' : '' }}{{ item.amount }}
-              </text>
-              <text class="log-item__time">{{ item.created_at }}</text>
-            </view>
-          </view>
+          <d-ledger-list :items="list" value-key="amount" value-mode="currency" />
 
           <d-list-loader
             :loading="loading"
@@ -161,6 +143,10 @@ async function handlePay(channel: PayChannel) {
 
     // Call native payment
     const payData = res.payment_data?.data
+    if (!payData) {
+      uni.showToast({ title: '获取支付参数失败', icon: 'none' })
+      return
+    }
     try {
       // #ifdef MP-WEIXIN
       await new Promise<void>((resolve, reject) => {
@@ -329,12 +315,6 @@ onMounted(() => {
   }
 }
 
-.pay-btn {
-  border-radius: 16rpx !important;
-  height: 96rpx !important;
-  font-size: 32rpx !important;
-}
-
 .log-section {
   background: #ffffff;
   border-radius: 24rpx;
@@ -344,62 +324,5 @@ onMounted(() => {
 
 .log-scroll {
   max-height: 800rpx;
-}
-
-.log-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid $border-color;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &__left {
-    flex: 1;
-  }
-
-  &__type {
-    display: block;
-    font-size: 28rpx;
-    color: $text-color;
-    font-weight: 500;
-    margin-bottom: 8rpx;
-  }
-
-  &__remark {
-    display: block;
-    font-size: 24rpx;
-    color: $text-color-secondary;
-  }
-
-  &__right {
-    text-align: right;
-    flex-shrink: 0;
-    margin-left: 20rpx;
-  }
-
-  &__amount {
-    display: block;
-    font-size: 30rpx;
-    font-weight: 600;
-    margin-bottom: 8rpx;
-
-    &.is-income {
-      color: $success-color;
-    }
-
-    &.is-expense {
-      color: $danger-color;
-    }
-  }
-
-  &__time {
-    display: block;
-    font-size: 22rpx;
-    color: $text-color-secondary;
-  }
 }
 </style>

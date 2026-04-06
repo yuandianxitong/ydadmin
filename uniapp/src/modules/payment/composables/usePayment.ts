@@ -25,7 +25,7 @@ export function usePayment() {
     loading.value = true
     try {
       const result = await paymentApi.createOrder({ order_no, channel, trade_type })
-      const params = result.payment_params
+      const params = result.payment_data?.data || {}
 
       // H5 payment: redirect to payment URL
       if (trade_type === 'h5' && params.h5_url) {
@@ -39,7 +39,7 @@ export function usePayment() {
       const provider = channel === 'wechat' ? 'wxpay' : 'alipay'
       await uni.requestPayment({
         provider,
-        ...params,
+        ...(params as any),
       })
 
       return true
