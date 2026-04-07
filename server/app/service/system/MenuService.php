@@ -303,6 +303,12 @@ class MenuService extends Service
 
             Db::commit();
             $this->log('菜单批量排序成功', ['group_count' => count($groups)]);
+
+            $this->trigger('menu.changed', [
+                'action'  => 'sort',
+                'menu_id' => null,
+            ]);
+
             return true;
         } catch (\Throwable $e) {
             Db::rollback();
