@@ -1,6 +1,6 @@
 <template>
     <div ref="iconSelectRef" :style="{ width }">
-        <el-popover :visible="popoverVisible" :width="width" placement="bottom-end">
+        <el-popover :visible="popoverVisible" :width="popoverWidth" placement="bottom-end">
             <template #reference>
                 <div @click="popoverVisible = !popoverVisible">
                     <slot>
@@ -93,11 +93,14 @@
 <script setup lang="ts">
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { onClickOutside } from '@vueuse/core'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const props = defineProps({
     modelValue: String,
-    width: { type: String, default: '500px' }
+    /** 输入框外层宽度（可为 "100%"、"500px" 等） */
+    width: { type: String, default: '500px' },
+    /** 图标选择弹窗的宽度（必须是像素值，不能用 "100%"，否则会撑满整个视口） */
+    popoverWidth: { type: [String, Number], default: 400 }
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -115,12 +118,15 @@ const filteredSvgIcons = ref<string[]>([])
 const filteredElementIcons = ref<string[]>([])
 
 const width = props.width
+const popoverWidth = props.popoverWidth
 const iconSize = '1.2em'
 
 const isElementIcon = computed(() => selectedIcon.value.startsWith('el-icon-'))
 
 function loadIcons() {
-    const modules = import.meta.glob('../../../assets/icons/*.svg', { eager: true })
+    // IconSelect 位于 src/components/IconSelect/，SVG 图标位于 src/assets/icons/
+    // 相对路径需要向上两级到 src/，再进入 assets/icons/
+    const modules = import.meta.glob('../../assets/icons/*.svg', { eager: true })
     svgIcons.value = Object.keys(modules).map((path) => path.replace(/.*\/(.*)\.svg$/, '$1'))
     filteredSvgIcons.value = svgIcons.value
     filteredElementIcons.value = elementIcons.value
@@ -164,6 +170,17 @@ function clearSelectedIcon() {
 onClickOutside(iconSelectRef, () => (popoverVisible.value = false), {
     ignore: [popoverContentRef]
 })
+
+// 同步外部 modelValue 变化到本地显示（编辑弹窗复用同一组件实例时必要）
+watch(
+    () => props.modelValue,
+    (val) => {
+        selectedIcon.value = val || ''
+        if (val) {
+            activeTab.value = val.startsWith('el-icon-') ? 'element' : 'svg'
+        }
+    }
+)
 
 onMounted(() => {
     loadIcons()

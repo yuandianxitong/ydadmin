@@ -421,6 +421,7 @@ export default {
         activeMenu: '高亮菜单',
         badgeText: '徽章文字',
         metadata: '菜单元数据',
+        advancedOptions: '高级选项',
         namePlaceholder: '请输入菜单名称',
         routeNamePlaceholder: '请输入路由名称',
         routePathPlaceholder: '请输入路由路径',

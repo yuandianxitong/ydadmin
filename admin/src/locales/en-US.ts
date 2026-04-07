@@ -429,6 +429,7 @@ export default {
         activeMenu: 'Active Menu',
         badgeText: 'Badge Text',
         metadata: 'Menu Metadata',
+        advancedOptions: 'Advanced Options',
         namePlaceholder: 'Enter menu name',
         routeNamePlaceholder: 'Enter route name',
         routePathPlaceholder: 'Enter route path',
