@@ -201,14 +201,6 @@ class MenuRepository extends Repository
     }
 
     /**
-     * @deprecated 使用 getAllChildrenIds 代替，保留仅为兼容 deleteWithChildren
-     */
-    private function collectChildrenIds(int $id): array
-    {
-        return $this->getAllChildrenIds($id);
-    }
-
-    /**
      * 检查菜单是否被角色使用
      */
     public function isUsedByRole(int $menuId): bool
@@ -255,7 +247,7 @@ class MenuRepository extends Repository
      */
     public function deleteWithChildren(int $id): bool
     {
-        $childrenIds = $this->collectChildrenIds($id);
+        $childrenIds = $this->getAllChildrenIds($id);
         return $this->model->whereIn('id', $childrenIds)->delete() > 0;
     }
 
