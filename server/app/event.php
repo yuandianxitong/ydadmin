@@ -18,6 +18,9 @@ return [
         // ---- 系统配置事件 ----
         'config.changed' => [\app\listener\system\ConfigChangedListener::class],
 
+        // ---- 菜单事件 ----
+        'menu.changed' => [\app\listener\system\MenuChangedListener::class],
+
         // ---- 用户事件 ----
         'user.register' => [\app\listener\user\UserRegisterListener::class],
         'user.login'    => [\app\listener\user\UserLoginListener::class],
