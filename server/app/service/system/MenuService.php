@@ -239,8 +239,9 @@ class MenuService extends Service
             }
             Db::commit();
 
-            // deleteMenu 循环内已经逐个触发 menu.changed，
-            // 此处再触发一次 batchDelete 汇总事件，便于未来审计/通知 Listener 区分批量操作
+            // deleteMenu 循环内已经逐个触发 menu.changed（N 次缓存清除），
+            // 此处再触发一次 batchDelete 汇总事件，便于未来审计/通知 Listener 区分批量操作。
+            // 注：N+1 次清缓存是可接受的——cacheClear 幂等且成本极低，简化实现胜过去重。
             $this->trigger('menu.changed', [
                 'action'  => 'batchDelete',
                 'menu_id' => $ids,
