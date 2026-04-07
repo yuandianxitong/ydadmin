@@ -256,9 +256,7 @@ class MenuRepository extends Repository
     public function deleteWithChildren(int $id): bool
     {
         $childrenIds = $this->collectChildrenIds($id);
-        $result = $this->model->whereIn('id', $childrenIds)->delete() > 0;
-        $this->cacheClear();
-        return $result;
+        return $this->model->whereIn('id', $childrenIds)->delete() > 0;
     }
 
     /**
@@ -290,8 +288,8 @@ class MenuRepository extends Repository
         );
 
         // 执行原生 SQL
+        // 缓存失效由 MenuService::batchSort() 触发的 menu.changed 事件统一处理
         \think\facade\Db::execute($sql);
-        $this->cacheClear();
         return true;
     }
 }
