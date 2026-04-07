@@ -243,15 +243,6 @@ class MenuRepository extends Repository
     }
 
     /**
-     * 删除菜单及其子菜单
-     */
-    public function deleteWithChildren(int $id): bool
-    {
-        $childrenIds = $this->getAllChildrenIds($id);
-        return $this->model->whereIn('id', $childrenIds)->delete() > 0;
-    }
-
-    /**
      * 批量更新 sort（使用 CASE WHEN）
      * @param array<int, array{id:int, sort:int}> $rows
      */
