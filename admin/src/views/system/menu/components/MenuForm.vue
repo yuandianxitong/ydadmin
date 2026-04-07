@@ -2,168 +2,129 @@
     <el-dialog
         v-model="visible"
         :title="form.id ? $t('menu.editMenu') : $t('menu.addMenu')"
-        width="680px"
+        width="600px"
         :close-on-click-modal="false"
         @closed="handleDialogClosed"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-            <el-row :gutter="16">
-                <el-col :span="12">
-                    <el-form-item :label="$t('menu.parentMenu')" prop="parent_id">
-                        <el-tree-select
-                            v-model="form.parent_id"
-                            :data="parentTreeData"
-                            node-key="id"
-                            :props="{ label: 'title' }"
-                            :placeholder="$t('menu.parentMenu')"
-                            check-strictly
-                            clearable
-                        />
-                    </el-form-item>
-                </el-col>
-
-                <el-col :span="12">
-                    <el-form-item :label="$t('menu.menuType')" prop="type">
-                        <el-radio-group v-model="form.type" @change="handleTypeChange">
-                            <el-radio :value="1">{{ $t('menu.typeOptions.directory') }}</el-radio>
-                            <el-radio :value="2">{{ $t('menu.typeOptions.menu') }}</el-radio>
-                            <el-radio :value="3">{{ $t('menu.typeOptions.button') }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-row :gutter="16">
-                <el-col :span="12">
-                    <el-form-item :label="$t('menu.menuName')" prop="title">
-                        <el-input v-model="form.title" :placeholder="$t('menu.namePlaceholder')" />
-                    </el-form-item>
-                </el-col>
-
-                <el-col :span="12">
-                    <el-form-item v-if="form.type !== 3" :label="$t('menu.routeName')" prop="name">
-                        <el-input
-                            v-model="form.name"
-                            :placeholder="$t('menu.routeNamePlaceholder')"
-                        />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-row v-if="form.type !== 3" :gutter="16">
-                <el-col :span="12">
-                    <el-form-item :label="$t('menu.routePath')" prop="path">
-                        <el-input
-                            v-model="form.path"
-                            :placeholder="$t('menu.routePathPlaceholder')"
-                        />
-                    </el-form-item>
-                </el-col>
-
-                <el-col :span="12">
-                    <el-form-item
-                        v-if="form.type === 2"
-                        :label="$t('menu.componentPath')"
-                        prop="component"
-                    >
-                        <el-input
-                            v-model="form.component"
-                            :placeholder="$t('menu.componentPlaceholder')"
-                        />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-row :gutter="16">
-                <el-col :span="12">
-                    <el-form-item v-if="form.type !== 3" :label="$t('menu.icon')" prop="icon">
-                        <el-input v-model="form.icon" :placeholder="$t('menu.icon')">
-                            <template #prepend>
-                                <el-icon v-if="form.icon">
-                                    <component :is="form.icon" />
-                                </el-icon>
-                            </template>
-                        </el-input>
-                    </el-form-item>
-                </el-col>
-
-                <el-col :span="12">
-                    <el-form-item :label="$t('menu.permCode')" prop="permission">
-                        <el-input
-                            v-model="form.permission"
-                            :placeholder="$t('menu.permPlaceholder')"
-                        />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <el-row :gutter="16">
-                <el-col :span="12">
-                    <el-form-item :label="$t('common.sort')" prop="sort">
-                        <el-input-number
-                            v-model="form.sort"
-                            :min="0"
-                            :max="9999"
-                            controls-position="right"
-                            style="width: 100%"
-                        />
-                    </el-form-item>
-                </el-col>
-
-                <el-col :span="12">
-                    <el-form-item :label="$t('common.status')" prop="status">
-                        <el-radio-group v-model="form.status">
-                            <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
-                            <el-radio :value="0">{{ $t('common.disable') }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
-
-            <!-- 菜单元数据 -->
-            <el-form-item v-if="form.type !== 3" :label="$t('menu.metadata')">
-                <el-card shadow="never" class="meta-card">
-                    <el-row :gutter="16">
-                        <el-col :span="8">
-                            <el-form-item :label="$t('menu.isHidden')">
-                                <el-switch v-model="metaForm.hidden" />
-                            </el-form-item>
-                        </el-col>
-
-                        <el-col :span="8">
-                            <el-form-item :label="$t('menu.isCache')">
-                                <el-switch v-model="metaForm.cache" />
-                            </el-form-item>
-                        </el-col>
-
-                        <el-col :span="8">
-                            <el-form-item :label="$t('menu.isAffix')">
-                                <el-switch v-model="metaForm.affix" />
-                            </el-form-item>
-                        </el-col>
-                    </el-row>
-
-                    <el-row :gutter="16">
-                        <el-col :span="12">
-                            <el-form-item :label="$t('menu.badgeText')">
-                                <el-input
-                                    v-model="metaForm.badge"
-                                    :placeholder="$t('menu.badgeText')"
-                                />
-                            </el-form-item>
-                        </el-col>
-
-                        <el-col :span="12">
-                            <el-form-item :label="$t('menu.externalLink')">
-                                <el-input
-                                    v-model="metaForm.iframe"
-                                    :placeholder="$t('menu.externalLinkPlaceholder')"
-                                />
-                            </el-form-item>
-                        </el-col>
-                    </el-row>
-                </el-card>
+            <!-- 上级菜单 -->
+            <el-form-item :label="$t('menu.parentMenu')" prop="parent_id">
+                <el-tree-select
+                    v-model="form.parent_id"
+                    :data="parentTreeData"
+                    node-key="id"
+                    :props="{ label: 'title', children: 'children' }"
+                    :placeholder="$t('menu.parentMenu')"
+                    check-strictly
+                    clearable
+                    default-expand-all
+                    style="width: 100%"
+                />
             </el-form-item>
+
+            <!-- 菜单类型 -->
+            <el-form-item :label="$t('menu.menuType')" prop="type">
+                <el-radio-group v-model="form.type" @change="handleTypeChange">
+                    <el-radio :value="1">{{ $t('menu.typeOptions.directory') }}</el-radio>
+                    <el-radio :value="2">{{ $t('menu.typeOptions.menu') }}</el-radio>
+                    <el-radio :value="3">{{ $t('menu.typeOptions.button') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
+
+            <!-- 菜单名称 -->
+            <el-form-item :label="$t('menu.menuName')" prop="title">
+                <el-input v-model="form.title" :placeholder="$t('menu.namePlaceholder')" />
+            </el-form-item>
+
+            <!-- 路由名称（按钮类型不显示） -->
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.routeName')" prop="name">
+                <el-input v-model="form.name" :placeholder="$t('menu.routeNamePlaceholder')" />
+            </el-form-item>
+
+            <!-- 路由路径（按钮类型不显示） -->
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.routePath')" prop="path">
+                <el-input v-model="form.path" :placeholder="$t('menu.routePathPlaceholder')" />
+            </el-form-item>
+
+            <!-- 组件路径（仅菜单类型显示） -->
+            <el-form-item
+                v-if="form.type === 2"
+                :label="$t('menu.componentPath')"
+                prop="component"
+            >
+                <el-input
+                    v-model="form.component"
+                    :placeholder="$t('menu.componentPlaceholder')"
+                >
+                    <template #prepend>src/views/</template>
+                    <template #append>.vue</template>
+                </el-input>
+            </el-form-item>
+
+            <!-- 图标（按钮类型不显示） -->
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.icon')" prop="icon">
+                <IconSelect v-model="form.icon" width="100%" />
+            </el-form-item>
+
+            <!-- 权限标识 -->
+            <el-form-item :label="$t('menu.permCode')" prop="permission">
+                <el-input
+                    v-model="form.permission"
+                    :placeholder="$t('menu.permPlaceholder')"
+                />
+            </el-form-item>
+
+            <!-- 排序 -->
+            <el-form-item :label="$t('common.sort')" prop="sort">
+                <el-input-number
+                    v-model="form.sort"
+                    :min="0"
+                    :max="9999"
+                    controls-position="right"
+                    style="width: 100%"
+                />
+            </el-form-item>
+
+            <!-- 状态 -->
+            <el-form-item :label="$t('common.status')" prop="status">
+                <el-radio-group v-model="form.status">
+                    <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
+                    <el-radio :value="0">{{ $t('common.disable') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
+
+            <!-- ============ 高级选项（按钮类型不显示） ============ -->
+            <template v-if="form.type !== 3">
+                <el-divider content-position="left">
+                    <span class="section-title">{{ $t('menu.advancedOptions') }}</span>
+                </el-divider>
+
+                <el-form-item :label="$t('menu.isHidden')">
+                    <el-switch v-model="metaForm.hidden" />
+                </el-form-item>
+
+                <el-form-item :label="$t('menu.isCache')">
+                    <el-switch v-model="metaForm.cache" />
+                </el-form-item>
+
+                <el-form-item :label="$t('menu.isAffix')">
+                    <el-switch v-model="metaForm.affix" />
+                </el-form-item>
+
+                <el-form-item :label="$t('menu.badgeText')">
+                    <el-input
+                        v-model="metaForm.badge"
+                        :placeholder="$t('menu.badgeText')"
+                    />
+                </el-form-item>
+
+                <el-form-item :label="$t('menu.externalLink')">
+                    <el-input
+                        v-model="metaForm.iframe"
+                        :placeholder="$t('menu.externalLinkPlaceholder')"
+                    />
+                </el-form-item>
+            </template>
         </el-form>
 
         <template #footer>
@@ -182,6 +143,7 @@ import type { FormRules } from 'element-plus'
 import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import IconSelect from '@/components/IconSelect/index.vue'
 import { menuApi } from '@/api/menu'
 import { useFormDialog } from '@/hooks/useFormDialog'
 import type { MenuInfo, MenuMeta, MenuReq } from '@/types/api'
@@ -193,7 +155,13 @@ type MenuFormData = MenuReq & { id?: number }
 interface Props {
     modelValue: boolean
     formData: Partial<MenuInfo>
-    parentOptions: Array<{ id: number; title: string; level: number }>
+    /**
+     * 父级菜单选项（树形结构，后端返回带 children 的嵌套数据）
+     *
+     * 注意：这里是 any[] 而非扁平类型——后端 MenuRepository::getMenuOptions
+     * 使用 ArrayHelper::toTree() 返回树形结构，直接传给 el-tree-select 即可。
+     */
+    parentOptions: any[]
 }
 
 interface Emits {
@@ -264,20 +232,18 @@ watch(
     { deep: true, immediate: true }
 )
 
-// 父级菜单树形数据
-const parentTreeData = computed(() => {
-    const options = [{ id: 0, title: t('menu.topLevel'), level: 0 }, ...props.parentOptions]
-    return buildTreeData(options)
-})
-
-// 构建树形数据
-const buildTreeData = (options: Array<{ id: number; title: string; level: number }>) => {
-    return options.map((item) => ({
-        id: item.id,
-        title: item.id === 0 ? item.title : '└'.repeat(item.level) + ' ' + item.title,
-        disabled: false
-    }))
-}
+/**
+ * 父级菜单树数据
+ *
+ * 后端 getMenuOptions 已经返回带 children 的树结构（通过 ArrayHelper::toTree），
+ * 直接传给 el-tree-select 即可。不要再做 .map() 扁平化，否则会丢失子节点。
+ *
+ * 顶部额外插入"顶级目录"占位项，让用户可以把菜单挂在根下（parent_id = 0）。
+ */
+const parentTreeData = computed(() => [
+    { id: 0, title: t('menu.topLevel'), children: [] },
+    ...(props.parentOptions || [])
+])
 
 // 表单验证规则
 const rules = computed<FormRules>(() => ({
@@ -358,20 +324,10 @@ const handleDialogClosed = () => {
 </script>
 
 <style lang="scss" scoped>
-.meta-card {
-    width: 100%;
-
-    :deep(.el-card__body) {
-        padding: 16px;
-    }
-
-    .el-form-item {
-        margin-bottom: 16px;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
+.section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-secondary);
 }
 
 .dialog-footer {
