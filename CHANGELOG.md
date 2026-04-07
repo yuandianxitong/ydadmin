@@ -4,6 +4,30 @@
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-04-07
+
+### Added
+
+#### 后端 (server)
+- 新增 `MenuChangedListener`，统一处理菜单相关操作后的缓存失效
+
+### Changed
+
+#### 后端 (server)
+- `createMenu`/`updateMenu`/`deleteMenu`/`batchDeleteMenu`/`batchSort` 成功后触发 `menu.changed` 事件
+- `MenuRepository` 移除缓存失效副作用，迁移至 `MenuChangedListener`
+- 移除 `MenuRepository` 中无调用方的 `deleteWithChildren` 和已废弃的 `collectChildrenIds` 方法
+
+#### Admin 前端 (admin)
+- 菜单表单改造为单列布局，dialog 宽度收窄至 600px，组件路径输入框添加前后缀 UI 提示
+
+### Fixed
+
+#### Admin 前端 (admin)
+- 修复菜单新增/编辑/删除后列表缓存未失效、页面不刷新的问题
+- 修复 `IconSelect` SVG 图标 glob 路径错误导致 SVG tab 一直空白的问题
+- 修复 `IconSelect` `popoverWidth` prop 传入百分比时 popover 撑满视口的问题
+
 ## [1.5.0] - 2026-04-07
 
 ### Added
