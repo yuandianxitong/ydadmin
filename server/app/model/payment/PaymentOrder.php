@@ -7,7 +7,7 @@ use core\base\Model;
 
 class PaymentOrder extends Model
 {
-    protected $table = 'payment_orders';
+    protected $name = 'payment_orders';
 
     protected $fillable = [
         'user_id', 'biz_type', 'client_type',

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class Notification extends Model
 {
-    protected $table = 'notifications';
+    protected $name = 'notifications';
 
     protected $fillable = [
         'title', 'content', 'type', 'sender_id', 'target_type', 'status'

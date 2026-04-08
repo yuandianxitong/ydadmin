@@ -7,7 +7,7 @@ use core\base\Model;
 
 class User extends Model
 {
-    protected $table = 'users';
+    protected $name = 'users';
 
     protected $fillable = [
         'nickname', 'avatar', 'mobile', 'email', 'password',

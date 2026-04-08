@@ -67,7 +67,7 @@ class ArticleCategoryRepository extends Repository
      */
     public function hasArticles(int $id): bool
     {
-        return \think\facade\Db::table('articles')
+        return \think\facade\Db::name('articles')
             ->where('category_id', $id)
             ->where('deleted_at', null)
             ->count() > 0;

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class Announcement extends Model
 {
-    protected $table = 'announcements';
+    protected $name = 'announcements';
 
     protected $fillable = [
         'title', 'content', 'type', 'status', 'sort',

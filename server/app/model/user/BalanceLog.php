@@ -9,7 +9,7 @@ class BalanceLog extends Model
 {
     protected $updateTime = false;
     protected $deleteTime = false;
-    protected $table = 'balance_logs';
+    protected $name = 'balance_logs';
     protected $fillable = [
         'user_id', 'amount', 'before_balance', 'after_balance',
         'type', 'source', 'remark', 'operator_id',

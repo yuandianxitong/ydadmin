@@ -15,7 +15,7 @@ use think\model\relation\BelongsToMany;
 
 class Menu extends Model
 {
-    protected $table = 'menus';
+    protected $name = 'menus';
 
     protected $fillable = [
         'parent_id', 'type', 'title', 'name', 'path', 'component', 'redirect',

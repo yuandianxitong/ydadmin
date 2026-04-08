@@ -7,7 +7,7 @@ use core\base\Model;
 
 class CronJob extends Model
 {
-    protected $table = 'cron_jobs';
+    protected $name = 'cron_jobs';
 
     protected $fillable = [
         'name', 'command', 'expression', 'description', 'status',

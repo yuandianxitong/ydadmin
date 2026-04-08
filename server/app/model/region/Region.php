@@ -8,7 +8,7 @@ use think\model\relation\HasMany;
 
 class Region extends Model
 {
-    protected $table = 'regions';
+    protected $name = 'regions';
 
     protected $autoWriteTimestamp = false;
     protected $deleteTime = false;

@@ -8,7 +8,7 @@ use think\model\relation\BelongsTo;
 
 class DictionaryItem extends Model
 {
-    protected $table = 'dictionary_items';
+    protected $name = 'dictionary_items';
 
     protected $fillable = [
         'dictionary_id', 'label', 'value', 'tag_type',

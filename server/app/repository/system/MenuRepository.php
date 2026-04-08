@@ -146,7 +146,7 @@ class MenuRepository extends Repository
             return [];
         }
 
-        $buttons = \think\facade\Db::table((new Menu())->getTable())
+        $buttons = \think\facade\Db::name('menus')
             ->whereIn('id', $menuIds)
             ->whereIn('type', [2, 3])
             ->where('status', 1)
@@ -161,7 +161,7 @@ class MenuRepository extends Repository
      */
     public function getAllEnabledMenuIds(): array
     {
-        return \think\facade\Db::table((new Menu())->getTable())
+        return \think\facade\Db::name('menus')
             ->where('status', 1)
             ->column('id');
     }
@@ -205,7 +205,7 @@ class MenuRepository extends Repository
      */
     public function isUsedByRole(int $menuId): bool
     {
-        return \think\facade\Db::table('role_menus')->where('menu_id', $menuId)->count() > 0;
+        return \think\facade\Db::name('role_menus')->where('menu_id', $menuId)->count() > 0;
     }
 
     /**
@@ -213,7 +213,7 @@ class MenuRepository extends Repository
      */
     public function getChildrenIdsByParent(int $parentId): array
     {
-        return \think\facade\Db::table((new Menu())->getTable())
+        return \think\facade\Db::name('menus')
             ->where('parent_id', $parentId)
             ->column('id');
     }

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class Department extends Model
 {
-    protected $table = 'departments';
+    protected $name = 'departments';
 
     protected $fillable = [
         'parent_id', 'name', 'code', 'leader', 'phone', 'email',

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class DataImport extends Model
 {
-    protected $table = 'data_imports';
+    protected $name = 'data_imports';
 
     protected $deleteTime = false;
     protected $hidden = [];

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class CronJobLog extends Model
 {
-    protected $table = 'cron_job_logs';
+    protected $name = 'cron_job_logs';
 
     // 日志表无软删除
     protected $deleteTime = false;

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class File extends Model
 {
-    protected $table = 'files';
+    protected $name = 'files';
 
     protected $fillable = [
         'name', 'path', 'url', 'mime_type', 'extension', 'size',

@@ -13,7 +13,7 @@ use core\base\Model;
 
 class Article extends Model
 {
-    protected $table = 'articles';
+    protected $name = 'articles';
 
     protected $fillable = [
         'category_id', 'title', 'cover', 'summary', 'content',

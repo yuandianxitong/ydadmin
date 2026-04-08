@@ -61,7 +61,7 @@ class RoleRepository extends Repository
         $now = date('Y-m-d H:i:s');
 
         // 清除旧关联
-        \think\facade\Db::table('role_menus')->where('role_id', $roleId)->delete();
+        \think\facade\Db::name('role_menus')->where('role_id', $roleId)->delete();
 
         // 写入新关联（带时间戳）
         if (!empty($menuIds)) {
@@ -71,7 +71,7 @@ class RoleRepository extends Repository
                 'created_at' => $now,
                 'updated_at' => $now,
             ], $menuIds);
-            \think\facade\Db::table('role_menus')->insertAll($pivotData);
+            \think\facade\Db::name('role_menus')->insertAll($pivotData);
         }
 
         return true;
@@ -106,7 +106,7 @@ class RoleRepository extends Repository
      */
     public function isUsedByAdmin(int $roleId): bool
     {
-        return \think\facade\Db::table('admin_roles')->where('role_id', $roleId)->count() > 0;
+        return \think\facade\Db::name('admin_roles')->where('role_id', $roleId)->count() > 0;
     }
 
     /**
@@ -114,6 +114,6 @@ class RoleRepository extends Repository
      */
     public function getAdminIdsByRoleId(int $roleId): array
     {
-        return \think\facade\Db::table('admin_roles')->where('role_id', $roleId)->column('admin_id');
+        return \think\facade\Db::name('admin_roles')->where('role_id', $roleId)->column('admin_id');
     }
 }

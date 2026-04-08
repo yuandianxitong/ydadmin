@@ -14,7 +14,7 @@ use think\model\relation\BelongsToMany;
 
 class Role extends Model
 {
-    protected $table = 'roles';
+    protected $name = 'roles';
 
     protected $fillable = [
         'name', 'title', 'description', 'data_scope', 'is_system',

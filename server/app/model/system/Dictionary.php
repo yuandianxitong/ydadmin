@@ -8,7 +8,7 @@ use think\model\relation\HasMany;
 
 class Dictionary extends Model
 {
-    protected $table = 'dictionaries';
+    protected $name = 'dictionaries';
 
     protected $fillable = [
         'name', 'code', 'description', 'status', 'sort',

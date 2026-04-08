@@ -287,6 +287,9 @@ class CodeGeneratorService extends Service
 PHP;
         }
 
+        // 剥离数据库表前缀，模型用 $name 声明逻辑表名，运行时由 ThinkPHP 自动加回前缀
+        $bareName = $this->stripTablePrefix($table);
+
         return <<<PHP
 <?php
 declare(strict_types=1);
@@ -297,7 +300,7 @@ use core\\base\\Model;
 
 class {$model} extends Model
 {
-    protected \$table = '{$table}';
+    protected \$name = '{$bareName}';
 
     protected \$fillable = [{$fillableStr}];
 
@@ -305,6 +308,23 @@ class {$model} extends Model
 {$appendProperty}{$statusAccessor}
 }
 PHP;
+    }
+
+    /**
+     * 剥离物理表名前缀
+     *
+     * 代码生成器从 SHOW TABLE STATUS 拿到的表名是带前缀的物理表名（如 yd_admins），
+     * 而 Model 的 \$name 应当声明为不含前缀的逻辑表名（如 admins），
+     * 让 ThinkPHP 在运行时根据 database.prefix 自动加回前缀，
+     * 这样即便后期更换前缀也无需修改 Model。
+     */
+    protected function stripTablePrefix(string $physicalTable): string
+    {
+        $prefix = (string) Db::connect()->getConfig('prefix');
+        if ($prefix !== '' && str_starts_with($physicalTable, $prefix)) {
+            return substr($physicalTable, strlen($prefix));
+        }
+        return $physicalTable;
     }
 
     protected function generateRepository(string $module, string $model, array $columns): string

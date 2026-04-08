@@ -101,7 +101,7 @@ class AdminRepository extends Repository
         $now = date('Y-m-d H:i:s');
 
         // 清除旧关联
-        \think\facade\Db::table('admin_roles')->where('admin_id', $adminId)->delete();
+        \think\facade\Db::name('admin_roles')->where('admin_id', $adminId)->delete();
 
         // 写入新关联（带时间戳）
         if (!empty($roleIds)) {
@@ -111,7 +111,7 @@ class AdminRepository extends Repository
                 'created_at' => $now,
                 'updated_at' => $now,
             ], $roleIds);
-            \think\facade\Db::table('admin_roles')->insertAll($pivotData);
+            \think\facade\Db::name('admin_roles')->insertAll($pivotData);
         }
 
         return true;

@@ -7,7 +7,7 @@ use core\base\Model;
 
 class AppVersion extends Model
 {
-    protected $table = 'app_versions';
+    protected $name = 'app_versions';
 
     protected $deleteTime = false;
     protected $hidden = [];

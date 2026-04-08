@@ -14,7 +14,7 @@ use think\model\relation\BelongsToMany;
 
 class Permission extends Model
 {
-    protected $table = 'permissions';
+    protected $name = 'permissions';
 
     protected $fillable = [
         'name', 'title', 'group', 'description', 'guard_name',

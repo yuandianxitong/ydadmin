@@ -29,7 +29,7 @@ class UserNotificationRepository extends Repository
         $total = $query->count();
 
         // 获取已读通知ID
-        $readIds = Db::table('user_notification_reads')
+        $readIds = Db::name('user_notification_reads')
             ->where('user_id', $userId)
             ->whereNotNull('read_at')
             ->column('notification_id');
@@ -60,7 +60,7 @@ class UserNotificationRepository extends Repository
      */
     public function getUnreadCount(int $userId): int
     {
-        $readIds = Db::table('user_notification_reads')
+        $readIds = Db::name('user_notification_reads')
             ->where('user_id', $userId)
             ->whereNotNull('read_at')
             ->column('notification_id');
@@ -91,7 +91,7 @@ class UserNotificationRepository extends Repository
         $now = date('Y-m-d H:i:s');
 
         // 一次查询获取已有记录
-        $existingRows = Db::table('user_notification_reads')
+        $existingRows = Db::name('user_notification_reads')
             ->where('user_id', $userId)
             ->whereIn('notification_id', $notificationIds)
             ->column('notification_id,read_at', 'notification_id');
@@ -104,7 +104,7 @@ class UserNotificationRepository extends Repository
             }
         }
         if (!empty($needUpdateIds)) {
-            Db::table('user_notification_reads')
+            Db::name('user_notification_reads')
                 ->where('user_id', $userId)
                 ->whereIn('notification_id', $needUpdateIds)
                 ->update(['read_at' => $now]);
@@ -123,7 +123,7 @@ class UserNotificationRepository extends Repository
                     'created_at'      => $now,
                 ];
             }
-            Db::table('user_notification_reads')->insertAll($insertData);
+            Db::name('user_notification_reads')->insertAll($insertData);
         }
     }
 
@@ -133,7 +133,7 @@ class UserNotificationRepository extends Repository
     public function markAllAsRead(int $userId): void
     {
         // 获取所有已读的通知ID
-        $readNotificationIds = Db::table('user_notification_reads')
+        $readNotificationIds = Db::name('user_notification_reads')
             ->where('user_id', $userId)
             ->whereNotNull('read_at')
             ->column('notification_id');

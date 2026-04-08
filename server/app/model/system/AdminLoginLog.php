@@ -14,7 +14,7 @@ use think\model\relation\BelongsTo;
 
 class AdminLoginLog extends Model
 {
-    protected $table = 'admin_login_logs';
+    protected $name = 'admin_login_logs';
 
     // 日志表不需要自动更新时间和软删除
     protected $updateTime = false;

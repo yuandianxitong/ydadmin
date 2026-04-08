@@ -7,7 +7,7 @@ use core\base\Model;
 
 class MessageTemplate extends Model
 {
-    protected $table = 'message_templates';
+    protected $name = 'message_templates';
 
     protected $fillable = [
         'name', 'code',

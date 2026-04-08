@@ -13,7 +13,7 @@ use core\base\Model;
 
 class SystemConfig extends Model
 {
-    protected $table = 'system_configs';
+    protected $name = 'system_configs';
 
     protected $fillable = [
         'config_key', 'config_value', 'config_group', 'config_type',

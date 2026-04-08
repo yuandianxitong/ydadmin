@@ -7,7 +7,7 @@ use core\base\Model;
 
 class MessageLog extends Model
 {
-    protected $table = 'message_logs';
+    protected $name = 'message_logs';
 
     // 日志表不需要自动更新时间和软删除
     protected $updateTime = false;

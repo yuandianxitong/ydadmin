@@ -9,7 +9,7 @@ class PointsLog extends Model
 {
     protected $updateTime = false;
     protected $deleteTime = false;
-    protected $table = 'points_logs';
+    protected $name = 'points_logs';
     protected $fillable = [
         'user_id', 'points', 'before_points', 'after_points',
         'type', 'source', 'remark', 'operator_id',

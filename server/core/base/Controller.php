@@ -12,6 +12,7 @@ namespace core\base;
 use think\App;
 use think\Request;
 use think\Response;
+use think\facade\Log;
 use core\http\Response as CoreResponse;
 use core\exception\ValidationException;
 use core\exception\BusinessException;
@@ -112,8 +113,21 @@ abstract class Controller
             if ($prop->isInitialized($this)) continue;
             try {
                 $prop->setValue($this, $this->app->make($prop->getType()->getName()));
-            } catch (\Throwable) {
-                // 无法解析的属性保持未初始化，开发者可在 initialize() 中手动设置
+            } catch (\Throwable $e) {
+                // 无法解析的属性保持未初始化，开发者可在 initialize() 中手动设置。
+                // 但底层异常（如表不存在、配置缺失）会被静默吞掉，
+                // 调用方读到属性时只会看到 "must not be accessed before initialization"，
+                // 难以定位真正的故障点。开 debug 时把原始异常落到 Log，便于排查。
+                if (env('APP_DEBUG', false)) {
+                    Log::warning(sprintf(
+                        '[DI] 注入 %s::$%s 失败：%s（@ %s:%d）',
+                        $class,
+                        $prop->getName(),
+                        $e->getMessage(),
+                        $e->getFile(),
+                        $e->getLine()
+                    ));
+                }
             }
         }
     }

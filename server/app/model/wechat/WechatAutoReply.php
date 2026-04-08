@@ -7,7 +7,7 @@ use core\base\Model;
 
 class WechatAutoReply extends Model
 {
-    protected $table = 'wechat_auto_replies';
+    protected $name = 'wechat_auto_replies';
 
     protected $fillable = [
         'type', 'keyword', 'match_type', 'reply_type',

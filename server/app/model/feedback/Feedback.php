@@ -7,7 +7,7 @@ use core\base\Model;
 
 class Feedback extends Model
 {
-    protected $table = 'feedbacks';
+    protected $name = 'feedbacks';
 
     protected $fillable = [
         'user_id', 'type', 'content', 'images', 'contact',

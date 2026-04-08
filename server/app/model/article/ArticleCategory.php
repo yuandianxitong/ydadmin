@@ -13,7 +13,7 @@ use core\base\Model;
 
 class ArticleCategory extends Model
 {
-    protected $table = 'article_categories';
+    protected $name = 'article_categories';
 
     // 不使用软删除，硬删除
     protected $deleteTime = false;

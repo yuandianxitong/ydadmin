@@ -7,7 +7,7 @@ use core\base\Model;
 
 class Agreement extends Model
 {
-    protected $table = 'agreements';
+    protected $name = 'agreements';
 
     protected $deleteTime = false;
     protected $hidden = [];

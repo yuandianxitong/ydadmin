@@ -116,6 +116,6 @@ class PermissionRepository extends Repository
      */
     public function isUsedByRole(int $permissionId): bool
     {
-        return \think\facade\Db::table('role_permissions')->where('permission_id', $permissionId)->count() > 0;
+        return \think\facade\Db::name('role_permissions')->where('permission_id', $permissionId)->count() > 0;
     }
 }

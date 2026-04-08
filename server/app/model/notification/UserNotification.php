@@ -7,7 +7,7 @@ use core\base\Model;
 
 class UserNotification extends Model
 {
-    protected $table = 'user_notifications';
+    protected $name = 'user_notifications';
 
     protected $fillable = [
         'user_id', 'title', 'content', 'type', 'biz_id', 'extra',

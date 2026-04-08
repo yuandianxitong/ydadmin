@@ -89,7 +89,7 @@ class DepartmentRepository extends Repository
      */
     public function hasAdmins(int $departmentId): bool
     {
-        return \think\facade\Db::table('admins')
+        return \think\facade\Db::name('admins')
             ->where('department_id', $departmentId)
             ->where('deleted_at', null)
             ->count() > 0;

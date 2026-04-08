@@ -53,33 +53,37 @@ class NotificationRepository extends Repository
      */
     public function getUserNotifications(int $adminId, array $where, int $page, int $limit): array
     {
+        // 子查询使用物理表名（带前缀），便于 ON / WHERE 中显式引用
+        $readsTable = (new NotificationRead())->getTable();
+        $notifTable = $this->model->getTable();
+
         $query = $this->model->where('deleted_at', null)
             ->where('status', 1)
-            ->where(function ($q) use ($adminId) {
+            ->where(function ($q) use ($adminId, $readsTable, $notifTable) {
                 $q->where('target_type', 1)
-                  ->whereOr(function ($sub) use ($adminId) {
+                  ->whereOr(function ($sub) use ($adminId, $readsTable, $notifTable) {
                       $sub->where('target_type', 2)
-                          ->whereExists(function ($exists) use ($adminId) {
-                              $exists->table('notification_reads')
-                                  ->where('notification_reads.notification_id', Db::raw('notifications.id'))
-                                  ->where('notification_reads.admin_id', $adminId);
+                          ->whereExists(function ($exists) use ($adminId, $readsTable, $notifTable) {
+                              $exists->table($readsTable)
+                                  ->where("{$readsTable}.notification_id", Db::raw("{$notifTable}.id"))
+                                  ->where("{$readsTable}.admin_id", $adminId);
                           });
                   });
             });
 
         if (isset($where['is_read'])) {
             if ((int) $where['is_read'] === 1) {
-                $query->whereExists(function ($q) use ($adminId) {
-                    $q->table('notification_reads')
-                      ->where('notification_reads.notification_id', Db::raw('notifications.id'))
-                      ->where('notification_reads.admin_id', $adminId)
+                $query->whereExists(function ($q) use ($adminId, $readsTable, $notifTable) {
+                    $q->table($readsTable)
+                      ->where("{$readsTable}.notification_id", Db::raw("{$notifTable}.id"))
+                      ->where("{$readsTable}.admin_id", $adminId)
                       ->whereNotNull('read_at');
                 });
             } else {
-                $query->whereNotExists(function ($q) use ($adminId) {
-                    $q->table('notification_reads')
-                      ->where('notification_reads.notification_id', Db::raw('notifications.id'))
-                      ->where('notification_reads.admin_id', $adminId)
+                $query->whereNotExists(function ($q) use ($adminId, $readsTable, $notifTable) {
+                    $q->table($readsTable)
+                      ->where("{$readsTable}.notification_id", Db::raw("{$notifTable}.id"))
+                      ->where("{$readsTable}.admin_id", $adminId)
                       ->whereNotNull('read_at');
                 });
             }
@@ -137,10 +141,11 @@ class NotificationRepository extends Repository
     public function markAsRead(int $notificationId, int $adminId): void
     {
         $now = date('Y-m-d H:i:s');
+        $readsTable = (new NotificationRead())->getTable();
         Db::execute(
-            'INSERT INTO notification_reads (notification_id, admin_id, read_at, created_at)
+            "INSERT INTO {$readsTable} (notification_id, admin_id, read_at, created_at)
              VALUES (?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE read_at = IFNULL(read_at, VALUES(read_at))',
+             ON DUPLICATE KEY UPDATE read_at = IFNULL(read_at, VALUES(read_at))",
             [$notificationId, $adminId, $now, $now]
         );
     }

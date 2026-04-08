@@ -15,7 +15,7 @@ use think\model\relation\HasMany;
 
 class Admin extends Model
 {
-    protected $table = 'admins';
+    protected $name = 'admins';
 
     protected $fillable = [
         'username', 'email', 'mobile', 'password', 'nickname', 'avatar',
