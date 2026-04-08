@@ -125,6 +125,9 @@ export function useFormDialog<T extends { id?: number | undefined }>(
             onUpdate(false)
             onSuccess?.()
             resetForm()
+        } catch {
+            // request.ts 响应拦截器已显示 ElMessage 错误提示，此处静默吞掉错误。
+            // 不能让错误继续冒泡到事件处理器，否则会触发 App.vue 的 ErrorBoundary 错误页面。
         } finally {
             submitting.value = false
         }

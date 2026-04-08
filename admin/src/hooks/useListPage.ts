@@ -134,9 +134,14 @@ export function useListPage<T = any, Q extends Record<string, any> = Record<stri
         } catch {
             return
         }
-        await deleteFn(id)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
+        try {
+            await deleteFn(id)
+            ElMessage.success(t('message.deleteSuccess'))
+            getList()
+        } catch {
+            // request.ts 响应拦截器已显示 ElMessage 错误提示，此处静默吞掉错误。
+            // 不能让错误继续冒泡到事件处理器，否则会触发 App.vue 的 ErrorBoundary 错误页面。
+        }
     }
 
     /** 批量删除（带确认弹窗） */
@@ -162,9 +167,13 @@ export function useListPage<T = any, Q extends Record<string, any> = Record<stri
         } catch {
             return
         }
-        await batchDeleteFn(ids)
-        ElMessage.success(t('message.deleteSuccess'))
-        getList()
+        try {
+            await batchDeleteFn(ids)
+            ElMessage.success(t('message.deleteSuccess'))
+            getList()
+        } catch {
+            // 同 handleDelete：静默吞掉防止 ErrorBoundary 触发
+        }
     }
 
     /**

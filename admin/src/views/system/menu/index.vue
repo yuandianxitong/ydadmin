@@ -214,7 +214,9 @@ const tableKey = ref(0)
 // 弹窗相关
 const formVisible = ref(false)
 const formData = ref<Partial<MenuInfo>>({})
-const parentOptions = ref<Array<{ id: number; title: string; level: number }>>([])
+// 父级菜单选项：后端返回的是带 children 的树形结构（ArrayHelper::toTree），
+// 直接传给 MenuForm 的 el-tree-select 即可
+const parentOptions = ref<any[]>([])
 const idMap = ref<Record<number, any>>({})
 let sortable: Sortable | null = null
 
@@ -246,7 +248,7 @@ const getMenuList = async () => {
 const getParentOptions = async (excludeId?: number) => {
     try {
         const response = await menuApi.getMenuOptions(excludeId)
-        parentOptions.value = response.data as Array<{ id: number; title: string; level: number }>
+        parentOptions.value = (response.data || []) as any[]
     } catch (error) {
         ElMessage.error(t('message.fetchFailed'))
     }
