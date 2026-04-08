@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-04-08
+
+### Fixed
+
+#### 后端 (server)
+- 修复安装时启用数据库表前缀（如 `PREFIX=yd_`）后 admin 登录接口崩溃的问题（"Typed property AdminService::\$adminRepository must not be accessed before initialization"）。根因是 ThinkPHP-ORM 4.x 下 `protected $table` 会绕过 `database.prefix`：
+  - 31 个 Model 全部从 `protected $table = 'xxx'` 迁移到 `protected $name = 'xxx'`，让 ThinkPHP 自动应用前缀
+  - 8 个 Repository 的 `Db::table('literal')` 改为 `Db::name()`；`NotificationRepository` 的 `whereExists` 子查询和原生 `INSERT INTO` 改用 `(new NotificationRead())->getTable()` 拼装物理表名
+  - `CodeGeneratorService` 模板从 `$table` 改为 `$name`，新增 `stripTablePrefix()` 在生成 Model 时剥离物理表前缀，未来更换前缀也无需修改 Model
+- `core\base\Service` / `core\base\Controller` 的 `resolveDependencies()` 在 `APP_DEBUG=true` 下记录被吞掉的注入异常，避免下次类似问题再次表现为误导性的 typed property 错误
+
+### Removed
+
+#### 后端 (server)
+- 移除 3 个全工程零引用的早期遗留死代码：
+  - `core/auth/Role.php`：8 处 `Db::table()` 字面量 + 引用了 schema 里不存在的 `user_roles` 表，已被 `RoleRepository` 替代
+  - `core/database/Connection.php`：`Db` facade 的薄封装
+  - `core/database/Migration.php`：`think\migration\Migrator` 的薄封装
+
 ## [1.5.1] - 2026-04-07
 
 ### Added
