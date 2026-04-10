@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-04-10
+
+### Changed
+
+#### 后端 (server)
+- 数据库全部表的字符集排序规则从 `utf8mb4_unicode_ci` 升级为 `utf8mb4_0900_ai_ci`（需 MySQL 8.0+）
+
+### Fixed
+
+#### Admin 前端 (admin)
+- 修复请求错误冒泡到 ErrorBoundary 的问题
+- 修复菜单父级选项类型错误
+
 ## [1.5.2] - 2026-04-08
 
 ### Fixed
