@@ -8,7 +8,7 @@ class CreateUserNotificationReadsTable extends Migrator
     {
         $table = $this->table('user_notification_reads', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '用户通知已读记录表',
         ]);
 

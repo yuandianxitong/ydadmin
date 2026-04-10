@@ -8,7 +8,7 @@ class CreateFilesTable extends Migrator
     {
         $table = $this->table('files', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '文件表',
         ]);
 

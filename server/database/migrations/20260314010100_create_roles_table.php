@@ -8,7 +8,7 @@ class CreateRolesTable extends Migrator
     {
         $table = $this->table('roles', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '角色表',
         ]);
 

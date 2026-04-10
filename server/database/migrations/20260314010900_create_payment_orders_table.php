@@ -8,7 +8,7 @@ class CreatePaymentOrdersTable extends Migrator
     {
         $table = $this->table('payment_orders', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '支付订单表',
         ]);
 

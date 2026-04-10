@@ -8,7 +8,7 @@ class CreateWechatAutoRepliesTable extends Migrator
     {
         $table = $this->table('wechat_auto_replies', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '微信自动回复表',
         ]);
 

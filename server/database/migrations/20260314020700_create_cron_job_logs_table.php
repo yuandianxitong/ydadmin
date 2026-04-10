@@ -8,7 +8,7 @@ class CreateCronJobLogsTable extends Migrator
     {
         $table = $this->table('cron_job_logs', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '定时任务日志表',
         ]);
 

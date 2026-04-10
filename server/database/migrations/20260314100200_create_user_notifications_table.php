@@ -8,7 +8,7 @@ class CreateUserNotificationsTable extends Migrator
     {
         $table = $this->table('user_notifications', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '用户站内通知表',
         ]);
 

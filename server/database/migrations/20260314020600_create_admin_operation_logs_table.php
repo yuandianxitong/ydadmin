@@ -8,7 +8,7 @@ class CreateAdminOperationLogsTable extends Migrator
     {
         $table = $this->table('admin_operation_logs', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '管理员操作日志表',
         ]);
 

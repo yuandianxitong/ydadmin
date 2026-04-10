@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/ThinkPHP-8-green" alt="ThinkPHP">
   <img src="https://img.shields.io/badge/Vue-3-brightgreen?logo=vue.js" alt="Vue 3">
   <img src="https://img.shields.io/badge/Element%20Plus-latest-409eff" alt="Element Plus">
-  <img src="https://img.shields.io/badge/MySQL-5.7%2B-orange?logo=mysql" alt="MySQL">
+  <img src="https://img.shields.io/badge/MySQL-8.0%2B-orange?logo=mysql" alt="MySQL">
   <img src="https://img.shields.io/badge/uni--app-Vue%203-brightgreen?logo=vue.js" alt="uni-app">
   <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
 </p>
@@ -80,7 +80,7 @@
 ### 环境要求
 
 - PHP >= 8.0（含 PDO、mbstring、fileinfo、curl、openssl、GD、ZipArchive、redis 扩展）
-- MySQL >= 5.7
+- MySQL >= 8.0
 - Redis >= 5.0
 - Node.js >= 16
 - Composer

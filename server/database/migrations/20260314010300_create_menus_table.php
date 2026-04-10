@@ -8,7 +8,7 @@ class CreateMenusTable extends Migrator
     {
         $table = $this->table('menus', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '菜单表',
         ]);
 

@@ -10,7 +10,7 @@ class CreateAdminRolesTable extends Migrator
             'id' => false,
             'primary_key' => ['admin_id', 'role_id'],
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '管理员角色关联表',
         ]);
 

@@ -8,7 +8,7 @@ class CreateDataImportsTable extends Migrator
     {
         $table = $this->table('data_imports', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '数据导入表',
         ]);
 

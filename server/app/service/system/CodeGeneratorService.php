@@ -1677,7 +1677,7 @@ TS;
             Log::warning('Table status query failed: ' . $e->getMessage());
         }
 
-        $tableOptions = "'engine' => 'InnoDB', 'collation' => 'utf8mb4_unicode_ci'";
+        $tableOptions = "'engine' => 'InnoDB', 'collation' => 'utf8mb4_0900_ai_ci'";
         if ($tableComment) {
             $escapedTableComment = addslashes($tableComment);
             $tableOptions .= ", 'comment' => '{$escapedTableComment}'";

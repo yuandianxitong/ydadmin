@@ -8,7 +8,7 @@ class CreateBalanceLogsTable extends Migrator
     {
         $table = $this->table('balance_logs', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '余额变动记录',
         ]);
 

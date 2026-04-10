@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
   KEY `admins_status_index` (`status`),
   KEY `admins_created_at_index` (`created_at`),
   KEY `idx_department_id` (`department_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员表';
 
 -- 角色表
 CREATE TABLE IF NOT EXISTS `roles` (
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   UNIQUE KEY `roles_name_unique` (`name`),
   KEY `roles_status_index` (`status`),
   KEY `roles_sort_index` (`sort`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色表';
 
 -- 权限表
 CREATE TABLE IF NOT EXISTS `permissions` (
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `permissions` (
   KEY `permissions_group_index` (`group`),
   KEY `permissions_guard_name_index` (`guard_name`),
   KEY `permissions_status_index` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='权限表';
 
 -- 菜单表
 CREATE TABLE IF NOT EXISTS `menus` (
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `menus` (
   KEY `menus_permission_index` (`permission`),
   KEY `menus_status_index` (`status`),
   KEY `menus_sort_index` (`sort`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='菜单表';
 
 -- 管理员角色关联表
 CREATE TABLE IF NOT EXISTS `admin_roles` (
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS `admin_roles` (
   PRIMARY KEY (`admin_id`,`role_id`),
   KEY `admin_roles_admin_id_index` (`admin_id`),
   KEY `admin_roles_role_id_index` (`role_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员角色关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员角色关联表';
 
 -- 角色权限关联表
 CREATE TABLE IF NOT EXISTS `role_permissions` (
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS `role_permissions` (
   PRIMARY KEY (`role_id`,`permission_id`),
   KEY `role_permissions_role_id_index` (`role_id`),
   KEY `role_permissions_permission_id_index` (`permission_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色权限关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色权限关联表';
 
 -- 角色菜单关联表
 CREATE TABLE IF NOT EXISTS `role_menus` (
@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS `role_menus` (
   PRIMARY KEY (`role_id`,`menu_id`),
   KEY `role_menus_role_id_index` (`role_id`),
   KEY `role_menus_menu_id_index` (`menu_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色菜单关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色菜单关联表';
 
 -- 管理员登录日志表
 CREATE TABLE IF NOT EXISTS `admin_login_logs` (
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS `admin_login_logs` (
   KEY `admin_login_logs_ip_index` (`ip`),
   KEY `admin_login_logs_login_time_index` (`login_time`),
   KEY `admin_login_logs_login_result_index` (`login_result`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员登录日志表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员登录日志表';
 
 -- 管理员操作日志表
 CREATE TABLE IF NOT EXISTS `admin_operation_logs` (
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `admin_operation_logs` (
   KEY `admin_operation_logs_path_index` (`path`),
   KEY `admin_operation_logs_action_index` (`action`),
   KEY `admin_operation_logs_operation_time_index` (`operation_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员操作日志表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员操作日志表';
 
 -- 系统配置表
 CREATE TABLE IF NOT EXISTS `system_configs` (
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS `system_configs` (
   KEY `system_configs_group_index` (`config_group`),
   KEY `system_configs_status_index` (`status`),
   KEY `system_configs_sort_order_index` (`sort_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统配置表';
 
 -- ============================================================
 -- 部门表
@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS `departments` (
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_status` (`status`),
   UNIQUE KEY `uk_code` (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='部门表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部门表';
 
 -- ============================================================
 -- 数据字典表
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS `dictionaries` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_code` (`code`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据字典表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据字典表';
 
 CREATE TABLE IF NOT EXISTS `dictionary_items` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -270,7 +270,7 @@ CREATE TABLE IF NOT EXISTS `dictionary_items` (
   KEY `idx_dictionary_id` (`dictionary_id`),
   KEY `idx_status` (`status`),
   UNIQUE KEY `uk_dict_value` (`dictionary_id`, `value`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据字典项表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据字典项表';
 
 -- ============================================================
 -- 文件管理表
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS `files` (
   KEY `idx_mime_type` (`mime_type`),
   KEY `idx_upload_by` (`upload_by`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件管理表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件管理表';
 
 -- ============================================================
 -- 通知消息表
@@ -313,7 +313,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_type` (`type`),
   KEY `idx_sender_id` (`sender_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知消息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知消息表';
 
 CREATE TABLE IF NOT EXISTS `notification_reads` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS `notification_reads` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_notification_admin` (`notification_id`, `admin_id`),
   KEY `idx_admin_id` (`admin_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知已读记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知已读记录表';
 
 -- ============================================================
 -- 定时任务表
@@ -347,7 +347,7 @@ CREATE TABLE IF NOT EXISTS `cron_jobs` (
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='定时任务表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='定时任务表';
 
 CREATE TABLE IF NOT EXISTS `cron_job_logs` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -362,7 +362,7 @@ CREATE TABLE IF NOT EXISTS `cron_job_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_cron_job_id` (`cron_job_id`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='定时任务执行日志表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='定时任务执行日志表';
 
 -- ============================================================
 -- 支付订单表
@@ -396,7 +396,7 @@ CREATE TABLE IF NOT EXISTS `payment_orders` (
   KEY `idx_created_at` (`created_at`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_biz_type` (`biz_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付订单表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='支付订单表';
 
 -- ============================================================
 -- 消息模板表
@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS `message_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_code` (`code`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息模板表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息模板表';
 
 -- ============================================================
 -- 消息发送记录表
@@ -446,7 +446,7 @@ CREATE TABLE IF NOT EXISTS `message_logs` (
   KEY `idx_channel` (`channel`),
   KEY `idx_status` (`status`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息发送记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息发送记录表';
 
 -- ============================================================
 -- 微信自动回复表
@@ -467,7 +467,7 @@ CREATE TABLE IF NOT EXISTS `wechat_auto_replies` (
   KEY `idx_type` (`type`),
   KEY `idx_keyword` (`keyword`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='微信自动回复表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='微信自动回复表';
 
 -- ============================================================
 -- 用户表（C端移动端用户）
@@ -501,7 +501,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_unionid` (`unionid`),
   KEY `idx_mini_openid` (`mini_openid`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 -- ============================================================
 -- 协议表
@@ -517,7 +517,7 @@ CREATE TABLE IF NOT EXISTS `agreements` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_code` (`code`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='协议表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='协议表';
 
 -- ============================================================
 -- 公告表
@@ -538,7 +538,7 @@ CREATE TABLE IF NOT EXISTS `announcements` (
   KEY `idx_status` (`status`),
   KEY `idx_type` (`type`),
   KEY `idx_sort` (`sort`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公告表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='公告表';
 
 -- ============================================================
 -- 用户反馈表
@@ -561,7 +561,7 @@ CREATE TABLE IF NOT EXISTS `feedbacks` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_status` (`status`),
   KEY `idx_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户反馈表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户反馈表';
 
 -- ============================================================
 -- 地区表
@@ -578,7 +578,7 @@ CREATE TABLE IF NOT EXISTS `regions` (
   UNIQUE KEY `uk_code` (`code`),
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_level` (`level`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='地区表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='地区表';
 
 -- ============================================================
 -- APP版本表
@@ -597,7 +597,7 @@ CREATE TABLE IF NOT EXISTS `app_versions` (
   PRIMARY KEY (`id`),
   KEY `idx_platform_version` (`platform`, `version_code`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='APP版本表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='APP版本表';
 
 -- ============================================================
 -- 数据导入表
@@ -617,7 +617,7 @@ CREATE TABLE IF NOT EXISTS `data_imports` (
   PRIMARY KEY (`id`),
   KEY `idx_module` (`module`),
   KEY `idx_admin_id` (`admin_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据导入表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据导入表';
 
 -- ============================================================
 -- 用户站内通知表
@@ -636,7 +636,7 @@ CREATE TABLE IF NOT EXISTS `user_notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户站内通知表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户站内通知表';
 
 -- ============================================================
 -- 用户通知已读记录表
@@ -650,7 +650,7 @@ CREATE TABLE IF NOT EXISTS `user_notification_reads` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_notification_user_unique` (`notification_id`, `user_id`),
   KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户通知已读记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户通知已读记录表';
 
 -- 文章栏目表
 CREATE TABLE IF NOT EXISTS `article_categories` (
@@ -665,7 +665,7 @@ CREATE TABLE IF NOT EXISTS `article_categories` (
   PRIMARY KEY (`id`),
   KEY `idx_parent_id` (`parent_id`),
   KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章栏目表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文章栏目表';
 
 -- 文章表
 CREATE TABLE IF NOT EXISTS `articles` (
@@ -689,7 +689,7 @@ CREATE TABLE IF NOT EXISTS `articles` (
   KEY `idx_status` (`status`),
   KEY `idx_publish_at` (`publish_at`),
   KEY `idx_admin_id` (`admin_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文章表';
 
 -- ============================================================
 -- 余额变动记录表
@@ -708,7 +708,7 @@ CREATE TABLE IF NOT EXISTS `balance_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='余额变动记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='余额变动记录';
 
 -- ============================================================
 -- 积分变动记录表
@@ -727,7 +727,7 @@ CREATE TABLE IF NOT EXISTS `points_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_type` (`type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='积分变动记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分变动记录';
 
 -- ============================================================
 -- 队列失败任务表
@@ -740,4 +740,4 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
   `exception` longtext NOT NULL COMMENT '异常信息',
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '失败时间',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='队列失败任务表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='队列失败任务表';

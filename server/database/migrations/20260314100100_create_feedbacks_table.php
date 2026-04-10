@@ -8,7 +8,7 @@ class CreateFeedbacksTable extends Migrator
     {
         $table = $this->table('feedbacks', [
             'engine' => 'InnoDB',
-            'collation' => 'utf8mb4_unicode_ci',
+            'collation' => 'utf8mb4_0900_ai_ci',
             'comment' => '用户反馈表',
         ]);
 
