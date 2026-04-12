@@ -238,7 +238,7 @@ async function fetchBalance() {
 async function fetchLogs() {
   logsLoading.value = true
   try {
-    const res = await userApi.getBalanceLogs({ page: page.value, page_size: pageSize })
+    const res = await userApi.getBalanceLogs({ page_no: page.value, page_size: pageSize })
     if (res.code === 200) {
       logs.value = res.data.list
       total.value = res.data.total
@@ -300,6 +300,7 @@ async function handleRecharge() {
         qrDataUrl.value = await QRCode.toDataURL(paymentData.code_url, { width: 256, margin: 2 })
         showRechargeDialog.value = false
         showQrDialog.value = true
+        recharging.value = false
       }
       // 支付宝 PC page 支付：解析后端返回的表单 HTML，appendChild 到新窗口后提交
       else if (paymentData?.body) {
@@ -325,6 +326,7 @@ async function handleRecharge() {
         importedForm.submit()
         showRechargeDialog.value = false
         showAlipayWaitDialog.value = true
+        recharging.value = false
       }
 
       // 开始轮询支付状态

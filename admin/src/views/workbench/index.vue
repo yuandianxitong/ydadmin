@@ -63,8 +63,12 @@ const trendDays = ref(7)
 
 // Data loading
 const loadStats = async () => {
-    const res = await getDashboardStats(trendDays.value)
-    stats.value = res.data
+    try {
+        const res = await getDashboardStats(trendDays.value)
+        stats.value = res.data
+    } catch (e) {
+        console.error('加载仪表盘数据失败:', e)
+    }
 }
 
 const switchTrendDays = (days: number) => {

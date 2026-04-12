@@ -16,8 +16,12 @@ class BalanceLogRepository extends AbstractLedgerLogRepository
     /**
      * 判断 source（业务来源标识）是否已存在，用于幂等性校验
      */
-    public function existsBySource(string $source): bool
+    public function existsBySource(string $source, ?int $userId = null): bool
     {
-        return $this->model->where('source', $source)->count() > 0;
+        $query = $this->model->where('source', $source);
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        return $query->count() > 0;
     }
 }

@@ -91,17 +91,24 @@ export default defineComponent({
         const visible = ref(false)
         const fileList = ref<any[]>([])
 
+        let uploadLen = 0
+        let uploadTotal = 0
         const handleProgress = () => {
             visible.value = true
+            // 每次 progress 触发时刷新总数（el-upload 在 progress 阶段已将文件加入 fileList）
+            uploadTotal = fileList.value.length
         }
-        let uploadLen = 0
-        const handleSuccess = (response: any, file: any) => {
-            uploadLen++
-            if (uploadLen == fileList.value.length) {
+        const checkAllDone = () => {
+            if (uploadTotal > 0 && uploadLen >= uploadTotal) {
                 uploadLen = 0
+                uploadTotal = 0
                 fileList.value = []
                 emit('allSuccess')
             }
+        }
+        const handleSuccess = (response: any, file: any) => {
+            uploadLen++
+            checkAllDone()
             emit('change', file)
             if (response.code == RequestCodeEnum.SUCCESS) {
                 emit('success', response)
@@ -111,13 +118,8 @@ export default defineComponent({
         }
         const handleError = (event: any, file: any) => {
             uploadLen++
-            if (uploadLen == fileList.value.length) {
-                uploadLen = 0
-                fileList.value = []
-                emit('allSuccess')
-            }
+            checkAllDone()
             feedback.msgError(t('component.upload.fileFailed', { name: file.name }))
-            uploadRefs.value?.abort(file)
             visible.value = false
             emit('change', file)
             emit('error', file)

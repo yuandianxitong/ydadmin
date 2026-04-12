@@ -4,7 +4,7 @@ import { getToken, setToken, removeToken } from '~/composables/useRequest'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    token: getToken() || '',
+    token: (import.meta.client ? getToken() : null) || '',
     userInfo: null as UserInfo | null,
   }),
 

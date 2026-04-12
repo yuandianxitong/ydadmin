@@ -110,13 +110,7 @@ class Encryption
      */
     public static function verifySign(array $data, string $signature, string $algorithm = 'sha256'): bool
     {
-        return hash_equals($signature);
-    }
-    /**
-     * 判断是否为周末
-     */
-    public static function isWeekend($date): bool
-    {
-        return !self::isWeekday($date);
+        $expected = self::sign($data, $algorithm);
+        return hash_equals($expected, $signature);
     }
 }

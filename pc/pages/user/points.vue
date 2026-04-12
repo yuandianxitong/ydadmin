@@ -115,7 +115,7 @@ async function fetchPoints() {
 async function fetchLogs() {
   logsLoading.value = true
   try {
-    const res = await userApi.getPointsLogs({ page: page.value, page_size: pageSize })
+    const res = await userApi.getPointsLogs({ page_no: page.value, page_size: pageSize })
     if (res.code === 200) {
       logs.value = res.data.list
       total.value = res.data.total

@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { notificationApi } from '@/api/notification'
@@ -119,10 +119,18 @@ const handleReadAll = async () => {
     }
 }
 
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
     fetchUnreadCount()
-    // 每分钟刷新未读数
-    setInterval(fetchUnreadCount, 60000)
+    pollTimer = setInterval(fetchUnreadCount, 60000)
+})
+
+onUnmounted(() => {
+    if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+    }
 })
 </script>
 

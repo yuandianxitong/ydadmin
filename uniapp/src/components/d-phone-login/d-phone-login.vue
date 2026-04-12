@@ -50,8 +50,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth'
+import { useCountdown } from '@/hooks/useCountdown'
 import type { LoginResult } from '@/types/api'
 
 const props = withDefaults(defineProps<{
@@ -69,33 +70,15 @@ const emit = defineEmits<{
 
 const mobile = ref('')
 const code = ref('')
-const countdown = ref(0)
+const { countdown, isActive, start: startCountdown } = useCountdown(60)
 const sendingCode = ref(false)
 const logging = ref(false)
-let timer: ReturnType<typeof setInterval> | null = null
 
 const isMobileValid = computed(() => /^1[3-9]\d{9}$/.test(mobile.value))
 const canSubmit = computed(() => isMobileValid.value && code.value.length === props.codeLength)
 
-function startCountdown() {
-  countdown.value = 60
-  timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearTimer()
-    }
-  }, 1000)
-}
-
-function clearTimer() {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
-  }
-}
-
 async function handleSendCode() {
-  if (!isMobileValid.value || countdown.value > 0 || sendingCode.value) return
+  if (!isMobileValid.value || isActive.value || sendingCode.value) return
   sendingCode.value = true
 
   try {
@@ -126,9 +109,6 @@ async function handleLogin() {
   }
 }
 
-onBeforeUnmount(() => {
-  clearTimer()
-})
 </script>
 
 <style lang="scss" scoped>

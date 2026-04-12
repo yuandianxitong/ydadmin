@@ -99,6 +99,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAppStore } from '@/store/app.store'
 import { announcementApi, type AnnouncementItem } from '@/api/announcement'
 import { articleApi, type ArticleItem } from '@/api/article'
+import { formatDate } from '@/utils/time'
 
 const appStore = useAppStore()
 
@@ -106,11 +107,6 @@ const latestNotice = ref<AnnouncementItem | null>(null)
 const articles = ref<ArticleItem[]>([])
 
 const bannerList = ref<{ image: string; url?: string }[]>([])
-
-function formatDate(dateStr: string): string {
-  if (!dateStr) return ''
-  return dateStr.substring(0, 10)
-}
 
 function goPage(url: string) {
   uni.navigateTo({ url })

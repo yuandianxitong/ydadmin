@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace app\listener\system;
 
+use core\storage\StorageManager;
 use think\facade\Cache;
 use think\facade\Log;
 
@@ -25,6 +26,9 @@ class ConfigChangedListener
     {
         // 清除配置缓存（标签化管理，tag clear 会清除所有关联缓存）
         Cache::tag('config')->clear();
+
+        // 重置存储驱动单例，使新配置生效
+        StorageManager::reset();
 
         Log::info('系统配置已更新，缓存已清除', [
             'keys'  => $event['keys'] ?? [],

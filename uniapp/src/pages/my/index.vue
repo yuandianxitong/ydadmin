@@ -95,7 +95,7 @@
 
       <!-- Version -->
       <view class="version-info">
-        <text class="version-text">v1.0.0</text>
+        <text class="version-text">{{ versionText }}</text>
       </view>
     </view>
   </view>
@@ -117,6 +117,16 @@ const statusBarHeight = ref(getStatusBarHeight())
 const headerHeight = ref(280) // 占位高度，mount 后通过实际测量覆盖
 const unreadCount = ref(0)
 const balanceInfo = ref({ balance: '0.00', points: 0 })
+
+const versionText = computed(() => {
+  try {
+    const appBaseInfo = uni.getAppBaseInfo?.() as any
+    const v = appBaseInfo?.appVersion
+    return v ? `v${v}` : 'v1.0.0'
+  } catch {
+    return 'v1.0.0'
+  }
+})
 
 /**
  * 动态测量 user-header 实际高度

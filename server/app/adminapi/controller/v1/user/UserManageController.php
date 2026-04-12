@@ -4,6 +4,7 @@ namespace app\adminapi\controller\v1\user;
 
 use app\adminapi\validate\v1\user\UserManageValidate;
 use app\service\user\UserManageService;
+use core\attribute\Permission;
 use core\base\Controller;
 use think\Response;
 
@@ -11,6 +12,7 @@ class UserManageController extends Controller
 {
     protected UserManageService $userManageService;
 
+    #[Permission('user.list')]
     public function list(): Response
     {
         $params = $this->getRequestData();
@@ -18,6 +20,7 @@ class UserManageController extends Controller
         return $this->success('ok', $result);
     }
 
+    #[Permission('user.detail')]
     public function detail(): Response
     {
         $id = (int) $this->request->param('id');
@@ -28,6 +31,7 @@ class UserManageController extends Controller
         return $this->success('ok', $result);
     }
 
+    #[Permission('user.adjust-balance')]
     public function adjustBalance(): Response
     {
         $data = $this->request->post();
@@ -42,6 +46,7 @@ class UserManageController extends Controller
         return $this->success('调整成功');
     }
 
+    #[Permission('user.adjust-points')]
     public function adjustPoints(): Response
     {
         $data = $this->request->post();
@@ -56,6 +61,7 @@ class UserManageController extends Controller
         return $this->success('调整成功');
     }
 
+    #[Permission('user.status')]
     public function updateStatus(): Response
     {
         $id = (int) $this->request->param('id');
@@ -65,6 +71,7 @@ class UserManageController extends Controller
         return $this->success('操作成功');
     }
 
+    #[Permission('user.balance-logs')]
     public function balanceLogs(): Response
     {
         $params = $this->getRequestData();
@@ -72,6 +79,7 @@ class UserManageController extends Controller
         return $this->success('ok', $result);
     }
 
+    #[Permission('user.points-logs')]
     public function pointsLogs(): Response
     {
         $params = $this->getRequestData();

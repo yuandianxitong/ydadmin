@@ -63,6 +63,12 @@ class AdminPermissionMiddleware extends Middleware
         $permissionName = $this->resolvePermission($request);
 
         if (!$permissionName) {
+            // PermissionSkip / 无注解路由也注入 userInfo，确保 Controller 可用
+            try {
+                $request->userInfo = $this->adminService->getAdminInfo($userId);
+            } catch (\Throwable) {
+                $request->userInfo = [];
+            }
             return $next($request);
         }
 

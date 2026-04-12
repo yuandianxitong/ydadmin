@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useUserStore } from '@/store/user.store'
 import { authApi } from '@/api/auth'
+import { useCountdown } from '@/hooks/useCountdown'
 import { isMobile, isPassword, isVerifyCode } from '@/utils/validate'
 import { setToken } from '@/utils/auth'
 
@@ -8,7 +9,7 @@ export function useLogin() {
   const userStore = useUserStore()
   const loading = ref(false)
   const loginType = ref<'password' | 'sms'>('password')
-  const countdown = ref(0)
+  const { countdown, start: startCountdown } = useCountdown(60)
   const wechatQuickLoading = ref(false)
   const needBindPhone = ref(false)
   const tempToken = ref('')
@@ -60,11 +61,7 @@ export function useLogin() {
 
     await authApi.sendSmsCode({ mobile })
     uni.showToast({ title: '验证码已发送', icon: 'none' })
-    countdown.value = 60
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) clearInterval(timer)
-    }, 1000)
+    startCountdown()
   }
 
   async function loginByWechatQuick() {
@@ -77,7 +74,9 @@ export function useLogin() {
       const result = await authApi.wechatQuickLogin({ code: loginRes.code })
 
       if (result.status === 'logged_in' && result.token) {
+        userStore.token = result.token
         setToken(result.token)
+        userStore.getUserInfo().catch(() => {})
         uni.reLaunch({ url: '/pages/index/index' })
       } else if (result.status === 'need_bindphone') {
         tempToken.value = result.temp_token
@@ -97,7 +96,9 @@ export function useLogin() {
         phone_code: phoneCode,
       })
       if (result.token) {
+        userStore.token = result.token
         setToken(result.token)
+        userStore.getUserInfo().catch(() => {})
         uni.reLaunch({ url: '/pages/index/index' })
       }
     } catch (e: any) {

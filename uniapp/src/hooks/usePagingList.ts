@@ -43,7 +43,7 @@ export function usePagingList<T = any>(options: PagingListOptions<T>) {
 
   if (refreshOnShow) {
     onShow(() => {
-      paging.refresh()
+      paging.refresh().catch(() => {})
     })
   }
 

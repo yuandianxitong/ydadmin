@@ -1,3 +1,5 @@
 <script setup lang="ts">
-navigateTo('/user/profile', { replace: true })
+definePageMeta({
+  redirect: '/user/profile',
+})
 </script>

@@ -18,6 +18,8 @@ function getClientType(): string {
   const ua = navigator.userAgent.toLowerCase()
   return ua.includes('micromessenger') ? 'wechat_h5' : 'h5'
   // #endif
+  // fallback for unknown platforms
+  return 'unknown'
 }
 
 interface RequestOptions {

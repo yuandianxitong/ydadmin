@@ -267,7 +267,7 @@ class AdminService extends Service
     /**
      * 删除管理员
      */
-    public function deleteAdmin(int $id): bool
+    public function deleteAdmin(int $id, int $currentAdminId = 0): bool
     {
         $admin = $this->adminRepository->find($id);
         if (!$admin) {
@@ -280,7 +280,6 @@ class AdminService extends Service
         }
 
         // 不能删除自己
-        $currentAdminId = request()->userId ?? 0;
         if ($id == $currentAdminId) {
             throw new BusinessException(lang('auth.cannot_delete_self'));
         }
@@ -299,7 +298,7 @@ class AdminService extends Service
      *
      * 使用事务包裹：任一删除失败则整体回滚，避免部分删除导致数据不一致。
      */
-    public function batchDeleteAdmin(array $ids): bool
+    public function batchDeleteAdmin(array $ids, int $currentAdminId = 0): bool
     {
         if (empty($ids)) {
             return true;
@@ -308,7 +307,7 @@ class AdminService extends Service
         Db::startTrans();
         try {
             foreach ($ids as $id) {
-                $this->deleteAdmin((int) $id);
+                $this->deleteAdmin((int) $id, $currentAdminId);
             }
             Db::commit();
             return true;
@@ -321,7 +320,7 @@ class AdminService extends Service
     /**
      * 更新管理员状态
      */
-    public function updateStatus(int $id, int $status): bool
+    public function updateStatus(int $id, int $status, int $currentAdminId = 0): bool
     {
         $admin = $this->adminRepository->find($id);
         if (!$admin) {
@@ -334,7 +333,6 @@ class AdminService extends Service
         }
 
         // 不能禁用自己
-        $currentAdminId = request()->userId ?? 0;
         if ($id == $currentAdminId && $status == 0) {
             throw new BusinessException(lang('auth.cannot_disable_self'));
         }

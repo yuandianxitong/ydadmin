@@ -62,7 +62,7 @@ class AdminRepository extends Repository
                 'current_page' => $page,
                 'per_page' => $limit,
                 'total' => $total,
-                'last_page' => ceil($total / $limit)
+                'last_page' => (int) ceil($total / $limit)
             ]
         ];
     }

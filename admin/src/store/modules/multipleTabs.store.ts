@@ -152,10 +152,12 @@ export const useMultipleTabsStore = defineStore('multipleTabs', {
             const { currentRoute, push } = router
             const index = getHasTabIndex(fullPath, this.tabList)
 
-            // 只有当 tabList 长度 > 1 且找到该索引时，才执行删除
-            if (this.tabList.length > 1 && index !== -1) {
-                this.tabList.splice(index, 1)
-            }
+            if (index === -1) return
+
+            // 最后一个 tab 不允许关闭
+            if (this.tabList.length <= 1) return
+
+            this.tabList.splice(index, 1)
 
             // 从 cache 中移除当前活动组件
             const currentComponentName = getComponentName(currentRoute.value)
@@ -167,16 +169,10 @@ export const useMultipleTabsStore = defineStore('multipleTabs', {
             }
 
             // 要删除的是当前激活标签，需要跳转到相邻 tab
-            let toTab: TabItem | null = null
-            if (index === 0) {
-                // 删除第一个标签，跳转到剩余的第一个
-                toTab = this.tabList[index]
-            } else {
-                // 否则跳转到前一个标签
-                toTab = this.tabList[index - 1]
-            }
+            const toTab = index === 0
+                ? this.tabList[0]
+                : this.tabList[index - 1]
 
-            // 直接调用 router.push，用 tabItem 的 path、query
             push({
                 path: toTab.path,
                 query: toTab.query

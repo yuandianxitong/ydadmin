@@ -162,7 +162,7 @@ class AdminController extends Controller
     public function delete(): Response
     {
         $id = (int) $this->request->param('id');
-        $this->adminService->deleteAdmin($id);
+        $this->adminService->deleteAdmin($id, $this->getUserId());
 
         return $this->success(lang('messages.delete_success'));
     }
@@ -194,7 +194,7 @@ class AdminController extends Controller
             return $this->error(lang('business.please_select_admin'));
         }
 
-        $this->adminService->batchDeleteAdmin($ids);
+        $this->adminService->batchDeleteAdmin($ids, $this->getUserId());
 
         return $this->success(lang('messages.batch_delete_success'));
     }
@@ -223,7 +223,7 @@ class AdminController extends Controller
         $id = (int) $this->request->param('id');
         $status = (int) $this->request->post('status');
 
-        $this->adminService->updateStatus($id, $status);
+        $this->adminService->updateStatus($id, $status, $this->getUserId());
 
         return $this->success(lang('messages.status_update_success'));
     }

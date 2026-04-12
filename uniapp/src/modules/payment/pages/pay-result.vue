@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { usePayment } from '../composables/usePayment'
 
@@ -24,17 +24,19 @@ const isSuccess = ref(false)
 const resultMessage = ref('')
 const orderNo = ref('')
 
-onLoad((query) => {
+onLoad(async (query) => {
   orderNo.value = query?.order_no || ''
   isSuccess.value = query?.status === 'success'
   resultMessage.value = isSuccess.value ? '支付成功' : '支付失败'
-})
 
-onMounted(async () => {
   if (orderNo.value) {
-    const paid = await checkPayResult(orderNo.value)
-    isSuccess.value = paid
-    resultMessage.value = paid ? '支付成功' : '支付失败'
+    try {
+      const paid = await checkPayResult(orderNo.value)
+      isSuccess.value = paid
+      resultMessage.value = paid ? '支付成功' : '支付失败'
+    } catch {
+      // 查询失败时保留 query 参数中的状态
+    }
   }
 })
 

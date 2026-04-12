@@ -37,7 +37,7 @@ class UserManageService extends Service
     public function adjustBalance(int $userId, float $amount, string $remark = '', int $type = BalanceLog::TYPE_ADMIN_ADJUST, string $source = 'admin_adjust', ?int $operatorId = null): bool
     {
         // 幂等性检查
-        if ($source && $source !== 'admin_adjust' && $this->balanceLogRepository->existsBySource($source)) {
+        if ($source && $source !== 'admin_adjust' && $this->balanceLogRepository->existsBySource($source, $userId)) {
             return true;
         }
 

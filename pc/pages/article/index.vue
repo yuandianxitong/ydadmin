@@ -135,16 +135,13 @@ function changePage(page: number) {
 }
 
 onMounted(async () => {
-  const [catRes, hotRes] = await Promise.all([
+  const [catRes] = await Promise.all([
     articleApi.getCategoryList(),
     fetchArticles(),
   ])
   if (catRes.code === 200) categories.value = catRes.data
 
-  // Hot articles (sorted by views)
-  const allRes = await articleApi.getList({ page_no: 1, page_size: 10 })
-  if (allRes.code === 200) {
-    hotArticles.value = [...allRes.data.list].sort((a, b) => b.views - a.views).slice(0, 10)
-  }
+  // Hot articles: reuse already-fetched first page data
+  hotArticles.value = [...articles.value].sort((a, b) => b.views - a.views).slice(0, 10)
 })
 </script>
