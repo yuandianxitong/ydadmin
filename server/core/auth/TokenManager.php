@@ -39,13 +39,14 @@ class TokenManager
     /**
      * 生成Token
      */
-    public function generate(array $payload): string
+    public function generate(array $payload, ?int $loginAt = null): string
     {
         $now = time();
         $data = [
             'iss' => $this->issuer,
             'iat' => $now,
             'exp' => $now + $this->expire,
+            'login_at' => $loginAt ?? $now,
             'data' => $payload
         ];
 
