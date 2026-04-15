@@ -10,8 +10,8 @@ return [
     'jwt' => [
         'key' => env('JWT_SECRET', 'your-secret-key'),
         'algorithm' => 'HS256',
-        'expire' => 7200, // 2小时
-        'refresh_expire' => 86400, // 1天
+        'expire' => 86400, // 24小时（无操作过期时间）
+        'refresh_expire' => 604800, // 7天（绝对最长登录时长）
         'issuer' => 'thinkphp8-admin',
     ],
 
