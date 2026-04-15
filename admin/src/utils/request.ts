@@ -21,11 +21,71 @@ const request: AxiosInstance = axios.create({
     }
 })
 
+// ========== Token 静默刷新 ==========
+const REFRESH_URL = '/adminapi/auth/refresh'
+let refreshingPromise: Promise<void> | null = null
+
+/**
+ * 解析 JWT payload，返回 exp（秒级时间戳）
+ * 解析失败返回 null
+ */
+function getTokenExp(token: string): number | null {
+    try {
+        const parts = token.split('.')
+        if (parts.length !== 3) return null
+        const payload = JSON.parse(atob(parts[1]))
+        return payload.exp ?? null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * 检查 token 是否需要刷新（剩余有效期 < 50%）
+ * expire 配置为 24 小时 = 86400 秒，阈值 = 43200 秒（12 小时）
+ */
+function shouldRefresh(token: string): boolean {
+    const exp = getTokenExp(token)
+    if (!exp) return false
+    const remaining = exp - Math.floor(Date.now() / 1000)
+    return remaining > 0 && remaining < 43200
+}
+
+/**
+ * 执行 token 刷新（带并发锁）
+ */
+async function doRefresh(): Promise<void> {
+    if (refreshingPromise) return refreshingPromise
+
+    refreshingPromise = (async () => {
+        try {
+            const { useUserStore } = await import('@/store/modules/user.store')
+            const userStore = useUserStore()
+            await userStore.refreshToken()
+        } finally {
+            refreshingPromise = null
+        }
+    })()
+
+    return refreshingPromise
+}
+
 // 请求拦截器
 request.interceptors.request.use(
-    (config: any) => {
+    async (config: any) => {
         // 添加Token（从统一缓存读取）
-        const token = getToken()
+        let token = getToken()
+
+        // 静默刷新：非 refresh 请求且 token 即将过期时自动刷新
+        if (token && config.url !== REFRESH_URL && shouldRefresh(token)) {
+            try {
+                await doRefresh()
+                token = getToken() // 刷新后重新读取新 token
+            } catch {
+                // 刷新失败，继续使用旧 token（响应拦截器会处理 401）
+            }
+        }
+
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
         }
