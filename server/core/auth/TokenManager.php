@@ -81,7 +81,11 @@ class TokenManager
     public function refresh(string $token): string
     {
         // 解码原始 token 获取顶层 claims（包括 login_at）
-        $decoded = (array) JWT::decode($token, new Key($this->key, $this->algorithm));
+        try {
+            $decoded = (array) JWT::decode($token, new Key($this->key, $this->algorithm));
+        } catch (\Exception) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
 
         // 检查是否在黑名单中
         if ($this->isBlacklisted($token)) {

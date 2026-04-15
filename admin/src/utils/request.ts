@@ -26,29 +26,31 @@ const REFRESH_URL = '/adminapi/auth/refresh'
 let refreshingPromise: Promise<void> | null = null
 
 /**
- * 解析 JWT payload，返回 exp（秒级时间戳）
- * 解析失败返回 null
+ * 解析 JWT payload
+ * 处理 base64url → base64 转换，解析失败返回 null
  */
-function getTokenExp(token: string): number | null {
+function parseJwtPayload(token: string): Record<string, any> | null {
     try {
         const parts = token.split('.')
         if (parts.length !== 3) return null
-        const payload = JSON.parse(atob(parts[1]))
-        return payload.exp ?? null
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        return JSON.parse(atob(base64))
     } catch {
         return null
     }
 }
 
 /**
- * 检查 token 是否需要刷新（剩余有效期 < 50%）
- * expire 配置为 24 小时 = 86400 秒，阈值 = 43200 秒（12 小时）
+ * 检查 token 是否需要刷新（剩余有效期 < 总有效期的 50%）
+ * 阈值从 token 自身的 iat/exp 动态计算，无需硬编码
  */
 function shouldRefresh(token: string): boolean {
-    const exp = getTokenExp(token)
-    if (!exp) return false
-    const remaining = exp - Math.floor(Date.now() / 1000)
-    return remaining > 0 && remaining < 43200
+    const payload = parseJwtPayload(token)
+    if (!payload?.exp || !payload?.iat) return false
+    const now = Math.floor(Date.now() / 1000)
+    const remaining = payload.exp - now
+    const total = payload.exp - payload.iat
+    return remaining > 0 && remaining < total * 0.5
 }
 
 /**
