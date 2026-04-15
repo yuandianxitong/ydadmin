@@ -5,6 +5,7 @@ return [
     'login_failed'           => 'Invalid username or password',
     'account_disabled'       => 'Account has been disabled',
     'token_expired'          => 'Token has expired',
+    'login_expired'          => 'Login session has exceeded the maximum duration, please log in again',
     'token_invalid'          => 'Token verification failed',
     'please_login'           => 'Please login first',
     'permission_denied'      => 'Access denied',

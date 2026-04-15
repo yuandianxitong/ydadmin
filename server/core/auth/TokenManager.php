@@ -20,6 +20,7 @@ class TokenManager
     protected string $key;
     protected string $algorithm;
     protected int $expire;
+    protected int $refreshExpire;
     protected string $issuer;
 
     public function __construct()
@@ -33,6 +34,7 @@ class TokenManager
         }
         $this->algorithm = Config::get('auth.jwt.algorithm', 'HS256');
         $this->expire = (int) Config::get('auth.jwt.expire', 7200);
+        $this->refreshExpire = (int) Config::get('auth.jwt.refresh_expire', 604800);
         $this->issuer = Config::get('auth.jwt.issuer', 'yd-admin');
     }
 
@@ -78,9 +80,23 @@ class TokenManager
      */
     public function refresh(string $token): string
     {
-        $payload = $this->verify($token);
+        // 解码原始 token 获取顶层 claims（包括 login_at）
+        $decoded = (array) JWT::decode($token, new Key($this->key, $this->algorithm));
+
+        // 检查是否在黑名单中
+        if ($this->isBlacklisted($token)) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
+
+        // 检查绝对过期时间（7天上限）
+        $loginAt = $decoded['login_at'] ?? $decoded['iat'];
+        if (time() - $loginAt > $this->refreshExpire) {
+            throw new AuthException(lang('auth.login_expired'));
+        }
+
+        $payload = (array) $decoded['data'];
         $this->blacklist($token);
-        return $this->generate($payload);
+        return $this->generate($payload, (int) $loginAt);
     }
 
     /**

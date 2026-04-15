@@ -5,6 +5,7 @@ return [
     'login_failed'           => '用户名或密码错误',
     'account_disabled'       => '账户已被禁用',
     'token_expired'          => 'Token已失效',
+    'login_expired'          => '登录已超过最长有效期，请重新登录',
     'token_invalid'          => 'Token验证失败',
     'please_login'           => '请先登录',
     'permission_denied'      => '权限不足',
