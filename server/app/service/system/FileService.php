@@ -27,10 +27,39 @@ class FileService extends Service
             $where[] = ['group', '=', $params['group']];
         }
         if (!empty($params['mime_type'])) {
-            if ($params['mime_type'] === 'image') {
+            $type = $params['mime_type'];
+            if ($type === 'image') {
                 $where[] = ['mime_type', 'like', 'image/%'];
-            } else {
+            } elseif ($type === 'video') {
+                $where[] = ['mime_type', 'like', 'video/%'];
+            } elseif ($type === 'audio') {
+                $where[] = ['mime_type', 'like', 'audio/%'];
+            } elseif ($type === 'document') {
+                $where[] = ['mime_type', 'in', [
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'text/plain',
+                    'text/csv',
+                ]];
+            } elseif ($type === 'archive') {
+                $where[] = ['mime_type', 'in', [
+                    'application/zip',
+                    'application/x-rar-compressed',
+                    'application/vnd.rar',
+                    'application/x-7z-compressed',
+                    'application/x-tar',
+                    'application/gzip',
+                    'application/x-bzip2',
+                ]];
+            } elseif ($type === 'other') {
                 $where[] = ['mime_type', 'not like', 'image/%'];
+                $where[] = ['mime_type', 'not like', 'video/%'];
+                $where[] = ['mime_type', 'not like', 'audio/%'];
             }
         }
 

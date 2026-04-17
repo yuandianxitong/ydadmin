@@ -839,6 +839,11 @@ export default {
         searchPlaceholder: '搜索文件名',
         fileType: '文件类型',
         image: '图片',
+        video: '视频',
+        audio: '音频',
+        document: '文档',
+        archive: '压缩包',
+        other: '其他',
         file: '文件',
         fileName: '文件名',
         type: '类型',
@@ -849,7 +854,8 @@ export default {
         newFileName: '请输入新文件名',
         renameSuccess: '重命名成功',
         deleteFileConfirm: '确定删除文件"{name}"吗？',
-        batchDeleteFileConfirm: '确定要删除选中的{count}个文件吗？'
+        batchDeleteFileConfirm: '确定要删除选中的{count}个文件吗？',
+        empty: '暂无文件'
     },
     // 登录日志
     loginLog: {

@@ -848,6 +848,11 @@ export default {
         searchPlaceholder: 'Search file name',
         fileType: 'File Type',
         image: 'Image',
+        video: 'Video',
+        audio: 'Audio',
+        document: 'Document',
+        archive: 'Archive',
+        other: 'Other',
         file: 'File',
         fileName: 'File Name',
         type: 'Type',
@@ -858,7 +863,8 @@ export default {
         newFileName: 'Enter new file name',
         renameSuccess: 'Renamed successfully',
         deleteFileConfirm: 'Are you sure you want to delete "{name}"?',
-        batchDeleteFileConfirm: 'Are you sure you want to delete the selected {count} files?'
+        batchDeleteFileConfirm: 'Are you sure you want to delete the selected {count} files?',
+        empty: 'No files'
     },
     // Login log
     loginLog: {
