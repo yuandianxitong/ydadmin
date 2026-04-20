@@ -1,0 +1,1 @@
+import r from"./error.CTBEjpNd.js";import{d as e,c as o,e as t,b as s}from"./index.DMqv2If_.js";const a={class:"error404"},d=e({__name:"404",setup:e=>(e,d)=>(s(),o("div",a,[t(r,{code:"404",title:e.$t("errorPage.notFound")},null,8,["title"])]))});export{d as default};
