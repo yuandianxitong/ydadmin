@@ -1,27 +1,25 @@
 <template>
     <!-- 一级菜单 -->
-    <aside class="flex-shrink-0 w-[60px] h-full bg-sidebar flex flex-col items-center pt-2">
+    <aside class="flex-shrink-0 w-[76px] h-full bg-sidebar flex flex-col items-center pt-2">
         <Logo />
-        <ul class="w-full space-y-4 text-white px-2 pt-4">
+        <ul class="w-full space-y-2 text-white px-1.5 pt-4">
             <li
                 v-for="item in topRoutes"
                 :key="item.path"
                 :class="[
-                    'menu-item relative w-full h-[50px] flex justify-center items-center cursor-pointer rounded-lg transition-all duration-500 ease-in-out',
+                    'menu-item relative w-full flex flex-col justify-center items-center cursor-pointer rounded-lg transition-all duration-300 py-2.5',
                     selectedFirst === item.path ? 'is-active bg-white/15' : 'hover:bg-white/10'
                 ]"
                 @click="onFirstSelect(item.path)"
             >
-                <el-tooltip
-                    :content="translateRouteTitle(item.meta?.title, item.name)"
-                    placement="right"
-                >
-                    <Icon
-                        :name="item.meta?.icon ?? ''"
-                        :size="item.meta?.icon?.startsWith('i-svg:') ? 20 : 22"
-                        class="text-white"
-                    />
-                </el-tooltip>
+                <Icon
+                    :name="item.meta?.icon ?? ''"
+                    :size="item.meta?.icon?.startsWith('i-svg:') ? 18 : 20"
+                    class="text-white"
+                />
+                <span class="menu-label">{{
+                    translateRouteTitle(item.meta?.title, item.name)
+                }}</span>
             </li>
         </ul>
     </aside>
@@ -181,11 +179,29 @@ function resolvePath(p: string) {
     flex-shrink: 0;
 }
 
+.menu-label {
+    font-size: 11px;
+    line-height: 1.2;
+    margin-top: 8px;
+    max-width: 100%;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.menu-item.is-active .menu-label {
+    opacity: 1;
+    font-weight: 500;
+}
+
 .menu-item.is-active::before {
     content: '';
     position: absolute;
-    left: 44px;
-    top: 16px;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
     border-right: 8px solid var(--color-surface, #f8f9fb);
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
