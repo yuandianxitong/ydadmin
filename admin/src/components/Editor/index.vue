@@ -29,7 +29,7 @@ import type { IEditorConfig, IToolbarConfig } from '@wangeditor/editor'
 import { Editor as WEditor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { CSSProperties } from 'vue'
 
-import { addUnit } from '@/utils/util'
+import { addUnit } from '@/utils/format'
 
 const props = withDefaults(
     defineProps<{

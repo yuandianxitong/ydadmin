@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-    addUnit,
-    arrayToTree,
-    calcColor,
-    getNormalPath,
-    isEmpty,
-    objectToQuery,
-    timeFormat,
-    treeToArray
-} from '../util'
+import { calcColor } from '../color'
+import { addUnit, timeFormat } from '../format'
+import { arrayToTree, treeToArray } from '../tree'
+import { getNormalPath, objectToQuery } from '../url'
+
+// isEmpty is now internal to url.ts, test it indirectly via objectToQuery
+const isEmpty = (value: unknown) => value == null || typeof value === 'undefined'
 
 describe('addUnit', () => {
     it('should add px by default', () => {

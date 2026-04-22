@@ -32,7 +32,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 import { translateRouteTitle } from '@/utils/i18n'
-import { getNormalPath } from '@/utils/util'
+import { getNormalPath } from '@/utils/url'
 import { isExternal } from '@/utils/validate'
 
 interface Props {

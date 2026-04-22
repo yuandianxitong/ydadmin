@@ -7,7 +7,7 @@ import { imageProps } from 'element-plus'
 import type { CSSProperties } from 'vue'
 import { computed } from 'vue'
 
-import { addUnit } from '@/utils/util'
+import { addUnit } from '@/utils/format'
 
 const props = defineProps({
     width: {
