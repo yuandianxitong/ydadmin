@@ -1,4 +1,5 @@
-import type { AdminInfo, CaptchaRes, ChangePasswordReq, LoginReq, LoginRes } from '@/types/api'
+import type { ChangePasswordReq } from '@/types/common'
+import type { AdminInfo, CaptchaRes, LoginReq, LoginRes } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

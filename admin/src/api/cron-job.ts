@@ -1,9 +1,6 @@
-import type { CronJobInfo, CronJobLogInfo, CronJobReq, PageQuery, PageResult } from '@/types/api'
+import type { PageQuery, PageResult } from '@/types/common'
+import type { CronJobInfo, CronJobLogInfo, CronJobQuery, CronJobReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
-
-export interface CronJobQuery extends PageQuery {
-    status?: number
-}
 
 /**
  * 定时任务API

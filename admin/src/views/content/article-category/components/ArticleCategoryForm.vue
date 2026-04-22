@@ -33,16 +33,7 @@
             </el-form-item>
 
             <el-form-item :label="t('articleCategoryMgmt.icon')" prop="icon">
-                <el-input
-                    v-model="form.icon"
-                    :placeholder="t('articleCategoryMgmt.iconPlaceholder')"
-                >
-                    <template #prepend>
-                        <el-icon v-if="form.icon">
-                            <component :is="form.icon" />
-                        </el-icon>
-                    </template>
-                </el-input>
+                <IconSelect v-model="form.icon" width="100%" />
             </el-form-item>
 
             <el-form-item :label="$t('common.sort')" prop="sort">
@@ -78,6 +69,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { articleCategoryApi } from '@/api/article-category'
+import IconSelect from '@/components/IconSelect/index.vue'
 import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()

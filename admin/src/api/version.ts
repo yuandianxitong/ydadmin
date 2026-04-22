@@ -1,4 +1,5 @@
-import type { AppVersionInfo, AppVersionQuery, AppVersionReq, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { AppVersionInfo, AppVersionQuery, AppVersionReq } from '@/types/user'
 import { myRequest } from '@/utils/request'
 
 /**

@@ -20,7 +20,7 @@ import { useRouter } from 'vue-router'
 
 import { getDashboardStats } from '@/api/dashboard'
 import useSettingStore from '@/store/modules/settings.store'
-import type { DashboardStats } from '@/types/api'
+import type { DashboardStats } from '@/types/dashboard'
 
 const router = useRouter()
 const { t } = useI18n()

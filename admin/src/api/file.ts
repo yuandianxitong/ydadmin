@@ -1,4 +1,5 @@
-import type { FileInfo, FileQuery, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { FileInfo, FileQuery } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

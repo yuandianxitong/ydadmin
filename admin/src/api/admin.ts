@@ -1,13 +1,5 @@
-import type {
-    AdminInfo,
-    AdminQuery,
-    AdminReq,
-    BatchDeleteReq,
-    PageResult,
-    ResetPasswordReq,
-    SelectOption,
-    StatusReq
-} from '@/types/api'
+import type { BatchDeleteReq, PageResult, ResetPasswordReq, SelectOption, StatusReq } from '@/types/common'
+import type { AdminInfo, AdminQuery, AdminReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

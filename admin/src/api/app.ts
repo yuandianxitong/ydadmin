@@ -1,4 +1,5 @@
-import type { AuthInfoRes, SelectOption } from '@/types/api'
+import type { SelectOption } from '@/types/common'
+import type { AuthInfoRes } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

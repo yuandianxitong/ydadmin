@@ -1,41 +1,6 @@
-import type {
-    AutoReplyInfo,
-    AutoReplyReq,
-    PageQuery,
-    PageResult,
-    WechatFollowerInfo
-} from '@/types/api'
+import type { PageQuery, PageResult } from '@/types/common'
+import type { AutoReplyInfo, AutoReplyReq, WechatFollowerInfo, WechatMenuData, WechatMenuQueryResult, WechatTemplateSendReq } from '@/types/channel'
 import { myRequest } from '@/utils/request'
-
-export interface WechatMenuData {
-    button: Array<{
-        type: string
-        name: string
-        key?: string
-        url?: string
-        sub_button?: Array<{
-            type: string
-            name: string
-            key?: string
-            url?: string
-        }>
-    }>
-}
-
-export interface WechatTemplateSendReq {
-    touser: string
-    template_id: string
-    data: Record<string, { value: string; color?: string }>
-    url?: string
-}
-
-// 微信返回的菜单查询结果
-export interface WechatMenuQueryResult {
-    selfmenu_info?: {
-        button: Array<Record<string, any>>
-    }
-    [key: string]: any
-}
 
 // 公众号管理
 export const officialAccountApi = {

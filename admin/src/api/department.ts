@@ -1,4 +1,5 @@
-import type { DepartmentInfo, DepartmentReq, TreeOption } from '@/types/api'
+import type { TreeOption } from '@/types/common'
+import type { DepartmentInfo, DepartmentReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

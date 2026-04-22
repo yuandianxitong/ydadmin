@@ -1,4 +1,5 @@
-import type { AgreementInfo, AgreementQuery, AgreementReq, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { AgreementInfo, AgreementQuery, AgreementReq } from '@/types/content'
 import { myRequest } from '@/utils/request'
 
 /**

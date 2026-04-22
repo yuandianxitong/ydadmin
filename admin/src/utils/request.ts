@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { PageEnum } from '@/constants/page'
 import { getLocale } from '@/locales/setupI18n'
 import router from '@/router'
-import type { ApiResponse } from '@/types/api'
+import type { ApiResponse } from '@/types/common'
 import { clearAuthInfo, getToken } from '@/utils/auth'
 import { t } from '@/utils/i18n'
 

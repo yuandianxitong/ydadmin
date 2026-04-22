@@ -1,6 +1,6 @@
 import { reactive, toRaw } from 'vue'
 
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult } from '@/types/common'
 
 /**
  * 分页钩子

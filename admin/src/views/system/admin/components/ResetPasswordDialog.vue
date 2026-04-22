@@ -52,7 +52,7 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { adminApi } from '@/api/admin'
-import type { AdminInfo } from '@/types/api'
+import type { AdminInfo } from '@/types/system'
 
 const { t } = useI18n()
 

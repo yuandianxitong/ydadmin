@@ -165,7 +165,7 @@ import { adminApi } from '@/api/admin'
 import { useFormDialog } from '@/hooks/useFormDialog'
 import { useUserStore } from '@/store'
 import useAppStore from '@/store/modules/app.store'
-import type { AdminInfo, AdminReq } from '@/types/api'
+import type { AdminInfo, AdminReq } from '@/types/system'
 
 interface Props {
     modelValue: boolean

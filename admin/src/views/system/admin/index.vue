@@ -217,7 +217,7 @@ import { roleApi } from '@/api/role'
 import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
 import useAppStore from '@/store/modules/app.store'
-import type { AdminInfo, RoleOption } from '@/types/api'
+import type { AdminInfo, RoleOption } from '@/types/system'
 
 import AdminForm from './components/AdminForm.vue'
 import ResetPasswordDialog from './components/ResetPasswordDialog.vue'

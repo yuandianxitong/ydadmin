@@ -146,7 +146,7 @@ import { useI18n } from 'vue-i18n'
 import IconSelect from '@/components/IconSelect/index.vue'
 import { menuApi } from '@/api/menu'
 import { useFormDialog } from '@/hooks/useFormDialog'
-import type { MenuInfo, MenuMeta, MenuReq } from '@/types/api'
+import type { MenuInfo, MenuMeta, MenuReq } from '@/types/system'
 
 const { t } = useI18n()
 

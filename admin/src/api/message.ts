@@ -1,27 +1,6 @@
-import type {
-    MessageLogInfo,
-    MessageTemplateInfo,
-    MessageTemplateReq,
-    PageQuery,
-    PageResult
-} from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { MessageLogInfo, MessageLogQuery, MessageTemplateInfo, MessageTemplateQuery, MessageTemplateReq, MessageTestSendReq } from '@/types/channel'
 import { myRequest } from '@/utils/request'
-
-export interface MessageTemplateQuery extends PageQuery {
-    channel?: string
-    status?: number
-}
-
-export interface MessageLogQuery extends PageQuery {
-    channel?: string
-    status?: number
-}
-
-export interface MessageTestSendReq {
-    template_id: number
-    to: string
-    variables?: Record<string, string>
-}
 
 // 消息模板
 export const messageTemplateApi = {

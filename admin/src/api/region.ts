@@ -1,4 +1,5 @@
-import type { PageResult, RegionInfo, RegionReq } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { RegionInfo, RegionReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

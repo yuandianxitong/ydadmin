@@ -1,4 +1,5 @@
-import type { ActiveRanking, ActivityItem, DashboardStats, LoginLogInfo } from '@/types/api'
+import type { ActiveRanking, ActivityItem, DashboardStats } from '@/types/dashboard'
+import type { LoginLogInfo } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 // 获取仪表板统计数据

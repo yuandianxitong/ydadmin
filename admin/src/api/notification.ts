@@ -1,4 +1,5 @@
-import type { NotificationInfo, NotificationQuery, NotificationReq, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { NotificationInfo, NotificationQuery, NotificationReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

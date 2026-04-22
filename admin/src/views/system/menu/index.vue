@@ -183,7 +183,7 @@ import { useI18n } from 'vue-i18n'
 
 import { menuApi } from '@/api/menu'
 import { useUserStore } from '@/store'
-import type { MenuInfo, MenuQuery } from '@/types/api'
+import type { MenuInfo, MenuQuery } from '@/types/system'
 
 import MenuForm from './components/MenuForm.vue'
 

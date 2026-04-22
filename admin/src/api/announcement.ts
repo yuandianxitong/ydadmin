@@ -1,4 +1,5 @@
-import type { AnnouncementInfo, AnnouncementQuery, AnnouncementReq, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { AnnouncementInfo, AnnouncementQuery, AnnouncementReq } from '@/types/content'
 import { myRequest } from '@/utils/request'
 
 /**

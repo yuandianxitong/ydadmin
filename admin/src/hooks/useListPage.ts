@@ -1,7 +1,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult } from '@/types/common'
 import { t } from '@/utils/i18n'
 
 /**

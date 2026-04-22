@@ -1,4 +1,4 @@
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult } from '@/types/common'
 import { myRequest } from '@/utils/request'
 
 /**
@@ -11,7 +11,7 @@ import { myRequest } from '@/utils/request'
  * ```ts
  * // src/api/role.ts
  * import { createCrudApi } from '@/utils/createCrudApi'
- * import type { RoleInfo, RoleReq } from '@/types/api'
+ * import type { RoleInfo, RoleReq } from '@/types/system'
  *
  * export const roleApi = createCrudApi<RoleInfo, RoleReq>('/adminapi/system/role')
  * // 自动获得 getList, getDetail, create, update, delete, updateStatus, batchDelete

@@ -214,7 +214,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { feedbackApi, type FeedbackInfo } from '@/api/feedback'
+import { feedbackApi } from '@/api/feedback'
+import type { FeedbackInfo } from '@/types/content'
 import { useListPage } from '@/hooks/useListPage'
 
 const { t } = useI18n()

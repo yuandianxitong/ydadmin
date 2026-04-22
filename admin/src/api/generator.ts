@@ -1,14 +1,5 @@
-import type { GeneratorColumnInfo, GeneratorConfig, GeneratorTableInfo } from '@/types/api'
+import type { GeneratorColumnInfo, GeneratorConfig, GeneratorPreviewResult, GeneratorTableInfo } from '@/types/generator'
 import { myRequest } from '@/utils/request'
-
-export interface GeneratorPreviewFile {
-    path: string
-    content: string
-}
-
-export interface GeneratorPreviewResult {
-    [filename: string]: GeneratorPreviewFile
-}
 
 export const generatorApi = {
     getTables() {

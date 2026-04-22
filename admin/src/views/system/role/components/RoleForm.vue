@@ -65,7 +65,7 @@ import { useI18n } from 'vue-i18n'
 
 import { roleApi } from '@/api/role'
 import { useFormDialog } from '@/hooks/useFormDialog'
-import type { RoleInfo, RoleReq } from '@/types/api'
+import type { RoleInfo, RoleReq } from '@/types/system'
 
 const { t } = useI18n()
 

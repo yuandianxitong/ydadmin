@@ -1,18 +1,6 @@
-import type {
-    BatchDeleteReq,
-    MenuInfo,
-    MenuQuery,
-    MenuReq,
-    StatusReq,
-    TreeOption
-} from '@/types/api'
+import type { BatchDeleteReq, StatusReq, TreeOption } from '@/types/common'
+import type { MenuInfo, MenuQuery, MenuReq, MenuSortItem } from '@/types/system'
 import { myRequest } from '@/utils/request'
-
-export interface MenuSortItem {
-    id: number
-    parent_id: number
-    sort: number
-}
 
 /**
  * 菜单管理API

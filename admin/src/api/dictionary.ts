@@ -1,12 +1,5 @@
-import type {
-    DictionaryInfo,
-    DictionaryItemInfo,
-    DictionaryItemReq,
-    DictionaryQuery,
-    DictionaryReq,
-    PageResult,
-    SelectOption
-} from '@/types/api'
+import type { PageResult, SelectOption } from '@/types/common'
+import type { DictionaryInfo, DictionaryItemInfo, DictionaryItemReq, DictionaryQuery, DictionaryReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

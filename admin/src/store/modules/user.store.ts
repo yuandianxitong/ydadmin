@@ -7,7 +7,7 @@ import { authApi } from '@/api/auth'
 import { TOKEN_KEY } from '@/constants/cache'
 import { PageEnum } from '@/constants/page'
 import router from '@/router'
-import type { AdminInfo, AuthInfoRes, MenuInfo, RoleInfo } from '@/types/api'
+import type { AdminInfo, AuthInfoRes, MenuInfo, RoleInfo } from '@/types/system'
 import { clearAuthInfo, getToken } from '@/utils/auth'
 import cache from '@/utils/cache'
 

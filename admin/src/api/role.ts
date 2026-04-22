@@ -1,14 +1,5 @@
-import type {
-    AssignPermissionsReq,
-    BatchDeleteReq,
-    MenuInfo,
-    PageResult,
-    RoleInfo,
-    RoleOption,
-    RoleQuery,
-    RoleReq,
-    StatusReq
-} from '@/types/api'
+import type { BatchDeleteReq, PageResult, StatusReq } from '@/types/common'
+import type { AssignPermissionsReq, MenuInfo, RoleInfo, RoleOption, RoleQuery, RoleReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**

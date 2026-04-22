@@ -1,13 +1,6 @@
-import type { PageQuery, PageResult, PermissionInfo, TreeOption } from '@/types/api'
+import type { PageQuery, PageResult, TreeOption } from '@/types/common'
+import type { PermissionInfo, PermissionReq } from '@/types/system'
 import { myRequest } from '@/utils/request'
-
-export interface PermissionReq {
-    name: string
-    title: string
-    group: string
-    description?: string
-    guard_name?: string
-}
 
 export const permissionApi = {
     getPermissionList(params: PageQuery) {

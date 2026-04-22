@@ -1,8 +1,9 @@
-import type { BalanceLogItem, PageResult, PointsLogItem, UserItem } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { BalanceLogItem, PointsLogItem, UserItem } from '@/types/user'
 import { myRequest } from '@/utils/request'
 
 // 向后兼容：视图文件直接 `import { UserItem } from '@/api/user'` 仍可工作
-export type { BalanceLogItem, PointsLogItem, UserItem }
+export type { BalanceLogItem, PointsLogItem, UserItem } from '@/types/user'
 
 /**
  * 用户管理API

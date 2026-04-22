@@ -1,26 +1,5 @@
 import { myRequest } from '@/utils/request'
-
-export interface FeedbackInfo {
-    id: number
-    user_id: number
-    type: string
-    content: string
-    images: string | null
-    contact: string | null
-    status: number
-    reply: string | null
-    replied_at: string | null
-    replied_by: number | null
-    created_at: string
-}
-
-export interface FeedbackQuery {
-    page_no?: number
-    page_size?: number
-    status?: number | string
-    type?: string
-    keyword?: string
-}
+import type { FeedbackInfo, FeedbackQuery } from '@/types/content'
 
 /**
  * 反馈管理API

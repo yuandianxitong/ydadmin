@@ -1,6 +1,6 @@
 import { reactive, toRaw } from 'vue'
 
-import type { SelectOption } from '@/types/api'
+import type { SelectOption } from '@/types/common'
 
 /**
  * Options 类型说明：

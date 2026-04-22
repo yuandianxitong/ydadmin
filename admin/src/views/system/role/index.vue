@@ -176,7 +176,7 @@ import { useI18n } from 'vue-i18n'
 import { roleApi } from '@/api/role'
 import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
-import type { RoleInfo } from '@/types/api'
+import type { RoleInfo } from '@/types/system'
 
 import AssignPermissionsDialog from './components/AssignPermissionsDialog.vue'
 import RoleForm from './components/RoleForm.vue'

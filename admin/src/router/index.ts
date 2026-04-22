@@ -3,7 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw, RouterView } from 
 
 import { constantRoutes, INDEX_ROUTE, INDEX_ROUTE_NAME } from '@/router/routes.config'
 import useUserStore from '@/store/modules/user.store'
-import type { MenuInfo } from '@/types/api'
+import type { MenuInfo } from '@/types/system'
 import { isExternal } from '@/utils/validate'
 
 // 动态导入 views 下的所有 .vue

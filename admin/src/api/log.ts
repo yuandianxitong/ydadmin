@@ -1,20 +1,6 @@
-import type { LoginLogInfo, OperationLogInfo, PageQuery, PageResult } from '@/types/api'
+import type { PageResult } from '@/types/common'
+import type { LoginLogInfo, LoginLogQuery, OperationLogInfo, OperationLogQuery } from '@/types/system'
 import { myRequest } from '@/utils/request'
-
-export interface LoginLogQuery extends PageQuery {
-    username?: string
-    login_result?: number
-    start_date?: string
-    end_date?: string
-}
-
-export interface OperationLogQuery extends PageQuery {
-    admin_name?: string
-    module?: string
-    action?: string
-    start_date?: string
-    end_date?: string
-}
 
 export const logApi = {
     getLoginLogList(params: LoginLogQuery) {
