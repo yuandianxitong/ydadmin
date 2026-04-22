@@ -1,4 +1,4 @@
-/* ------- 全局：统一 EP 的常用变量 ------- */
+/* ===== 全局：统一 EP 常用变量 ===== */
 :root {
   --el-border-radius-base: var(--radius-md);
   --el-box-shadow-light:   none !important;
@@ -6,14 +6,280 @@
   --el-box-shadow-dark:    var(--shadow-lg);
 }
 
-/* ------- 组件级：el-card 默认样式规范 ------- */
+/* ===== Button ===== */
+.el-button {
+  --el-button-border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--motion-duration-base) var(--motion-easing);
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  &--primary {
+    --el-button-bg-color: var(--el-color-primary);
+    --el-button-border-color: var(--el-color-primary);
+
+    &:hover,
+    &:focus {
+      --el-button-hover-bg-color: var(--el-color-primary-light-3);
+      --el-button-hover-border-color: var(--el-color-primary-light-3);
+    }
+
+    &:active {
+      --el-button-active-bg-color: var(--el-color-primary-dark-2);
+      --el-button-active-border-color: var(--el-color-primary-dark-2);
+    }
+  }
+}
+
+/* ===== Input / Select / Textarea ===== */
+.el-input,
+.el-select,
+.el-textarea {
+  --el-input-border-radius: var(--radius-sm);
+
+  .el-input__wrapper,
+  .el-textarea__inner {
+    transition: border-color var(--motion-duration-fast), box-shadow var(--motion-duration-fast);
+
+    &:focus-within,
+    &.is-focus {
+      box-shadow: 0 0 0 2px var(--color-focus-ring) !important;
+    }
+  }
+}
+
+.el-input__wrapper {
+  background-color: var(--el-fill-color-blank, var(--color-bg));
+}
+
+/* ===== Form ===== */
+.el-form-item {
+  --el-form-label-font-size: var(--font-size-body);
+
+  .el-form-item__label {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+  }
+
+  &.is-error .el-input__wrapper {
+    box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+  }
+}
+
+/* ===== Card ===== */
 .el-card {
   --el-card-border-radius: var(--radius-lg);
   border: none !important;
   border-radius: var(--el-card-border-radius);
   box-shadow: var(--el-box-shadow-light);
+  background-color: var(--color-surface);
 }
 
-.el-tabs__nav-wrap::after{
+/* ===== Table ===== */
+.el-table {
+  --el-table-border-color: var(--color-divider);
+  --el-table-header-bg-color: var(--el-fill-color-lighter, var(--color-bg-page));
+  --el-table-row-hover-bg-color: var(--el-fill-color-light, #f5f7fa);
+
+  th.el-table__cell {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .el-table__body tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+/* ===== Dialog ===== */
+.el-dialog {
+  --el-dialog-border-radius: var(--radius-lg);
+  overflow: hidden;
+
+  .el-dialog__header {
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--color-divider);
+    margin-right: 0;
+  }
+
+  .el-dialog__title {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-subtitle);
+    line-height: var(--line-height-tight);
+  }
+
+  .el-dialog__body {
+    padding: var(--space-5);
+  }
+
+  .el-dialog__footer {
+    padding: var(--space-3) var(--space-5) var(--space-4);
+    border-top: 1px solid var(--color-divider);
+  }
+}
+
+.el-overlay {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+/* ===== Drawer ===== */
+.el-drawer {
+  --el-drawer-padding-primary: var(--space-5);
+
+  .el-drawer__header {
+    border-bottom: 1px solid var(--color-divider);
+    margin-bottom: 0;
+    padding-bottom: var(--space-4);
+  }
+}
+
+/* ===== Dropdown ===== */
+.el-dropdown-menu {
+  --el-dropdown-menu-box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important;
+
+  .el-dropdown-menu__item {
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    transition: background var(--motion-duration-fast);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+      color: var(--el-color-primary);
+    }
+  }
+}
+
+/* ===== Menu (vertical sidebar) ===== */
+.el-menu {
+  --el-menu-border-color: transparent;
+
+  .el-menu-item,
+  .el-sub-menu__title {
+    border-radius: var(--radius-sm);
+    margin: 2px 8px;
+    transition: background var(--motion-duration-fast), color var(--motion-duration-fast);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+    }
+  }
+
+  .el-menu-item.is-active {
+    background-color: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    font-weight: var(--font-weight-medium);
+  }
+}
+
+/* ===== Tabs ===== */
+.el-tabs__nav-wrap::after {
   height: 1px !important;
+}
+
+.el-tabs__item {
+  transition: color var(--motion-duration-fast);
+}
+
+/* ===== Pagination ===== */
+.el-pagination {
+  .el-pager li {
+    border-radius: var(--radius-sm);
+    transition: all var(--motion-duration-fast);
+
+    &.is-active {
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  .btn-prev,
+  .btn-next {
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ===== Tag ===== */
+.el-tag {
+  --el-tag-border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ===== Message / Notification ===== */
+.el-message {
+  --el-message-border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.el-notification {
+  --el-notification-border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ===== Popover / Tooltip ===== */
+.el-popover.el-popper {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.el-tooltip__popper {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ===== MessageBox (Confirm/Alert/Prompt) ===== */
+.el-message-box {
+  --el-messagebox-border-radius: var(--radius-lg);
+
+  .el-message-box__header {
+    padding-bottom: var(--space-2);
+  }
+
+  .el-message-box__title {
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+/* ===== Loading ===== */
+.el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+html.dark .el-loading-mask {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* ===== Empty ===== */
+.el-empty__description p {
+  color: var(--color-text-tertiary);
+}
+
+/* ===== Scrollbar ===== */
+.el-scrollbar__thumb {
+  background-color: var(--gray-400);
+  border-radius: 4px;
+
+  &:hover {
+    background-color: var(--gray-500);
+  }
+}
+
+/* ===== Breadcrumb ===== */
+.el-breadcrumb__item .el-breadcrumb__inner {
+  transition: color var(--motion-duration-fast);
+}
+
+/* ===== Switch ===== */
+.el-switch {
+  --el-switch-border-radius: 999px;
+}
+
+/* ===== Badge ===== */
+.el-badge__content {
+  border: none;
 }
