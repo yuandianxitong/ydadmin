@@ -163,8 +163,8 @@
 
   .el-menu-item,
   .el-sub-menu__title {
-    border-radius: var(--radius-sm);
-    margin: 2px 8px;
+    border-radius: 0;
+    margin: 0;
     transition: background var(--motion-duration-fast), color var(--motion-duration-fast);
 
     &:hover {
