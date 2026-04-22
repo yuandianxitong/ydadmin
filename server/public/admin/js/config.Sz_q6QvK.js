@@ -1,1 +1,0 @@
-import{a1 as n}from"./index.BCm5hGzH.js";function a(){return n.get("/adminapi/system/config/groups")}function i(a="basic"){return n.get(`/adminapi/system/config?group=${a}`)}function t(a){return n.post("/adminapi/system/config/batch-update",{configs:a})}function s(){return n.post("/adminapi/system/config/clear-cache")}export{a,t as b,s as c,i as g};
