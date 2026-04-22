@@ -175,7 +175,7 @@ function resolvePath(p: string) {
     font-weight: 600;
     font-size: 15px;
     color: var(--el-text-color-primary);
-    border-bottom: 1px solid var(--el-border-color-light, #f0f0f0);
+    border-bottom: 1px solid var(--el-border-color-light);
     flex-shrink: 0;
 }
 
@@ -202,7 +202,7 @@ function resolvePath(p: string) {
     right: -6px;
     top: 50%;
     transform: translateY(-50%);
-    border-right: 8px solid var(--color-surface, #f8f9fb);
+    border-right: 8px solid var(--color-surface);
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
 }

@@ -43,7 +43,7 @@ const chartColors = computed(() =>
               axisLine: '#2e2f33',
               splitLine: '#252629',
               axisLabel: '#6b7280',
-              centerLabel: '#6C9FFF'
+              centerLabel: P.blue.to
           }
         : {
               surface: '#fff',
@@ -53,7 +53,7 @@ const chartColors = computed(() =>
               axisLine: '#e5e7eb',
               splitLine: '#f0f0f0',
               axisLabel: '#94a3b8',
-              centerLabel: '#4C84FF'
+              centerLabel: P.blue.from
           }
 )
 
@@ -80,6 +80,18 @@ onMounted(() => {
     loadStats()
 })
 
+// 仪表盘调色板（单一来源，KPI、快捷导航、图表共用）
+const P = {
+    blue:   { from: '#4C84FF', to: '#6C9FFF', dark: '#3A6FE0' },
+    teal:   { from: '#36CFC9', to: '#5CE0DB', dark: '#28B5A8' },
+    amber:  { from: '#F5A623', to: '#F7C164', dark: '#E08E10' },
+    red:    { from: '#FF6B6B', to: '#FF8E8E', dark: '#E04545' },
+    purple: { from: '#9B59B6', to: '#BB77D0' },
+    green:  { from: '#52c41a' },
+    yellow: { from: '#faad14' }
+}
+const grad = (c: { from: string; to?: string }, dir = '135deg') => `linear-gradient(${dir}, ${c.from}, ${c.to || c.from})`
+
 // KPI Cards config
 const kpiCards = computed(() => {
     if (!stats.value) return []
@@ -89,28 +101,28 @@ const kpiCards = computed(() => {
             label: t('dashboard.totalUsers'),
             value: s.totalUsers,
             trend: s.trends.totalUsers,
-            gradient: 'linear-gradient(to right, #6C9FFF, #3A6FE0)',
+            gradient: grad(P.blue, 'to right'),
             icon: User
         },
         {
             label: t('dashboard.activeUsers'),
             value: s.activeUsers,
             trend: s.trends.activeUsers,
-            gradient: 'linear-gradient(to right, #5CE0DB, #28B5A8)',
+            gradient: grad(P.teal, 'to right'),
             icon: TrendCharts
         },
         {
             label: t('dashboard.todayNew'),
             value: s.todayNewUsers,
             trend: s.trends.todayNewUsers,
-            gradient: 'linear-gradient(to right, #F7C164, #E08E10)',
+            gradient: grad(P.amber, 'to right'),
             icon: Plus
         },
         {
             label: t('dashboard.todayLogin'),
             value: s.todayLoginCount,
             trend: s.trends.todayLoginCount,
-            gradient: 'linear-gradient(to right, #FF8E8E, #E04545)',
+            gradient: grad(P.red, 'to right'),
             icon: Key
         }
     ]
@@ -118,54 +130,14 @@ const kpiCards = computed(() => {
 
 // Quick nav items
 const quickNavItems = [
-    {
-        label: 'dashboard.quickNavItems.userManage',
-        icon: User,
-        route: '/user/list',
-        gradient: 'linear-gradient(135deg, #4C84FF, #6C9FFF)'
-    },
-    {
-        label: 'dashboard.quickNavItems.roleManage',
-        icon: UserFilled,
-        route: '/system/role',
-        gradient: 'linear-gradient(135deg, #36CFC9, #5CE0DB)'
-    },
-    {
-        label: 'dashboard.quickNavItems.menuManage',
-        icon: MenuIcon,
-        route: '/system/menu',
-        gradient: 'linear-gradient(135deg, #F5A623, #F7C164)'
-    },
-    {
-        label: 'dashboard.quickNavItems.permManage',
-        icon: Lock,
-        route: '/system/permission',
-        gradient: 'linear-gradient(135deg, #9B59B6, #BB77D0)'
-    },
-    {
-        label: 'dashboard.quickNavItems.systemConfig',
-        icon: Setting,
-        route: '/system/config',
-        gradient: 'linear-gradient(135deg, #36CFC9, #5CE0DB)'
-    },
-    {
-        label: 'dashboard.quickNavItems.loginLog',
-        icon: Document,
-        route: '/system/admin_login_log',
-        gradient: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)'
-    },
-    {
-        label: 'dashboard.quickNavItems.article',
-        icon: Document,
-        route: '/content/article',
-        gradient: 'linear-gradient(135deg, #4C84FF, #6C9FFF)'
-    },
-    {
-        label: 'dashboard.quickNavItems.announcement',
-        icon: Monitor,
-        route: '/content/announcement',
-        gradient: 'linear-gradient(135deg, #F5A623, #F7C164)'
-    }
+    { label: 'dashboard.quickNavItems.userManage', icon: User, route: '/user/list', gradient: grad(P.blue) },
+    { label: 'dashboard.quickNavItems.roleManage', icon: UserFilled, route: '/system/role', gradient: grad(P.teal) },
+    { label: 'dashboard.quickNavItems.menuManage', icon: MenuIcon, route: '/system/menu', gradient: grad(P.amber) },
+    { label: 'dashboard.quickNavItems.permManage', icon: Lock, route: '/system/permission', gradient: grad(P.purple) },
+    { label: 'dashboard.quickNavItems.systemConfig', icon: Setting, route: '/system/config', gradient: grad(P.teal) },
+    { label: 'dashboard.quickNavItems.loginLog', icon: Document, route: '/system/admin_login_log', gradient: grad(P.red) },
+    { label: 'dashboard.quickNavItems.article', icon: Document, route: '/content/article', gradient: grad(P.blue) },
+    { label: 'dashboard.quickNavItems.announcement', icon: Monitor, route: '/content/announcement', gradient: grad(P.amber) }
 ]
 
 // Donut chart option
@@ -202,22 +174,22 @@ const donutOption = computed(() => {
                     {
                         value: s.totalUsers,
                         name: t('dashboard.users'),
-                        itemStyle: { color: '#4C84FF' }
+                        itemStyle: { color: P.blue.from }
                     },
                     {
                         value: s.roleCount,
                         name: t('dashboard.roles'),
-                        itemStyle: { color: '#52c41a' }
+                        itemStyle: { color: P.green.from }
                     },
                     {
                         value: s.menuCount,
                         name: t('dashboard.menus'),
-                        itemStyle: { color: '#faad14' }
+                        itemStyle: { color: P.yellow.from }
                     },
                     {
                         value: s.configCount,
                         name: t('dashboard.configs'),
-                        itemStyle: { color: '#9B59B6' }
+                        itemStyle: { color: P.purple.from }
                     }
                 ]
             }
@@ -275,12 +247,12 @@ const buildTrendOption = (data: Array<{ date: string; count: number }>, color: s
 
 const registerTrendOption = computed(() => {
     if (!stats.value?.registerTrend) return {}
-    return buildTrendOption(stats.value.registerTrend, '#4C84FF')
+    return buildTrendOption(stats.value.registerTrend, P.blue.from)
 })
 
 const loginTrendOption = computed(() => {
     if (!stats.value?.loginTrend) return {}
-    return buildTrendOption(stats.value.loginTrend, '#36CFC9')
+    return buildTrendOption(stats.value.loginTrend, P.teal.from)
 })
 
 const navigateTo = (path: string) => router.push(path)
@@ -327,22 +299,22 @@ const navigateTo = (path: string) => router.push(path)
                                     {
                                         name: t('dashboard.users'),
                                         value: stats.totalUsers,
-                                        color: '#4C84FF'
+                                        color: P.blue.from
                                     },
                                     {
                                         name: t('dashboard.roles'),
                                         value: stats.roleCount,
-                                        color: '#52c41a'
+                                        color: P.green.from
                                     },
                                     {
                                         name: t('dashboard.menus'),
                                         value: stats.menuCount,
-                                        color: '#faad14'
+                                        color: P.yellow.from
                                     },
                                     {
                                         name: t('dashboard.configs'),
                                         value: stats.configCount,
-                                        color: '#9B59B6'
+                                        color: P.purple.from
                                     }
                                 ]"
                                 :key="item.name"
@@ -622,7 +594,7 @@ const navigateTo = (path: string) => router.push(path)
     font-weight: 500;
 
     &.active {
-        background: #4c84ff;
+        background: var(--el-color-primary);
         color: #fff;
     }
 }

@@ -112,8 +112,7 @@
                             </el-image>
                             <div
                                 v-else
-                                class="preview-fallback"
-                                :style="{ background: getFileIcon(file).bg }"
+                                :class="['preview-fallback', getFileIcon(file).cssClass]"
                             >
                                 <span
                                     class="file-icon"
@@ -247,14 +246,25 @@ const SVG = {
     other: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 3h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4" stroke="currentColor" stroke-width="1.6"/></svg>'
 }
 
+// 文件类型配色（单一来源，typeOptions 和 ICON_MAP 共��）
+const FILE_TYPE_COLORS: Record<string, { color: string; icon: string }> = {
+    all:      { color: '#64748b', icon: SVG.all },
+    image:    { color: '#10b981', icon: SVG.image },
+    video:    { color: '#8b5cf6', icon: SVG.video },
+    audio:    { color: '#ec4899', icon: SVG.audio },
+    document: { color: '#3b82f6', icon: SVG.document },
+    archive:  { color: '#f59e0b', icon: SVG.archive },
+    other:    { color: '#94a3b8', icon: SVG.other }
+}
+
 const typeOptions = [
-    { value: '', label: 'file.allFiles', icon: SVG.all, color: '#64748b' },
-    { value: 'image', label: 'file.image', icon: SVG.image, color: '#10b981' },
-    { value: 'video', label: 'file.video', icon: SVG.video, color: '#8b5cf6' },
-    { value: 'audio', label: 'file.audio', icon: SVG.audio, color: '#ec4899' },
-    { value: 'document', label: 'file.document', icon: SVG.document, color: '#3b82f6' },
-    { value: 'archive', label: 'file.archive', icon: SVG.archive, color: '#f59e0b' },
-    { value: 'other', label: 'file.other', icon: SVG.other, color: '#94a3b8' }
+    { value: '', label: 'file.allFiles', ...FILE_TYPE_COLORS.all },
+    { value: 'image', label: 'file.image', ...FILE_TYPE_COLORS.image },
+    { value: 'video', label: 'file.video', ...FILE_TYPE_COLORS.video },
+    { value: 'audio', label: 'file.audio', ...FILE_TYPE_COLORS.audio },
+    { value: 'document', label: 'file.document', ...FILE_TYPE_COLORS.document },
+    { value: 'archive', label: 'file.archive', ...FILE_TYPE_COLORS.archive },
+    { value: 'other', label: 'file.other', ...FILE_TYPE_COLORS.other }
 ]
 
 const hasPerm = (code: string) => userStore.hasPermission(code)
@@ -307,13 +317,14 @@ const selectType = (type: string) => {
 
 const isImage = (file: any) => file.mime_type?.startsWith('image/')
 
-const ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
-    image: { icon: SVG.image, color: '#10b981', bg: 'linear-gradient(135deg,#ecfdf5,#d1fae5)' },
-    video: { icon: SVG.video, color: '#8b5cf6', bg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)' },
-    audio: { icon: SVG.audio, color: '#ec4899', bg: 'linear-gradient(135deg,#fdf2f8,#fce7f3)' },
-    document: { icon: SVG.document, color: '#3b82f6', bg: 'linear-gradient(135deg,#eff6ff,#dbeafe)' },
-    archive: { icon: SVG.archive, color: '#f59e0b', bg: 'linear-gradient(135deg,#fffbeb,#fef3c7)' },
-    other: { icon: SVG.other, color: '#64748b', bg: 'linear-gradient(135deg,#f8fafc,#f1f5f9)' }
+// 文件类型 → 图标 + 颜色 + CSS class（渐变背景通过 CSS 控制，支持暗黑模式）
+const ICON_MAP: Record<string, { icon: string; color: string; cssClass: string }> = {
+    image:    { ...FILE_TYPE_COLORS.image, cssClass: 'type-image' },
+    video:    { ...FILE_TYPE_COLORS.video, cssClass: 'type-video' },
+    audio:    { ...FILE_TYPE_COLORS.audio, cssClass: 'type-audio' },
+    document: { ...FILE_TYPE_COLORS.document, cssClass: 'type-document' },
+    archive:  { ...FILE_TYPE_COLORS.archive, cssClass: 'type-archive' },
+    other:    { ...FILE_TYPE_COLORS.other, cssClass: 'type-other' }
 }
 
 const getFileIcon = (file: any) => {
@@ -718,5 +729,22 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     border-top: 1px solid var(--el-border-color-lighter);
+}
+
+/* 文件类型渐变背景（支持暗黑模式） */
+.type-image    { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
+.type-video    { background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+.type-audio    { background: linear-gradient(135deg, #fdf2f8, #fce7f3); }
+.type-document { background: linear-gradient(135deg, #eff6ff, #dbeafe); }
+.type-archive  { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+.type-other    { background: linear-gradient(135deg, #f8fafc, #f1f5f9); }
+
+html.dark {
+    .type-image    { background: linear-gradient(135deg, #064e3b, #065f46); }
+    .type-video    { background: linear-gradient(135deg, #2e1065, #3b0764); }
+    .type-audio    { background: linear-gradient(135deg, #500724, #701a3c); }
+    .type-document { background: linear-gradient(135deg, #1e3a5f, #1e40af33); }
+    .type-archive  { background: linear-gradient(135deg, #451a03, #78350f); }
+    .type-other    { background: linear-gradient(135deg, #1e293b, #334155); }
 }
 </style>

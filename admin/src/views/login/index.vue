@@ -196,7 +196,7 @@ onMounted(() => {
     width: 45%;
     min-height: 100vh;
     padding: 60px 40px;
-    background: linear-gradient(135deg, #1d39c4 0%, #6366f1 50%, #818cf8 100%);
+    background: linear-gradient(135deg, var(--color-brand-active) 0%, var(--color-brand) 50%, var(--color-brand-hover) 100%);
     color: #fff;
     position: relative;
     overflow: hidden;

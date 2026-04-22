@@ -196,15 +196,16 @@ const settingStore = useSettingStore()
 const colorPickerRef = ref()
 const customColor = ref(settingStore.theme)
 
-// 预设颜色列表
-const presetColors = [
-    '#6f42c1', // purple
-    '#1f4fff', // blue
-    '#18a058', // green
-    '#ff6a00', // orange
-    '#eb2f96', // magenta
-    '#f5222d' // red
-]
+// 预设主题色（单一来源，presetColors 和 primaryColors 共用）
+const THEME_COLORS: Record<string, string> = {
+    purple:  '#6f42c1',
+    blue:    '#1f4fff',
+    green:   '#18a058',
+    orange:  '#ff6a00',
+    magenta: '#eb2f96',
+    red:     '#f5222d'
+}
+const presetColors = Object.values(THEME_COLORS)
 
 const themeModes = computed(() => [
     { value: 'system' as const, label: t('settings.themeModes.system'), icon: Monitor },
@@ -214,12 +215,10 @@ const themeModes = computed(() => [
 
 const primaryColors = computed(() => [
     { value: 'current', label: t('settings.primaryColors.current') },
-    { value: '#6f42c1', label: t('settings.primaryColors.purple') },
-    { value: '#1f4fff', label: t('settings.primaryColors.blue') },
-    { value: '#18a058', label: t('settings.primaryColors.green') },
-    { value: '#ff6a00', label: t('settings.primaryColors.orange') },
-    { value: '#eb2f96', label: t('settings.primaryColors.magenta') },
-    { value: '#f5222d', label: t('settings.primaryColors.red') }
+    ...Object.entries(THEME_COLORS).map(([key, value]) => ({
+        value,
+        label: t(`settings.primaryColors.${key}`)
+    }))
 ])
 
 const darkThemes = computed(() => [
@@ -325,7 +324,7 @@ function changeLayout(mode: 'classic' | 'sidebar') {
 }
 
 function resetAll() {
-    customColor.value = '#1f4fff'
+    customColor.value = THEME_COLORS.blue
     settingStore.resetTheme()
 }
 </script>
