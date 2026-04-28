@@ -5,8 +5,8 @@
 
     <!-- Logo 区域 -->
     <view class="logo-area">
-      <image class="logo" src="/static/logo.png" mode="aspectFit" />
-      <text class="app-name">元点Admin</text>
+      <image class="logo" :src="logoSrc" mode="aspectFit" />
+      <text class="app-name">{{ appName }}</text>
       <text class="app-slogan">专业开发者的首选框架</text>
     </view>
 
@@ -127,7 +127,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useAppStore } from '@/store/app.store'
 import { useLogin } from '../composables/useLogin'
 
 const {
@@ -136,6 +137,13 @@ const {
   wechatQuickLoading, needBindPhone,
   loginByWechatQuick, bindPhoneAndLogin,
 } = useLogin()
+
+const appStore = useAppStore()
+const appName = computed(() => appStore.config.site_name || '元点Admin')
+const logoSrc = computed(() => {
+  const logo = appStore.config.site_logo
+  return logo ? appStore.getImageUrl(logo) : '/static/logo.png'
+})
 
 const mobile = ref('')
 const password = ref('')
