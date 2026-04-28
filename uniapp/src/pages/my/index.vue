@@ -1,7 +1,7 @@
 <template>
   <view class="my-page">
     <!-- User Card with gradient background -->
-    <view id="my-user-header" class="user-header">
+    <view class="user-header">
       <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
       <view class="user-card" @tap="goUserAction">
         <view class="avatar-wrap">
@@ -41,68 +41,59 @@
     </view>
 
     <!-- Menu Groups -->
-    <view class="menu-body" :style="{ paddingTop: headerHeight + 'px' }">
+    <view class="menu-body">
       <!-- Group 1: Profile -->
       <view class="menu-card">
-        <u-cell-group>
-          <u-cell title="个人资料" isLink @click="goAuthPage('/modules/user/pages/edit-profile')">
-            <template #icon>
-              <text class="iconfont icon-person cell-icon" style="color: #2979ff" />
-            </template>
-          </u-cell>
-          <u-cell title="修改密码" isLink @click="goAuthPage('/modules/user/pages/change-password')">
-            <template #icon>
-              <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
-            </template>
-          </u-cell>
-        </u-cell-group>
+        <view class="menu-cell" @tap="goAuthPage('/modules/user/pages/edit-profile')">
+          <view class="i-ri-user-3-line menu-cell-icon" style="color: #2979ff" />
+          <text class="menu-cell-title">个人资料</text>
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
+        <view class="menu-cell-divider" />
+        <view class="menu-cell" @tap="goAuthPage('/modules/user/pages/change-password')">
+          <view class="i-ri-lock-password-line menu-cell-icon" style="color: #19be6b" />
+          <text class="menu-cell-title">修改密码</text>
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
       </view>
 
       <!-- Group 2: Interaction -->
       <view class="menu-card">
-        <u-cell-group>
-          <u-cell title="消息通知" isLink @click="goMessageTab">
-            <template #icon>
-              <text class="iconfont icon-bell cell-icon" style="color: #ff9900" />
-            </template>
-            <template v-if="unreadCount > 0" #value>
-              <u-badge :count="unreadCount" />
-            </template>
-          </u-cell>
-          <u-cell title="意见反馈" isLink @click="goAuthPage('/modules/feedback/pages/feedback')">
-            <template #icon>
-              <text class="iconfont icon-chat-square-text cell-icon" style="color: #7c4dff" />
-            </template>
-          </u-cell>
-        </u-cell-group>
+        <view class="menu-cell" @tap="goMessageTab">
+          <view class="i-ri-notification-3-line menu-cell-icon" style="color: #ff9900" />
+          <text class="menu-cell-title">消息通知</text>
+          <u-badge v-if="unreadCount > 0" :count="unreadCount" class="menu-cell-badge" />
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
+        <view class="menu-cell-divider" />
+        <view class="menu-cell" @tap="goAuthPage('/modules/feedback/pages/feedback')">
+          <view class="i-ri-chat-3-line menu-cell-icon" style="color: #7c4dff" />
+          <text class="menu-cell-title">意见反馈</text>
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
       </view>
 
       <!-- Group 3: Info -->
       <view class="menu-card">
-        <u-cell-group>
-          <u-cell title="关于我们" isLink @click="goPage('/modules/about/pages/about')">
-            <template #icon>
-              <text class="iconfont icon-question-circle cell-icon" style="color: #909399" />
-            </template>
-          </u-cell>
-          <u-cell title="设置" isLink @click="goPage('/modules/user/pages/settings')">
-            <template #icon>
-              <text class="iconfont icon-gear cell-icon" style="color: #fa3534" />
-            </template>
-          </u-cell>
-        </u-cell-group>
+        <view class="menu-cell" @tap="goPage('/modules/about/pages/about')">
+          <view class="i-ri-information-line menu-cell-icon" style="color: #909399" />
+          <text class="menu-cell-title">关于我们</text>
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
+        <view class="menu-cell-divider" />
+        <view class="menu-cell" @tap="goPage('/modules/user/pages/settings')">
+          <view class="i-ri-settings-3-line menu-cell-icon" style="color: #fa3534" />
+          <text class="menu-cell-title">设置</text>
+          <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
+        </view>
       </view>
 
-      <!-- Version -->
-      <view class="version-info">
-        <text class="version-text">{{ versionText }}</text>
-      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.store'
 import { useAppStore } from '@/store/app.store'
@@ -114,39 +105,8 @@ const userStore = useUserStore()
 const appStore = useAppStore()
 
 const statusBarHeight = ref(getStatusBarHeight())
-const headerHeight = ref(280) // 占位高度，mount 后通过实际测量覆盖
 const unreadCount = ref(0)
 const balanceInfo = ref({ balance: '0.00', points: 0 })
-
-const versionText = computed(() => {
-  try {
-    const appBaseInfo = uni.getAppBaseInfo?.() as any
-    const v = appBaseInfo?.appVersion
-    return v ? `v${v}` : 'v1.0.0'
-  } catch {
-    return 'v1.0.0'
-  }
-})
-
-/**
- * 动态测量 user-header 实际高度
- *
- * 替代原先硬编码的 `statusBarHeight + 260`，260 是按默认屏幕估算的固定值，
- * 在折叠屏、异形屏以及不同字号设置下会出现偏差。改为 createSelectorQuery 取真实值。
- */
-function measureHeaderHeight() {
-  nextTick(() => {
-    const query = uni.createSelectorQuery()
-    query
-      .select('#my-user-header')
-      .boundingClientRect((rect: any) => {
-        if (rect && rect.height) {
-          headerHeight.value = Math.ceil(rect.height)
-        }
-      })
-      .exec()
-  })
-}
 
 const avatarUrl = computed(() => {
   if (userStore.isLoggedIn && userStore.avatar) {
@@ -221,8 +181,6 @@ onShow(() => {
   }
   loadUnreadCount()
   loadAssets()
-  // 头部高度可能随登录状态变化（登录前/后文案不同），每次显示都重新测量
-  measureHeaderHeight()
 })
 </script>
 
@@ -235,11 +193,6 @@ onShow(() => {
 }
 
 .user-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
   background: linear-gradient(135deg, #2979ff, #1e5fcc);
   padding-bottom: 32rpx;
 }
@@ -330,7 +283,7 @@ onShow(() => {
 }
 
 .menu-body {
-  padding: 0 $page-padding $page-padding;
+  padding: 24rpx $page-padding $page-padding;
 }
 
 .menu-card {
@@ -339,20 +292,50 @@ onShow(() => {
   overflow: hidden;
   margin-bottom: 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+  padding: 12rpx 0;
+}
 
-  .cell-icon {
+.menu-cell {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  position: relative;
+  transition: background 0.15s;
+
+  &:active {
+    background: #f5f7fa;
+  }
+
+  .menu-cell-icon {
+    width: 40rpx;
+    height: 40rpx;
     font-size: 40rpx;
+    margin-right: 24rpx;
+    flex-shrink: 0;
+  }
+
+  .menu-cell-title {
+    flex: 1;
+    font-size: 30rpx;
+    color: $text-color;
+  }
+
+  .menu-cell-badge {
     margin-right: 16rpx;
+  }
+
+  .menu-cell-arrow {
+    width: 28rpx;
+    height: 28rpx;
+    font-size: 28rpx;
+    color: #c0c4cc;
+    flex-shrink: 0;
   }
 }
 
-.version-info {
-  text-align: center;
-  padding: 40rpx 0;
-
-  .version-text {
-    font-size: 24rpx;
-    color: $text-color-secondary;
-  }
+.menu-cell-divider {
+  height: 1rpx;
+  background: #f0f2f5;
+  margin: 0 32rpx 0 96rpx;
 }
 </style>
