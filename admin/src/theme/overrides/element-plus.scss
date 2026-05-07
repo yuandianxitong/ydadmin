@@ -234,7 +234,7 @@
 
 /* ===== MessageBox (Confirm/Alert/Prompt) ===== */
 .el-message-box {
-  --el-messagebox-border-radius: var(--radius-lg);
+  --el-messagebox-border-radius: var(--radius-sm);
 
   .el-message-box__header {
     padding-bottom: var(--space-2);
