@@ -30,18 +30,22 @@ const appStore = useAppStore()
 const userInfo = computed(() => userStore.userInfo)
 
 const handleCommand = async (command: string) => {
-    switch (command) {
-        case 'logout':
-            await feedback.confirm(t('navbar.logoutConfirm'))
-            userStore.logout()
-            break
-        case 'cache':
-            // 清理本地缓存
-            await feedback.confirm(t('navbar.clearCacheConfirm'))
-            localStorage.clear()
-            sessionStorage.clear()
-            window.location.reload()
-            break
+    try {
+        switch (command) {
+            case 'logout':
+                await feedback.confirm(t('navbar.logoutConfirm'))
+                userStore.logout()
+                break
+            case 'cache':
+                // 清理本地缓存
+                await feedback.confirm(t('navbar.clearCacheConfirm'))
+                localStorage.clear()
+                sessionStorage.clear()
+                window.location.reload()
+                break
+        }
+    } catch {
+        // 用户取消确认，忽略
     }
 }
 </script>
