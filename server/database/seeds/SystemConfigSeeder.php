@@ -111,8 +111,7 @@ class SystemConfigSeeder extends Seeder
 
         // ── Cron Jobs ─────────────────────────────────────────────────────────────
         $this->table('cron_jobs')->insert([
-            ['name' => '清理过期缓存', 'command' => 'clear:cache', 'expression' => '0 2 * * *',   'description' => '每天凌晨2点清理过期缓存',     'status' => 1, 'created_at' => $now, 'updated_at' => $now],
-            ['name' => '清理临时文件', 'command' => 'clear:temp',  'expression' => '0 3 * * 0',   'description' => '每周日凌晨3点清理临时文件',   'status' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['name' => '清理过期管理员日志', 'command' => 'log:archive', 'expression' => '0 3 * * *', 'description' => '每天凌晨3点归档清理过期管理员操作日志', 'status' => 1, 'created_at' => $now, 'updated_at' => $now],
         ])->saveData();
     }
 }

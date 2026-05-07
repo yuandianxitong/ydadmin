@@ -367,8 +367,7 @@ INSERT INTO `departments` (`id`, `parent_id`, `name`, `code`, `leader`, `sort`, 
 -- 定时任务示例数据
 -- ============================================================
 INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status`, `created_at`, `updated_at`) VALUES
-('清理过期缓存', 'clear:cache', '0 2 * * *', '每天凌晨2点清理过期缓存', 1, NOW(), NOW()),
-('清理临时文件', 'clear:temp', '0 3 * * 0', '每周日凌晨3点清理临时文件', 0, NOW(), NOW());
+('清理过期管理员日志', 'log:archive', '0 3 * * *', '每天凌晨3点归档清理过期管理员操作日志', 1, NOW(), NOW());
 
 -- ============================================================
 -- 系统配置种子数据
