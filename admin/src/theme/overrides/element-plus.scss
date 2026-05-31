@@ -100,6 +100,8 @@
 /* ===== Dialog ===== */
 .el-dialog {
   --el-dialog-border-radius: var(--radius-lg);
+  --el-dialog-padding-primary: 0 !important;
+  padding: 0 !important;
   overflow: hidden;
 
   .el-dialog__header {
