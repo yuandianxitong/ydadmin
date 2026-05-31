@@ -70,10 +70,14 @@
                 </el-table-column>
 
                 <el-table-column
-                    :label="$t('cronJob.cronExpression')"
+                    :label="$t('cronJob.executionCycle')"
                     prop="expression"
-                    width="140"
-                />
+                    width="180"
+                >
+                    <template #default="{ row }">
+                        {{ cronToText(row.expression) || row.expression }}
+                    </template>
+                </el-table-column>
 
                 <el-table-column :label="$t('common.status')" prop="status" width="100">
                     <template #default="{ row }">
@@ -240,6 +244,7 @@ import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { cronJobApi } from '@/api/cron-job'
+import { cronToText } from '@/components/CronBuilder/cron-text'
 import { useListPage } from '@/hooks/useListPage'
 import { useUserStore } from '@/store'
 

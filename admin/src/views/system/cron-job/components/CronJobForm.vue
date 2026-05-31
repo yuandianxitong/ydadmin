@@ -23,7 +23,7 @@
                 />
             </el-form-item>
 
-            <el-form-item :label="$t('cronJob.cronExpression')" prop="cron_expression">
+            <el-form-item :label="$t('cronJob.executionCycle')" prop="cron_expression">
                 <CronBuilder v-model="form.cron_expression" />
             </el-form-item>
 

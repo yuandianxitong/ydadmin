@@ -818,6 +818,7 @@ export default {
         taskName: 'Task Name',
         command: 'Command',
         cronExpression: 'Cron Expression',
+        executionCycle: 'Execution Cycle',
         cronFormat: 'Format: min hour day month weekday',
         taskDesc: 'Description',
         lastExecution: 'Last Execution',

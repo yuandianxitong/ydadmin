@@ -809,6 +809,7 @@ export default {
         taskName: '任务名称',
         command: '执行命令',
         cronExpression: 'Cron表达式',
+        executionCycle: '执行周期',
         cronFormat: '格式: 分 时 日 月 周',
         taskDesc: '任务描述',
         lastExecution: '上次执行',
