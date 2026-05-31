@@ -69,7 +69,7 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="160" />
+                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="180" />
                 <el-table-column :label="$t('common.operation')" width="220" fixed="right">
                     <template #default="{ row }">
                         <el-button type="primary" size="small" text @click="handleOpenItems(row)">

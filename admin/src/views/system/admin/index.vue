@@ -137,10 +137,10 @@
                 <el-table-column
                     :label="$t('common.lastLogin')"
                     prop="last_login_time"
-                    width="160"
+                    width="180"
                 />
 
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="160" />
+                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="180" />
 
                 <el-table-column :label="$t('common.operation')" width="220" fixed="right">
                     <template #default="{ row }">
