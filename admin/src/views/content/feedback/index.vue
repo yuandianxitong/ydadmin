@@ -94,7 +94,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleDetail(row)"
+                            @click="handleDetail(row as FeedbackInfo)"
                             >{{ t('common.detail') }}</el-button
                         >
                         <el-button
@@ -103,7 +103,7 @@
                             type="success"
                             size="small"
                             text
-                            @click="handleReply(row)"
+                            @click="handleReply(row as FeedbackInfo)"
                             >{{ t('feedbackMgmt.reply') }}</el-button
                         >
                         <el-button
@@ -112,7 +112,7 @@
                             type="warning"
                             size="small"
                             text
-                            @click="handleClose(row)"
+                            @click="handleClose(row as FeedbackInfo)"
                             >{{ t('feedbackMgmt.close') }}</el-button
                         >
                         <el-button
@@ -120,7 +120,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDeleteRow(row)"
+                            @click="handleDeleteRow(row as FeedbackInfo)"
                             >{{ t('common.delete') }}</el-button
                         >
                     </template>

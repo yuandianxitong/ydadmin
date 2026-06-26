@@ -107,14 +107,14 @@
 
                 <el-table-column :label="t('userMgmt.actions')" width="240" fixed="right">
                     <template #default="{ row }">
-                        <el-button type="primary" size="small" text @click="handleDetail(row)">
+                        <el-button type="primary" size="small" text @click="handleDetail(row as UserItem)">
                             {{ t('userMgmt.viewDetail') }}
                         </el-button>
                         <el-button
                             type="warning"
                             size="small"
                             text
-                            @click="handleAdjustBalance(row)"
+                            @click="handleAdjustBalance(row as UserItem)"
                         >
                             {{ t('userMgmt.adjustBalance') }}
                         </el-button>
@@ -122,7 +122,7 @@
                             type="success"
                             size="small"
                             text
-                            @click="handleAdjustPoints(row)"
+                            @click="handleAdjustPoints(row as UserItem)"
                         >
                             {{ t('userMgmt.adjustPoints') }}
                         </el-button>

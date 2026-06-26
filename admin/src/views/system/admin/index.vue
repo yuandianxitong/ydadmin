@@ -149,7 +149,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row as AdminInfo)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -158,7 +158,7 @@
                             type="warning"
                             size="small"
                             text
-                            @click="handleResetPassword(row)"
+                            @click="handleResetPassword(row as AdminInfo)"
                         >
                             {{ $t('common.resetPassword') }}
                         </el-button>

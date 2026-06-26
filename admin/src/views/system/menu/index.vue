@@ -123,7 +123,7 @@
                             :active-value="1"
                             :inactive-value="0"
                             :disabled="!userStore.hasPermission('system.menu.update')"
-                            @change="handleStatusChange(row)"
+                            @change="handleStatusChange(row as MenuInfo)"
                         />
                     </template>
                 </el-table-column>
@@ -137,7 +137,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleAdd(row)"
+                            @click="handleAdd(row as MenuInfo)"
                         >
                             {{ $t('common.add') }}
                         </el-button>
@@ -146,7 +146,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row as MenuInfo)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -155,7 +155,7 @@
                             type="danger"
                             size="small"
                             text
-                            @click="handleDelete(row)"
+                            @click="handleDelete(row as MenuInfo)"
                         >
                             {{ $t('common.delete') }}
                         </el-button>

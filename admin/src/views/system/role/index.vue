@@ -116,7 +116,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row as RoleInfo)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -125,7 +125,7 @@
                             type="success"
                             size="small"
                             text
-                            @click="handleAssignPermissions(row)"
+                            @click="handleAssignPermissions(row as RoleInfo)"
                         >
                             {{ $t('common.assignPermission') }}
                         </el-button>
