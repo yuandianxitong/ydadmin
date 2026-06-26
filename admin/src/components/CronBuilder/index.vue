@@ -111,24 +111,11 @@
             </el-checkbox-group>
         </div>
 
-        <!-- 预览 -->
-        <div class="cron-builder__preview">
-            <div class="cron-builder__preview-row">
-                <span class="cron-builder__preview-tag">表达式</span>
-                <code class="cron-builder__preview-code">{{ generatedExpression }}</code>
-            </div>
-            <div class="cron-builder__preview-row">
-                <span class="cron-builder__preview-tag">说明</span>
-                <span class="cron-builder__preview-text">{{ nextRunDescription }}</span>
-            </div>
-        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-
-import { cronToText } from './cron-text'
 
 type Frequency = 'minute' | 'everyNMinute' | 'hour' | 'everyNHour' | 'day' | 'week' | 'month'
 
@@ -195,12 +182,6 @@ const generatedExpression = computed(() => {
         default:
             return '* * * * *'
     }
-})
-
-const nextRunDescription = computed(() => {
-    if (frequency.value === 'week' && weekdays.value.length === 0) return '请选择星期'
-    if (frequency.value === 'month' && monthDays.value.length === 0) return '请选择日期'
-    return cronToText(generatedExpression.value) ?? ''
 })
 
 const parseExpression = (expr: string) => {
@@ -362,50 +343,5 @@ watch(
         }
     }
 
-    &__preview {
-        background: linear-gradient(
-            135deg,
-            var(--el-color-primary-light-9) 0%,
-            var(--el-fill-color-light) 100%
-        );
-        border: 1px solid var(--el-color-primary-light-7);
-        border-radius: 6px;
-        padding: 10px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    &__preview-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        line-height: 1.6;
-    }
-
-    &__preview-tag {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 48px;
-        padding: 1px 8px;
-        font-size: 12px;
-        color: var(--el-color-primary);
-        background-color: var(--el-color-primary-light-8);
-        border-radius: 3px;
-    }
-
-    &__preview-code {
-        font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
-        color: var(--el-color-primary);
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-
-    &__preview-text {
-        color: var(--el-text-color-regular);
-    }
 }
 </style>

@@ -38,26 +38,16 @@
                 />
             </el-form-item>
 
-            <el-row :gutter="20">
-                <el-col :span="12">
-                    <el-form-item :label="$t('common.sort')" prop="sort">
-                        <el-input-number
-                            v-model="form.sort"
-                            :min="0"
-                            :max="9999"
-                            style="width: 100%"
-                        />
-                    </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                    <el-form-item :label="$t('common.status')" prop="status">
-                        <el-radio-group v-model="form.status">
-                            <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
-                            <el-radio :value="0">{{ $t('common.disable') }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+            <el-form-item :label="$t('common.sort')" prop="sort">
+                <el-input-number v-model="form.sort" :min="0" :max="9999" style="width: 100%" />
+            </el-form-item>
+
+            <el-form-item :label="$t('common.status')" prop="status">
+                <el-radio-group v-model="form.status">
+                    <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
+                    <el-radio :value="0">{{ $t('common.disable') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
         </el-form>
 
         <template #footer>
