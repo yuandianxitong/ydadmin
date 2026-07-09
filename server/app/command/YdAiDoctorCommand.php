@@ -52,6 +52,10 @@ class YdAiDoctorCommand extends Command
 
         $check('runtime 目录可写', is_writable(runtime_path()), 'chmod 可写权限');
 
+        $projectRoot = rtrim(root_path(), '/') . '/..'; // server/ 的上级 = 项目根
+        $projectRoot = realpath($projectRoot) ?: dirname(root_path());
+        $check('项目根可写（' . $projectRoot . '）', is_writable($projectRoot), 'chmod 可写权限（FileWriter 写入生成文件需要）');
+
         $output->writeln($allOk ? '<info>全部通过，可以使用 php think yd:ai</info>' : '<error>存在问题，请按提示修复</error>');
         return $allOk ? 0 : 1;
     }

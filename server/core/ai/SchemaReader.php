@@ -19,10 +19,11 @@ class SchemaReader
             try {
                 $columns = $service->getTableColumns($table);
             } catch (\Throwable $e) {
-                throw new AiClientException("数据表 '{$table}' 不存在或无法访问");
+                trace('schema 读取失败: ' . $e->getMessage(), 'debug');
+                throw new SchemaException("数据表 '{$table}' 不存在或无法访问");
             }
             if (empty($columns)) {
-                throw new AiClientException("数据表 '{$table}' 没有字段信息");
+                throw new SchemaException("数据表 '{$table}' 没有字段信息");
             }
             $result[] = [
                 'name'    => $table,

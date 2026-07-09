@@ -39,7 +39,7 @@ class FileWriter
 
     public function stageToTemp(array $files): string
     {
-        $temp = $this->projectRoot . '/runtime/ai/' . date('Ymd-His') . '-' . substr(uniqid(), -4);
+        $temp = $this->projectRoot . '/server/runtime/ai/' . date('Ymd-His') . '-' . substr(uniqid(), -4);
         foreach ($files as $file) {
             if (!self::isSafeRelPath($file['path'])) {
                 $this->skipped[] = $file['path'];
@@ -74,7 +74,7 @@ class FileWriter
 
     public function cleanupStale(int $hours = 24): void
     {
-        $base = $this->projectRoot . '/runtime/ai';
+        $base = $this->projectRoot . '/server/runtime/ai';
         if (!is_dir($base)) {
             return;
         }

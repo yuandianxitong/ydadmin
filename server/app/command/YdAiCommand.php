@@ -10,6 +10,7 @@ use core\ai\DiffPreview;
 use core\ai\FeedbackReporter;
 use core\ai\FileWriter;
 use core\ai\ProjectContext;
+use core\ai\SchemaException;
 use core\ai\SchemaReader;
 use core\ai\YdConfig;
 use think\console\Command;
@@ -58,7 +59,7 @@ class YdAiCommand extends Command
             $output->writeln('');
         } catch (AiClientException $e) {
             $output->error($e->getMessage());
-            return str_contains($e->getMessage(), '数据表') ? 1 : 2;
+            return $this->exitCodeFor($e);
         }
 
         $files = $result['files'] ?? [];
@@ -89,7 +90,9 @@ class YdAiCommand extends Command
         }
 
         $reporter = new FeedbackReporter($config, $client);
-        $reporter->resolveOptin(fn (string $q) => strtolower(trim((string) $output->ask($input, $q . ' [y/N]'))) === 'y');
+        if ($this->shouldAskOptin($input)) {
+            $reporter->resolveOptin(fn (string $q) => strtolower(trim((string) $output->ask($input, $q . ' [y/N]'))) === 'y');
+        }
 
         $confirmed = $input->getOption('write')
             || strtolower(trim((string) $output->ask($input, '写入以上 ' . count($files) . ' 个文件？[y/N]'))) === 'y';
@@ -106,5 +109,24 @@ class YdAiCommand extends Command
         $output->info('完成。提醒：新菜单需手动加入 server/public/install/data/init.sql（检查已用 ID）');
         $reporter->report((string) ($result['generation_id'] ?? ''), 'accepted');
         return 0;
+    }
+
+    /**
+     * 是否需要询问反馈 opt-in：--write 直接写入模式或非交互环境（stdin 不可用，如 CI）下跳过询问，
+     * 避免 $output->ask() 在 stdin EOF 时抛 RuntimeException('Aborted') 导致进程崩溃。
+     * 跳过时 FeedbackReporter::report() 因 config 未设置 optin 会自然静默，不产生副作用。
+     */
+    protected function shouldAskOptin(Input $input): bool
+    {
+        return !$input->getOption('write') && $input->isInteractive();
+    }
+
+    /**
+     * 异常类型 → 退出码：SchemaException（数据表读取失败，用户输入问题）→ 1；
+     * 其余 AiClientException（引擎连接/响应异常）→ 2。避免依赖不可控的远端错误文案做 str_contains 判断。
+     */
+    protected function exitCodeFor(AiClientException $e): int
+    {
+        return $e instanceof SchemaException ? 1 : 2;
     }
 }

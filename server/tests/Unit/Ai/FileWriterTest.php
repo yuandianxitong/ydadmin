@@ -10,7 +10,7 @@ class FileWriterTest extends TestCase
     private function root(): string
     {
         $d = sys_get_temp_dir() . '/ydai_fw_' . uniqid();
-        mkdir($d . '/runtime', 0755, true);
+        mkdir($d . '/server/runtime', 0755, true);
         return $d;
     }
 
@@ -33,11 +33,26 @@ class FileWriterTest extends TestCase
         ];
         $writer = new FileWriter($root);
         $temp = $writer->stageToTemp($files);
+        $this->assertStringStartsWith($root . '/server/runtime/ai/', $temp);
         $this->assertFileExists($temp . '/server/app/service/demo/DemoService.php');
         $this->assertSame(['/abs/evil.php'], $writer->getSkipped());
 
         $written = $writer->commit($temp, $files);
         $this->assertSame(['server/app/service/demo/DemoService.php'], $written);
         $this->assertFileExists($root . '/server/app/service/demo/DemoService.php');
+    }
+
+    public function testCleanupStaleOperatesUnderServerRuntimeAi(): void
+    {
+        $root = $this->root();
+        $writer = new FileWriter($root);
+
+        $staleDir = $root . '/server/runtime/ai/stale-dir';
+        mkdir($staleDir, 0755, true);
+        touch($staleDir, time() - 25 * 3600);
+
+        $writer->cleanupStale(24);
+
+        $this->assertDirectoryDoesNotExist($staleDir);
     }
 }

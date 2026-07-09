@@ -2,7 +2,7 @@
 // server/tests/Feature/Ai/SchemaReaderTest.php（依赖本地 DB，menus 表必然存在）
 namespace tests\Feature\Ai;
 
-use core\ai\AiClientException;
+use core\ai\SchemaException;
 use core\ai\SchemaReader;
 use tests\TestCase;
 
@@ -20,7 +20,7 @@ class SchemaReaderTest extends TestCase
 
     public function testUnknownTableThrows(): void
     {
-        $this->expectException(AiClientException::class);
+        $this->expectException(SchemaException::class);
         (new SchemaReader())->buildSchemaInput(['definitely_not_a_table_xyz']);
     }
 }

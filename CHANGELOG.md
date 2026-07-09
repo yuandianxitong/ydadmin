@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+#### 后端 (server)
+- 新增 `yd:ai` / `yd:login` / `yd:ai:doctor` AI 代码生成 CLI：通过自然语言描述需求生成符合元点框架分层规范的代码，生成前展示 diff 预览并需确认后才写入，支持匿名反馈信号 opt-in 上报以改进生成质量
+
 ## [1.5.3] - 2026-04-10
 
 ### Changed
