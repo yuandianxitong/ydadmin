@@ -14,14 +14,26 @@ class FileWriter
 
     public static function isSafeRelPath(string $path): bool
     {
+        // 先归一化反斜杠为正斜杠
+        $path = str_replace('\\', '/', $path);
+
+        // 空串、null字符、以/开头均不安全
         if ($path === '' || str_starts_with($path, '/') || str_contains($path, "\0")) {
             return false;
         }
-        foreach (explode('/', str_replace('\\', '/', $path)) as $seg) {
+
+        // Windows 绝对路径（C:/ D:/ 等）不安全
+        if (preg_match('/^[A-Za-z]:\//', $path)) {
+            return false;
+        }
+
+        // 路径段中包含.. 则不安全
+        foreach (explode('/', $path) as $seg) {
             if ($seg === '..') {
                 return false;
             }
         }
+
         return true;
     }
 

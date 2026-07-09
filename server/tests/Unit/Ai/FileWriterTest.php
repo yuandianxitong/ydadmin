@@ -20,6 +20,8 @@ class FileWriterTest extends TestCase
         $this->assertFalse(FileWriter::isSafeRelPath('/etc/passwd'));
         $this->assertFalse(FileWriter::isSafeRelPath('a/../../x.php'));
         $this->assertFalse(FileWriter::isSafeRelPath(''));
+        $this->assertFalse(FileWriter::isSafeRelPath('\\evil\\file.php'));
+        $this->assertFalse(FileWriter::isSafeRelPath('C:\\Windows\\evil.php'));
     }
 
     public function testStageAndCommit(): void
