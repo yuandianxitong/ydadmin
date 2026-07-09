@@ -37,3 +37,4 @@ server/public/storage/uploads/
 
 # Logs
 *.log
+server/.phpunit.cache/
