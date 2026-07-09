@@ -9,5 +9,6 @@ return [
         \app\command\GenerateApiDocCommand::class,
         'log:archive' => \app\command\LogArchiveCommand::class,
         \app\command\YdAiLoginCommand::class,
+        'yd:ai:doctor' => \app\command\YdAiDoctorCommand::class,
     ],
 ];
