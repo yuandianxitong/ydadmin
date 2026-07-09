@@ -98,6 +98,36 @@ Route::group('article', function () {
 })->middleware(['admin_auth', 'admin_permission', 'admin_log']);
 ```
 
+### {module} 命名推导
+
+1. 取业务主表英文表意，各词转为单数（links→link、logs→log、tags→tag；不可数名词 goods 保留）；
+2. `{module}` = 各单数词直接拼接、全小写、不含下划线/连字符；对应 Controller/Service/Repository/Model 主类名 = 各单数词分别首字母大写后拼接（PascalCase）；
+3. 优先用地道的业务英文词，不逐字直译表名：如“提现”表 withdrawals 对应 withdraw/Withdraw，不要机械派生成 withdrawal。
+
+参考对照（表名 → `{module}` → 主类名）：
+
+```
+tags          → tag          → Tag
+friend_links  → friendlink   → FriendLink
+stock_logs    → stocklog     → StockLog
+goods_skus    → goodssku     → GoodsSku
+withdrawals   → withdraw     → Withdraw
+member_levels → memberlevel  → MemberLevel
+```
+
+### 一个模块内多张表（主表 + 从表）
+
+从表（如 article_categories、coupon_receives、member_benefits）不单独建模块目录，与主表共享同一个 `{module}` 目录（service/repository/model/controller 均放在主表 `{module}` 下），但仍需拥有自己独立完整的 Controller/Service/Repository/Model 四层文件，文件名与类名用该从表单数 PascalCase（如 ArticleCategory、CouponReceive、MemberBenefit），不得只在主表 Service 里笼统处理从表逻辑。路由文件中为从表单独开一个 `Route::group`，组名为 `{主表module}-{从表单数词}`（连字符连接，如 article-category、coupon-receive、memberlevel-benefit），组内控制器引用仍是 `v1.{module}.{从表类名}Controller/方法`（`{module}` 用主表模块目录，不是带连字符的从表组名）。
+
+### 路由动作命名细则
+
+- 主资源的 `Route::group` 分组名必须与 `{module}` 字符串逐字相同、禁止加连字符，即使 `{module}` 本身由多个英文单词拼接而成（正确：stocklog、goodssku、friendlink；错误：stock-log、goods-sku）；连字符只用于上面的从表分组名，或本节下面的多词自定义动作名；
+- 只要模块涉及查询、审核、审批等针对已有记录的操作（无论任务是否显式提到“列表”），路由文件必须包含 `Route::get('list', ...)` 这一条基础列表路由（URL 就是 list，不能用 audit-list、pending-list、tree 等变体替代）；模块数据本质是树形结构时（如部门），list 仍要保留，Controller 内部可直接调用 getTree() 实现，tree 只能作为额外别名路由，不能取代 list；
+- 状态流转动作用能直接读出业务含义的英文动词命名，取业务动作本身而非流转后的结果状态（如“提交审核”用 submit、“审核发布”用 publish、“下线”用 offline，而不是 pending/published 这类状态名）；
+- 自定义动作路由的 URL 必须是「动词紧跟在分组名后面、id 参数放在动词之后」，即 `Route::put('approve/:id', ...)`，不要写成 `Route::put(':id/approve', ...)`（id 在前会导致动词和分组名被 :id 隔断，无法识别为具名动作）；`updateStatus` 是仅用于无额外参数的单纯启用/禁用开关的历史例外，继续用 `:id/status`；
+- 若业务描述审核/审批类操作，须同时注册两组路由，不要只选一种：①一个综合动作，动词取业务动作本身（如“审核”→audit），一次请求通过参数区分通过/驳回；②两个专用动作，动词固定用 approve / reject，reject 必须支持必填的原因参数；三者对应的 Controller/Service 方法都要实现；
+- 若指令中出现“批量”，除单条操作路由外必须额外提供 `batch-{动词}` 路由（如 batch-pass、batch-reject），对应方法处理 ids 数组；多词动作 URL 一律用连字符命名，对应 Controller 方法名用 camelCase（batchPass、batchReject）。
+
 ## 优先使用代码生成器
 基础 CRUD 必须先用 php think make:crud 生成骨架（Model/Repository/Service/Controller/Validate/Route/前端 API/列表页/表单），AI 只在骨架之上做业务逻辑增量（审核流转、状态机、跨表编排）。禁止绕过生成器手写全套基础 CRUD。
 
