@@ -15,14 +15,25 @@
                   Listener（事件副作用） / Job（异步队列）
 ```
 
-| 层 | 目录 | 基类 | 职责 |
+| 层 | 目录（均按模块分子目录） | 基类 | 职责 |
 |---|---|---|---|
-| Controller | `app/adminapi/controller/v1/` | `core\base\Controller` | 接收请求、参数校验、调用 Service、返回响应 |
-| Service | `app/service/` | `core\base\Service` | 业务逻辑编排、事务管理、触发事件 |
-| Repository | `app/repository/` | `core\base\Repository` | 数据访问封装、所有 ORM 查询集中于此 |
-| Model | `app/model/` | `core\base\Model` | ORM 映射、关联关系、访问器/修改器 |
-| Listener | `app/listener/{module}/` | — | 事件监听器，处理副作用（日志、通知、缓存清理），按模块分子目录（`system/`、`user/`、`payment/` 等） |
-| Validate | `app/adminapi/validate/v1/` | — | 表单验证规则 |
+| Controller | `app/adminapi/controller/v1/{module}/` | `core\base\Controller` | 接收请求、参数校验、调用 Service、返回响应 |
+| Service | `app/service/{module}/` | `core\base\Service` | 业务逻辑编排、事务管理、触发事件 |
+| Repository | `app/repository/{module}/` | `core\base\Repository` | 数据访问封装、所有 ORM 查询集中于此 |
+| Model | `app/model/{module}/` | `core\base\Model` | ORM 映射、关联关系、访问器/修改器 |
+| Listener | `app/listener/{module}/` | — | 事件监听器，处理副作用（日志、通知、缓存清理） |
+| Validate | `app/adminapi/validate/v1/{module}/` | — | 表单验证规则 |
+
+`{module}` 为业务模块名小写（如 `article`、`user`、`brand`）。**五层全部要建模块子目录**，命名空间与目录一致，例如品牌模块：
+
+```
+server/app/adminapi/controller/v1/brand/BrandController.php   → namespace app\adminapi\controller\v1\brand;
+server/app/service/brand/BrandService.php                     → namespace app\service\brand;
+server/app/repository/brand/BrandRepository.php               → namespace app\repository\brand;
+server/app/model/brand/Brand.php                              → namespace app\model\brand;
+server/app/adminapi/validate/v1/brand/BrandValidate.php       → namespace app\adminapi\validate\v1\brand;
+server/app/adminapi/route/brand.php                           （路由文件直接放 route/ 下，没有 v1 子目录）
+```
 
 硬性规则：
 - Controller 只调用 Service，禁止直接操作 Repository / Model / Db
@@ -66,6 +77,25 @@ return $this->error('错误信息');
 // 正确的 validate() 调用签名（第一个参数是数据数组，不是验证类）
 $data = $this->request->post();
 $this->validate($data, UserManageValidate::class, [], false, 'sceneName');
+```
+
+## 路由约定
+
+路由文件为 `app/adminapi/route/{module}.php`，控制器引用使用多级目录格式 `v1.{module}.XxxController/方法名`，中间件统一挂 `['admin_auth', 'admin_permission', 'admin_log']`。真实示例（app/adminapi/route/article.php）：
+
+```php
+<?php
+use think\facade\Route;
+
+// 文章管理
+Route::group('article', function () {
+    Route::get('list', 'v1.article.ArticleController/list');
+    Route::get('detail/:id', 'v1.article.ArticleController/detail');
+    Route::post('', 'v1.article.ArticleController/create');
+    Route::put(':id/status', 'v1.article.ArticleController/updateStatus');
+    Route::put(':id', 'v1.article.ArticleController/update');
+    Route::delete(':id', 'v1.article.ArticleController/delete');
+})->middleware(['admin_auth', 'admin_permission', 'admin_log']);
 ```
 
 ## 优先使用代码生成器
@@ -117,7 +147,7 @@ admin/src/
 ```
 
 ## 禁止事项
-- 禁止在 Controller / Service 中出现 Db:: 或 Model 静态查询
+- 禁止在 Controller / Service 中出现 Db:: 查询或 Model 静态查询（Db::table/Db::query/::where/::find 等；Service 中仅允许事务方法 Db::startTrans/commit/rollback）
 - 禁止使用 create_time / update_time / delete_time 等旧字段名
 - 禁止物理删除有 deleted_at 字段的表数据
 - 禁止绕过 Repository 直接查询
