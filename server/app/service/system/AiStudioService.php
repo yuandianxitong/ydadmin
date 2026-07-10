@@ -129,7 +129,9 @@ class AiStudioService extends Service
     public function diff(string $stageId): string
     {
         $stageDir = $this->resolveStageDir($stageId);
-        return (new DiffPreview($this->projectRoot()))->render($stageDir, $this->stageFiles($stageId));
+        $text = (new DiffPreview($this->projectRoot()))->render($stageDir, $this->stageFiles($stageId));
+        // git diff --color 会输出 ANSI 转义序列，前端纯文本展示前需剥离
+        return preg_replace('/\x1b\[[0-9;]*m/', '', $text);
     }
 
     public function apply(string $stageId, array $paths): array

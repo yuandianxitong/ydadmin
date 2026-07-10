@@ -18,6 +18,13 @@ use tests\TestCase;
  */
 class AiStudioControllerSmokeTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        // testSanitizeErrorInProductionMode 会切到 debug(false)，避免污染同进程后续测试
+        $this->app->debug(true);
+        parent::tearDown();
+    }
+
     private function makeController(): AiStudioController
     {
         return $this->app->make(AiStudioController::class);
