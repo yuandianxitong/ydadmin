@@ -156,7 +156,10 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (157, 'user.points-logs', '积分记录', '用户管理', '查看积分记录', 'admin', 1, 157, NOW(), NOW()),
     -- 开放平台
     (160, 'channel.open', '开放平台', '渠道管理', '开放平台管理权限', 'admin', 1, 160, NOW(), NOW()),
-    (161, 'channel.open.config', '开放平台配置', '渠道管理', '开放平台配置管理', 'admin', 1, 161, NOW(), NOW());
+    (161, 'channel.open.config', '开放平台配置', '渠道管理', '开放平台配置管理', 'admin', 1, 161, NOW(), NOW()),
+    -- AI 工作台
+    (162, 'ai.studio.generate', 'AI 工作台', '开发工具', 'AI 工作台页面访问与代码生成权限', 'admin', 1, 162, NOW(), NOW()),
+    (163, 'ai.studio.apply', '应用生成结果', '开发工具', '将 AI 生成结果写入项目的权限', 'admin', 1, 163, NOW(), NOW());
 
 -- ============================================================
 -- 菜单数据
@@ -243,6 +246,10 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 
   -- API文档
   (210, 3, 2, 'API文档', 'DevApiDoc', '/dev-tools/api-doc', '/system/api-doc/index', NULL, 'i-svg:notebook-text', 'system.api_doc', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+
+  -- AI 工作台
+  (220, 3, 2, 'AI 工作台', 'DevAiStudio', '/system/ai-studio', 'system/ai-studio/index', NULL, 'i-svg:bot', 'ai.studio.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (221, 220, 3, '应用', NULL, NULL, NULL, NULL, NULL, 'ai.studio.apply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
   -- ===== 消息管理（系统管理子模块） =====
   (120, 2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'i-svg:message-circle-more', 'system.message', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),

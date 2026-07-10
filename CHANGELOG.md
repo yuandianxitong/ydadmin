@@ -8,6 +8,7 @@
 
 #### 后端 (server)
 - 新增 `yd:ai` / `yd:login` / `yd:ai:doctor` AI 代码生成 CLI：通过自然语言描述需求生成符合元点框架分层规范的代码，生成前展示 diff 预览并需确认后才写入，支持匿名反馈信号 opt-in 上报以改进生成质量
+- 新增「开发工具 - AI 工作台」菜单及 `ai.studio.generate`（页面访问/生成）、`ai.studio.apply`（写入应用）权限点安装数据，为 admin 后台 AI Studio 页面提供菜单与权限基础
 
 ## [1.5.3] - 2026-04-10
 
