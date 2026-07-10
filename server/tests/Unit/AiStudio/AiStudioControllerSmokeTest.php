@@ -89,4 +89,37 @@ class AiStudioControllerSmokeTest extends TestCase
         $this->assertSame(AiStudioService::LAYER_PRESETS['api'], $layers);
         $this->assertNotSame(AiStudioService::LAYER_PRESETS['crud'], $layers);
     }
+
+    public function testSanitizeErrorInDebugMode(): void
+    {
+        $this->app->debug(true);
+        $controller = $this->makeController();
+
+        $exception = new \RuntimeException('SQL Syntax Error at line 42');
+        $reflected = new \ReflectionMethod($controller, 'sanitizeError');
+        $reflected->setAccessible(true);
+
+        $result = $reflected->invoke($controller, $exception);
+
+        // In debug mode, should include original exception message
+        $this->assertStringContainsString('生成失败：', $result);
+        $this->assertStringContainsString('SQL Syntax Error', $result);
+    }
+
+    public function testSanitizeErrorInProductionMode(): void
+    {
+        $this->app->debug(false);
+        $controller = $this->makeController();
+
+        $exception = new \RuntimeException('SQL Syntax Error at line 42');
+        $reflected = new \ReflectionMethod($controller, 'sanitizeError');
+        $reflected->setAccessible(true);
+
+        $result = $reflected->invoke($controller, $exception);
+
+        // In production mode, should return generic message without leaking details
+        $this->assertSame('生成失败，请稍后重试或联系管理员', $result);
+        $this->assertStringNotContainsString('SQL', $result);
+        $this->assertStringNotContainsString('Error', $result);
+    }
 }

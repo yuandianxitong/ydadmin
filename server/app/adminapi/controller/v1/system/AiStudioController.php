@@ -55,9 +55,23 @@ class AiStudioController extends Controller
         } catch (AiClientException $e) {
             $emit('error', ['message' => $e->getMessage()]);
         } catch (\Throwable $e) {
-            $emit('error', ['message' => '生成失败：' . $e->getMessage()]);
+            $emit('error', ['message' => $this->sanitizeError($e)]);
         }
         exit;
+    }
+
+    /**
+     * 按 isDebug 门控脱敏异常消息
+     *
+     * @param \Throwable $e 异常对象
+     * @return string 脱敏后的错误消息
+     */
+    protected function sanitizeError(\Throwable $e): string
+    {
+        if (app()->isDebug()) {
+            return '生成失败：' . $e->getMessage();
+        }
+        return '生成失败，请稍后重试或联系管理员';
     }
 
     /** 预览暂存文件（权限点 ai.studio.generate） */
