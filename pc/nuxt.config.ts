@@ -28,7 +28,7 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
 
   devServer: {
-    port: 5175,
+    port: 5880,
   },
 
   vite: {
