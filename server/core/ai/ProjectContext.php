@@ -4,7 +4,8 @@ declare(strict_types=1);
 namespace core\ai;
 
 /**
- * 项目唯一标识：首次生成后持久化在 {home}/.ydadmin/projects.json（键为项目根路径）
+ * 项目唯一标识：首次生成后持久化在 {home}/.ydsaas/projects.json（键为项目根路径）
+ * 兼容旧目录 {home}/.ydadmin/projects.json（只读回退，新写入一律进新目录）
  */
 class ProjectContext
 {
@@ -17,9 +18,11 @@ class ProjectContext
 
     public function id(): string
     {
-        $file = $this->home . '/.ydadmin/projects.json';
+        $file = $this->home . '/.ydsaas/projects.json';
+        $legacyFile = $this->home . '/.ydadmin/projects.json';
         $rootKey = root_path();
-        $map = is_file($file) ? (json_decode((string) file_get_contents($file), true) ?: []) : [];
+        $source = is_file($file) ? $file : (is_file($legacyFile) ? $legacyFile : null);
+        $map = $source !== null ? (json_decode((string) file_get_contents($source), true) ?: []) : [];
         if (!isset($map[$rootKey])) {
             $map[$rootKey] = 'proj_' . bin2hex(random_bytes(8));
             if (!is_dir(dirname($file))) {

@@ -8,24 +8,34 @@ class YdConfig
 {
     protected string $file;
 
+    /** 旧配置目录（~/.ydadmin），仅作只读回退；写入一律走新目录并整体迁移 */
+    protected string $legacyFile;
+
     public function __construct(?string $homeDir = null)
     {
         $home = $homeDir ?: (getenv('HOME') ?: sys_get_temp_dir());
-        $this->file = $home . '/.ydadmin/config.json';
+        $this->file = $home . '/.ydsaas/config.json';
+        $this->legacyFile = $home . '/.ydadmin/config.json';
+    }
+
+    protected function readData(): array
+    {
+        $source = is_file($this->file) ? $this->file : (is_file($this->legacyFile) ? $this->legacyFile : null);
+        if ($source === null) {
+            return [];
+        }
+        return json_decode((string) file_get_contents($source), true) ?: [];
     }
 
     public function get(string $key): mixed
     {
-        if (!is_file($this->file)) {
-            return null;
-        }
-        $data = json_decode((string) file_get_contents($this->file), true) ?: [];
+        $data = $this->readData();
         return $data[$key] ?? null;
     }
 
     public function set(string $key, mixed $value): void
     {
-        $data = is_file($this->file) ? (json_decode((string) file_get_contents($this->file), true) ?: []) : [];
+        $data = $this->readData();
         if ($value === null) {
             unset($data[$key]);
         } else {
