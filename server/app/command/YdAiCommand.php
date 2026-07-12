@@ -122,11 +122,15 @@ class YdAiCommand extends Command
     }
 
     /**
-     * 异常类型 → 退出码：SchemaException（数据表读取失败，用户输入问题）→ 1；
-     * 其余 AiClientException（引擎连接/响应异常）→ 2。避免依赖不可控的远端错误文案做 str_contains 判断。
+     * 退出码映射（engine-protocol.md 第 4 节）：
+     * - SchemaException（数据表读取失败）或引擎 INPUT_* 错误码（用户输入问题）→ 1
+     * - 其余 AiClientException（连接/配额/引擎异常）→ 2
      */
     protected function exitCodeFor(AiClientException $e): int
     {
-        return $e instanceof SchemaException ? 1 : 2;
+        if ($e instanceof SchemaException || str_starts_with($e->getErrorCode(), 'INPUT_')) {
+            return 1;
+        }
+        return 2;
     }
 }

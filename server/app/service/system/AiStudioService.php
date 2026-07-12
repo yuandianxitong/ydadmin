@@ -7,6 +7,7 @@ namespace app\service\system;
 use core\ai\AiClient;
 use core\ai\DiffPreview;
 use core\ai\FileWriter;
+use core\ai\ProjectContext;
 use core\ai\SchemaReader;
 use core\ai\YdConfig;
 use core\base\Service;
@@ -47,8 +48,10 @@ class AiStudioService extends Service
         (new FileWriter($this->projectRoot()))->cleanupStale();
 
         $schemaInput = (new SchemaReader())->buildSchemaInput($tables);
-        $projectId = 'studio_' . substr(md5($this->projectRoot()), 0, 8);
-        $result = $this->makeClient()->generate($instruction, $projectId, $layers, $schemaInput, $onChunk);
+        // 与 CLI 共用 ProjectContext 的持久化 project_id，引擎侧可关联同一项目的 CLI/Studio 活动
+        $projectId = (new ProjectContext())->id();
+        $client = $this->makeClient();
+        $result = $client->generate($instruction, $projectId, $layers, $schemaInput, $onChunk);
 
         $stageId = 'stage_' . bin2hex(random_bytes(8));
         $stageDir = $this->stageBase() . '/' . $stageId;
@@ -73,6 +76,7 @@ class AiStudioService extends Service
         return [
             'stage_id'      => $stageId,
             'generation_id' => (string) ($result['generation_id'] ?? ''),
+            'request_id'    => (string) ($result['request_id'] ?? $client->getLastRequestId()),
             'files'         => $fileMeta,
             'skipped'       => $skipped,
         ];

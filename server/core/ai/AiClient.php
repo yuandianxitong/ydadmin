@@ -8,12 +8,20 @@ namespace core\ai;
  */
 class AiClient
 {
+    /** 本次客户端会话生成的请求追踪 ID（发送为 X-Request-Id，引擎回显） */
+    protected string $lastRequestId = '';
+
     public function __construct(
         protected string $endpoint,
         protected ?string $token = null,
         protected int $timeout = 300,
     ) {
         $this->endpoint = rtrim($endpoint, '/');
+    }
+
+    public function getLastRequestId(): string
+    {
+        return $this->lastRequestId;
     }
 
     /**
@@ -59,13 +67,24 @@ class AiClient
         });
         foreach (self::parseSseBuffer($raw) as $ev) {
             if ($ev['event'] === 'error') {
-                throw new AiClientException('引擎错误：' . ($ev['data']['message'] ?? '未知'));
+                $code = (string) ($ev['data']['code'] ?? '');
+                $requestId = (string) ($ev['data']['request_id'] ?? $this->lastRequestId);
+                $suffix = $requestId !== '' ? "（追踪 ID：{$requestId}）" : '';
+                throw new AiClientException(
+                    '引擎错误：' . ($ev['data']['message'] ?? '未知') . $suffix,
+                    $code,
+                    $requestId
+                );
             }
             if ($ev['event'] === 'done') {
                 return $ev['data'];
             }
         }
-        throw new AiClientException('SSE 流结束但未收到 done 事件（可能被截断）');
+        throw new AiClientException(
+            'SSE 流结束但未收到 done 事件（可能被截断）',
+            'ENGINE_INTERNAL_ERROR',
+            $this->lastRequestId
+        );
     }
 
     public function feedback(string $generationId, string $action): void
@@ -75,7 +94,11 @@ class AiClient
 
     protected function post(string $path, array $payload, ?callable $onWrite = null): string
     {
-        $headers = ['Content-Type: application/json'];
+        $this->lastRequestId = 'req_' . bin2hex(random_bytes(8));
+        $headers = [
+            'Content-Type: application/json',
+            'X-Request-Id: ' . $this->lastRequestId,
+        ];
         if ($this->token) {
             $headers[] = 'Authorization: Bearer ' . $this->token;
         }
@@ -100,10 +123,28 @@ class AiClient
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
         if ($ok === false || $errno !== 0) {
-            throw new AiClientException('无法连接 AI 引擎（' . curl_strerror($errno) . '），请运行 php think yd:ai:doctor 排查');
+            throw new AiClientException(
+                '无法连接 AI 引擎（' . curl_strerror($errno) . '），请运行 php think yd:ai:doctor 排查',
+                '',
+                $this->lastRequestId
+            );
         }
         if ($status !== 200) {
-            throw new AiClientException("AI 引擎返回 HTTP {$status}：" . mb_substr($collected, 0, 200));
+            // 引擎非 200 统一为 {code, message, request_id}（engine-protocol.md 第 3 节）
+            $decoded = json_decode($collected, true);
+            if (is_array($decoded) && isset($decoded['code'])) {
+                $requestId = (string) ($decoded['request_id'] ?? $this->lastRequestId);
+                throw new AiClientException(
+                    ($decoded['message'] ?? "AI 引擎返回 HTTP {$status}") . "（追踪 ID：{$requestId}）",
+                    (string) $decoded['code'],
+                    $requestId
+                );
+            }
+            throw new AiClientException(
+                "AI 引擎返回 HTTP {$status}：" . mb_substr($collected, 0, 200),
+                '',
+                $this->lastRequestId
+            );
         }
         return $collected;
     }

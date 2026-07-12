@@ -40,10 +40,11 @@ class AiStudioController extends Controller
         };
 
         if ($instruction === '' || mb_strlen($instruction) > AiStudioService::MAX_INSTRUCTION || empty($tables)) {
-            $emit('error', ['message' => '请填写需求描述（≤500 字）并至少选择一张数据表']);
+            $emit('error', ['code' => 'INPUT_INVALID', 'message' => '请填写需求描述（≤500 字）并至少选择一张数据表', 'request_id' => '']);
             exit;
         }
 
+        $startTime = microtime(true);
         try {
             $result = $this->aiStudioService->generateToStage(
                 $instruction,
@@ -52,12 +53,53 @@ class AiStudioController extends Controller
                 static fn (string $chunk) => $emit('chunk', ['content' => $chunk])
             );
             $emit('done', $result);
+            $this->recordStreamLog($instruction, $tables, $genType, 200, (string) ($result['request_id'] ?? ''), microtime(true) - $startTime);
         } catch (AiClientException $e) {
-            $emit('error', ['message' => $e->getMessage()]);
+            $emit('error', [
+                'code'       => $e->getErrorCode() !== '' ? $e->getErrorCode() : 'ENGINE_INTERNAL_ERROR',
+                'message'    => $e->getMessage(),
+                'request_id' => $e->getRequestId(),
+            ]);
+            $this->recordStreamLog($instruction, $tables, $genType, 500, $e->getRequestId(), microtime(true) - $startTime);
         } catch (\Throwable $e) {
-            $emit('error', ['message' => $this->sanitizeError($e)]);
+            $emit('error', ['code' => 'ENGINE_INTERNAL_ERROR', 'message' => $this->sanitizeError($e), 'request_id' => '']);
+            $this->recordStreamLog($instruction, $tables, $genType, 500, '', microtime(true) - $startTime);
         }
         exit;
+    }
+
+    /**
+     * stream 端点因 exit() 绕过 AdminLogMiddleware 的后置日志，此处手动补录同构操作日志。
+     * 补录失败静默（不影响 SSE 主流程）。
+     */
+    protected function recordStreamLog(string $instruction, array $tables, string $genType, int $code, string $requestId, float $executionTime): void
+    {
+        $userId = $this->request->userId ?? 0;
+        if (!$userId) {
+            return;
+        }
+        try {
+            \core\queue\QueueManager::push(\app\job\AdminOperationLogJob::class, [
+                'admin_id'       => $userId,
+                'username'       => $this->request->username ?? '',
+                'method'         => 'POST',
+                'path'           => $this->request->pathinfo(),
+                'ip'             => $this->request->ip(),
+                'user_agent'     => $this->request->header('User-Agent', ''),
+                'action'         => 'ai_studio_stream',
+                'description'    => 'AI Studio 流式生成',
+                'params'         => [
+                    'instruction' => mb_substr($instruction, 0, 200),
+                    'tables'      => $tables,
+                    'gen_type'    => $genType,
+                    'request_id'  => $requestId,
+                ],
+                'result'         => ['code' => $code, 'message' => $code === 200 ? '生成成功' : '生成失败'],
+                'execution_time' => round($executionTime, 3),
+            ]);
+        } catch (\Throwable $e) {
+            trace('AI Studio 操作日志补录失败（已忽略）：' . $e->getMessage(), 'debug');
+        }
     }
 
     /**

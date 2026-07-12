@@ -12,14 +12,22 @@ export interface StageFile {
 export interface StreamDoneData {
     stage_id: string
     generation_id: string
+    request_id: string
     files: StageFile[]
     skipped: string[]
+}
+
+/** 引擎错误码见 Ai 仓库 docs/protocol/engine-protocol.md */
+export interface StreamError {
+    code: string
+    message: string
+    request_id: string
 }
 
 export interface StreamCallbacks {
     onChunk: (text: string) => void
     onDone: (data: StreamDoneData) => void
-    onError: (message: string) => void
+    onError: (message: string, error?: StreamError) => void
 }
 
 /** SSE 流式生成：myRequest 不支持 ReadableStream，用原生 fetch */
@@ -91,7 +99,18 @@ export async function streamGenerate(
                     callbacks.onDone(data)
                 } else if (currentEvent === 'error') {
                     receivedTerminal = true
-                    callbacks.onError(data.message ?? '生成失败')
+                    const err: StreamError = {
+                        code: data.code ?? 'ENGINE_INTERNAL_ERROR',
+                        message: data.message ?? '生成失败',
+                        request_id: data.request_id ?? ''
+                    }
+                    const suffix = err.request_id ? `（追踪 ID：${err.request_id}）` : ''
+                    callbacks.onError(
+                        err.message.includes(err.request_id) || !err.request_id
+                            ? err.message
+                            : err.message + suffix,
+                        err
+                    )
                 }
             }
         }
