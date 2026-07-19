@@ -10,6 +10,9 @@
 - 新增 `yd:ai` / `yd:login` / `yd:ai:doctor` AI 代码生成 CLI：通过自然语言描述需求生成符合元点框架分层规范的代码，生成前展示 diff 预览并需确认后才写入，支持匿名反馈信号 opt-in 上报以改进生成质量
 - 新增「开发工具 - AI 工作台」菜单及 `ai.studio.generate`（页面访问/生成）、`ai.studio.apply`（写入应用）权限点安装数据，为 admin 后台 AI Studio 页面提供菜单与权限基础
 
+#### 项目根
+- 新增框架自带 MCP 配置：`.mcp.json`（Claude Code）与 `.cursor/mcp.json`（Cursor，`${workspaceFolder}` 自动定位），下载框架后在支持 MCP 的 AI 编码工具中打开即可使用元点 AI MCP（`yd-mcp-server`），无需手工配置项目路径
+
 ## [1.5.3] - 2026-04-10
 
 ### Changed

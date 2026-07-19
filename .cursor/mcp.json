@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "yuandian": {
+      "command": "npx",
+      "args": ["-y", "yd-mcp-server"],
+      "env": { "YD_PROJECT_ROOT": "${workspaceFolder}" }
+    }
+  }
+}
