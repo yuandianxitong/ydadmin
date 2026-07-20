@@ -57,6 +57,7 @@
 - **消息系统** — 多通道消息模板（短信/微信/站内信）、队列异步发送
 - **支付集成** — 微信支付 / 支付宝（APP/小程序/H5）
 - **代码生成** — 可视化 CRUD 代码生成器，一键生成前后端完整代码
+- **AI 开发** — 内置 MCP 服务，Cursor / Kimi Code / Claude Code 直接读懂框架规范与表结构
 - **API 文档** — 内置 OpenAPI 文档自动生成
 
 ## 架构设计
@@ -181,6 +182,47 @@ php think make:crud table_name --module=模块名 --model=模型名
 ```
 
 自动生成：Model、Repository、Service、Controller、Validate、Route、前端 API、列表页、表单组件。
+
+## AI 辅助开发（MCP）
+
+框架自带 MCP 服务，让 Cursor、Kimi Code、Claude Code 等 AI 编码工具**看懂元点框架**——读取真实表结构、框架编码规范和项目里的既有实现，并在写盘后自动跑语法与路由校验。生成质量明显高于让通用 AI 裸写。
+
+### 开箱即用
+
+仓库已内置 `.mcp.json`（Claude Code）与 `.cursor/mcp.json`（Cursor），版本已钉定。用支持 MCP 的客户端打开项目、按提示允许启用即可，无需手工配置：
+
+```json
+{
+  "mcpServers": {
+    "yuandian": { "command": "npx", "args": ["-y", "yd-mcp-server@0.6.0"] }
+  }
+}
+```
+
+接入后在对话里说一句「帮我初始化元点 AI 配置」，助手会把开发规约（`AGENTS.md` 标记块）、标准流程（`.claude/skills/`）和 Cursor 规则垫片写入项目，此后每次对话都自动带上框架约束。
+
+### 十个工具
+
+| 类别 | 工具 |
+|---|---|
+| 项目识别 | `get_project_info`、`set_project_root` |
+| 读取上下文 | `list_tables`、`show_table_schema`、`read_file`、`get_conventions` |
+| 生成与写入 | `generate_code`、`apply_patch`（默认预览） |
+| 校验与初始化 | `run_check`、`init_client_assets` |
+
+`get_conventions` 按主题返回框架规范全文（分层 / 路由 / 权限 / 验证器 / 前端等八个主题），随包发布、离线可用——这是让 AI 写出框架风格代码的关键。
+
+### 典型用法
+
+```text
+帮我给 brands 表开发商品品牌管理模块（列表 / 新增 / 编辑 / 删除 / 状态切换）
+```
+
+助手会自主完成：读表结构 → 查框架规范 → 生成代码 → 预览（等你确认）→ 落盘 → `php -l` 与路由校验 → 有错自动修到通过。
+
+> 基础 CRUD 建议仍用 `make:crud` 生成骨架，AI 负责骨架之上的业务增量（审核流转、状态机、批量操作、跨表编排）。
+
+完整文档：[MCP 开发助手](http://docs.dev007.cn/admin/ai/mcp) · [按数据表开发业务实战](http://docs.dev007.cn/admin/ai/table-to-module)
 
 ## 项目结构
 
