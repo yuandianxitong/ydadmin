@@ -55,7 +55,7 @@ describe('cache', () => {
     })
 
     it('should prefix keys with the configured prefix', () => {
-        expect(cache.getKey('mykey')).toBe('like_admin_mykey')
+        expect(cache.getKey('mykey')).toBe('ydadmin_mykey')
     })
 
     it('should handle boolean values', () => {
@@ -79,7 +79,7 @@ describe('cache', () => {
     it('should call localStorage.setItem with prefixed key', () => {
         cache.set('my_key', 'my_value')
         expect(localStorageMock.setItem).toHaveBeenCalledWith(
-            'like_admin_my_key',
+            'ydadmin_my_key',
             expect.any(String)
         )
     })
