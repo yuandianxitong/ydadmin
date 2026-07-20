@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "yuandian": { "command": "npx", "args": ["-y", "yd-mcp-server@0.5.0"] }
+    "yuandian": { "command": "npx", "args": ["-y", "yd-mcp-server@0.6.0"] }
   }
 }
