@@ -155,12 +155,8 @@ class CodeGeneratorService extends Service
             'content' => $this->generateFrontendForm($moduleName, $modelName, $columns, $tableComment),
         ];
 
-        // 10. Migration
-        $timestamp = date('YmdHis');
-        $files['migration'] = [
-            'path'    => "database/migrations/{$timestamp}_create_{$tableName}_table.php",
-            'content' => $this->generateMigration($tableName, $columns),
-        ];
+        // 注意：框架表结构演进统一走 schema.sql + database/updates/vX.Y.Z（php think yd:update），
+        // 不再生成 think-migration 迁移文件。
 
         return $files;
     }
@@ -1579,134 +1575,6 @@ export interface {$model}Info {
 {$infoStr}
 }
 TS;
-    }
-
-    protected function generateMigration(string $table, array $columns): string
-    {
-        $typeMap = [
-            'bigint'     => 'biginteger',
-            'int'        => 'integer',
-            'tinyint'    => 'tinyinteger',
-            'smallint'   => 'smallinteger',
-            'varchar'    => 'string',
-            'char'       => 'char',
-            'text'       => 'text',
-            'longtext'   => 'text',
-            'mediumtext' => 'text',
-            'json'       => 'json',
-            'decimal'    => 'decimal',
-            'float'      => 'float',
-            'double'     => 'double',
-            'date'       => 'date',
-            'datetime'   => 'datetime',
-            'timestamp'  => 'timestamp',
-        ];
-
-        $className = str_replace(' ', '', ucwords(str_replace('_', ' ', "create_{$table}_table")));
-        $addColumns = [];
-        $indexes = [];
-
-        foreach ($columns as $col) {
-            $name = $col['name'];
-            if ($name === 'id') continue; // Phinx auto-creates id
-
-            $baseType = $col['type'];
-            $phinxType = $typeMap[$baseType] ?? 'string';
-
-            // tinyint(1) is boolean, others are tinyinteger
-            if ($baseType === 'tinyint' && preg_match('/tinyint\(1\)/', $col['raw_type'])) {
-                $phinxType = 'boolean';
-            }
-
-            $options = [];
-
-            // Parse length from raw_type
-            if (preg_match('/\((\d+)\)/', $col['raw_type'], $m)) {
-                if ($phinxType === 'string' || $phinxType === 'char') {
-                    $options[] = "'limit' => {$m[1]}";
-                }
-            }
-
-            // Parse precision/scale for decimal
-            if (preg_match('/\((\d+),(\d+)\)/', $col['raw_type'], $m)) {
-                if ($phinxType === 'decimal' || $phinxType === 'float') {
-                    $options[] = "'precision' => {$m[1]}";
-                    $options[] = "'scale' => {$m[2]}";
-                }
-            }
-
-            // Unsigned for biginteger/integer
-            if (str_contains($col['raw_type'], 'unsigned') && in_array($phinxType, ['biginteger', 'integer', 'smallinteger'])) {
-                $options[] = "'signed' => false";
-            }
-
-            if ($col['nullable']) {
-                $options[] = "'null' => true";
-            }
-
-            if ($col['default'] !== null) {
-                $escapedDefault = is_numeric($col['default']) ? $col['default'] : "'" . addslashes($col['default']) . "'";
-                $options[] = "'default' => {$escapedDefault}";
-            }
-
-            if (!empty($col['comment'])) {
-                $escapedComment = addslashes($col['comment']);
-                $options[] = "'comment' => '{$escapedComment}'";
-            }
-
-            $optStr = !empty($options) ? '[' . implode(', ', $options) . ']' : '[]';
-            $addColumns[] = "            ->addColumn('{$name}', '{$phinxType}', {$optStr})";
-
-            // Add indexes for common patterns
-            if ($col['key'] === 'MUL') {
-                $indexes[] = "            ->addIndex(['{$name}'])";
-            } elseif ($col['key'] === 'UNI') {
-                $indexes[] = "            ->addIndex(['{$name}'], ['unique' => true])";
-            }
-        }
-
-        $columnsStr = implode("\n", $addColumns);
-        $indexesStr = !empty($indexes) ? "\n" . implode("\n", $indexes) : '';
-
-        // Get table comment
-        $tableComment = '';
-        try {
-            $tables = \think\facade\Db::query("SHOW TABLE STATUS LIKE ?", [$table]);
-            $tableComment = $tables[0]['Comment'] ?? '';
-        } catch (\Exception $e) {
-            Log::warning('Table status query failed: ' . $e->getMessage());
-        }
-
-        $tableOptions = "'engine' => 'InnoDB', 'collation' => 'utf8mb4_0900_ai_ci'";
-        if ($tableComment) {
-            $escapedTableComment = addslashes($tableComment);
-            $tableOptions .= ", 'comment' => '{$escapedTableComment}'";
-        }
-
-        return <<<PHP
-<?php
-
-use think\\migration\\Migrator;
-
-class {$className} extends Migrator
-{
-    public function up(): void
-    {
-        \$table = \$this->table('{$table}', [
-            {$tableOptions},
-        ]);
-
-        \$table
-{$columnsStr}{$indexesStr}
-            ->create();
-    }
-
-    public function down(): void
-    {
-        \$this->table('{$table}')->drop()->save();
-    }
-}
-PHP;
     }
 
     // ========== 辅助方法 ==========

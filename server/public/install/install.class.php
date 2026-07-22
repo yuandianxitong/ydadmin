@@ -4,6 +4,10 @@
  * 安装程序：系统初始化向导
  * ============================================================ */
 
+// 复用框架内的 SQL 执行器（前缀改写 / 语句拆分 / 占位符替换），
+// 保证「安装」与「php think yd:update 升级」的前缀处理行为完全一致。
+require_once dirname(dirname(__DIR__)) . '/core/database/SqlRunner.php';
+
 class Installer
 {
     private $rootPath;
@@ -426,6 +430,37 @@ class Installer
         $this->ensureBaseRole($pdo, $prefix);
         $this->upsertAdminAccount($pdo, $config, $prefix);
         $this->upsertSystemConfig($pdo, $config, $prefix);
+        $this->seedUpgradeBaseline($pdo, $prefix);
+    }
+
+    /**
+     * 标记升级基线：全新安装已包含最新完整结构，
+     * 因此把 database/updates 下所有历史版本目录记为「已应用」，
+     * 之后运行 php think yd:update 时不会重复执行这些历史脚本。
+     */
+    private function seedUpgradeBaseline(PDO $pdo, string $prefix): void
+    {
+        $table = $this->wrapTable('system_upgrades', $prefix);
+        if (!$this->tableExists($pdo, $prefix . 'system_upgrades')) {
+            // schema.sql 应已创建该表；缺失时兜底创建，避免安装中断
+            $pdo->exec("CREATE TABLE IF NOT EXISTS {$table} (`id` bigint unsigned NOT NULL AUTO_INCREMENT, `version` varchar(20) NOT NULL, `applied_at` datetime NOT NULL, PRIMARY KEY (`id`), UNIQUE KEY `uk_version` (`version`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='框架数据库升级记录'");
+        }
+
+        $dir = $this->rootPath . 'database/updates';
+        if (!is_dir($dir)) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        foreach (scandir($dir) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..' || !is_dir($dir . '/' . $entry)) {
+                continue;
+            }
+            if (!preg_match('/^v?(\d+\.\d+\.\d+)$/', $entry, $m)) {
+                continue;
+            }
+            $stmt = $pdo->prepare("INSERT IGNORE INTO {$table} (`version`, `applied_at`) VALUES (?, ?)");
+            $stmt->execute([$m[1], $now]);
+        }
     }
 
     private function createPdo(array $config, bool $withDb = true): PDO
@@ -742,158 +777,12 @@ class Installer
      */
     private function executeSqlFileWithReplace(PDO $pdo, string $sqlFile, string $prefix, array $replacements): void
     {
-        $sql = file_get_contents($sqlFile);
-        if ($sql === false) {
-            throw new Exception('SQL文件读取失败: ' . $sqlFile);
-        }
-        // 替换占位符
-        foreach ($replacements as $placeholder => $value) {
-            $sql = str_replace($placeholder, $value, $sql);
-        }
-        // 写入临时文件后用标准流程执行（复用前缀替换和语句拆分）
-        $tmpFile = sys_get_temp_dir() . '/demo_' . md5($sqlFile) . '.sql';
-        file_put_contents($tmpFile, $sql);
-        try {
-            $this->executeSqlFile($pdo, $tmpFile, $prefix);
-        } finally {
-            @unlink($tmpFile);
-        }
+        (new \core\database\SqlRunner($pdo, $prefix))->runFile($sqlFile, $replacements);
     }
 
     private function executeSqlFile(PDO $pdo, string $sqlFile, string $prefix = '')
     {
-        $sql = file_get_contents($sqlFile);
-        if ($sql === false) {
-            throw new Exception('SQL文件读取失败: ' . $sqlFile);
-        }
-
-        $sql = $this->applyTablePrefix($sql, $prefix);
-        $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
-        $lines = preg_split("/\r\n|\n|\r/", $sql);
-        $filtered = [];
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed === '' || strpos($trimmed, '--') === 0 || strpos($trimmed, '#') === 0) {
-                continue;
-            }
-            $filtered[] = $line;
-        }
-        $sql = implode("\n", $filtered);
-        $statements = $this->splitSqlStatements($sql);
-
-        $i = 0;
-        foreach ($statements as $statement) {
-            $i++;
-            if ($statement !== '') {
-                try {
-                    $pdo->exec($statement);
-                } catch (PDOException $e) {
-                    $snippet = preg_replace('/\s+/', ' ', trim($statement));
-                    $snippet = mb_substr($snippet, 0, 260, 'UTF-8');
-                    throw new Exception('SQL执行失败（第 ' . $i . ' 条）：' . $e->getMessage() . '；SQL片段：' . $snippet);
-                }
-            }
-        }
-    }
-
-    private function splitSqlStatements(string $sql): array
-    {
-        // Split by semicolon, but never inside quoted strings/backticks.
-        $statements = [];
-        $buffer = '';
-        $inSingle = false;
-        $inDouble = false;
-        $inBacktick = false;
-        $escape = false;
-
-        $len = strlen($sql);
-        for ($i = 0; $i < $len; $i++) {
-            $ch = $sql[$i];
-
-            if ($escape) {
-                $buffer .= $ch;
-                $escape = false;
-                continue;
-            }
-
-            if (($inSingle || $inDouble) && $ch === '\\') {
-                $buffer .= $ch;
-                $escape = true;
-                continue;
-            }
-
-            if (!$inDouble && !$inBacktick && $ch === "'") {
-                $inSingle = !$inSingle;
-                $buffer .= $ch;
-                continue;
-            }
-            if (!$inSingle && !$inBacktick && $ch === '"') {
-                $inDouble = !$inDouble;
-                $buffer .= $ch;
-                continue;
-            }
-            if (!$inSingle && !$inDouble && $ch === '`') {
-                $inBacktick = !$inBacktick;
-                $buffer .= $ch;
-                continue;
-            }
-
-            if (!$inSingle && !$inDouble && !$inBacktick && $ch === ';') {
-                $stmt = trim($buffer);
-                if ($stmt !== '') {
-                    $statements[] = $stmt;
-                }
-                $buffer = '';
-                continue;
-            }
-
-            $buffer .= $ch;
-        }
-
-        $stmt = trim($buffer);
-        if ($stmt !== '') {
-            $statements[] = $stmt;
-        }
-
-        return $statements;
-    }
-
-    private function applyTablePrefix(string $sql, string $prefix): string
-    {
-        $prefix = trim($prefix);
-        if ($prefix === '') {
-            return $sql;
-        }
-
-        $patterns = [
-            '/(?P<keyword>CREATE\s+TABLE\s+)(?P<optional>IF\s+NOT\s+EXISTS\s+)?`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>INSERT\s+INTO\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            // Anchor DML statements to statement start so we don't touch "ON UPDATE/ON DELETE ... CASCADE" in DDL.
-            '/(?P<keyword>^\s*UPDATE\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/im',
-            '/(?P<keyword>^\s*DELETE\s+FROM\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/im',
-            // DML subqueries / joins
-            '/(?P<keyword>\bFROM\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>\bJOIN\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>ALTER\s+TABLE\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>DROP\s+TABLE\s+)(?P<optional>IF\s+EXISTS\s+)?`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>RENAME\s+TABLE\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>TRUNCATE\s+TABLE\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i',
-            '/(?P<keyword>REFERENCES\s+)`?(?P<name>[a-zA-Z0-9_]+)`?/i'
-        ];
-
-        foreach ($patterns as $pattern) {
-            $sql = preg_replace_callback($pattern, function ($matches) use ($prefix) {
-                $keyword = $matches['keyword'];
-                $optional = $matches['optional'] ?? '';
-                $name = $matches['name'];
-                if (strpos($name, $prefix) === 0) {
-                    return $keyword . $optional . '`' . $name . '`';
-                }
-                return $keyword . $optional . '`' . $prefix . $name . '`';
-            }, $sql);
-        }
-
-        return $sql;
+        (new \core\database\SqlRunner($pdo, $prefix))->runFile($sqlFile);
     }
 
     private function wrapTable(string $name, string $prefix): string

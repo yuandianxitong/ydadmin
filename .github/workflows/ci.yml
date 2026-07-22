@@ -132,7 +132,8 @@ jobs:
           sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
           sed -i 's/DB_DATABASE=.*/DB_DATABASE=dev007_test/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
-      - run: php think migrate:run
+      - name: Import database schema
+        run: mysql -h127.0.0.1 -uroot -proot dev007_test < public/install/data/schema.sql
       - run: vendor/bin/phpunit --coverage-text --colors=never
 
   uniapp-check:

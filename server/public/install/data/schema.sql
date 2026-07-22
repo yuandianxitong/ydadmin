@@ -741,3 +741,14 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '失败时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='队列失败任务表';
+
+-- ============================================================
+-- 框架数据库升级记录表（php think yd:update 使用）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `system_upgrades` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `version` varchar(20) NOT NULL COMMENT '已应用的版本号',
+  `applied_at` datetime NOT NULL COMMENT '应用时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_version` (`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='框架数据库升级记录';

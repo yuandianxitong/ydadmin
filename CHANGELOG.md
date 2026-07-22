@@ -4,11 +4,30 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-22
+
 ### Added
 
 #### 后端 (server)
+- 新增 `php think yd:update` 数据库升级命令：按 `database/updates/vX.Y.Z/` 语义化版本顺序执行未应用的增量脚本，自动套用数据表前缀，已应用版本记入 `system_upgrades` 表（幂等、可断点续跑），支持 `--dry-run` 预览与 `--baseline` 首次基线；升级脚本新增可选 `update.php` 钩子（`callable(\PDO,string)`）
+- 新增 `core/database/SqlRunner`：前缀改写 / 多语句安全拆分 / 占位符替换的 SQL 执行器，安装程序与 `yd:update` 升级共用，确保有无表前缀的库行为一致
 - 新增 `yd:ai` / `yd:login` / `yd:ai:doctor` AI 代码生成 CLI：通过自然语言描述需求生成符合元点框架分层规范的代码，生成前展示 diff 预览并需确认后才写入，支持匿名反馈信号 opt-in 上报以改进生成质量
 - 新增「开发工具 - AI 工作台」菜单及 `ai.studio.generate`（页面访问/生成）、`ai.studio.apply`（写入应用）权限点安装数据，为 admin 后台 AI Studio 页面提供菜单与权限基础
+
+### Changed
+
+#### 后端 (server)
+- 框架发行版数据库升级机制统一为 `yd:update`，`schema.sql` 新增 `system_upgrades` 表；CI 测试库改用 `schema.sql` 导入，代码生成器不再产出迁移文件
+
+### Removed
+
+#### 后端 (server)
+- 彻底移除 `topthink/think-migration` 依赖，删除 `server/database/migrations/`、`server/database/seeds/` 目录：框架不再使用迁移/填充文件，安装走 `schema.sql`/`init.sql`、升级走 `php think yd:update`（用户二开如需迁移工具可自行引入）
+
+### Fixed
+
+#### 后端 (server)
+- 修正 `failed_jobs` 表排序规则漂移：其余表已在 v1.5.3 统一为 `utf8mb4_0900_ai_ci`，该表当时遗漏仍为 `utf8mb4_unicode_ci`，通过 `updates/v1.6.0` 补齐（仅影响执行过 v1.4.0+v1.5.3 的老实例）
 
 #### 项目根
 - 新增框架自带 MCP 配置：`.mcp.json`（Claude Code）与 `.cursor/mcp.json`（Cursor，`${workspaceFolder}` 自动定位），下载框架后在支持 MCP 的 AI 编码工具中打开即可使用元点 AI MCP（`yd-mcp-server`），无需手工配置项目路径

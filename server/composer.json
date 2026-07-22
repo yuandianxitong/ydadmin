@@ -33,7 +33,6 @@
         "alibabacloud/dysmsapi-20170525": "^4.5",
         "w7corp/easywechat": "^6.17",
         "zircote/swagger-php": "^4.0",
-        "topthink/think-migration": "^3.1",
         "topthink/think-queue": "^3.0"
     },
     "require-dev": {

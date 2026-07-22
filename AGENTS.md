@@ -138,6 +138,11 @@ member_levels → memberlevel  → MemberLevel
 4. 新表结构同步 server/public/install/data/schema.sql
 5. admin/ 源码变更后执行 cd admin && pnpm run build，构建产物 server/public/admin/ 一并提交
 
+## 数据库升级（框架发行版）
+- 唯一机制是 `php think yd:update`：按 `server/database/updates/vX.Y.Z/` 语义化版本顺序执行未应用脚本，自动套用表前缀，已应用版本记入 `system_upgrades` 表（幂等、可断点续跑）。
+- 涉及表结构变更时同时更新 `schema.sql`（新装）与 `updates/vX.Y.Z/update.sql`（老用户升级，写**裸表名**、语句幂等）；需要 PHP 逻辑的数据迁移写 `updates/vX.Y.Z/update.php`（返回 `callable(\PDO $pdo, string $prefix)`）。
+- 框架**已彻底移除 think-migration 依赖**（`database/migrations/`、`database/seeds/` 已删除），不使用迁移/填充文件管理表结构；安装与升级的 SQL 执行统一走 `core/database/SqlRunner`。用户二开如需迁移工具可自行引入，不影响框架升级。
+
 ## 目录地图
 
 ```
@@ -149,12 +154,13 @@ server/app/
 ├── model/        ORM 模型，按模块分子目录
 ├── listener/     事件监听器，按模块分子目录（system、user、payment、feedback...）
 ├── job/          异步队列任务
-├── command/      自定义 Console 命令（含 make:crud）
+├── command/      自定义 Console 命令（含 make:crud、yd:update）
 └── event.php     事件 → 监听器映射表
 
 server/core/
 ├── base/         Controller/Service/Repository/Model/Validate 基类
 ├── auth/         认证与权限
+├── database/     SqlRunner（前缀改写/语句拆分/执行，安装与 yd:update 升级共用）
 ├── http/         统一响应封装
 ├── exception/    业务异常、校验异常
 ├── cache/        缓存封装

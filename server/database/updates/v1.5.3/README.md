@@ -20,13 +20,18 @@
 
 1. 确认 MySQL 版本 >= 8.0：`SELECT VERSION();`
 2. 备份数据库
-3. 执行升级脚本：
+3. 执行升级（推荐，自动处理表前缀）：
 
 ```bash
-mysql -u root -p your_database < server/database/updates/v1.5.3/update.sql
+cd server
+php think yd:update
 ```
 
-如果数据库使用了表前缀（如 `yd_`），需要在执行前将脚本中所有表名替换为带前缀的完整表名，例如将 `admins` 替换为 `yd_admins`。
+> 表前缀由 `php think yd:update` 自动处理（脚本写裸表名，执行时套用 `DB_PREFIX`），无需手动替换表名。
+> 首次使用升级系统的老用户请先阅读 `server/database/updates/README.md` 的「基线」说明。
+>
+> 如需手动执行原始 SQL（仅限未设置表前缀的库）：
+> `mysql -u root -p your_database < server/database/updates/v1.5.3/update.sql`
 
 ## 涉及的表
 
