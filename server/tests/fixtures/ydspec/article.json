@@ -1,0 +1,16 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "article", "title": "文章管理" },
+  "entities": [{
+    "name": "Article", "table": "articles", "kind": "business", "soft_delete": "soft",
+    "fields": [
+      { "name": "title", "type": "string", "length": 200, "nullable": false },
+      { "name": "author_id", "type": "bigint", "nullable": false, "index": true, "relation": { "to": "User", "kind": "belongsTo" } },
+      { "name": "content", "type": "text", "nullable": true },
+      { "name": "view_count", "type": "int", "nullable": false, "default": 0 },
+      { "name": "status", "type": "enum", "enum": ["draft", "published"], "default": "draft" },
+      { "name": "published_at", "type": "datetime", "nullable": true }
+    ],
+    "indexes": [{ "fields": ["author_id"], "type": "index" }]
+  }]
+}

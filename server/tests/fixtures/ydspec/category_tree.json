@@ -1,0 +1,14 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "category", "title": "分类管理" },
+  "entities": [{
+    "name": "Category", "table": "categories", "kind": "business", "soft_delete": "soft",
+    "fields": [
+      { "name": "parent_id", "type": "bigint", "nullable": true, "index": true, "relation": { "to": "Category", "kind": "belongsTo" } },
+      { "name": "title", "type": "string", "length": 100, "nullable": false },
+      { "name": "sort", "type": "int", "nullable": false, "default": 0 },
+      { "name": "status", "type": "enum", "enum": ["enabled", "disabled"], "default": "enabled" }
+    ],
+    "indexes": [{ "fields": ["parent_id"], "type": "index" }]
+  }]
+}

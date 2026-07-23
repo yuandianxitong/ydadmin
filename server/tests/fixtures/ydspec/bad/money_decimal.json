@@ -1,0 +1,11 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "order", "title": "订单管理" },
+  "entities": [{
+    "name": "Order", "table": "orders", "kind": "business", "soft_delete": "soft",
+    "fields": [
+      { "name": "title", "type": "string", "length": 100, "nullable": false },
+      { "name": "paid_amount", "type": "int", "nullable": false }
+    ]
+  }]
+}

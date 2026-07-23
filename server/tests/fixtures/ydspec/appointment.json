@@ -1,0 +1,15 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "appointment", "title": "预约管理" },
+  "entities": [{
+    "name": "Appointment", "table": "appointments", "kind": "business", "soft_delete": "soft",
+    "fields": [
+      { "name": "appointment_no", "type": "string", "length": 64, "nullable": false, "unique": true },
+      { "name": "user_id", "type": "bigint", "nullable": false, "index": true, "relation": { "to": "User", "kind": "belongsTo" } },
+      { "name": "start_at", "type": "datetime", "nullable": false },
+      { "name": "status", "type": "enum", "enum": ["pending", "confirmed", "completed", "cancelled"], "default": "pending" },
+      { "name": "paid_amount", "type": "decimal", "precision": 12, "scale": 2, "nullable": false, "default": 0 }
+    ],
+    "indexes": [{ "fields": ["appointment_no"], "type": "unique" }, { "fields": ["user_id", "start_at"], "type": "index" }]
+  }]
+}

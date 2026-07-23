@@ -1,0 +1,11 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "appointment", "title": "预约管理" },
+  "entities": [{
+    "name": "Appointment", "table": "appointments", "kind": "business", "soft_delete": "soft",
+    "fields": [
+      { "name": "title", "type": "string", "length": 100, "nullable": false },
+      { "name": "created_at", "type": "datetime", "nullable": false }
+    ]
+  }]
+}

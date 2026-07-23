@@ -1,0 +1,26 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "order", "title": "订单管理" },
+  "entities": [
+    {
+      "name": "Order", "table": "orders", "kind": "business", "soft_delete": "soft",
+      "fields": [
+        { "name": "order_no", "type": "string", "length": 64, "nullable": false, "unique": true },
+        { "name": "user_id", "type": "bigint", "nullable": false, "index": true, "relation": { "to": "User", "kind": "belongsTo" } },
+        { "name": "total_amount", "type": "decimal", "precision": 12, "scale": 2, "nullable": false, "default": 0 },
+        { "name": "status", "type": "enum", "enum": ["pending", "paid", "shipped", "completed", "cancelled"], "default": "pending" }
+      ],
+      "indexes": [{ "fields": ["order_no"], "type": "unique" }]
+    },
+    {
+      "name": "OrderDetail", "table": "order_details", "kind": "business", "soft_delete": "soft",
+      "fields": [
+        { "name": "order_id", "type": "bigint", "nullable": false, "index": true, "relation": { "to": "Order", "kind": "belongsTo" } },
+        { "name": "product_name", "type": "string", "length": 200, "nullable": false },
+        { "name": "quantity", "type": "int", "nullable": false, "default": 1 },
+        { "name": "unit_price", "type": "decimal", "precision": 12, "scale": 2, "nullable": false, "default": 0 }
+      ],
+      "indexes": [{ "fields": ["order_id"], "type": "index" }]
+    }
+  ]
+}

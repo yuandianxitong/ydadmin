@@ -1,0 +1,11 @@
+{
+  "version": "ydspec/v1",
+  "module": { "name": "pointslog", "title": "积分流水" },
+  "entities": [{
+    "name": "PointsLog", "table": "points_logs", "kind": "log", "soft_delete": "soft",
+    "fields": [
+      { "name": "user_id", "type": "bigint", "nullable": false, "index": true, "relation": { "to": "User", "kind": "belongsTo" } },
+      { "name": "points_change", "type": "int", "nullable": false }
+    ]
+  }]
+}
