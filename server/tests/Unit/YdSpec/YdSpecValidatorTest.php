@@ -97,4 +97,24 @@ class YdSpecValidatorTest extends TestCase
         $errors = array_filter($issues, fn ($i) => $i['severity'] === 'error');
         $this->assertSame([], array_values($errors));
     }
+
+    public function testNonMoneyPaidFieldsAreNotFlagged(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][] = ['name' => 'paid_at', 'type' => 'datetime'];
+        $spec['entities'][0]['fields'][] = ['name' => 'is_paid', 'type' => 'boolean'];
+        $spec['entities'][0]['fields'][] = ['name' => 'unpaid', 'type' => 'int'];
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $this->assertNotContains('money-decimal', array_column($issues, 'rule'));
+    }
+
+    public function testMoneyFieldsStillRequireDecimal(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][1] = ['name' => 'paid_amount', 'type' => 'int'];
+        $spec['entities'][0]['fields'][] = ['name' => 'total_fee', 'type' => 'int'];
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $errors = array_filter($issues, fn ($i) => $i['severity'] === 'error');
+        $this->assertContains('money-decimal', array_column($errors, 'rule'));
+    }
 }

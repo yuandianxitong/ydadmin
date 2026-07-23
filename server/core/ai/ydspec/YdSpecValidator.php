@@ -92,7 +92,7 @@ class YdSpecValidator
 
     private function looksLikeMoney(string $name): bool
     {
-        return (bool) preg_match('/(amount|price|money|balance|paid|_fee$|^fee$)/', $name);
+        return (bool) preg_match('/(^amount$|_amount$|^price$|_price$|^money$|_money$|^balance$|_balance$|^fee$|_fee$)/', $name);
     }
 
     /** @return array{ref:string,rule:string,severity:string,message:string} */
