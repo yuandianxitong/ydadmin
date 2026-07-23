@@ -92,6 +92,22 @@ class AiClient
         $this->post('/api/v1/feedback', ['generation_id' => $generationId, 'action' => $action]);
     }
 
+    public function specRefine(string $description, array $answers, ?array $draft, string $projectId): array
+    {
+        $payload = [
+            'description' => $description,
+            'answers'     => (object) $answers,
+            'draft'       => $draft,
+            'project_id'  => $projectId,
+        ];
+        $raw = $this->post('/api/v1/spec/refine', $payload);
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            throw new AiClientException('引擎返回的规格响应无法解析', 'ENGINE_INTERNAL_ERROR', $this->getLastRequestId());
+        }
+        return $decoded;
+    }
+
     protected function post(string $path, array $payload, ?callable $onWrite = null): string
     {
         $this->lastRequestId = 'req_' . bin2hex(random_bytes(8));
