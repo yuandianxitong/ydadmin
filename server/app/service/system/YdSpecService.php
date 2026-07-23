@@ -43,10 +43,11 @@ class YdSpecService extends Service
             'questions'    => $result['questions'] ?? [],
             'explanations' => $result['explanations'] ?? [],
             'issues'       => $issues,
+            'versions'     => $result['versions'] ?? null,
         ];
     }
 
-    public function confirm(array $spec): array
+    public function confirm(array $spec, ?array $versions = null): array
     {
         $errors = $this->ydSpecValidator->validateStructure($spec);
         if ($errors) {
@@ -62,13 +63,28 @@ class YdSpecService extends Service
 
         $specId = 'spec_' . bin2hex(random_bytes(8));
         $dir = $this->specsBase() . '/' . $specId;
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new BusinessException('规格存储目录创建失败');
         }
-        file_put_contents(
-            $dir . '/ydspec.json',
-            json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-        );
+
+        $specJson = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($specJson === false) {
+            throw new BusinessException('规格序列化失败：' . json_last_error_msg());
+        }
+        if (file_put_contents($dir . '/ydspec.json', $specJson) === false) {
+            throw new BusinessException('规格写入失败');
+        }
+
+        // 溯源信息（生成该规格的 prompt/model 版本）为最佳努力写入，失败不影响主流程
+        if ($versions !== null) {
+            $metaJson = json_encode(
+                ['spec_id' => $specId, 'versions' => $versions, 'created_at' => date('Y-m-d H:i:s')],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+            if ($metaJson !== false) {
+                file_put_contents($dir . '/meta.json', $metaJson);
+            }
+        }
 
         return ['spec_id' => $specId, 'path' => 'runtime/ai/specs/' . $specId . '/ydspec.json'];
     }

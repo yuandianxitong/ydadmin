@@ -61,6 +61,32 @@ class YdSpecServiceTest extends TestCase
         @rmdir(dirname($file));
     }
 
+    public function testRefinePassesThroughVersions(): void
+    {
+        $service = $this->serviceReturning([
+            'draft_spec'   => $this->validSpec(),
+            'questions'    => [],
+            'explanations' => [],
+            'versions'     => ['prompt' => 'spec_refine/v1', 'model' => 'gpt-x'],
+        ]);
+        $out = $service->refine('做预约', [], null);
+        $this->assertSame(['prompt' => 'spec_refine/v1', 'model' => 'gpt-x'], $out['versions']);
+    }
+
+    public function testConfirmWritesMetaWhenVersionsProvided(): void
+    {
+        $service = $this->serviceReturning([]);
+        $out = $service->confirm($this->validSpec(), ['prompt' => 'spec_refine/v1', 'model' => 'gpt-x']);
+        $dir = dirname(rtrim(root_path(), '/') . '/' . $out['path']);
+        $metaFile = $dir . '/meta.json';
+        $this->assertFileExists($metaFile);
+        $meta = json_decode((string) file_get_contents($metaFile), true);
+        $this->assertSame('gpt-x', $meta['versions']['model']);
+        @unlink($dir . '/ydspec.json');
+        @unlink($metaFile);
+        @rmdir($dir);
+    }
+
     public function testConfirmRejectsBlockingSpec(): void
     {
         $service = $this->serviceReturning([]);

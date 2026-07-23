@@ -33,7 +33,9 @@ class YdSpecController extends Controller
         if (!is_array($spec) || !$spec) {
             return $this->error('规格为空');
         }
+        $versions = $this->request->post('versions/a');
+        $versions = is_array($versions) && $versions ? $versions : null;
 
-        return $this->success('规格已保存', $this->ydSpecService->confirm($spec));
+        return $this->success('规格已保存', $this->ydSpecService->confirm($spec, $versions));
     }
 }

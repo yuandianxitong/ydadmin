@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { ydspecApi } from '@/api/ydspec'
+import type { SpecVersions } from '@/api/ydspec'
 import type { SpecExplanation, SpecIssue, SpecQuestion, YdSpec } from '@/types/ydspec'
 import { countBySeverity, hasBlockingIssues } from './helpers'
 
@@ -15,6 +16,19 @@ const questions = ref<SpecQuestion[]>([])
 const explanations = ref<SpecExplanation[]>([])
 const issues = ref<SpecIssue[]>([])
 const answers = ref<Record<string, string>>({})
+const versions = ref<SpecVersions | null>(null)
+
+function resetAll() {
+    step.value = 0
+    description.value = ''
+    draft.value = null
+    draftText.value = ''
+    questions.value = []
+    explanations.value = []
+    issues.value = []
+    answers.value = {}
+    versions.value = null
+}
 
 async function runRefine() {
     if (!description.value.trim()) {
@@ -33,6 +47,7 @@ async function runRefine() {
         questions.value = res.data.questions
         explanations.value = res.data.explanations
         issues.value = res.data.issues
+        versions.value = res.data.versions ?? null
         step.value = 1
     } finally {
         loading.value = false
@@ -57,7 +72,7 @@ async function confirmSpec() {
     }
     loading.value = true
     try {
-        const res = await ydspecApi.confirm(draft.value)
+        const res = await ydspecApi.confirm(draft.value, versions.value)
         ElMessage.success(`规格已保存：${res.data.path}`)
         step.value = 2
     } finally {
@@ -135,7 +150,7 @@ function tagType(sev: SpecIssue['severity']) {
 
         <el-result v-else icon="success" title="规格已保存" sub-title="可交给下一步（Spec → make:crud 编译）使用">
             <template #extra>
-                <el-button type="primary" @click="step = 0">再建一个</el-button>
+                <el-button type="primary" @click="resetAll">再建一个</el-button>
             </template>
         </el-result>
     </div>
