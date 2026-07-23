@@ -251,6 +251,9 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (220, 3, 2, 'AI 工作台', 'DevAiStudio', '/system/ai-studio', 'system/ai-studio/index', NULL, 'i-svg:bot', 'ai.studio.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (221, 220, 3, '应用', NULL, NULL, NULL, NULL, NULL, 'ai.studio.apply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
+  -- AI 建模向导
+  (222, 3, 2, 'AI 建模向导', 'DevYdSpec', '/system/ydspec', 'system/ydspec/index', NULL, 'i-svg:boxes', 'ai.ydspec.use', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+
   -- ===== 消息管理（系统管理子模块） =====
   (120, 2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'i-svg:message-circle-more', 'system.message', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
   (121, 120, 2, '消息模板', 'SystemMessageTemplate', '/system/message/template', '/system/message/template/index', NULL, 'el-icon-Tickets', 'system.message.template.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
