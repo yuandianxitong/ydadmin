@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ydsaas.dev/schema/ydspec/v1",
+  "title": "YdSpec v1",
+  "type": "object",
+  "required": ["version", "module", "entities"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "ydspec/v1" },
+    "module": {
+      "type": "object",
+      "required": ["name", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" },
+        "title": { "type": "string", "minLength": 1 }
+      }
+    },
+    "entities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entity" } }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "required": ["name", "table", "kind", "soft_delete", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
+        "table": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "kind": { "enum": ["business", "log"] },
+        "soft_delete": { "enum": ["soft", "none"] },
+        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
+        "indexes": { "type": "array", "items": { "$ref": "#/$defs/index" } }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "type": { "enum": ["string","text","int","bigint","decimal","boolean","datetime","date","enum","json"] },
+        "length": { "type": "integer", "minimum": 1 },
+        "precision": { "type": "integer", "minimum": 1 },
+        "scale": { "type": "integer", "minimum": 0 },
+        "nullable": { "type": "boolean" },
+        "unique": { "type": "boolean" },
+        "index": { "type": "boolean" },
+        "default": true,
+        "enum": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "relation": { "$ref": "#/$defs/relation" }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "enum" } }, "required": ["type"] }, "then": { "required": ["enum"] } },
+        { "if": { "properties": { "type": { "const": "decimal" } }, "required": ["type"] }, "then": { "required": ["precision", "scale"] } }
+      ]
+    },
+    "relation": {
+      "type": "object",
+      "required": ["to", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "to": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["belongsTo", "hasMany"] }
+      }
+    },
+    "index": {
+      "type": "object",
+      "required": ["fields", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "fields": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "type": { "enum": ["index", "unique"] }
+      }
+    }
+  }
+}
