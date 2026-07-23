@@ -44,4 +44,57 @@ class YdSpecValidatorTest extends TestCase
         $spec['entities'][0]['fields'][1] = ['name' => 'paid_amount', 'type' => 'decimal'];
         $this->assertNotEmpty((new YdSpecValidator())->validateStructure($spec));
     }
+
+    public function testFloatMoneyIsError(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][1] = ['name' => 'paid_amount', 'type' => 'int'];
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $this->assertContains('money-decimal', array_column($issues, 'rule'));
+    }
+
+    public function testReservedFieldIsError(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][] = ['name' => 'created_at', 'type' => 'datetime'];
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $errors = array_filter($issues, fn ($i) => $i['severity'] === 'error');
+        $this->assertContains('reserved-field', array_column($errors, 'rule'));
+    }
+
+    public function testLogEntityMustNotSoftDelete(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['kind'] = 'log';
+        $spec['entities'][0]['soft_delete'] = 'soft';
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $this->assertContains('log-append-only', array_column($issues, 'rule'));
+    }
+
+    public function testUnknownRelationTargetIsError(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][] = [
+            'name' => 'ghost_id', 'type' => 'bigint',
+            'relation' => ['to' => 'Ghost', 'kind' => 'belongsTo'],
+        ];
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $this->assertContains('relation-target', array_column($issues, 'rule'));
+    }
+
+    public function testBusinessNoWithoutUniqueWarns(): void
+    {
+        $spec = $this->validSpec();
+        $spec['entities'][0]['fields'][0]['unique'] = false;
+        $issues = (new YdSpecValidator())->validateSemantics($spec);
+        $warns = array_filter($issues, fn ($i) => $i['severity'] === 'warn');
+        $this->assertContains('business-no-unique', array_column($warns, 'rule'));
+    }
+
+    public function testCleanSpecHasNoErrorSeverityIssues(): void
+    {
+        $issues = (new YdSpecValidator())->validateSemantics($this->validSpec());
+        $errors = array_filter($issues, fn ($i) => $i['severity'] === 'error');
+        $this->assertSame([], array_values($errors));
+    }
 }
