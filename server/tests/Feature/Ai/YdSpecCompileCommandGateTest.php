@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace tests\Feature\Ai;
 
+use app\command\YdSpecCompileCommand;
+use app\service\system\YdSpecCompileService;
 use tests\TestCase;
+use think\console\Input;
+use think\console\Output;
 use think\facade\Console;
 
 class YdSpecCompileCommandGateTest extends TestCase
@@ -37,5 +41,64 @@ class YdSpecCompileCommandGateTest extends TestCase
 
         $this->assertStringContainsString('检查', $output);
         $this->assertStringContainsString('app/model/appointment/Appointment.php', $output);
+    }
+
+    public function testApplyRefusedWhenChecksFail(): void
+    {
+        $fakeService = new class extends YdSpecCompileService {
+            public bool $applied = false;
+
+            public function __construct()
+            {
+            }
+
+            public function compile(string $specId): array
+            {
+                return [
+                    'artifact_id'   => 1,
+                    'stage_id'      => 'compile_' . bin2hex(random_bytes(8)),
+                    'dir'           => 'runtime/ai/specs/fake/compile_fake',
+                    'files'         => [],
+                    'check_summary' => [
+                        'passed'        => false,
+                        'error_count'   => 1,
+                        'warning_count' => 0,
+                        'skipped'       => [],
+                        'results'       => [
+                            ['check' => 'php_lint', 'severity' => 'error', 'message' => 'boom', 'ref' => 'x/Y.php'],
+                        ],
+                    ],
+                ];
+            }
+
+            public function applyDev(string $specId, string $stageId, ?string $projectRootOverride = null): array
+            {
+                $this->applied = true;
+                return [];
+            }
+        };
+
+        $command = new class ($fakeService) extends YdSpecCompileCommand {
+            public function __construct(private YdSpecCompileService $fakeService)
+            {
+                parent::__construct();
+            }
+
+            protected function makeService(): YdSpecCompileService
+            {
+                return $this->fakeService;
+            }
+        };
+
+        $input = new Input(['spec_fake', '--apply']);
+        $input->bind($command->getDefinition());
+        $output = new Output('buffer');
+
+        $exitCode = $command->run($input, $output);
+        $text = $output->fetch();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertFalse($fakeService->applied, 'applyDev must NOT be called when checks fail');
+        $this->assertStringContainsString('门禁未通过，拒绝应用', $text);
     }
 }

@@ -28,10 +28,18 @@ class YdSpecCompileCommand extends Command
             ->addOption('apply-dev', null, Option::VALUE_NONE, '（别名）等同 --apply');
     }
 
+    /**
+     * 测试用可覆写的构造入口（不引入行为变化）
+     */
+    protected function makeService(): YdSpecCompileService
+    {
+        return new YdSpecCompileService();
+    }
+
     protected function execute(Input $input, Output $output): int
     {
         $specId  = (string) $input->getArgument('spec_id');
-        $service = new YdSpecCompileService();
+        $service = $this->makeService();
 
         $result = $service->compile($specId);
         $output->info('编译完成，stage：' . $result['dir']);
@@ -46,7 +54,7 @@ class YdSpecCompileCommand extends Command
             . ' / warning ' . ($summary['warning_count'] ?? 0)
             . ' / skipped ' . count($summary['skipped'] ?? []) . '）');
         foreach ($summary['results'] ?? [] as $r) {
-            if (($r['severity'] ?? '') === 'error' || ($r['severity'] ?? '') === 'warning') {
+            if (in_array($r['severity'] ?? '', ['error', 'warning', 'skipped'], true)) {
                 $output->writeln('  [' . $r['severity'] . '] ' . $r['check'] . '：' . $r['message']);
             }
         }
