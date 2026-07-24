@@ -64,11 +64,11 @@ class FakeArtifactRepo extends AiArtifactRepository
 
 class AiArtifactServiceTest extends TestCase
 {
-    private function service(FakeArtifactRepo $repo, bool $checksPass): AiArtifactService
+    private function service(FakeArtifactRepo $repo, bool $checksPass, bool $materializeThrows = false): AiArtifactService
     {
-        return new class($repo, $checksPass) extends AiArtifactService {
+        return new class($repo, $checksPass, $materializeThrows) extends AiArtifactService {
             public array $materialized = [];
-            public function __construct(private FakeArtifactRepo $r, private bool $pass) { parent::__construct(); }
+            public function __construct(private FakeArtifactRepo $r, private bool $pass, private bool $materializeThrows = false) { parent::__construct(); }
             protected function initialize(): void { $this->aiArtifactRepository = $this->r; }
             protected function buildContext(array $art): CheckContext { return new CheckContext('/tmp', [], [], '', '', []); }
             protected function makeRunner(): CheckRunner
@@ -87,6 +87,9 @@ class AiArtifactServiceTest extends TestCase
             protected function materialize(array $art, ?string $override): array
             {
                 $this->materialized[] = $art['id'];
+                if ($this->materializeThrows) {
+                    throw new \RuntimeException('materialize boom');
+                }
                 return ['app/model/x/X.php'];
             }
         };
@@ -142,5 +145,34 @@ class AiArtifactServiceTest extends TestCase
         $this->assertTrue($res['applied']);
         $this->assertSame('applied', $repo->rows[$id]['state']);
         $this->assertContains('app/model/x/X.php', $repo->rows[$id]['applied_files']);
+    }
+
+    public function testApplyMaterializeFailureRevertsToCheckedPassed(): void
+    {
+        $repo = new FakeArtifactRepo();
+        $svc = $this->service($repo, true, true); // materialize() throws
+        $id = $svc->record('spec_a', 'compile_x', 'x', 'X');
+        $svc->runChecks($id); // checked_passed
+
+        $this->expectException(BusinessException::class);
+        try {
+            $svc->applyArtifact($id);
+        } finally {
+            $this->assertSame('checked_passed', $repo->rows[$id]['state']);
+            $this->assertNotEmpty($repo->rows[$id]['error'] ?? '');
+        }
+    }
+
+    public function testApplyRejectedWhenAlreadyApplied(): void
+    {
+        $repo = new FakeArtifactRepo();
+        $svc = $this->service($repo, true);
+        $id = $svc->record('spec_a', 'compile_x', 'x', 'X');
+        $svc->runChecks($id); // checked_passed
+        $svc->applyArtifact($id); // applied
+
+        $this->assertSame('applied', $repo->rows[$id]['state']);
+        $this->expectException(BusinessException::class);
+        $svc->applyArtifact($id);
     }
 }

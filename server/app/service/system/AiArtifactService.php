@@ -84,17 +84,26 @@ class AiArtifactService extends Service
             throw new BusinessException('检查未通过，禁止应用');
         }
 
+        // 原子认领：仅一个并发调用者能把 checked_passed 抢到 applied，落败者/重复调用直接失败，
+        // 绝不会跑到 materialize()（避免重复执行副作用）。
+        $claimed = $this->aiArtifactRepository->transition($artifactId, ['checked_passed'], 'applied', [
+            'applied_at' => date('Y-m-d H:i:s'),
+        ]);
+        if ($claimed === 0) {
+            throw new BusinessException('并发冲突：该工件已被应用或状态已变更');
+        }
+
         try {
             $written = $this->materialize($art, $projectRootOverride);
         } catch (\Throwable $e) {
-            $this->aiArtifactRepository->update($artifactId, ['error' => mb_substr($e->getMessage(), 0, 500, 'UTF-8')]);
+            // 回滚认领，保持 checked_passed，记录 error
+            $this->aiArtifactRepository->transition($artifactId, ['applied'], 'checked_passed', [
+                'error' => mb_substr($e->getMessage(), 0, 500, 'UTF-8'),
+            ]);
             throw new BusinessException('应用失败：' . $e->getMessage());
         }
 
-        $this->aiArtifactRepository->transition($artifactId, ['checked_passed'], 'applied', [
-            'applied_at'    => date('Y-m-d H:i:s'),
-            'applied_files' => $written,
-        ]);
+        $this->aiArtifactRepository->update($artifactId, ['applied_files' => $written]);
 
         return ['applied' => true, 'written' => $written];
     }
