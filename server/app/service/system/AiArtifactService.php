@@ -39,6 +39,11 @@ class AiArtifactService extends Service
         return null;
     }
 
+    public function listBySpec(string $specId): array
+    {
+        return $this->aiArtifactRepository->listBySpec($specId);
+    }
+
     /** 建 artifact（compiled）并把同 spec 旧的置 superseded */
     public function record(string $specId, string $stageId, string $module, string $title): int
     {

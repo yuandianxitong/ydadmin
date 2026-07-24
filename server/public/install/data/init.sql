@@ -159,7 +159,9 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (161, 'channel.open.config', '开放平台配置', '渠道管理', '开放平台配置管理', 'admin', 1, 161, NOW(), NOW()),
     -- AI 工作台
     (162, 'ai.studio.generate', 'AI 工作台', '开发工具', 'AI 工作台页面访问与代码生成权限', 'admin', 1, 162, NOW(), NOW()),
-    (163, 'ai.studio.apply', '应用生成结果', '开发工具', '将 AI 生成结果写入项目的权限', 'admin', 1, 163, NOW(), NOW());
+    (163, 'ai.studio.apply', '应用生成结果', '开发工具', '将 AI 生成结果写入项目的权限', 'admin', 1, 163, NOW(), NOW()),
+    (164, 'ai.ydspec.use', 'AI 建模向导', '开发工具', 'AI 建模向导页面访问、编译、检查权限', 'admin', 1, 164, NOW(), NOW()),
+    (165, 'ai.ydspec.apply', '应用编译结果', '开发工具', '将 YdSpec 编译结果经门禁写入项目的权限', 'admin', 1, 165, NOW(), NOW());
 
 -- ============================================================
 -- 菜单数据
@@ -253,6 +255,7 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 
   -- AI 建模向导
   (222, 3, 2, 'AI 建模向导', 'DevYdSpec', '/system/ydspec', 'system/ydspec/index', NULL, 'i-svg:boxes', 'ai.ydspec.use', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (223, 222, 3, '应用', NULL, NULL, NULL, NULL, NULL, 'ai.ydspec.apply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
 
   -- ===== 消息管理（系统管理子模块） =====
   (120, 2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'i-svg:message-circle-more', 'system.message', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
