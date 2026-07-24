@@ -28,4 +28,14 @@ class DdlExecutabilityCheckTest extends TestCase
         $this->assertSame('skipped', $res[0]->severity);
         $this->assertSame('ddl_executability', $res[0]->check);
     }
+
+    public function testTablesFromSchemaParsesCreateStatements(): void
+    {
+        $check = new class extends DdlExecutabilityCheck {
+            public function pub(string $s): array { return $this->tablesFromSchema($s); }
+        };
+        $sql = "CREATE TABLE IF NOT EXISTS `widgets` (\n  `id` bigint unsigned NOT NULL AUTO_INCREMENT,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB;\n"
+            . "CREATE TABLE gadgets (\n  id bigint unsigned NOT NULL AUTO_INCREMENT,\n  PRIMARY KEY (id)\n) ENGINE=InnoDB;";
+        $this->assertSame(['widgets', 'gadgets'], $check->pub($sql));
+    }
 }

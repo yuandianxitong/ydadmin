@@ -29,13 +29,7 @@ class DdlExecutabilityCheck implements CheckInterface
 
         $prefix = 'ydchk_' . bin2hex(random_bytes(4)) . '_';
         $runner = new SqlRunner($pdo, $prefix);
-        $tables = [];
-        foreach ($ctx->entities as $e) {
-            $t = (string) ($e['table'] ?? '');
-            if ($t !== '') {
-                $tables[] = $t;
-            }
-        }
+        $tables = $this->tablesFromSchema($ctx->schemaPatch);
 
         $results = [];
         try {
@@ -65,5 +59,28 @@ class DdlExecutabilityCheck implements CheckInterface
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * 从 schema SQL 中解析所有 CREATE TABLE 的裸表名（去重、保序），
+     * 以保证清理阶段精确覆盖本次实际创建的表。
+     *
+     * @return array<int,string>
+     */
+    protected function tablesFromSchema(string $sql): array
+    {
+        $tables = [];
+        if (preg_match_all(
+            '/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?(?P<name>[a-zA-Z0-9_]+)`?/i',
+            $sql,
+            $matches
+        )) {
+            foreach ($matches['name'] as $name) {
+                if ($name !== '' && !in_array($name, $tables, true)) {
+                    $tables[] = $name;
+                }
+            }
+        }
+        return $tables;
     }
 }
