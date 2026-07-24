@@ -32,7 +32,9 @@ class RouteLoadingCheck implements CheckInterface
             if ($code !== 0) {
                 return [new CheckResult($this->name(), 'error', "路由文件加载失败：{$raw}", $routeRel)];
             }
-            $groups = json_decode($raw, true);
+            $lines = array_values(array_filter(array_map('trim', $output), fn ($l) => $l !== ''));
+            $lastLine = $lines[count($lines) - 1] ?? '';
+            $groups = json_decode($lastLine, true);
             if (!is_array($groups)) {
                 return [new CheckResult($this->name(), 'error', "路由加载输出异常：{$raw}", $routeRel)];
             }
@@ -91,7 +93,7 @@ namespace {
     echo json_encode(\think\facade\Route::$groups);
 }
 PHP;
-        $tmp = tempnam(sys_get_temp_dir(), 'ydroute_') . '.php';
+        $tmp = rtrim(sys_get_temp_dir(), '/') . '/ydroute_' . bin2hex(random_bytes(8)) . '.php';
         file_put_contents($tmp, $script);
         return $tmp;
     }

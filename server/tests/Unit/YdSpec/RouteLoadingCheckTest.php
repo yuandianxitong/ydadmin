@@ -63,4 +63,19 @@ class RouteLoadingCheckTest extends TestCase
         $this->assertNotEmpty($res);
         $this->assertSame('error', $res[0]->severity);
     }
+
+    public function testMissingRouteFileFails(): void
+    {
+        $module = 'widget';
+        $entities = [['route_group' => 'widget', 'module' => $module, 'model' => 'Widget']];
+        $dir = sys_get_temp_dir() . '/ydchk_' . bin2hex(random_bytes(4));
+        mkdir($dir . '/files', 0755, true);
+        $this->cleanupDirs[] = $dir;
+        $ctx = new CheckContext($dir, ['files' => [], 'entities' => $entities], $entities, '', '', ['module' => ['name' => $module]]);
+
+        $res = (new RouteLoadingCheck())->check($ctx);
+        $this->assertNotEmpty($res);
+        $this->assertSame('error', $res[0]->severity);
+        $this->assertSame('route_loading', $res[0]->check);
+    }
 }
