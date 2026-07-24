@@ -78,8 +78,22 @@ class YdSpecCompileService extends Service
         $module = (string) $spec['module']['name'];
         $codeFiles["app/adminapi/route/{$module}.php"] = $this->routeFileContent($compiled['entities']);
 
-        $stageId = 'compile_' . bin2hex(random_bytes(8));
-        $dir = $this->specsBase() . '/' . $specId . '/' . $stageId;
+        // 原子占位：父目录 specs/<specId> 已存在（loadSpec 已校验），非递归 mkdir 具原子性，
+        // 目录已存在时返回 false，从而保证「每次新建 stage 不覆盖旧的」。
+        $stageId = '';
+        $dir = '';
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $candidate = 'compile_' . bin2hex(random_bytes(8));
+            $candidateDir = $this->specsBase() . '/' . $specId . '/' . $candidate;
+            if (@mkdir($candidateDir, 0755, false)) {
+                $stageId = $candidate;
+                $dir = $candidateDir;
+                break;
+            }
+        }
+        if ($dir === '') {
+            throw new BusinessException('stage 目录创建失败（多次冲突）');
+        }
         $this->writeFile($dir . '/schema_patch.sql', $compiled['schema_patch']);
         $this->writeFile($dir . '/update.sql', $compiled['update_sql']);
 

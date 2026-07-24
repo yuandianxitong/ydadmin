@@ -81,4 +81,16 @@ class YdSpecCompileServiceTest extends TestCase
         $this->expectException(\core\exception\BusinessException::class);
         (new YdSpecCompileService())->compile('spec_' . str_repeat('0', 16));
     }
+
+    public function testRecompileCreatesDistinctStages(): void
+    {
+        $specId = $this->seedSpec('appointment');
+        $svc = new YdSpecCompileService();
+        $a = $svc->compile($specId);
+        $b = $svc->compile($specId);
+        $this->assertNotSame($a['stage_id'], $b['stage_id']);
+        $base = rtrim(root_path(), '/') . '/runtime/ai/specs/' . $specId;
+        $this->assertDirectoryExists($base . '/' . $a['stage_id']);
+        $this->assertDirectoryExists($base . '/' . $b['stage_id']);
+    }
 }
