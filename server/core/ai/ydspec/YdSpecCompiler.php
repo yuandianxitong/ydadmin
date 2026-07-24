@@ -88,7 +88,8 @@ class YdSpecCompiler
             $sql .= ' DEFAULT ' . $this->defaultLiteral($field);
         }
         if (($field['type'] ?? '') === 'enum') {
-            $sql .= " COMMENT '可选值:" . implode(',', $field['enum'] ?? []) . "'";
+            $enumList = implode(',', array_map('strval', $field['enum'] ?? []));
+            $sql .= " COMMENT '可选值:" . str_replace("'", "''", $enumList) . "'";
         }
         return $sql;
     }

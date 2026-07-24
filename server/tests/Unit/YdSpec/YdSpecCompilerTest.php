@@ -38,6 +38,20 @@ SQL;
         $this->assertSame($expected, $ddl);
     }
 
+    public function testEnumCommentEscapesSingleQuote(): void
+    {
+        $entity = [
+            'name'  => 'Widget',
+            'table' => 'widgets',
+            'fields' => [
+                ['name' => 'kind', 'type' => 'enum', 'enum' => ["a'b", 'c']],
+            ],
+        ];
+        $ddl = (new YdSpecCompiler())->entityDdl($entity, '组件');
+        $this->assertStringContainsString("COMMENT '可选值:a''b,c'", $ddl);
+        $this->assertStringNotContainsString("可选值:a'b,c'", $ddl);
+    }
+
     public function testLogTableHasNoUpdatedOrDeletedAt(): void
     {
         $spec = $this->spec('points_log');
