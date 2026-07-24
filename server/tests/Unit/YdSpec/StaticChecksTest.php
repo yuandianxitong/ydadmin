@@ -128,4 +128,38 @@ class StaticChecksTest extends TestCase
         $this->assertNotEmpty($res);
         $this->assertSame('warning', $res[0]->severity);
     }
+
+    public function testLayerComplianceFlagsDbInController(): void
+    {
+        $files = $this->fullFileSet();
+        $files['app/adminapi/controller/v1/widget/WidgetController.php'] = "<?php\nnamespace app\\adminapi\\controller\\v1\\widget;\nclass WidgetController { function f(){ Db::name('x')->find(); } }\n";
+        $ctx = $this->ctx($files, [$this->entity()], ['module' => ['name' => 'widget']]);
+        $res = (new LayerComplianceCheck())->check($ctx);
+        $this->assertNotEmpty($res);
+        $this->assertSame('error', $res[0]->severity);
+        $this->assertSame('layer_compliance', $res[0]->check);
+    }
+
+    public function testPathConventionPassesCleanSet(): void
+    {
+        $ctx = $this->ctx($this->fullFileSet(), [$this->entity()], ['module' => ['name' => 'widget']]);
+        $this->assertSame([], (new PathConventionCheck())->check($ctx));
+    }
+
+    public function testPathConventionFlagsMissingMiddleware(): void
+    {
+        $files = $this->fullFileSet();
+        $files['app/adminapi/route/widget.php'] = "<?php\nuse think\\facade\\Route;\nRoute::group('widget', function () {\n    Route::get('', 'v1.widget.WidgetController/index');\n});\n";
+        $ctx = $this->ctx($files, [$this->entity()], ['module' => ['name' => 'widget']]);
+        $res = (new PathConventionCheck())->check($ctx);
+        $this->assertNotEmpty($res);
+        $this->assertSame('error', $res[0]->severity);
+        $this->assertSame('path_convention', $res[0]->check);
+    }
+
+    public function testForbiddenPatternsPassesCleanSet(): void
+    {
+        $ctx = $this->ctx($this->fullFileSet(), [$this->entity()], ['module' => ['name' => 'widget']]);
+        $this->assertSame([], (new ForbiddenPatternsCheck())->check($ctx));
+    }
 }
