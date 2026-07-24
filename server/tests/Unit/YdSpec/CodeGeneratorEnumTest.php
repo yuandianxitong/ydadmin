@@ -55,5 +55,13 @@ class CodeGeneratorEnumTest extends TestCase
         ]);
         $this->assertStringContainsString('in:0,1', $files['validate']['content']);
         $this->assertStringContainsString('status_text', $files['model']['content']);
+        // 控制器保留 0/1 状态机（OpenAPI 枚举 + status 动作）
+        $this->assertStringContainsString('enum: [0, 1]', $files['controller']['content']);
+        $this->assertStringContainsString('public function status()', $files['controller']['content']);
+        // Service 保留 updateStatus 与默认值 1
+        $this->assertStringContainsString('function updateStatus', $files['service']['content']);
+        $this->assertStringContainsString("'status' => \$data['status'] ?? 1,", $files['service']['content']);
+        // 路由保留 :id/status
+        $this->assertStringContainsString(":id/status", $files['route']['content']);
     }
 }
