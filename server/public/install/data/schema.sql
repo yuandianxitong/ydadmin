@@ -743,6 +743,29 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='队列失败任务表';
 
 -- ============================================================
+-- AI 编译工件（子项目3：apply 门禁 + 状态机）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `ai_artifacts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `spec_id` varchar(32) NOT NULL COMMENT '来源 spec_id',
+  `stage_id` varchar(32) NOT NULL COMMENT '编译 stage 目录名',
+  `module` varchar(64) NOT NULL COMMENT '模块名',
+  `title` varchar(128) DEFAULT NULL COMMENT '模块标题',
+  `state` varchar(20) NOT NULL COMMENT '状态:compiled,checking,checked_passed,checked_failed,applied,superseded',
+  `check_summary` json DEFAULT NULL COMMENT '最近检查结果摘要',
+  `checked_at` timestamp NULL DEFAULT NULL COMMENT '最近检查时间',
+  `applied_at` timestamp NULL DEFAULT NULL COMMENT 'apply 成功时间',
+  `applied_files` json DEFAULT NULL COMMENT 'apply 写入文件清单',
+  `error` varchar(500) DEFAULT NULL COMMENT '失败原因摘要',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ai_artifacts_spec_id_index` (`spec_id`),
+  KEY `ai_artifacts_state_index` (`state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI 编译工件';
+
+-- ============================================================
 -- 框架数据库升级记录表（php think yd:update 使用）
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `system_upgrades` (
