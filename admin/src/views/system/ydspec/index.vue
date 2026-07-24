@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { ydspecApi } from '@/api/ydspec'
-import type { SpecVersions } from '@/api/ydspec'
+import type { SpecVersions, CompileResult } from '@/api/ydspec'
 import type { SpecExplanation, SpecIssue, SpecQuestion, YdSpec } from '@/types/ydspec'
 import { countBySeverity, hasBlockingIssues } from './helpers'
 
@@ -17,6 +17,8 @@ const explanations = ref<SpecExplanation[]>([])
 const issues = ref<SpecIssue[]>([])
 const answers = ref<Record<string, string>>({})
 const versions = ref<SpecVersions | null>(null)
+const specId = ref('')
+const compileResult = ref<CompileResult | null>(null)
 
 function resetAll() {
     step.value = 0
@@ -28,6 +30,8 @@ function resetAll() {
     issues.value = []
     answers.value = {}
     versions.value = null
+    specId.value = ''
+    compileResult.value = null
 }
 
 async function runRefine() {
@@ -73,8 +77,21 @@ async function confirmSpec() {
     loading.value = true
     try {
         const res = await ydspecApi.confirm(draft.value, versions.value)
+        specId.value = res.data.spec_id
         ElMessage.success(`规格已保存：${res.data.path}`)
         step.value = 2
+    } finally {
+        loading.value = false
+    }
+}
+
+async function runCompile() {
+    if (!specId.value) return
+    loading.value = true
+    try {
+        const res = await ydspecApi.compile(specId.value)
+        compileResult.value = res.data
+        ElMessage.success('编译完成，产物见下方预览')
     } finally {
         loading.value = false
     }
@@ -148,11 +165,25 @@ function tagType(sev: SpecIssue['severity']) {
             </div>
         </el-card>
 
-        <el-result v-else icon="success" title="规格已保存" sub-title="可交给下一步（Spec → make:crud 编译）使用">
-            <template #extra>
-                <el-button type="primary" @click="resetAll">再建一个</el-button>
+        <el-card v-else shadow="never" class="mt-4">
+            <el-result icon="success" title="规格已保存" sub-title="可编译为数据库 DDL + CRUD 代码">
+                <template #extra>
+                    <el-button type="primary" :loading="loading" @click="runCompile">编译预览</el-button>
+                    <el-button @click="resetAll">再建一个</el-button>
+                </template>
+            </el-result>
+
+            <template v-if="compileResult">
+                <el-divider content-position="left">DDL（schema_patch.sql）</el-divider>
+                <el-input :model-value="compileResult.schema_patch" type="textarea" :rows="14" readonly spellcheck="false" />
+
+                <el-divider content-position="left">生成文件（{{ compileResult.files.length }}）</el-divider>
+                <el-table :data="compileResult.files" size="small">
+                    <el-table-column label="文件" prop="path" />
+                    <el-table-column label="字节" prop="bytes" width="120" />
+                </el-table>
             </template>
-        </el-result>
+        </el-card>
     </div>
 </template>
 
