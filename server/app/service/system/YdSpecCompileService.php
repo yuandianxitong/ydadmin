@@ -154,6 +154,62 @@ class YdSpecCompileService extends Service
         return "<?php\nuse think\\facade\\Route;\n\n" . implode("\n\n", $groups) . "\n";
     }
 
+    /**
+     * 最小 dev apply：把 DDL 刷入当前库 + 把代码文件写入项目（自验用）。
+     * 正式 apply 门禁/状态机留子项目 3。
+     */
+    public function applyDev(string $specId, string $stageId, ?string $projectRootOverride = null): array
+    {
+        if (!preg_match('/^spec_[0-9a-f]{16}$/', $specId) || !preg_match('/^compile_[0-9a-f]{16}$/', $stageId)) {
+            throw new BusinessException('非法的 stage 标识');
+        }
+        $dir = $this->specsBase() . '/' . $specId . '/' . $stageId;
+        $manifestFile = $dir . '/manifest.json';
+        if (!is_file($manifestFile)) {
+            throw new BusinessException('stage 不存在或已过期');
+        }
+        $manifest = json_decode((string) file_get_contents($manifestFile), true);
+        if (!is_array($manifest)) {
+            throw new BusinessException('manifest 解析失败');
+        }
+
+        // 1) 执行 DDL 到当前（dev）库
+        $this->runDdl((string) file_get_contents($dir . '/update.sql'));
+
+        // 2) 写代码文件到项目：后端相对 server/，admin/ 相对项目根
+        $projectRoot = $projectRootOverride !== null ? rtrim($projectRootOverride, '/') : dirname(rtrim(root_path(), '/'));
+        $serverRoot  = $projectRootOverride !== null ? $projectRoot . '/server' : rtrim(root_path(), '/');
+
+        $written = [];
+        foreach ($manifest['files'] ?? [] as $f) {
+            $rel = (string) ($f['path'] ?? '');
+            if (!FileWriter::isSafeRelPath($rel)) {
+                continue;
+            }
+            $src = $dir . '/files/' . $rel;
+            if (!is_file($src)) {
+                continue;
+            }
+            $target = str_starts_with($rel, 'admin/') ? $projectRoot . '/' . $rel : $serverRoot . '/' . $rel;
+            $targetDir = dirname($target);
+            if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
+                throw new BusinessException('目录创建失败：' . $targetDir);
+            }
+            if (copy($src, $target)) {
+                $written[] = $rel;
+            }
+        }
+
+        return ['ddl_applied' => true, 'written' => $written];
+    }
+
+    protected function runDdl(string $sql): void
+    {
+        $pdo = Db::connect()->getPdo();
+        $prefix = (string) Db::connect()->getConfig('prefix');
+        (new SqlRunner($pdo, $prefix))->runSql($sql);
+    }
+
     protected function writeFile(string $path, string $content): void
     {
         $dir = dirname($path);
