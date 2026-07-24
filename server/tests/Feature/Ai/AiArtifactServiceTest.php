@@ -125,6 +125,27 @@ class AiArtifactServiceTest extends TestCase
         $this->assertFalse($out['check_summary']['passed']);
     }
 
+    public function testRunChecksReturnsPersistedStateWhenSuperseded(): void
+    {
+        /** 模拟并发 compile 在检查期间把该 artifact supersede 掉：checking→checked_* 落地为 0 行，
+         *  且真实持久化状态已是 superseded。 */
+        $repo = new class extends FakeArtifactRepo {
+            public function transition(int $id, array $from, string $to, array $extra = []): int
+            {
+                if (in_array('checking', $from, true) && str_starts_with($to, 'checked_')) {
+                    $this->rows[$id] = array_merge($this->rows[$id], ['state' => 'superseded']);
+                    return 0;
+                }
+                return parent::transition($id, $from, $to, $extra);
+            }
+        };
+        $svc = $this->service($repo, true);
+        $id = $svc->record('spec_a', 'compile_x', 'x', 'X');
+        $out = $svc->runChecks($id);
+        $this->assertSame('superseded', $out['state']);
+        $this->assertSame('superseded', $repo->rows[$id]['state']);
+    }
+
     public function testApplyRejectedWhenNotPassed(): void
     {
         $repo = new FakeArtifactRepo();
@@ -160,6 +181,8 @@ class AiArtifactServiceTest extends TestCase
         } finally {
             $this->assertSame('checked_passed', $repo->rows[$id]['state']);
             $this->assertNotEmpty($repo->rows[$id]['error'] ?? '');
+            $this->assertArrayHasKey('applied_at', $repo->rows[$id]);
+            $this->assertNull($repo->rows[$id]['applied_at']);
         }
     }
 

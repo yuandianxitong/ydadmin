@@ -44,19 +44,21 @@ class AiArtifactService extends Service
         return $this->aiArtifactRepository->listBySpec($specId);
     }
 
-    /** 建 artifact（compiled）并把同 spec 旧的置 superseded */
+    /** 建 artifact（compiled）并把同 spec 旧的置 superseded（同一事务，避免中途失败留下未 supersede 的旧记录） */
     public function record(string $specId, string $stageId, string $module, string $title): int
     {
-        $row = $this->aiArtifactRepository->create([
-            'spec_id'  => $specId,
-            'stage_id' => $stageId,
-            'module'   => $module,
-            'title'    => $title,
-            'state'    => 'compiled',
-        ]);
-        $id = (int) $row['id'];
-        $this->aiArtifactRepository->supersedeOthers($specId, $id);
-        return $id;
+        return $this->runInTransaction(function () use ($specId, $stageId, $module, $title) {
+            $row = $this->aiArtifactRepository->create([
+                'spec_id'  => $specId,
+                'stage_id' => $stageId,
+                'module'   => $module,
+                'title'    => $title,
+                'state'    => 'compiled',
+            ]);
+            $id = (int) $row['id'];
+            $this->aiArtifactRepository->supersedeOthers($specId, $id);
+            return $id;
+        });
     }
 
     /** compiled|checked_* → checking → checked_passed|checked_failed */
@@ -77,10 +79,21 @@ class AiArtifactService extends Service
 
         $summary = $this->makeRunner()->run($this->buildContext($art));
         $to = $summary['passed'] ? 'checked_passed' : 'checked_failed';
-        $this->aiArtifactRepository->transition($artifactId, ['checking'], $to, [
+        $moved = $this->aiArtifactRepository->transition($artifactId, ['checking'], $to, [
             'check_summary' => $summary,
             'checked_at'    => date('Y-m-d H:i:s'),
         ]);
+
+        if ($moved === 0) {
+            // 检查期间该 artifact 被并发操作改变（如同 spec 重新 compile 触发 supersede），
+            // 落盘状态已不是 checking → 返回真实持久化状态，避免向 UI/CLI 汇报虚假的 checked_*。
+            $fresh = $this->aiArtifactRepository->find($artifactId);
+            return [
+                'artifact_id'   => $artifactId,
+                'state'         => $fresh['state'] ?? $to,
+                'check_summary' => $fresh['check_summary'] ?? $summary,
+            ];
+        }
 
         return ['artifact_id' => $artifactId, 'state' => $to, 'check_summary' => $summary];
     }
@@ -112,9 +125,10 @@ class AiArtifactService extends Service
         try {
             $written = $this->materialize($art, $projectRootOverride);
         } catch (\Throwable $e) {
-            // 回滚认领，保持 checked_passed，记录 error
+            // 回滚认领，保持 checked_passed，记录 error，并清空认领时写入的 applied_at
             $this->aiArtifactRepository->transition($artifactId, ['applied'], 'checked_passed', [
-                'error' => mb_substr($e->getMessage(), 0, 500, 'UTF-8'),
+                'error'      => mb_substr($e->getMessage(), 0, 500, 'UTF-8'),
+                'applied_at' => null,
             ]);
             throw new BusinessException('应用失败：' . $e->getMessage());
         }
