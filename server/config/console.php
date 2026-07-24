@@ -6,6 +6,7 @@ return [
     // 指令定义
     'commands' => [
         \app\command\MakeCrudCommand::class,
+        \app\command\YdSpecCompileCommand::class,
         \app\command\GenerateApiDocCommand::class,
         'log:archive' => \app\command\LogArchiveCommand::class,
         'yd:update' => \app\command\YdUpdateCommand::class,
