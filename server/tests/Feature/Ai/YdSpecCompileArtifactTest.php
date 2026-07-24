@@ -69,11 +69,14 @@ class YdSpecCompileArtifactTest extends TestCase
         $this->assertSame(42, $out['artifact_id']);
         $this->assertTrue($out['check_summary']['passed']);
 
-        // manifest 含 entities
+        // manifest 含 entities，且包含检查库消费的全部 7 个契约字段
         $manifestFile = rtrim(root_path(), '/') . '/' . $out['dir'] . '/manifest.json';
         $manifest = json_decode((string) file_get_contents($manifestFile), true);
         $this->assertNotEmpty($manifest['entities']);
-        $this->assertSame('appointments', $manifest['entities'][0]['table']);
-        $this->assertArrayHasKey('route_group', $manifest['entities'][0]);
+        $entity = $manifest['entities'][0];
+        $this->assertSame('appointments', $entity['table']);
+        foreach (['name', 'table', 'module', 'model', 'route_group', 'is_main', 'has_status_switch'] as $field) {
+            $this->assertArrayHasKey($field, $entity, "manifest entities[0] 缺少契约字段：{$field}");
+        }
     }
 }

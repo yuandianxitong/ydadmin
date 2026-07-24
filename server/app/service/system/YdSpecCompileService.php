@@ -74,7 +74,7 @@ class YdSpecCompileService extends Service
                 $codeFiles[$file['path']] = $file['content'];
             }
         }
-        $module = (string) $spec['module']['name'];
+        $module = (string) ($spec['module']['name'] ?? '');
         $codeFiles["app/adminapi/route/{$module}.php"] = $this->routeFileContent($compiled['entities']);
 
         // 原子占位：父目录 specs/<specId> 已存在（loadSpec 已校验），非递归 mkdir 具原子性，
@@ -134,8 +134,7 @@ class YdSpecCompileService extends Service
         );
 
         // 登记 artifact + 自动跑检查（状态机）
-        $module = (string) ($spec['module']['name'] ?? '');
-        $title  = (string) ($spec['module']['title'] ?? $module);
+        $title = (string) ($spec['module']['title'] ?? $module);
         $artifactId = $this->aiArtifactService->record($specId, $stageId, $module, $title);
         $checked = $this->aiArtifactService->runChecks($artifactId);
 
