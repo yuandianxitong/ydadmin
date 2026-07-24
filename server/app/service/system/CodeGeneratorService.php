@@ -96,7 +96,7 @@ class CodeGeneratorService extends Service
             $columns = $this->getTableColumns($tableName);
         }
 
-        $hasStatus = $this->hasColumn($columns, 'status');
+        $hasStatus = $this->hasStatusSwitch($columns);
         $kebab = $this->toKebab($modelName);
 
         $files = [];
@@ -254,7 +254,7 @@ class CodeGeneratorService extends Service
             if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) continue;
             $fillable[] = "'{$name}'";
 
-            if ($name === 'status') $hasStatus = true;
+            if ($name === 'status' && empty($col['is_enum'])) $hasStatus = true;
 
             $phpType = $this->toPhpType($col['type']);
             if ($phpType !== 'string') {
@@ -549,7 +549,7 @@ PHP;
             $colComment = $col['comment'];
             $oaType = $this->toOAType($col['type']);
             $extra = '';
-            if ($name === 'status') $extra = ", enum: [0, 1]";
+            if ($name === 'status' && empty($col['is_enum'])) $extra = ", enum: [0, 1]";
             $storeProps[] = "                    new OA\\Property(property: '{$name}', type: '{$oaType}', description: '{$colComment}'{$extra}),";
             if (!$col['nullable'] && !in_array($name, ['status', 'sort'])) {
                 $storeRequired[] = "'{$name}'";
@@ -797,7 +797,11 @@ PHP;
                 }
             }
 
-            if ($name === 'status') $ruleArr = ['integer', 'in:0,1'];
+            if (!empty($col['is_enum'])) {
+                $ruleArr[] = 'in:' . implode(',', $col['enum_values'] ?? []);
+            } elseif ($name === 'status') {
+                $ruleArr = ['integer', 'in:0,1'];
+            }
             if ($name === 'sort') $ruleArr = ['integer', '>=:0'];
 
             if (!empty($ruleArr)) {
@@ -1331,6 +1335,15 @@ VUE;
             }
 
             // 表单项
+            // select 选项：enum 列用真实枚举值，否则保留占位
+            $selectOptions = '';
+            if (!empty($col['enum_values'])) {
+                foreach ($col['enum_values'] as $ev) {
+                    $selectOptions .= "          <el-option label=\"{$ev}\" value=\"{$ev}\" />\n";
+                }
+            } else {
+                $selectOptions = "          <!-- TODO: 补充选项 -->\n          <el-option label=\"选项1\" value=\"1\" />\n          <el-option label=\"选项2\" value=\"2\" />\n";
+            }
             $formItems .= match ($formType) {
                 'textarea' => <<<VUE
 
@@ -1369,10 +1382,7 @@ VUE,
 
       <el-form-item label="{$colComment}" prop="{$name}">
         <el-select v-model="form.{$name}" placeholder="请选择{$colComment}" clearable>
-          <!-- TODO: 补充选项 -->
-          <el-option label="选项1" value="1" />
-          <el-option label="选项2" value="2" />
-        </el-select>
+{$selectOptions}        </el-select>
       </el-form-item>
 VUE,
                 'image' => <<<VUE
@@ -1639,7 +1649,7 @@ TS;
 
     protected function getDefaultValue(array $col): string
     {
-        if ($col['name'] === 'status') return '1';
+        if ($col['name'] === 'status' && empty($col['is_enum'])) return '1';
         if ($col['name'] === 'sort') return '0';
         if ($col['default'] !== null && $col['default'] !== '') return "'" . $col['default'] . "'";
         return match ($col['type']) {
@@ -1653,6 +1663,20 @@ TS;
     {
         foreach ($columns as $col) {
             if ($col['name'] === $name) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 是否存在“经典 0/1 状态开关”列。
+     * 字符串枚举 status（列描述符带 is_enum）不算开关，避免被误当成 tinyint(1) 处理。
+     */
+    protected function hasStatusSwitch(array $columns): bool
+    {
+        foreach ($columns as $col) {
+            if (($col['name'] ?? '') === 'status') {
+                return empty($col['is_enum']);
+            }
         }
         return false;
     }
