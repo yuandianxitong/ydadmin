@@ -12,6 +12,17 @@ export interface SpecRefineResult {
     issues: SpecIssue[]
     versions: SpecVersions | null
 }
+export interface CompileFile {
+    path: string
+    bytes: number
+}
+export interface CompileResult {
+    stage_id: string
+    dir: string
+    schema_patch: string
+    update_sql: string
+    files: CompileFile[]
+}
 
 export const ydspecApi = {
     refine(payload: { description: string; answers?: Record<string, string>; draft?: YdSpec | null }) {
@@ -25,6 +36,15 @@ export const ydspecApi = {
         return myRequest.post<{ spec_id: string; path: string }>('/adminapi/system/ydspec/confirm', {
             spec,
             versions: versions ?? null
+        })
+    },
+    compile(specId: string) {
+        return myRequest.post<CompileResult>('/adminapi/system/ydspec/compile', { spec_id: specId })
+    },
+    applyDev(specId: string, stageId: string) {
+        return myRequest.post<{ ddl_applied: boolean; written: string[] }>('/adminapi/system/ydspec/apply-dev', {
+            spec_id: specId,
+            stage_id: stageId
         })
     }
 }
