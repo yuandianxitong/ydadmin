@@ -131,28 +131,36 @@ class YdSpecCompiler
         return "'" . str_replace("'", "''", (string) $d) . "'";
     }
 
-    /** @return array<int,array{fields:array<int,string>,unique:bool}> 去重后的索引清单 */
+    /** @return array<int,array{fields:array<int,string>,unique:bool}> 去重后的索引清单（按列集合去重，unique 吞并 index） */
     private function collectIndexes(array $entity): array
     {
-        $result = [];
-        $seen = [];
-        $push = function (array $fields, bool $unique) use (&$result, &$seen): void {
-            $key = ($unique ? 'u:' : 'i:') . implode(',', $fields);
-            if (isset($seen[$key])) {
-                return;
+        $order  = [];
+        $fields = [];
+        $unique = [];
+        $add = function (array $cols, bool $isUnique) use (&$order, &$fields, &$unique): void {
+            $key = implode(',', $cols);
+            if (!isset($fields[$key])) {
+                $order[] = $key;
+                $fields[$key] = $cols;
+                $unique[$key] = false;
             }
-            $seen[$key] = true;
-            $result[] = ['fields' => $fields, 'unique' => $unique];
+            if ($isUnique) {
+                $unique[$key] = true;
+            }
         };
         foreach ($entity['fields'] ?? [] as $field) {
             if (!empty($field['unique'])) {
-                $push([(string) $field['name']], true);
+                $add([(string) $field['name']], true);
             } elseif (!empty($field['index'])) {
-                $push([(string) $field['name']], false);
+                $add([(string) $field['name']], false);
             }
         }
         foreach ($entity['indexes'] ?? [] as $idx) {
-            $push(array_map('strval', $idx['fields'] ?? []), ($idx['type'] ?? 'index') === 'unique');
+            $add(array_map('strval', $idx['fields'] ?? []), ($idx['type'] ?? 'index') === 'unique');
+        }
+        $result = [];
+        foreach ($order as $key) {
+            $result[] = ['fields' => $fields[$key], 'unique' => $unique[$key]];
         }
         return $result;
     }

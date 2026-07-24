@@ -131,4 +131,18 @@ SQL;
         $out = (new YdSpecCompiler())->compile($spec);
         $this->assertFalse($out['entities'][0]['has_status_switch']);
     }
+
+    public function testConflictingIndexCollapsesToUnique(): void
+    {
+        $entity = [
+            'name' => 'Widget', 'table' => 'widgets', 'kind' => 'business', 'soft_delete' => 'soft',
+            'fields' => [
+                ['name' => 'code', 'type' => 'string', 'length' => 32, 'nullable' => false, 'index' => true],
+            ],
+            'indexes' => [['fields' => ['code'], 'type' => 'unique']],
+        ];
+        $ddl = (new YdSpecCompiler())->entityDdl($entity, '组件');
+        $this->assertSame(1, substr_count($ddl, '`widgets_code_unique` (`code`)'));
+        $this->assertStringNotContainsString('KEY `widgets_code_index` (`code`)', $ddl);
+    }
 }
