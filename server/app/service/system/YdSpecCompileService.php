@@ -7,13 +7,12 @@ use core\ai\FileWriter;
 use core\ai\ydspec\YdSpecCompiler;
 use core\ai\ydspec\YdSpecValidator;
 use core\base\Service;
-use core\database\SqlRunner;
 use core\exception\BusinessException;
-use think\facade\Db;
 
 class YdSpecCompileService extends Service
 {
     protected YdSpecValidator $ydSpecValidator;
+    protected AiArtifactService $aiArtifactService;
 
     protected function specsBase(): string
     {
@@ -106,12 +105,27 @@ class YdSpecCompileService extends Service
             $manifestFiles[] = ['path' => $path, 'bytes' => strlen($content)];
         }
 
+        // 供检查库使用的实体元数据（精简，不含 columns 大块）
+        $entitiesMeta = [];
+        foreach ($compiled['entities'] as $ent) {
+            $entitiesMeta[] = [
+                'name'              => $ent['name'],
+                'table'             => $ent['table'],
+                'module'            => $ent['module'],
+                'model'             => $ent['model'],
+                'route_group'       => $ent['route_group'],
+                'is_main'           => $ent['is_main'],
+                'has_status_switch' => $ent['has_status_switch'],
+            ];
+        }
+
         $manifest = [
             'spec_id'      => $specId,
             'stage_id'     => $stageId,
             'created_at'   => date('Y-m-d H:i:s'),
             'schema_patch' => 'schema_patch.sql',
             'update_sql'   => 'update.sql',
+            'entities'     => $entitiesMeta,
             'files'        => $manifestFiles,
         ];
         $this->writeFile(
@@ -119,12 +133,20 @@ class YdSpecCompileService extends Service
             (string) json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         );
 
+        // 登记 artifact + 自动跑检查（状态机）
+        $module = (string) ($spec['module']['name'] ?? '');
+        $title  = (string) ($spec['module']['title'] ?? $module);
+        $artifactId = $this->aiArtifactService->record($specId, $stageId, $module, $title);
+        $checked = $this->aiArtifactService->runChecks($artifactId);
+
         return [
+            'artifact_id'  => $artifactId,
             'stage_id'     => $stageId,
             'dir'          => 'runtime/ai/specs/' . $specId . '/' . $stageId,
             'schema_patch' => $compiled['schema_patch'],
             'update_sql'   => $compiled['update_sql'],
             'files'        => $manifestFiles,
+            'check_summary' => $checked['check_summary'],
         ];
     }
 
@@ -155,64 +177,20 @@ class YdSpecCompileService extends Service
     }
 
     /**
-     * 最小 dev apply：把 DDL 刷入当前库 + 把代码文件写入项目（自验用）。
-     * 正式 apply 门禁/状态机留子项目 3。
+     * dev apply：查/建对应 artifact，经 AiArtifactService 门禁应用。
+     * 保留 SP2 的 (specId, stageId) 签名与 {ddl_applied, written} 返回，供 CLI/兼容路径使用。
      */
     public function applyDev(string $specId, string $stageId, ?string $projectRootOverride = null): array
     {
         if (!preg_match('/^spec_[0-9a-f]{16}$/', $specId) || !preg_match('/^compile_[0-9a-f]{16}$/', $stageId)) {
             throw new BusinessException('非法的 stage 标识');
         }
-        $dir = $this->specsBase() . '/' . $specId . '/' . $stageId;
-        $manifestFile = $dir . '/manifest.json';
-        if (!is_file($manifestFile)) {
-            throw new BusinessException('stage 不存在或已过期');
+        $art = $this->aiArtifactService->findByStage($specId, $stageId);
+        if (!$art) {
+            throw new BusinessException('未找到对应 artifact，请先编译');
         }
-        $manifest = json_decode((string) file_get_contents($manifestFile), true);
-        if (!is_array($manifest)) {
-            throw new BusinessException('manifest 解析失败');
-        }
-
-        // 1) 执行 DDL 到当前（dev）库
-        $ddl = @file_get_contents($dir . '/update.sql');
-        if ($ddl === false) {
-            throw new BusinessException('update.sql 读取失败：' . $dir . '/update.sql');
-        }
-        $this->runDdl($ddl);
-
-        // 2) 写代码文件到项目：后端相对 server/，admin/ 相对项目根
-        $projectRoot = $projectRootOverride !== null ? rtrim($projectRootOverride, '/') : dirname(rtrim(root_path(), '/'));
-        $serverRoot  = $projectRootOverride !== null ? $projectRoot . '/server' : rtrim(root_path(), '/');
-
-        $written = [];
-        foreach ($manifest['files'] ?? [] as $f) {
-            $rel = (string) ($f['path'] ?? '');
-            if (!FileWriter::isSafeRelPath($rel)) {
-                continue;
-            }
-            $src = $dir . '/files/' . $rel;
-            if (!is_file($src)) {
-                continue;
-            }
-            $target = str_starts_with($rel, 'admin/') ? $projectRoot . '/' . $rel : $serverRoot . '/' . $rel;
-            $targetDir = dirname($target);
-            if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
-                throw new BusinessException('目录创建失败：' . $targetDir);
-            }
-            if (!copy($src, $target)) {
-                throw new BusinessException('文件写入失败：' . $target);
-            }
-            $written[] = $rel;
-        }
-
-        return ['ddl_applied' => true, 'written' => $written];
-    }
-
-    protected function runDdl(string $sql): void
-    {
-        $pdo = Db::connect()->getPdo();
-        $prefix = (string) Db::connect()->getConfig('prefix');
-        (new SqlRunner($pdo, $prefix))->runSql($sql);
+        $res = $this->aiArtifactService->applyArtifact((int) $art['id'], $projectRootOverride);
+        return ['ddl_applied' => true, 'written' => $res['written']];
     }
 
     protected function writeFile(string $path, string $content): void

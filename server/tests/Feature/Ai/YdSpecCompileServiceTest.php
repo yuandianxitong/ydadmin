@@ -4,12 +4,32 @@ declare(strict_types=1);
 
 namespace tests\Feature\Ai;
 
+use app\service\system\AiArtifactService;
 use app\service\system\YdSpecCompileService;
 use tests\TestCase;
 
 class YdSpecCompileServiceTest extends TestCase
 {
     private array $cleanupDirs = [];
+
+    private function svc(): YdSpecCompileService
+    {
+        $fakeArtifact = new class extends AiArtifactService {
+            public function __construct() {}
+            public function record(string $specId, string $stageId, string $module, string $title): int
+            {
+                return 1;
+            }
+            public function runChecks(int $artifactId): array
+            {
+                return ['artifact_id' => $artifactId, 'state' => 'checked_passed', 'check_summary' => ['passed' => true, 'error_count' => 0, 'warning_count' => 0, 'skipped' => [], 'results' => []]];
+            }
+        };
+        return new class($fakeArtifact) extends YdSpecCompileService {
+            public function __construct(private AiArtifactService $fake) { parent::__construct(); }
+            protected function initialize(): void { $this->aiArtifactService = $this->fake; }
+        };
+    }
 
     protected function tearDown(): void
     {
@@ -45,7 +65,7 @@ class YdSpecCompileServiceTest extends TestCase
     public function testCompileWritesStageArtifacts(): void
     {
         $specId = $this->seedSpec('appointment');
-        $out = (new YdSpecCompileService())->compile($specId);
+        $out = $this->svc()->compile($specId);
 
         $stageDir = rtrim(root_path(), '/') . '/' . $out['dir'];
         $this->assertMatchesRegularExpression('/^compile_[0-9a-f]{16}$/', $out['stage_id']);
@@ -63,7 +83,7 @@ class YdSpecCompileServiceTest extends TestCase
     public function testCompiledRouteFileIsSingleLevelWithMiddleware(): void
     {
         $specId = $this->seedSpec('order_with_detail');
-        $out = (new YdSpecCompileService())->compile($specId);
+        $out = $this->svc()->compile($specId);
         $routeFile = rtrim(root_path(), '/') . '/' . $out['dir'] . '/files/app/adminapi/route/order.php';
         $route = (string) file_get_contents($routeFile);
 
@@ -79,13 +99,13 @@ class YdSpecCompileServiceTest extends TestCase
     public function testCompileRejectsUnknownSpec(): void
     {
         $this->expectException(\core\exception\BusinessException::class);
-        (new YdSpecCompileService())->compile('spec_' . str_repeat('0', 16));
+        $this->svc()->compile('spec_' . str_repeat('0', 16));
     }
 
     public function testRecompileCreatesDistinctStages(): void
     {
         $specId = $this->seedSpec('appointment');
-        $svc = new YdSpecCompileService();
+        $svc = $this->svc();
         $a = $svc->compile($specId);
         $b = $svc->compile($specId);
         $this->assertNotSame($a['stage_id'], $b['stage_id']);

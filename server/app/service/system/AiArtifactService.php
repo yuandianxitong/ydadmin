@@ -28,6 +28,17 @@ class AiArtifactService extends Service
         return rtrim(root_path(), '/') . '/runtime/ai/specs';
     }
 
+    public function findByStage(string $specId, string $stageId): ?array
+    {
+        $rows = $this->aiArtifactRepository->listBySpec($specId);
+        foreach ($rows as $r) {
+            if (($r['stage_id'] ?? '') === $stageId) {
+                return $r;
+            }
+        }
+        return null;
+    }
+
     /** 建 artifact（compiled）并把同 spec 旧的置 superseded */
     public function record(string $specId, string $stageId, string $module, string $title): int
     {
