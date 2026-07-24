@@ -16,12 +16,27 @@ export interface CompileFile {
     path: string
     bytes: number
 }
+export interface CheckResultItem {
+    check: string
+    severity: 'error' | 'warning' | 'skipped'
+    message: string
+    ref: string | null
+}
+export interface CheckSummary {
+    passed: boolean
+    error_count: number
+    warning_count: number
+    skipped: string[]
+    results: CheckResultItem[]
+}
 export interface CompileResult {
+    artifact_id: number
     stage_id: string
     dir: string
     schema_patch: string
     update_sql: string
     files: CompileFile[]
+    check_summary: CheckSummary
 }
 
 export const ydspecApi = {
@@ -41,10 +56,10 @@ export const ydspecApi = {
     compile(specId: string) {
         return myRequest.post<CompileResult>('/adminapi/system/ydspec/compile', { spec_id: specId })
     },
-    applyDev(specId: string, stageId: string) {
-        return myRequest.post<{ ddl_applied: boolean; written: string[] }>('/adminapi/system/ydspec/apply-dev', {
-            spec_id: specId,
-            stage_id: stageId
-        })
+    recheck(artifactId: number) {
+        return myRequest.post<{ artifact_id: number; state: string; check_summary: CheckSummary }>(`/adminapi/system/ydspec/artifacts/recheck/${artifactId}`, {})
+    },
+    apply(artifactId: number) {
+        return myRequest.post<{ applied: boolean; written: string[] }>(`/adminapi/system/ydspec/artifacts/apply/${artifactId}`, {})
     }
 }

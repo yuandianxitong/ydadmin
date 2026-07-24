@@ -91,7 +91,34 @@ async function runCompile() {
     try {
         const res = await ydspecApi.compile(specId.value)
         compileResult.value = res.data
-        ElMessage.success('编译完成，产物见下方预览')
+        if (res.data.check_summary.passed) {
+            ElMessage.success('编译完成，检查通过')
+        } else {
+            ElMessage.warning('编译完成，但检查未通过，无法应用')
+        }
+    } finally {
+        loading.value = false
+    }
+}
+
+async function runRecheck() {
+    if (!compileResult.value) return
+    loading.value = true
+    try {
+        const res = await ydspecApi.recheck(compileResult.value.artifact_id)
+        compileResult.value = { ...compileResult.value, check_summary: res.data.check_summary }
+        ElMessage.success('已重新检查')
+    } finally {
+        loading.value = false
+    }
+}
+
+async function runApply() {
+    if (!compileResult.value) return
+    loading.value = true
+    try {
+        const res = await ydspecApi.apply(compileResult.value.artifact_id)
+        ElMessage.success(`已应用，写入 ${res.data.written.length} 个文件`)
     } finally {
         loading.value = false
     }
@@ -174,6 +201,44 @@ function tagType(sev: SpecIssue['severity']) {
             </el-result>
 
             <template v-if="compileResult">
+                <el-divider content-position="left">检查</el-divider>
+                <el-alert
+                    :title="compileResult.check_summary.passed
+                        ? '检查通过，可应用'
+                        : `检查未通过：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning`"
+                    :type="compileResult.check_summary.passed ? 'success' : 'error'"
+                    :closable="false"
+                    class="mb-3"
+                />
+                <div class="mb-3">
+                    <el-button size="small" :loading="loading" @click="runRecheck">重新检查</el-button>
+                    <el-button
+                        type="primary"
+                        size="small"
+                        :loading="loading"
+                        :disabled="!compileResult.check_summary.passed"
+                        @click="runApply"
+                    >应用到开发环境</el-button>
+                    <span v-if="!compileResult.check_summary.passed" class="q-why">检查未通过，无法应用</span>
+                </div>
+                <el-table
+                    v-if="compileResult.check_summary.results.length"
+                    :data="compileResult.check_summary.results"
+                    size="small"
+                    class="mb-4"
+                >
+                    <el-table-column label="检查" prop="check" width="160" />
+                    <el-table-column label="级别" width="100">
+                        <template #default="{ row }">
+                            <el-tag
+                                :type="row.severity === 'error' ? 'danger' : (row.severity === 'warning' ? 'warning' : 'info')"
+                                size="small"
+                            >{{ row.severity }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="说明" prop="message" />
+                </el-table>
+
                 <el-divider content-position="left">DDL（schema_patch.sql）</el-divider>
                 <el-input :model-value="compileResult.schema_patch" type="textarea" :rows="14" readonly spellcheck="false" />
 
