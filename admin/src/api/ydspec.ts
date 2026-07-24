@@ -38,6 +38,16 @@ export interface CompileResult {
     files: CompileFile[]
     check_summary: CheckSummary
 }
+export interface Artifact {
+    id: number
+    spec_id: string
+    stage_id: string
+    module: string
+    title: string
+    state: string
+    check_summary: CheckSummary | null
+    created_at?: string
+}
 
 export const ydspecApi = {
     refine(payload: { description: string; answers?: Record<string, string>; draft?: YdSpec | null }) {
@@ -55,6 +65,9 @@ export const ydspecApi = {
     },
     compile(specId: string) {
         return myRequest.post<CompileResult>('/adminapi/system/ydspec/compile', { spec_id: specId })
+    },
+    listArtifacts(specId: string) {
+        return myRequest.get<Artifact[]>('/adminapi/system/ydspec/artifacts', { params: { spec_id: specId } })
     },
     recheck(artifactId: number) {
         return myRequest.post<{ artifact_id: number; state: string; check_summary: CheckSummary }>(`/adminapi/system/ydspec/artifacts/recheck/${artifactId}`, {})

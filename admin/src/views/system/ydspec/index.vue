@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { ydspecApi } from '@/api/ydspec'
-import type { SpecVersions, CompileResult } from '@/api/ydspec'
+import type { SpecVersions, CompileResult, Artifact } from '@/api/ydspec'
 import type { SpecExplanation, SpecIssue, SpecQuestion, YdSpec } from '@/types/ydspec'
 import { countBySeverity, hasBlockingIssues } from './helpers'
 
@@ -19,6 +19,8 @@ const answers = ref<Record<string, string>>({})
 const versions = ref<SpecVersions | null>(null)
 const specId = ref('')
 const compileResult = ref<CompileResult | null>(null)
+const artifacts = ref<Artifact[]>([])
+const artifactsLoaded = ref(false)
 
 function resetAll() {
     step.value = 0
@@ -32,6 +34,8 @@ function resetAll() {
     versions.value = null
     specId.value = ''
     compileResult.value = null
+    artifacts.value = []
+    artifactsLoaded.value = false
 }
 
 async function runRefine() {
@@ -96,8 +100,20 @@ async function runCompile() {
         } else {
             ElMessage.warning('编译完成，但检查未通过，无法应用')
         }
+        await loadArtifacts()
     } finally {
         loading.value = false
+    }
+}
+
+async function loadArtifacts() {
+    if (!specId.value) return
+    try {
+        const res = await ydspecApi.listArtifacts(specId.value)
+        artifacts.value = res.data
+        artifactsLoaded.value = true
+    } catch {
+        // 历史列表非关键路径，静默失败即可
     }
 }
 
@@ -108,6 +124,7 @@ async function runRecheck() {
         const res = await ydspecApi.recheck(compileResult.value.artifact_id)
         compileResult.value = { ...compileResult.value, check_summary: res.data.check_summary }
         ElMessage.success('已重新检查')
+        await loadArtifacts()
     } finally {
         loading.value = false
     }
@@ -119,6 +136,7 @@ async function runApply() {
     try {
         const res = await ydspecApi.apply(compileResult.value.artifact_id)
         ElMessage.success(`已应用，写入 ${res.data.written.length} 个文件`)
+        await loadArtifacts()
     } finally {
         loading.value = false
     }
@@ -204,8 +222,8 @@ function tagType(sev: SpecIssue['severity']) {
                 <el-divider content-position="left">检查</el-divider>
                 <el-alert
                     :title="compileResult.check_summary.passed
-                        ? '检查通过，可应用'
-                        : `检查未通过：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning`"
+                        ? `检查通过，可应用：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`
+                        : `检查未通过：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`"
                     :type="compileResult.check_summary.passed ? 'success' : 'error'"
                     :closable="false"
                     class="mb-3"
@@ -236,6 +254,11 @@ function tagType(sev: SpecIssue['severity']) {
                             >{{ row.severity }}</el-tag>
                         </template>
                     </el-table-column>
+                    <el-table-column label="位置" prop="ref" width="180">
+                        <template #default="{ row }">
+                            {{ row.ref ?? '-' }}
+                        </template>
+                    </el-table-column>
                     <el-table-column label="说明" prop="message" />
                 </el-table>
 
@@ -247,6 +270,26 @@ function tagType(sev: SpecIssue['severity']) {
                     <el-table-column label="文件" prop="path" />
                     <el-table-column label="字节" prop="bytes" width="120" />
                 </el-table>
+
+                <el-divider content-position="left">编译历史</el-divider>
+                <div class="mb-3">
+                    <el-button size="small" :loading="loading" @click="loadArtifacts">查看历史</el-button>
+                </div>
+                <el-table v-if="artifacts.length" :data="artifacts" size="small">
+                    <el-table-column label="ID" prop="id" width="80" />
+                    <el-table-column label="标题" prop="title" />
+                    <el-table-column label="状态" prop="state" width="120" />
+                    <el-table-column label="检查结果" width="220">
+                        <template #default="{ row }">
+                            <span v-if="row.check_summary">
+                                {{ row.check_summary.error_count }} error / {{ row.check_summary.warning_count }} warning / {{ row.check_summary.skipped.length }} skipped
+                            </span>
+                            <span v-else>-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="创建时间" prop="created_at" width="180" />
+                </el-table>
+                <el-empty v-else-if="artifactsLoaded" description="暂无历史记录" :image-size="60" />
             </template>
         </el-card>
     </div>
