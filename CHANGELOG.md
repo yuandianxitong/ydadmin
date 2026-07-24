@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-24
+
+### Added
+
+#### 后端 (server)
+- 新增 YdSpec 建模 DSL 与编译链路：结构化校验（`opis/json-schema`）+ 权威语义校验规则、`YdSpecCompiler`（DSL→DDL/列描述符）、`YdSpecCompileService`（编译产出 CRUD 全栈代码 stage 产物）、CLI `ydspec:compile`、AI 辅助建模的 spec 澄清/确认编排（`YdSpecService`）
+- 新增 AI 编译共享 check 库（`core/ai/checks/`）：`php_lint`/`required_files`/`layer_compliance`/`path_convention`/`forbidden_patterns`/`ddl_executability`/`route_loading` 七项检查 + `CheckRunner` 汇总（`ddl_executability` 无数据库连接时优雅降级为 skipped，`route_loading` 用隔离子进程 + Route stub 避免污染主进程路由表）
+- 新增 `ai_artifacts` 表 + `AiArtifactService`：AI 编译工件状态机（`compiled → checking → checked_passed/checked_failed → applied`，含同 stage 旧工件 supersede），apply 前必须通过全部检查项才可写入项目（硬门禁）
+- YdSpec 编译后自动记录 artifact 并跑七项检查；`applyDev`/CLI `--apply`/管理端应用接口统一经门禁校验通过态才允许落盘
+- 新增管理端「AI 建模向导」页面接口：spec 澄清/确认、编译、工件列表、重新检查、门禁应用
+- 新增权限点 `ai.ydspec.use`（向导页面访问/编译/检查）、`ai.ydspec.apply`（编译结果门禁应用）及对应菜单
+
+#### Admin 前端 (admin)
+- 新增「AI 建模向导」页面：spec 澄清对话、DDL/代码编译预览、检查结果面板（分项展示 ref/统计）与门禁应用交互
+
+### Changed
+
+#### 后端 (server)
+- 代码生成器支持字符串枚举字段（`in` 校验规则、枚举下拉、状态开关保留非枚举 0/1 机制）
+
 ## [1.6.0] - 2026-07-22
 
 ### Added
