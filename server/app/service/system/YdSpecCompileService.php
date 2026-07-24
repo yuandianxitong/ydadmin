@@ -174,7 +174,11 @@ class YdSpecCompileService extends Service
         }
 
         // 1) 执行 DDL 到当前（dev）库
-        $this->runDdl((string) file_get_contents($dir . '/update.sql'));
+        $ddl = @file_get_contents($dir . '/update.sql');
+        if ($ddl === false) {
+            throw new BusinessException('update.sql 读取失败：' . $dir . '/update.sql');
+        }
+        $this->runDdl($ddl);
 
         // 2) 写代码文件到项目：后端相对 server/，admin/ 相对项目根
         $projectRoot = $projectRootOverride !== null ? rtrim($projectRootOverride, '/') : dirname(rtrim(root_path(), '/'));
@@ -195,9 +199,10 @@ class YdSpecCompileService extends Service
             if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
                 throw new BusinessException('目录创建失败：' . $targetDir);
             }
-            if (copy($src, $target)) {
-                $written[] = $rel;
+            if (!copy($src, $target)) {
+                throw new BusinessException('文件写入失败：' . $target);
             }
+            $written[] = $rel;
         }
 
         return ['ddl_applied' => true, 'written' => $written];

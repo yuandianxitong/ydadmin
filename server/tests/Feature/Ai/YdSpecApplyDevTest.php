@@ -65,4 +65,26 @@ class YdSpecApplyDevTest extends TestCase
         $this->expectException(\core\exception\BusinessException::class);
         (new YdSpecCompileService())->applyDev('spec_' . str_repeat('a', 16), 'not-a-stage');
     }
+
+    public function testApplyDevThrowsWhenDdlMissing(): void
+    {
+        $specId = 'spec_' . bin2hex(random_bytes(8));
+        $specDir = rtrim(root_path(), '/') . '/runtime/ai/specs/' . $specId;
+        mkdir($specDir, 0755, true);
+        copy(dirname(__DIR__, 2) . '/fixtures/ydspec/appointment.json', $specDir . '/ydspec.json');
+        $this->cleanupDirs[] = $specDir;
+
+        $service = new class extends YdSpecCompileService {
+            protected function runDdl(string $sql): void {}
+        };
+        $out = $service->compile($specId);
+        unlink($specDir . '/' . $out['stage_id'] . '/update.sql');
+
+        $tmpRoot = sys_get_temp_dir() . '/ydapply_' . bin2hex(random_bytes(4));
+        mkdir($tmpRoot, 0755, true);
+        $this->cleanupDirs[] = $tmpRoot;
+
+        $this->expectException(\core\exception\BusinessException::class);
+        $service->applyDev($specId, $out['stage_id'], $tmpRoot);
+    }
 }
