@@ -3,7 +3,7 @@
     <view class="change-password-page">
       <!-- 提示信息 -->
       <view class="hint-card">
-        <view class="i-ri-information-line" style="font-size: 36rpx; color: #2979ff" />
+        <view class="i-ri-information-line tip-icon" />
         <text class="hint-text">修改密码后将自动退出登录，请重新登录</text>
       </view>
 
@@ -71,7 +71,9 @@
 import { reactive } from 'vue'
 import { useUser } from '../composables/useUser'
 import { isPassword } from '@/utils/validate'
+import { useThemePage } from '@/hooks/useTheme'
 
+useThemePage()
 const { loading, changePassword } = useUser()
 
 const form = reactive({
@@ -115,14 +117,20 @@ async function handleSubmit() {
 .hint-card {
   display: flex;
   align-items: center;
-  background: #eef4ff;
+  background: var(--yd-color-primary-soft, #2979ff1a);
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
 
+  .tip-icon {
+    font-size: 36rpx;
+    color: var(--yd-color-primary, #2979ff);
+    flex-shrink: 0;
+  }
+
   .hint-text {
     font-size: 26rpx;
-    color: $primary-color;
+    color: var(--yd-color-primary, #2979ff);
     margin-left: 12rpx;
     flex: 1;
   }

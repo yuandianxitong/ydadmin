@@ -33,6 +33,12 @@ export const constantRoutes: Array<RouteRecordRaw> = [
         path: PageEnum.LOGIN,
         component: () => import('@/views/login/index.vue'),
         meta: { hidden: true }
+    },
+    {
+        path: '/diy/editor',
+        name: 'DiyEditor',
+        component: () => import('@/views/diy/editor-page.vue'),
+        meta: { hidden: true, hideTab: true, title: '装修编辑器' }
     }
 ]
 

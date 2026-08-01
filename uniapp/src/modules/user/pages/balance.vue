@@ -88,7 +88,9 @@ import { ref, computed, onMounted } from 'vue'
 import { userApi, type BalanceLogItem } from '@/api/user'
 import type { PayChannel } from '@/api/payment'
 import { usePaging } from '@/hooks/usePaging'
+import { useThemePage } from '@/hooks/useTheme'
 
+useThemePage()
 const balance = ref('0.00')
 const showRecharge = ref(false)
 const showPayPopup = ref(false)
@@ -223,7 +225,7 @@ onMounted(() => {
 }
 
 .balance-header {
-  background: linear-gradient(135deg, #2979ff, #1e5fcc);
+  background: linear-gradient(135deg, var(--yd-color-primary, #2979ff), var(--yd-color-primary-dark, #1e5bb8));
   border-radius: 24rpx;
   padding: 48rpx 40rpx;
   margin-bottom: 24rpx;

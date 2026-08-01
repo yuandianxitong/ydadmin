@@ -29,7 +29,7 @@ const originalPriceText = computed(() =>
 .d-price {
   display: inline-flex;
   align-items: baseline;
-  color: #fa3534;
+  color: var(--yd-color-price, #fa3534);
 
   &__symbol {
     font-size: 24rpx;

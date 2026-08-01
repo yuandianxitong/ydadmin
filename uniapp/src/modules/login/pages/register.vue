@@ -98,7 +98,9 @@ import { authApi } from '@/api/auth'
 import { isPassword, isMobile } from '@/utils/validate'
 import { useUserStore } from '@/store/user.store'
 import { useCountdown } from '@/hooks/useCountdown'
+import { useThemePage } from '@/hooks/useTheme'
 
+useThemePage()
 const userStore = useUserStore()
 
 const loading = ref(false)

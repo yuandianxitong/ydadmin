@@ -25,6 +25,36 @@ export const userApi = {
 
   recharge: (data: { amount: number; channel: string }) =>
     http.post<RechargeResult>('/api/user/recharge', data),
+
+  /** 装修个人中心资产统计（组合已有余额/积分接口） */
+  async getMemberStats(keys: string[]): Promise<Record<string, number | string>> {
+    const out: Record<string, number | string> = {}
+    const needBalance = keys.includes('user.balance')
+    const needPoints = keys.includes('user.points')
+    const tasks: Promise<void>[] = []
+    if (needBalance) {
+      tasks.push(
+        userApi
+          .getBalance()
+          .then((r) => {
+            out['user.balance'] = r?.balance ?? '0.00'
+          })
+          .catch(() => {})
+      )
+    }
+    if (needPoints) {
+      tasks.push(
+        userApi
+          .getPoints()
+          .then((r) => {
+            out['user.points'] = r?.points ?? 0
+          })
+          .catch(() => {})
+      )
+    }
+    await Promise.all(tasks)
+    return out
+  },
 }
 
 /** 充值接口返回结构（与后端 PaymentService.createOrder 对齐） */

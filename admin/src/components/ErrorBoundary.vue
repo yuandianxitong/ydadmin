@@ -5,6 +5,11 @@ const hasError = ref(false)
 const errorInfo = ref<{ message: string; stack?: string }>({ message: '' })
 
 onErrorCaptured((err: Error, instance, info) => {
+    // 请求拦截器已 ElMessage 提示的业务/HTTP 错误（含 async 点击处理器未 catch 的 reject）
+    // 不应升级为整页「页面渲染出错」
+    if ((err as any)?.__handled || (err as any)?.isAxiosError) {
+        return false
+    }
     hasError.value = true
     errorInfo.value = {
         message: err.message || 'Page render error',

@@ -19,6 +19,11 @@ export default defineConfig({
         target: "http://localhost:8005",
         changeOrigin: true,
       },
+      // 装修默认素材 public/static/diy/*
+      "/static": {
+        target: "http://localhost:8005",
+        changeOrigin: true,
+      },
     },
   },
 });

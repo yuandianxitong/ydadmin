@@ -1,5 +1,11 @@
 <template>
-  <view class="my-page">
+  <view class="my-page" :style="cssVars">
+    <DiyRenderer
+      v-if="hasRenderableDecoration(memberPage)"
+      :components="memberPage!.components"
+      :page-settings="memberPage!.page_settings"
+    />
+    <template v-else>
     <!-- User Card with gradient background -->
     <view class="user-header">
       <view class="status-bar" :style="{ height: statusBarHeight + 'px' }" />
@@ -45,7 +51,7 @@
       <!-- Group 1: Profile -->
       <view class="menu-card">
         <view class="menu-cell" @tap="goAuthPage('/modules/user/pages/edit-profile')">
-          <view class="i-ri-user-3-line menu-cell-icon" style="color: #2979ff" />
+          <view class="i-ri-user-3-line menu-cell-icon menu-cell-icon--primary" />
           <text class="menu-cell-title">个人资料</text>
           <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
         </view>
@@ -82,13 +88,15 @@
         </view>
         <view class="menu-cell-divider" />
         <view class="menu-cell" @tap="goPage('/modules/user/pages/settings')">
-          <view class="i-ri-settings-3-line menu-cell-icon" style="color: #fa3534" />
+          <view class="i-ri-settings-3-line menu-cell-icon menu-cell-icon--badge" />
           <text class="menu-cell-title">设置</text>
           <view class="i-ri-arrow-right-s-line menu-cell-arrow" />
         </view>
       </view>
 
     </view>
+    </template>
+    <AppTabBar current="pages/my/index" />
   </view>
 </template>
 
@@ -100,13 +108,22 @@ import { useAppStore } from '@/store/app.store'
 import { messageApi } from '@/api/message'
 import { userApi } from '@/api/user'
 import { getStatusBarHeight } from '@/utils/platform'
+import DiyRenderer from '@/components/diy/DiyRenderer.vue'
+import AppTabBar from '@/components/tabbar/AppTabBar.vue'
+import { mobileConfigApi } from '@/api/mobile-config'
+import { hasRenderableDecoration, type DiyPagePayload } from './memberDecoration'
+import { provideMemberStats } from '@/hooks/useMemberStats'
+import { useTheme } from '@/hooks/useTheme'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
+const { cssVars, applyNavBar } = useTheme()
+const { refresh: refreshMemberStats } = provideMemberStats()
 
 const statusBarHeight = ref(getStatusBarHeight())
 const unreadCount = ref(0)
 const balanceInfo = ref({ balance: '0.00', points: 0 })
+const memberPage = ref<DiyPagePayload | null>(null)
 
 const avatarUrl = computed(() => {
   if (userStore.isLoggedIn && userStore.avatar) {
@@ -175,12 +192,25 @@ function loadAssets() {
   })
 }
 
+async function loadMemberDecoration() {
+  try {
+    const page = await mobileConfigApi.getDiyPage('member')
+    memberPage.value = page
+    refreshMemberStats(page?.components)
+  } catch {
+    memberPage.value = null
+  }
+}
+
 onShow(() => {
+  uni.hideTabBar({ fail: () => {} })
+  applyNavBar()
   if (userStore.isLoggedIn && !userStore.userInfo) {
     userStore.getUserInfo().catch(() => {})
   }
   loadUnreadCount()
   loadAssets()
+  loadMemberDecoration()
 })
 </script>
 
@@ -189,11 +219,13 @@ onShow(() => {
 
 .my-page {
   min-height: 100vh;
-  background-color: $bg-color;
+  background-color: var(--yd-color-page-bg, #f5f5f5);
+  padding-bottom: calc(50px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
 }
 
 .user-header {
-  background: linear-gradient(135deg, #2979ff, #1e5fcc);
+  background: linear-gradient(135deg, var(--yd-color-primary, #2979ff), var(--yd-color-primary-dark, #1e5bb8));
   padding-bottom: 32rpx;
 }
 
@@ -312,6 +344,8 @@ onShow(() => {
     font-size: 40rpx;
     margin-right: 24rpx;
     flex-shrink: 0;
+    &--primary { color: var(--yd-color-primary, #2979ff); }
+    &--badge { color: var(--yd-color-badge, #fa3534); }
   }
 
   .menu-cell-title {

@@ -1,5 +1,5 @@
 <template>
-  <view class="discover-page">
+  <view class="discover-page" :style="cssVars">
     <!-- Category Tabs -->
     <u-tabs :list="tabList" :current="currentTabIndex" @click="handleTabClick" />
 
@@ -54,6 +54,7 @@
       :total="total"
       empty-text="暂无文章"
     />
+    <AppTabBar current="pages/discover/index" />
   </view>
 </template>
 
@@ -63,8 +64,11 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAppStore } from '@/store/app.store'
 import { articleApi, type ArticleItem, type ArticleCategory } from '@/api/article'
 import { usePaging } from '@/hooks/usePaging'
+import AppTabBar from '@/components/tabbar/AppTabBar.vue'
+import { useTheme } from '@/hooks/useTheme'
 
 const appStore = useAppStore()
+const { cssVars, applyNavBar } = useTheme()
 const activeTab = ref(0)
 const currentTabIndex = ref(0)
 const categories = ref<ArticleCategory[]>([])
@@ -122,6 +126,8 @@ function loadCategories() {
 }
 
 onShow(() => {
+  uni.hideTabBar({ fail: () => {} })
+  applyNavBar()
   if (categories.value.length === 0) {
     loadCategories()
   }
@@ -137,6 +143,8 @@ onShow(() => {
 .discover-page {
   min-height: 100vh;
   background-color: $bg-color;
+  padding-bottom: calc(50px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
 }
 
 .article-list {
@@ -210,8 +218,8 @@ onShow(() => {
 
   &__tag {
     font-size: 22rpx;
-    color: $primary-color;
-    background: rgba($primary-color, 0.1);
+    color: var(--yd-color-primary, #2979ff);
+    background: var(--yd-color-primary-soft, #2979ff1a);
     padding: 4rpx 14rpx;
     border-radius: 8rpx;
   }

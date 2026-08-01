@@ -1,5 +1,5 @@
 <template>
-  <view class="login-page">
+  <view class="login-page" :style="cssVars">
     <!-- 状态栏占位 -->
     <view :style="{ height: statusBarHeight + 'px' }" />
 
@@ -130,6 +130,7 @@
 import { computed, ref } from 'vue'
 import { useAppStore } from '@/store/app.store'
 import { useLogin } from '../composables/useLogin'
+import { useThemePage } from '@/hooks/useTheme'
 
 const {
   loading, loginType, countdown,
@@ -138,6 +139,7 @@ const {
   loginByWechatQuick, bindPhoneAndLogin,
 } = useLogin()
 
+const { cssVars } = useThemePage()
 const appStore = useAppStore()
 const appName = computed(() => appStore.config.site_name || '元点Admin')
 const logoSrc = computed(() => {

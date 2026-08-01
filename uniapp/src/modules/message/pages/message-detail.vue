@@ -58,9 +58,9 @@ onLoad((options) => {
 
   &__type {
     font-size: 24rpx;
-    color: $primary-color;
+    color: var(--yd-color-primary, #2979ff);
     font-weight: 500;
-    background: rgba($primary-color, 0.1);
+    background: var(--yd-color-primary-soft, #2979ff1a);
     padding: 6rpx 20rpx;
     border-radius: 20rpx;
   }

@@ -50,12 +50,17 @@
         empty-text="暂无消息"
       />
     </scroll-view>
+    <AppTabBar current="pages/message/index" />
   </d-page>
 </template>
 
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { useMessageList } from '@/hooks/useMessageList'
+import AppTabBar from '@/components/tabbar/AppTabBar.vue'
+import { useTheme } from '@/hooks/useTheme'
+
+const { applyNavBar } = useTheme()
 
 const {
   list,
@@ -85,6 +90,8 @@ function handleRefresh() {
 }
 
 onShow(() => {
+  uni.hideTabBar({ fail: () => {} })
+  applyNavBar()
   refresh()
 })
 </script>
@@ -150,7 +157,7 @@ onShow(() => {
       color: #ffffff;
     }
 
-    &.type-system { background: linear-gradient(135deg, #2979ff, #5b9bff); }
+    &.type-system { background: linear-gradient(135deg, var(--yd-color-primary, #2979ff), var(--yd-color-primary-dark, #1e5bb8)); }
     &.type-order { background: linear-gradient(135deg, #ff9900, #ffb74d); }
     &.type-payment { background: linear-gradient(135deg, #19be6b, #4dd893); }
     &.type-activity { background: linear-gradient(135deg, #7c4dff, #a98bff); }

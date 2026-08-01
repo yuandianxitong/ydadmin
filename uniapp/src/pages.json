@@ -23,9 +23,16 @@
 			"style": {
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/diy/index",
+			"style": {
+				"navigationBarTitleText": "页面"
+			}
 		}
 	],
 	"tabBar": {
+		"custom": true,
 		"color": "#999999",
 		"selectedColor": "#2979ff",
 		"backgroundColor": "#ffffff",

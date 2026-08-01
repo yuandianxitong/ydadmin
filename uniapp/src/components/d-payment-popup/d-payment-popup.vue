@@ -140,7 +140,7 @@ function handlePay() {
 
     &.is-active {
       background: #ffffff;
-      border-color: #2979ff;
+      border-color: var(--yd-color-primary, #2979ff);
       box-shadow: 0 4rpx 16rpx rgba(41, 121, 255, 0.1);
     }
   }

@@ -1,9 +1,13 @@
-$primary-color: #2979ff;
+// 编译期 fallback；运行时以 CSS 变量为准（见 hooks/useTheme.ts、mobile-config.store）
+// 样式中优先写 var(--yd-color-*)；下列 $ 变量已桥接到 CSS 变量，旧代码可继续用。
+$primary-color: var(--yd-color-primary, #2979ff);
+$primary-color-dark: var(--yd-color-primary-dark, #1e5bb8);
 $success-color: #19be6b;
 $warning-color: #ff9900;
-$danger-color: #fa3534;
+$danger-color: var(--yd-color-badge, #fa3534);
+$price-color: var(--yd-color-price, #fa3534);
 $text-color: #333333;
 $text-color-secondary: #999999;
 $border-color: #ebeef5;
-$bg-color: #f5f5f5;
+$bg-color: var(--yd-color-page-bg, #f5f5f5);
 $page-padding: 30rpx;

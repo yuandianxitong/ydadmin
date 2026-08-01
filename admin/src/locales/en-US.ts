@@ -34,6 +34,13 @@ export default {
         ChannelMiniAppConfig: 'Mini Program Config',
         ChannelOpen: 'Open Platform',
         ChannelOpenConfig: 'Open Platform Config',
+        Diy: 'Decoration',
+        DiyHome: 'Page Decoration',
+        DiyEditor: 'Decoration Editor',
+        DiyTabbar: 'Tab Bar',
+        DiyTheme: 'Theme',
+        DiyPages: 'Custom Pages',
+        DiyLinks: 'Links',
         // User Management
         User: 'Users',
         UserList: 'User List',
@@ -1480,5 +1487,35 @@ export default {
             versionCodeRequired: 'Please enter version code',
             downloadUrlRequired: 'Please enter download URL'
         }
+    },
+    diyEditor: {
+        back: 'Back',
+        homeTitle: 'Home Decoration',
+        undo: 'Undo',
+        redo: 'Redo',
+        versions: 'History',
+        save: 'Save',
+        publish: 'Publish',
+        saved: 'Saved',
+        published: 'Published',
+        empty: 'Add components from the left to start',
+        unsavedTitle: 'Unsaved changes',
+        unsavedLeave: 'You have unsaved changes. Leave anyway?',
+        leave: 'Leave',
+        duplicate: 'Duplicate',
+        hide: 'Hide',
+        show: 'Show',
+        pageTitleFallback: 'Page title'
+    },
+    decorateList: {
+        title: 'Page Decoration',
+        home: 'Home',
+        member: 'Profile',
+        published: 'Published',
+        draft: 'Draft',
+        componentCount: '{count} components',
+        updatedAt: 'Updated {time}',
+        decorate: 'Decorate'
     }
+
 }

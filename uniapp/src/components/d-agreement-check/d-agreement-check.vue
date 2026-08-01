@@ -1,8 +1,11 @@
 <template>
   <view class="agreement" @tap="toggle">
     <view
-      :class="modelValue ? 'i-ri-checkbox-circle-fill' : 'i-ri-checkbox-blank-circle-line'"
-      :style="{ fontSize: '36rpx', color: modelValue ? '#2979ff' : '#ccc' }"
+      class="agreement-check"
+      :class="[
+        modelValue ? 'i-ri-checkbox-circle-fill' : 'i-ri-checkbox-blank-circle-line',
+        { 'is-on': modelValue },
+      ]"
     />
     <text class="agreement-text">
       我已阅读并同意
@@ -42,12 +45,19 @@ function openUrl(url?: string) {
   align-items: center;
   padding: 20rpx 0;
 }
+.agreement-check {
+  font-size: 36rpx;
+  color: #ccc;
+  &.is-on {
+    color: var(--yd-color-primary, #2979ff);
+  }
+}
 .agreement-text {
   font-size: 24rpx;
   color: #999;
   margin-left: 10rpx;
 }
 .link {
-  color: #2979ff;
+  color: var(--yd-color-primary, #2979ff);
 }
 </style>

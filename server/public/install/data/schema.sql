@@ -765,6 +765,71 @@ CREATE TABLE IF NOT EXISTS `ai_artifacts` (
   KEY `ai_artifacts_state_index` (`state`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI 编译工件';
 
+
+-- ============================================================
+-- 装修模块（v1.8.0）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `diy_pages` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `page_type` varchar(32) NOT NULL DEFAULT 'home' COMMENT '页面类型:home/member/custom',
+  `page_key` varchar(64) NOT NULL DEFAULT '' COMMENT '页面标识(slug);home固定home',
+  `platform` varchar(16) NOT NULL DEFAULT 'uniapp' COMMENT '端:uniapp/pc',
+  `title` varchar(100) NOT NULL DEFAULT '' COMMENT '页面名称',
+  `components_draft` json DEFAULT NULL COMMENT '草稿组件树',
+  `components_published` json DEFAULT NULL COMMENT '已发布组件树',
+  `page_settings` json DEFAULT NULL COMMENT '页面设置',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态:1启用,0禁用',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_pagekey_platform` (`page_key`,`platform`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='装修页面表';
+
+CREATE TABLE IF NOT EXISTS `diy_page_versions` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `page_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'diy_pages.id',
+  `version_no` int(11) NOT NULL DEFAULT '1' COMMENT '版本号(按page递增)',
+  `components` json DEFAULT NULL COMMENT '组件树快照',
+  `page_settings` json DEFAULT NULL COMMENT '页面设置快照',
+  `note` varchar(255) NOT NULL DEFAULT '' COMMENT '备注',
+  `created_by` bigint(20) DEFAULT NULL COMMENT '创建人admin_id',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_page_version` (`page_id`,`version_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='装修页面版本快照表';
+
+CREATE TABLE IF NOT EXISTS `diy_links` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `label` varchar(64) NOT NULL DEFAULT '' COMMENT '链接名称',
+  `path` varchar(255) NOT NULL DEFAULT '' COMMENT '链接路径或外链',
+  `category` varchar(32) NOT NULL DEFAULT '我的链接' COMMENT '分类',
+  `icon` varchar(64) DEFAULT NULL COMMENT '图标',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态:1启用,0禁用',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`,`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='装修链接库';
+
+CREATE TABLE IF NOT EXISTS `mobile_configs` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `app_name` varchar(100) NOT NULL DEFAULT '' COMMENT '应用名',
+  `app_logo` varchar(500) NOT NULL DEFAULT '' COMMENT '应用 Logo',
+  `theme_color` varchar(16) NOT NULL DEFAULT '' COMMENT '主题色=主色',
+  `theme_colors` json DEFAULT NULL COMMENT '主题色板 {primary,dark,price,page_bg,button_text,badge}',
+  `home_app_code` varchar(80) NOT NULL DEFAULT '' COMMENT '启动首页所属应用/内置 code',
+  `home_page` varchar(200) NOT NULL DEFAULT '' COMMENT '启动首页路径（空则用装修首页）',
+  `tabbar_json` json DEFAULT NULL COMMENT 'tabBar 配置',
+  `tabbar_style` json DEFAULT NULL COMMENT 'tabBar 样式 {text_color,active_color,bg_color}',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1=启用 0=禁用',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='移动端配置（主题/tabBar）';
+
 -- ============================================================
 -- 框架数据库升级记录表（php think yd:update 使用）
 -- ============================================================

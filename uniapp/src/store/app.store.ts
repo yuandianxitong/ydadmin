@@ -20,13 +20,23 @@ export const useAppStore = defineStore('app', () => {
     return configPromise
   }
 
+  /** 静态资源域名：优先后台 site_url / oss_domain，否则回退 VITE_APP_API_URL */
+  function getMediaBaseUrl(): string {
+    const fromConfig = String(config.value.site_url || config.value.oss_domain || '').replace(/\/+$/, '')
+    if (fromConfig) return fromConfig
+    // 后台未配 site_url 时（常见于本地/小程序），用构建期 API 域名拼绝对地址
+    return String(import.meta.env.VITE_APP_API_URL || '').replace(/\/+$/, '')
+  }
+
   function getImageUrl(url: string): string {
     if (!url) return ''
-    const baseUrl = config.value.site_url || config.value.oss_domain || ''
-    // 已是完整 URL：如果 site_url 已配置且 URL 以其他域名开头，替换为 site_url
+    if (url.startsWith('data:')) return url
+
+    const baseUrl = getMediaBaseUrl()
+
+    // 已是完整 URL：如果 base 已配置且 URL 含 /storage/，统一到站点域名
     if (url.startsWith('http://') || url.startsWith('https://')) {
       if (baseUrl) {
-        // 提取路径部分（从第一个 /storage/ 或 /uploads/ 开始）
         const pathMatch = url.match(/(\/storage\/.*)/)
         if (pathMatch) {
           return baseUrl + pathMatch[1]
@@ -34,7 +44,9 @@ export const useAppStore = defineStore('app', () => {
       }
       return url
     }
-    return baseUrl + url
+
+    const path = url.startsWith('/') ? url : `/${url}`
+    return baseUrl ? `${baseUrl}${path}` : path
   }
 
   /** 清理内存中的全局配置，下次调用 getConfig 时会重新拉取 */

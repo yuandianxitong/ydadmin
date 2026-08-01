@@ -78,6 +78,12 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                     changeOrigin: true,
                     secure: false,
                 },
+                // 装修默认素材等 public/static 资源
+                '/static': {
+                    target: env.VITE_APP_API_URL || 'http://test.com',
+                    changeOrigin: true,
+                    secure: false,
+                },
             },
         },
 

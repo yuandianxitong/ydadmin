@@ -11,7 +11,7 @@
             @click="handleClearCache"
           >
             <template #icon>
-              <text class="iconfont icon-trash3 cell-icon" style="color: #fa3534" />
+              <text class="iconfont icon-trash3 cell-icon cell-icon--badge" />
             </template>
           </u-cell>
           <u-cell
@@ -20,7 +20,7 @@
             @click="handleCheckUpdate"
           >
             <template #icon>
-              <text class="iconfont icon-phone-vibrate-fill cell-icon" style="color: #2979ff" />
+              <text class="iconfont icon-phone-vibrate-fill cell-icon cell-icon--primary" />
             </template>
           </u-cell>
         </u-cell-group>
@@ -31,7 +31,7 @@
         <u-cell-group>
           <u-cell title="当前版本" :value="version">
             <template #icon>
-              <text class="iconfont icon-question-circle cell-icon" style="color: #2979ff" />
+              <text class="iconfont icon-question-circle cell-icon cell-icon--primary" />
             </template>
           </u-cell>
           <u-cell
@@ -76,7 +76,9 @@ import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/store/app.store'
 import { useUserStore } from '@/store/user.store'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
+import { useThemePage } from '@/hooks/useTheme'
 
+useThemePage()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const { checking, checkUpdate } = useVersionCheck()
@@ -187,6 +189,8 @@ function openTerms() {
   .cell-icon {
     font-size: 40rpx;
     margin-right: 16rpx;
+    &--primary { color: var(--yd-color-primary, #2979ff); }
+    &--badge { color: var(--yd-color-badge, #fa3534); }
   }
 }
 

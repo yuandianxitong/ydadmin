@@ -4,6 +4,51 @@
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-07-31
+
+### Added
+
+- 安装种子默认首页装修：轮播、公告、分类导航（8 宫格）、内容列表；静态素材落盘 `public/static/diy/`
+- 装修编辑器新增基础组件「内容列表」：对接文章管理已发布列表，支持最新/分类、列表/双列、封面摘要日期与更多链接
+
+### Changed
+
+- 默认底部导航图标改为服务端路径 `/static/diy/tabbar/*`；UniApp 使用自定义 tabBar 并通过 `site_url` 拼接图标
+- 底部导航移除「首页入口」配置；UniApp 首页固定渲染装修已发布首页（`home_decoration`）
+- 底部导航项改为自由填写跳转链接（不再强制内置页面 code）
+- UniApp 全局主题色：全端注入 `--yd-color-*`，同步原生导航栏/底栏选中/主按钮/渐变头与价格角标，新增 `useTheme` / `useThemePage` 约定
+- 老环境可通过 `php think yd:update` 升级至 v1.8.2，同步覆盖系统页 home/member 默认装修并迁移旧 tabBar 图标路径
+
+### Fixed
+
+- 修复装修列表 `home/summary` 等路由被裸 `home` 草稿接口抢占导致组件数始终为 0
+- 修复协议勾选组件重复 `:class` 导致 Vite 编译失败
+
+## [1.8.1] - 2026-07-31
+
+### Fixed
+
+- 修复管理端「底部导航」页在接口字段缺失时因读取 `.length` 导致的页面渲染崩溃
+- `mobile_configs` 补齐 `home_app_code` 字段，保证首页入口可正确保存
+
+## [1.8.0] - 2026-07-31
+
+### Added
+
+#### 后端 (server)
+- 新增装修模块表：`diy_pages`、`diy_page_versions`、`diy_links`、`mobile_configs`（草稿/发布/版本、链接库、主题与底部导航）
+- 新增管理端 API：`/adminapi/diy/*`（页面装修、自定义页面、链接库、组件目录、链接目录）、`/adminapi/mobile/config`（主题色板/tabBar）
+- 新增 C 端 API：`GET /api/mobile/config`（含 `home_decoration`）、`GET /api/mobile/diy-page`
+- 新增一级菜单「装修」及子菜单（页面装修、自定义页面、底部导航、主题风格、链接管理）与对应权限点；老环境可通过 `php think yd:update` 升级至 v1.8.0
+
+#### Admin 前端 (admin)
+- 新增装修全屏编辑器（对齐 SaaS 租户端，仅基础组件）：三栏布局、撤销重做、版本回滚、组件样式与链接选择
+- 新增页面装修列表、自定义页面、底部导航、主题风格、链接管理页面
+
+#### UniApp (uniapp)
+- 新增 `DiyRenderer` 与基础装修组件；首页/个人中心优先渲染已发布装修树，无数据时回退原硬编码布局
+- 新增自定义装修页 `pages/diy/index`、自定义 `AppTabBar`、移动端配置 Store（主题 CSS 变量）
+
 ## [1.7.0] - 2026-07-24
 
 ### Added

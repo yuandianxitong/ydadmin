@@ -161,7 +161,25 @@ INSERT INTO `permissions` (`id`, `name`, `title`, `group`, `description`, `guard
     (162, 'ai.studio.generate', 'AI 工作台', '开发工具', 'AI 工作台页面访问与代码生成权限', 'admin', 1, 162, NOW(), NOW()),
     (163, 'ai.studio.apply', '应用生成结果', '开发工具', '将 AI 生成结果写入项目的权限', 'admin', 1, 163, NOW(), NOW()),
     (164, 'ai.ydspec.use', 'AI 建模向导', '开发工具', 'AI 建模向导页面访问、编译、检查权限', 'admin', 1, 164, NOW(), NOW()),
-    (165, 'ai.ydspec.apply', '应用编译结果', '开发工具', '将 YdSpec 编译结果经门禁写入项目的权限', 'admin', 1, 165, NOW(), NOW());
+    (165, 'ai.ydspec.apply', '应用编译结果', '开发工具', '将 YdSpec 编译结果经门禁写入项目的权限', 'admin', 1, 165, NOW(), NOW()),
+    -- 装修
+    (170, 'diy.home.view', '页面装修查看', '装修', '查看页面装修', 'admin', 1, 170, NOW(), NOW()),
+    (171, 'diy.home.save', '页面装修保存', '装修', '保存页面装修草稿', 'admin', 1, 171, NOW(), NOW()),
+    (172, 'diy.home.publish', '页面装修发布', '装修', '发布页面装修', 'admin', 1, 172, NOW(), NOW()),
+    (173, 'diy.home.version.view', '装修版本列表', '装修', '查看装修版本', 'admin', 1, 173, NOW(), NOW()),
+    (174, 'diy.home.version.restore', '装修版本回滚', '装修', '回滚装修版本', 'admin', 1, 174, NOW(), NOW()),
+    (175, 'diy.page.view', '自定义页面查看', '装修', '查看自定义页面', 'admin', 1, 175, NOW(), NOW()),
+    (176, 'diy.page.create', '自定义页面创建', '装修', '创建自定义页面', 'admin', 1, 176, NOW(), NOW()),
+    (177, 'diy.page.update', '自定义页面编辑', '装修', '编辑自定义页面', 'admin', 1, 177, NOW(), NOW()),
+    (178, 'diy.page.delete', '自定义页面删除', '装修', '删除自定义页面', 'admin', 1, 178, NOW(), NOW()),
+    (179, 'diy.page.save', '自定义页面保存', '装修', '保存自定义页面草稿', 'admin', 1, 179, NOW(), NOW()),
+    (180, 'diy.page.publish', '自定义页面发布', '装修', '发布自定义页面', 'admin', 1, 180, NOW(), NOW()),
+    (181, 'diy.link.list', '链接管理列表', '装修', '查看链接库', 'admin', 1, 181, NOW(), NOW()),
+    (182, 'diy.link.create', '链接管理新增', '装修', '新增链接', 'admin', 1, 182, NOW(), NOW()),
+    (183, 'diy.link.update', '链接管理编辑', '装修', '编辑链接', 'admin', 1, 183, NOW(), NOW()),
+    (184, 'diy.link.delete', '链接管理删除', '装修', '删除链接', 'admin', 1, 184, NOW(), NOW()),
+    (185, 'mobile.config.view', '移动端配置查看', '装修', '查看主题/底部导航配置', 'admin', 1, 185, NOW(), NOW()),
+    (186, 'mobile.config.update', '移动端配置保存', '装修', '保存主题/底部导航配置', 'admin', 1, 186, NOW(), NOW());
 
 -- ============================================================
 -- 菜单数据
@@ -340,7 +358,29 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 
   -- ===== 开放平台（渠道管理子菜单） =====
   (15, 4, 1, '开放平台', 'ChannelOpen', '/channel/open', 'LAYOUT', '/channel/open/config', 'i-svg:globe', 'channel.open', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-  (550, 15, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
+  (550, 15, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+
+  -- ===== 装修（v1.8.0）=====
+  (16, 0, 1, '装修', 'Diy', '/diy', 'LAYOUT', '/diy/home', 'i-svg:paint-roller', 'diy.home.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 700, NOW(), NOW()),
+  (1600, 16, 2, '页面装修', 'DiyHome', '/diy/home', 'diy/decorate-list', NULL, 'i-svg:house', 'diy.home.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1605, 1600, 3, '保存', NULL, NULL, NULL, NULL, NULL, 'diy.home.save', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1606, 1600, 3, '发布', NULL, NULL, NULL, NULL, NULL, 'diy.home.publish', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (1607, 1600, 3, '版本列表', NULL, NULL, NULL, NULL, NULL, 'diy.home.version.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (1608, 1600, 3, '回滚版本', NULL, NULL, NULL, NULL, NULL, 'diy.home.version.restore', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (1601, 16, 2, '自定义页面', 'DiyPages', '/diy/pages', 'diy/pages', NULL, 'i-svg:layout-list', 'diy.page.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (1609, 1601, 3, '创建', NULL, NULL, NULL, NULL, NULL, 'diy.page.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1610, 1601, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'diy.page.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (1611, 1601, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'diy.page.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (1612, 1601, 3, '保存', NULL, NULL, NULL, NULL, NULL, 'diy.page.save', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (1613, 1601, 3, '发布', NULL, NULL, NULL, NULL, NULL, 'diy.page.publish', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
+  (1602, 16, 2, '底部导航', 'DiyTabbar', '/diy/tabbar', 'diy/tabbar', NULL, 'i-svg:layout-list', 'mobile.config.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (1614, 1602, 3, '保存', NULL, NULL, NULL, NULL, NULL, 'mobile.config.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1603, 16, 2, '主题风格', 'DiyTheme', '/diy/theme', 'diy/theme', NULL, 'i-svg:palette', 'mobile.config.view', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (1615, 1603, 3, '保存', NULL, NULL, NULL, NULL, NULL, 'mobile.config.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1604, 16, 2, '链接管理', 'DiyLinks', '/diy/links', 'diy/links', NULL, 'i-svg:link', 'diy.link.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW()),
+  (1616, 1604, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'diy.link.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (1617, 1604, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'diy.link.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (1618, 1604, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'diy.link.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
 
 -- ============================================================
 -- 为超级管理员角色分配所有权限和菜单
@@ -502,3 +542,13 @@ INSERT INTO `message_templates` (`name`, `code`, `sms_enabled`, `sms_template_id
 -- Banner 配置
 INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES
 ('banner_list', '[]', 'banner', 'json', '轮播图列表', '首页轮播图配置，JSON数组格式：[{"image":"图片地址","url":"跳转链接","title":"标题"}]', NULL, NULL, 1, 1, NOW(), NOW());
+
+-- ============================================================
+-- 装修初始数据（v1.8.0）
+-- ============================================================
+INSERT INTO `diy_pages` (`page_type`, `page_key`, `platform`, `title`, `components_draft`, `components_published`, `page_settings`, `status`, `created_at`, `updated_at`) VALUES
+('home', 'home', 'uniapp', '首页', '[{"id":"seed-banner","type":"banner","props":{"items":[{"image":"/static/diy/home/banner.jpg","link":""}],"autoplay":true,"interval":3000,"height":300}},{"id":"seed-notice","type":"notice","props":{"items":[{"text":"欢迎使用元点Admin","link":""}],"speed":3000,"icon":""}},{"id":"seed-category-nav","type":"category-nav","props":{"style":"icon-grid","rows":2,"columns":4,"items":[{"title":"应用市场","icon":"/static/diy/home/nav-app-market.png","link":"/pages/discover/index"},{"title":"内容管理","icon":"/static/diy/home/nav-content.png","link":"/pages/discover/index"},{"title":"商城系统","icon":"/static/diy/home/nav-mall.png","link":"/pages/discover/index"},{"title":"同城服务","icon":"/static/diy/home/nav-local.png","link":"/pages/discover/index"},{"title":"会员中心","icon":"/static/diy/home/nav-member.png","link":"/pages/my/index"},{"title":"支付中心","icon":"/static/diy/home/nav-payment.png","link":"/pages/discover/index"},{"title":"数据中心","icon":"/static/diy/home/nav-data.png","link":"/pages/discover/index"},{"title":"全部功能","icon":"/static/diy/home/nav-all.png","link":"/pages/discover/index"}]}},{"id":"seed-content-list","type":"content-list","props":{"section_title":"最新文章","source":"latest","category_id":0,"limit":6,"layout":"list","show_cover":true,"show_summary":true,"show_date":true,"more_link":"/pages/discover/index"}}]', '[{"id":"seed-banner","type":"banner","props":{"items":[{"image":"/static/diy/home/banner.jpg","link":""}],"autoplay":true,"interval":3000,"height":300}},{"id":"seed-notice","type":"notice","props":{"items":[{"text":"欢迎使用元点Admin","link":""}],"speed":3000,"icon":""}},{"id":"seed-category-nav","type":"category-nav","props":{"style":"icon-grid","rows":2,"columns":4,"items":[{"title":"应用市场","icon":"/static/diy/home/nav-app-market.png","link":"/pages/discover/index"},{"title":"内容管理","icon":"/static/diy/home/nav-content.png","link":"/pages/discover/index"},{"title":"商城系统","icon":"/static/diy/home/nav-mall.png","link":"/pages/discover/index"},{"title":"同城服务","icon":"/static/diy/home/nav-local.png","link":"/pages/discover/index"},{"title":"会员中心","icon":"/static/diy/home/nav-member.png","link":"/pages/my/index"},{"title":"支付中心","icon":"/static/diy/home/nav-payment.png","link":"/pages/discover/index"},{"title":"数据中心","icon":"/static/diy/home/nav-data.png","link":"/pages/discover/index"},{"title":"全部功能","icon":"/static/diy/home/nav-all.png","link":"/pages/discover/index"}]}},{"id":"seed-content-list","type":"content-list","props":{"section_title":"最新文章","source":"latest","category_id":0,"limit":6,"layout":"list","show_cover":true,"show_summary":true,"show_date":true,"more_link":"/pages/discover/index"}}]', '{"background_color":""}', 1, NOW(), NOW()),
+('member', 'member', 'uniapp', '个人中心', '[{"id":"seed-member-user","type":"user-info-card","props":{"show_assets":true,"assets":[{"label":"余额","stat_key":"user.balance","link":"/modules/user/pages/balance"},{"label":"积分","stat_key":"user.points","link":"/modules/user/pages/points"}]}},{"id":"seed-member-menu","type":"service-menu","props":{"items":[{"icon":"","text":"个人资料","link":"/modules/user/pages/edit-profile"},{"icon":"","text":"修改密码","link":"/modules/user/pages/change-password"},{"icon":"","text":"关于我们","link":"/modules/about/pages/about"},{"icon":"","text":"设置","link":"/modules/user/pages/settings"}]}}]', '[{"id":"seed-member-user","type":"user-info-card","props":{"show_assets":true,"assets":[{"label":"余额","stat_key":"user.balance","link":"/modules/user/pages/balance"},{"label":"积分","stat_key":"user.points","link":"/modules/user/pages/points"}]}},{"id":"seed-member-menu","type":"service-menu","props":{"items":[{"icon":"","text":"个人资料","link":"/modules/user/pages/edit-profile"},{"icon":"","text":"修改密码","link":"/modules/user/pages/change-password"},{"icon":"","text":"关于我们","link":"/modules/about/pages/about"},{"icon":"","text":"设置","link":"/modules/user/pages/settings"}]}}]', '{"background_color":""}', 1, NOW(), NOW());
+
+INSERT INTO `mobile_configs` (`app_name`, `app_logo`, `theme_color`, `theme_colors`, `home_page`, `tabbar_json`, `tabbar_style`, `status`, `created_at`, `updated_at`) VALUES
+('', '', '#2979ff', '{"primary":"#2979ff","dark":"#1e5bb8","price":"#fa3534","page_bg":"#f5f5f5","button_text":"#ffffff","badge":"#fa3534"}', '', '[{"code":"__home__","path":"pages/index/index","text":"首页","icon":"/static/diy/tabbar/home.png","selected_icon":"/static/diy/tabbar/home-active.png"},{"code":"__discover__","path":"pages/discover/index","text":"发现","icon":"/static/diy/tabbar/discover.png","selected_icon":"/static/diy/tabbar/discover-active.png"},{"code":"__message__","path":"pages/message/index","text":"消息","icon":"/static/diy/tabbar/message.png","selected_icon":"/static/diy/tabbar/message-active.png"},{"code":"__my__","path":"pages/my/index","text":"我的","icon":"/static/diy/tabbar/my.png","selected_icon":"/static/diy/tabbar/my-active.png"}]', '{"text_color":"#999999","active_color":"#2979ff","bg_color":"#ffffff"}', 1, NOW(), NOW());

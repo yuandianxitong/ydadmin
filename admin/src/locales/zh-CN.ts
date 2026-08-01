@@ -34,6 +34,13 @@ export default {
         ChannelMiniAppConfig: '小程序配置',
         ChannelOpen: '开放平台',
         ChannelOpenConfig: '开放平台配置',
+        Diy: '装修',
+        DiyHome: '页面装修',
+        DiyEditor: '装修编辑器',
+        DiyTabbar: '底部导航',
+        DiyTheme: '主题风格',
+        DiyPages: '自定义页面',
+        DiyLinks: '链接管理',
         // 用户管理
         User: '用户管理',
         UserList: '用户列表',
@@ -1475,5 +1482,35 @@ export default {
             versionCodeRequired: '请输入版本编号',
             downloadUrlRequired: '请输入下载地址'
         }
+    },
+    diyEditor: {
+        back: '返回',
+        homeTitle: '首页装修',
+        undo: '撤销',
+        redo: '重做',
+        versions: '历史版本',
+        save: '保存',
+        publish: '发布',
+        saved: '已保存',
+        published: '已发布',
+        empty: '从左侧添加组件开始装修',
+        unsavedTitle: '未保存的修改',
+        unsavedLeave: '当前修改尚未保存，离开将丢失，确定离开？',
+        leave: '离开',
+        duplicate: '复制',
+        hide: '隐藏',
+        show: '显示',
+        pageTitleFallback: '页面标题'
+    },
+    decorateList: {
+        title: '页面装修',
+        home: '首页',
+        member: '个人中心',
+        published: '已发布',
+        draft: '未发布',
+        componentCount: '{count} 个组件',
+        updatedAt: '更新于 {time}',
+        decorate: '去装修'
     }
+
 }
