@@ -108,7 +108,9 @@ export default {
         captchaPlaceholder: 'Enter captcha',
         captchaRefresh: 'Click to refresh captcha',
         captchaAlt: 'Captcha',
-        captchaLoading: 'Loading...'
+        captchaLoading: 'Loading...',
+        brandName: '元点SaaS',
+        copyright: 'All Rights Reserved'
     },
     // Navbar
     navbar: {

@@ -10,7 +10,14 @@
                 <p class="text-lg text-gray-200">{{ $t('login.subtitle') }}</p>
             </div>
             <div class="brand-footer">
-                <span>&copy; {{ new Date().getFullYear() }} Dev007.cn</span>
+                <span>&copy; {{ currentYear }}</span>
+                <a
+                    class="brand-link"
+                    href="https://www.dev007.cn/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >{{ $t('login.brandName') }}</a>
+                <span>{{ $t('login.copyright') }}</span>
             </div>
         </div>
 
@@ -93,6 +100,18 @@
                     </el-form-item>
                 </el-form>
             </div>
+
+            <!-- 窄屏时左侧品牌区隐藏，版权落在右侧底部 -->
+            <div class="login-copyright">
+                <span>&copy; {{ currentYear }}</span>
+                <a
+                    class="brand-link"
+                    href="https://www.dev007.cn/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >{{ $t('login.brandName') }}</a>
+                <span>{{ $t('login.copyright') }}</span>
+            </div>
         </div>
     </div>
 </template>
@@ -111,6 +130,7 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const currentYear = new Date().getFullYear()
 
 const loginFormRef = ref<FormInstance>()
 
@@ -243,19 +263,57 @@ onMounted(() => {
 .brand-footer {
     position: absolute;
     bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
-    opacity: 0.5;
+    opacity: 0.7;
     z-index: 1;
+
+    .brand-link {
+        color: #fff;
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 }
 
 /* ===== 右侧登录区 ===== */
 .login-main {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
     padding: 40px;
     background-color: var(--color-bg);
+}
+
+.login-copyright {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+
+    .brand-link {
+        color: var(--color-brand);
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 }
 
 .login-card {
@@ -359,6 +417,10 @@ onMounted(() => {
 
     .login-main {
         background: var(--color-bg);
+    }
+
+    .login-copyright {
+        display: flex;
     }
 }
 

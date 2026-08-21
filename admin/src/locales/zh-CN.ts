@@ -107,7 +107,9 @@ export default {
         captchaPlaceholder: '请输入验证码',
         captchaRefresh: '点击刷新验证码',
         captchaAlt: '验证码',
-        captchaLoading: '加载中...'
+        captchaLoading: '加载中...',
+        brandName: '元点SaaS',
+        copyright: '版权所有'
     },
     // 导航栏国际化
     navbar: {

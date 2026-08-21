@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://erp.dev007.cn/oss/logo.png" alt="元点Admin" width="120">
+  <img src="https://www.dev007.cn/oss/logo.png" alt="元点Admin" width="120">
 </p>
 
 <h1 align="center">元点Admin — 开源通用后台管理系统</h1>
