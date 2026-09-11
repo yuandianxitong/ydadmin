@@ -37,10 +37,11 @@ final class Test4_RequestStateIsolationTest extends RedLineCase
     {
         $middleware = new AdminPermissionMiddleware(new RlChecker([], [1 => ['rl.item.list']]));
         $run = function (int $adminId) use ($middleware): int {
+            Context::destroy(); // 模拟请求边界：每次模拟请求都从干净的 Context 开始
+            RequestContext::setActingUser($adminId);
             $request = $this->request('/adminapi/rl');
             $request->controller = RlController::class;
             $request->action = 'annotated';
-            $request->userId = $adminId;
 
             return $this->code($middleware->process($request, fn () => Api::success()));
         };

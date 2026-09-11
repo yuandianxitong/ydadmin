@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Unit\Middleware;
 
 use app\middleware\AdminPermissionMiddleware;
+use core\context\RequestContext;
 use core\permission\DenyAllChecker;
 use core\permission\Permission;
 use core\permission\PermissionCheckerInterface;
@@ -60,7 +61,7 @@ final class AdminPermissionMiddlewareTest extends TestCase
         $request->controller = $controller;
         $request->action = $action;
         if ($userId > 0) {
-            $request->userId = $userId;
+            RequestContext::setActingUser($userId);
         }
         $response = (new AdminPermissionMiddleware($checker))->process($request, fn () => Api::success());
 

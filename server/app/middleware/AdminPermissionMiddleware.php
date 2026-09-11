@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\middleware;
 
+use core\context\RequestContext;
 use core\permission\Permission;
 use core\permission\PermissionCheckerInterface;
 use core\permission\PermissionSkip;
@@ -16,6 +17,11 @@ use Webman\MiddlewareInterface;
 /**
  * 管理端权限：#[PermissionSkip] 放行 → 超管放行 → 无注解拒绝 → 有注解交给检查器。
  * 与 TP8 版的差异：TP8 版对无注解的方法只打日志放行，这里默认拒绝（spec §3.5）。
+ *
+ * 管理员身份只信任 RequestContext::actingUser()（仅由 AdminAuthMiddleware 设置），
+ * 不读 $request->userId —— 后者 ApiAuthMiddleware（C 端）也会写，若中间件组配置错误
+ * （如 [ApiAuthMiddleware, AdminPermissionMiddleware]），$request->userId 会把 C 端用户
+ * 当作同 ID 的管理员放行。
  */
 class AdminPermissionMiddleware implements MiddlewareInterface
 {
@@ -35,7 +41,7 @@ class AdminPermissionMiddleware implements MiddlewareInterface
 
     public function process(Request $request, callable $handler): Response
     {
-        $adminId = (int) ($request->userId ?? 0);
+        $adminId = RequestContext::actingUser();
         if ($adminId <= 0) {
             return Api::error(lang('auth.please_login'), 401);
         }

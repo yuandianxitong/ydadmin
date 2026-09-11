@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\RedLine;
 
 use app\middleware\AdminPermissionMiddleware;
+use core\context\RequestContext;
 use core\response\Api;
 use support\Container;
 
@@ -15,7 +16,7 @@ final class Test1_DefaultDenyTest extends RedLineCase
         $request = $this->request('/adminapi/rl');
         $request->controller = RlController::class;
         $request->action = $action;
-        $request->userId = $adminId;
+        RequestContext::setActingUser($adminId);
 
         return $this->code($middleware->process($request, fn () => Api::success()));
     }
