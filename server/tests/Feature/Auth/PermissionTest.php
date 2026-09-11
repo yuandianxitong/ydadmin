@@ -67,6 +67,31 @@ final class PermissionTest extends ApiTestCase
         $this->assertSame([], $this->permission()->getUserPermissions($admin->id), '禁用的角色不再授予任何权限');
     }
 
+    /** 吊销失效（如 Redis 丢了 token 版本号）时的兜底：被禁用的管理员哪怕 token 还能过校验，也拿不到任何权限。 */
+    public function test_disabled_admin_gets_no_permissions(): void
+    {
+        $admin = $this->actingAsAdmin(['system.admin.list']);
+        $this->assertTrue($this->permission()->check($admin->id, 'system.admin.list'));
+
+        Db::table('admins')->where('id', $admin->id)->update(['status' => 0]);
+        $this->permission()->clearUserCache($admin->id);
+
+        $this->assertFalse($this->permission()->check($admin->id, 'system.admin.list'));
+        $this->assertSame([], $this->permission()->getUserPermissions($admin->id));
+    }
+
+    public function test_deleted_super_admin_is_no_longer_super(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $this->assertTrue($this->permission()->isSuperAdmin($admin->id));
+
+        Db::table('admins')->where('id', $admin->id)->update(['deleted_at' => date('Y-m-d H:i:s')]);
+        $this->permission()->clearUserCache($admin->id);
+
+        $this->assertFalse($this->permission()->isSuperAdmin($admin->id));
+        $this->assertFalse($this->permission()->check($admin->id, 'system.admin.list'));
+    }
+
     public function test_clear_all_only_removes_permission_keys(): void
     {
         $admin = $this->actingAsAdmin(['system.admin.list']);
