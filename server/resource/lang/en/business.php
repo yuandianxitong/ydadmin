@@ -42,6 +42,12 @@ return [
     'please_select_admin'          => 'Please select admins to delete',
     'dept_out_of_scope'            => 'The department is outside your data scope',
     'cannot_change_own_department' => 'You cannot change your own department',
+
+    // Dictionary
+    'dict_not_found'         => 'Dictionary not found',
+    'dict_code_exists'       => 'Dictionary code already exists',
+    'dict_item_not_found'    => 'Dictionary item not found',
+    'dict_item_value_exists' => 'Dictionary item value already exists',
     'cannot_change_own_roles'      => 'You cannot change your own roles',
     'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',
     'role_scope_exceeds_own'       => 'Cannot assign roles whose data scope exceeds your own',

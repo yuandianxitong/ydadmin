@@ -4,6 +4,7 @@ use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\DepartmentController;
+use app\adminapi\controller\system\DictionaryController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
@@ -95,6 +96,21 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [AdminController::class, 'store']);
         Route::put('/{id:\d+}', [AdminController::class, 'update']);
         Route::delete('/{id:\d+}', [AdminController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/dictionary', function () {
+        Route::get('', [DictionaryController::class, 'index']);
+        Route::get('/options', [DictionaryController::class, 'options']);
+        Route::get('/batch-options', [DictionaryController::class, 'batchOptions']);
+        Route::post('/batch-delete', [DictionaryController::class, 'batchDelete']);
+        Route::post('/item', [DictionaryController::class, 'storeItem']);
+        Route::put('/item/{id:\d+}', [DictionaryController::class, 'updateItem']);
+        Route::delete('/item/{id:\d+}', [DictionaryController::class, 'deleteItem']);
+        Route::get('/{id:\d+}/items', [DictionaryController::class, 'items']);
+        Route::get('/{id:\d+}', [DictionaryController::class, 'show']);
+        Route::post('', [DictionaryController::class, 'store']);
+        Route::put('/{id:\d+}', [DictionaryController::class, 'update']);
+        Route::delete('/{id:\d+}', [DictionaryController::class, 'delete']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

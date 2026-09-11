@@ -68,3 +68,24 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
   (100, 2, 2, '系统配置', 'SystemConfig', '/system/config', '/system/config/index', NULL, 'i-svg:cog', 'system.config.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 10, NOW(), NOW()),
   (101, 100, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.config.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M1b：数据字典
+
+-- 数据字典菜单（沿用 TP8 id 60–63）
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (60, 2, 2, '数据字典', 'SystemDictionary', '/system/dictionary', '/system/dictionary/index', NULL, 'i-svg:library-big', 'system.dictionary.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 6, NOW(), NOW()),
+  (61, 60, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (62, 60, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (63, 60, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.dictionary.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+
+-- 示例字典（TP8 init.sql）：显式 id，字典项按 id 关联
+INSERT INTO `dictionaries` (`id`, `name`, `code`, `description`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (1, '性别', 'gender', '用户性别', 1, 0, NOW(), NOW()),
+  (2, '状态', 'common_status', '通用启用/禁用状态', 1, 1, NOW(), NOW());
+
+INSERT INTO `dictionary_items` (`dictionary_id`, `label`, `value`, `tag_type`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (1, '男', '1', '', 1, 0, NOW(), NOW()),
+  (1, '女', '2', '', 1, 1, NOW(), NOW()),
+  (1, '未知', '0', 'info', 1, 2, NOW(), NOW()),
+  (2, '启用', '1', 'success', 1, 0, NOW(), NOW()),
+  (2, '禁用', '0', 'danger', 1, 1, NOW(), NOW());

@@ -167,3 +167,37 @@ CREATE TABLE `admin_login_logs` (
   KEY `idx_username` (`username`),
   KEY `idx_login_time` (`login_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员登录日志';
+
+-- ---------------------------------------------------------------- M1b：数据字典
+
+CREATE TABLE `dictionaries` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '字典名称',
+  `code` varchar(100) NOT NULL COMMENT '字典编码（字母、数字、下划线、短横线）',
+  `description` varchar(500) DEFAULT '' COMMENT '描述',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1启用 0禁用',
+  `sort` int NOT NULL DEFAULT 0,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据字典';
+
+CREATE TABLE `dictionary_items` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `dictionary_id` int unsigned NOT NULL COMMENT '所属字典',
+  `label` varchar(100) NOT NULL COMMENT '显示文本',
+  `value` varchar(100) NOT NULL COMMENT '值（同一字典内唯一）',
+  `tag_type` varchar(50) DEFAULT '' COMMENT '标签类型 success/warning/danger/info',
+  `description` varchar(500) DEFAULT '' COMMENT '描述',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1启用 0禁用',
+  `sort` int NOT NULL DEFAULT 0,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dict_value` (`dictionary_id`, `value`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据字典项';

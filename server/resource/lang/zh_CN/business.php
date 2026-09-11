@@ -42,6 +42,12 @@ return [
     'please_select_admin'          => '请选择要删除的管理员',
     'dept_out_of_scope'            => '部门不在你的数据权限范围内',
     'cannot_change_own_department' => '不能修改自己的所属部门',
+
+    // 数据字典
+    'dict_not_found'         => '字典不存在',
+    'dict_code_exists'       => '字典编码已存在',
+    'dict_item_not_found'    => '字典项不存在',
+    'dict_item_value_exists' => '字典项值已存在',
     'cannot_change_own_roles'      => '不能修改自己的角色',
     'role_exceeds_own_permissions' => '不能授予超出自己权限的角色',
     'role_scope_exceeds_own'       => '不能授予超出自己数据范围的角色',
