@@ -3,6 +3,7 @@ parameters:
     paths:
         - app
         - core
+        - scripts
     treatPhpDocTypesAsCertain: false
     # 中间件按 webman 惯例在 Request 上挂 userId / username 等动态属性
     universalObjectCratesClasses:

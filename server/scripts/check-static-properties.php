@@ -15,7 +15,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-/** 跳过空白/注释，返回沿 $step 方向的下一个「有意义」token（不存在则为 null）。 */
+/**
+ * 跳过空白/注释，返回沿 $step 方向的下一个「有意义」token（不存在则为 null）。
+ *
+ * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens token_get_all() 的原始返回值
+ * @return array{0: int, 1: string, 2: int}|string|null
+ */
 function significantToken(array $tokens, int $index, int $step): array|string|null
 {
     $total = count($tokens);

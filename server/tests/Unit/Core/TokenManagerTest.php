@@ -150,4 +150,17 @@ final class TokenManagerTest extends TestCase
         $this->assertSame('abc.def.ghi', $mgr->getTokenFromHeader($with));
         $this->assertNull($mgr->getTokenFromHeader($without));
     }
+
+    public function test_short_secret_is_rejected(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('32');
+        TokenManager::assertKeyStrength('admin', str_repeat('a', 31));
+    }
+
+    public function test_missing_secret_is_rejected(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        TokenManager::assertKeyStrength('admin', '');
+    }
 }

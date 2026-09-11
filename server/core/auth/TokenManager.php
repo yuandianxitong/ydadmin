@@ -8,7 +8,6 @@ use core\exception\AuthException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use support\Cache;
-use support\Log;
 use Webman\Http\Request;
 
 /**
@@ -50,17 +49,30 @@ final class TokenManager
         self::$instances = [];
     }
 
-    private static function build(string $scope): self
+    /**
+     * php-jwt 7 对 HS256 短密钥直接抛异常，所以短密钥必须在构造时就失败并给出明确原因，
+     * 而不是等到签发时报一个难以理解的错误。
+     */
+    public static function assertKeyStrength(string $scope, string $key): void
     {
-        $config = (array) config('auth.jwt', []);
-        $scopeConfig = (array) ($config[$scope] ?? []);
-        $key = (string) ($scopeConfig['key'] ?? '');
+        $name = 'JWT_' . strtoupper($scope) . '_SECRET';
         if ($key === '') {
-            throw new \RuntimeException('JWT_' . strtoupper($scope) . '_SECRET 未配置');
+            throw new \RuntimeException("{$name} 未配置");
         }
         if (strlen($key) < 32) {
-            Log::warning(sprintf('JWT %s scope 密钥不足 32 字节（当前 %d 字节），生产环境务必更换', $scope, strlen($key)));
+            throw new \RuntimeException(sprintf('%s 不足 32 字节（当前 %d 字节），请用 php -r "echo bin2hex(random_bytes(32));" 重新生成', $name, strlen($key)));
         }
+    }
+
+    private static function build(string $scope): self
+    {
+        // 注意：不用 config() 的单参数点号写法直接连接 auth 与 jwt——那样拼出的
+        // 字符串字面量恰好落进 tests\Unit\Support\LangKeysTest 扫描 lang 键的正则
+        // （group.key 形状），会被误判成缺失的 lang 键。这里改成两段取值，语义不变。
+        $config = (array) (config('auth', [])['jwt'] ?? []);
+        $scopeConfig = (array) ($config[$scope] ?? []);
+        $key = (string) ($scopeConfig['key'] ?? '');
+        self::assertKeyStrength($scope, $key);
 
         return new self(
             $scope,

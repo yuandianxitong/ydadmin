@@ -6,7 +6,7 @@
 #   用反射（scripts/check-static-properties.php）而不是正则匹配源码：修饰符顺序
 #   （private static / static private）、是否换行、逗号并列声明多个属性等书写方式的
 #   变化都不会绕过反射得到的属性元数据。
-# 规则二：Service 与 Controller 禁止直接调用 Db::——查询一律封装在 Repository。
+# 规则二：Service 与 Controller 禁止直接调用 Db::（不区分大小写，PHP 类名不区分大小写）——查询一律封装在 Repository。
 set -eo pipefail
 cd "$(dirname "$0")/.."
 
@@ -30,7 +30,7 @@ done
 db_fail=0
 if [ -n "$db_dirs" ]; then
   # shellcheck disable=SC2086
-  db_hits=$(grep -rlE --include='*.php' 'Db::' $db_dirs || true)
+  db_hits=$(grep -rliE --include='*.php' '\bdb::' $db_dirs || true)
   while IFS= read -r f; do
     [ -z "$f" ] && continue
     case " $DB_WHITELIST " in
@@ -42,6 +42,45 @@ if [ -n "$db_dirs" ]; then
 fi
 [ "$db_fail" = 0 ] && echo "✅ 规则二通过：Service/Controller 未直接调用 Db::"
 
-if [ "$fail" != 0 ] || [ "$db_fail" != 0 ]; then
+# ---------------------------------------------------------------------------
+# 规则三：Service 与 Controller 禁止对 app\model\* 做静态调用（where/find/create/...）——
+# 否则就绕开了 Repository::query() 注入的数据权限条件。
+model_fail=0
+for d in $db_dirs; do
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    # 收集本文件 use 进来的 Model 短类名
+    models=$(grep -oE '^use app\\model\\[A-Za-z0-9_\\]+;' "$f" | sed -E 's/.*\\([A-Za-z0-9_]+);/\1/' || true)
+    for m in $models; do
+      if grep -nE "\\b${m}::" "$f" >/dev/null; then
+        # 用 printf 的 %s 而不是把 $f 直接拼进含全角括号的双引号字符串——
+        # macOS 系统 bash 3.2 在 zh_CN.UTF-8 locale 下，"$f（" 这种「变量名
+        # 后面紧跟多字节字符」的写法有解析 bug，会把变量值吃掉、只剩半个乱码字节。
+        printf '❌ Service/Controller 对 Model 做了静态调用（应经 Repository）：%s（%s::）\n' "$f" "$m"
+        model_fail=1
+      fi
+    done
+    if grep -nE '\\app\\model\\[A-Za-z0-9_\\]+::' "$f" >/dev/null; then
+      echo "❌ Service/Controller 用全限定名对 Model 做了静态调用：$f"
+      model_fail=1
+    fi
+  done <<< "$(grep -rlE --include='*.php' 'app\\model' $db_dirs 2>/dev/null || true)"
+done
+[ "$model_fail" = 0 ] && echo "✅ 规则三通过：Service/Controller 未对 Model 做静态调用"
+
+# ---------------------------------------------------------------------------
+# 规则四：Repository 的查询必须从 $this->query() 起手；$this->model-> 会绕开数据权限。
+repo_fail=0
+if [ -d app/repository ]; then
+  repo_hits=$(grep -rnE --include='*.php' '\$this->model->' app/repository || true)
+  if [ -n "$repo_hits" ]; then
+    echo "❌ Repository 直接使用了 \$this->model->（应从 \$this->query() 起手）："
+    echo "$repo_hits"
+    repo_fail=1
+  fi
+fi
+[ "$repo_fail" = 0 ] && echo "✅ 规则四通过：Repository 未直接使用 \$this->model->"
+
+if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ]; then
   exit 1
 fi

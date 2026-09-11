@@ -16,6 +16,7 @@ Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 $port = parse_url((string) ($_ENV['SERVER_LISTEN'] ?? 'http://0.0.0.0:8000'), PHP_URL_PORT) ?: 8000;
 $base = rtrim((string) (getenv('CONTRACT_BASE_URL') ?: "http://127.0.0.1:{$port}"), '/');
 
+/** @var list<string> $failures */
 $failures = [];
 $passes = 0;
 
