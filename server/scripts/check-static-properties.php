@@ -15,7 +15,28 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-/** tokenizer（而非正则）判断文件是否声明了名为 $name 的 class/interface/trait/enum。 */
+/** 跳过空白/注释，返回沿 $step 方向的下一个「有意义」token（不存在则为 null）。 */
+function significantToken(array $tokens, int $index, int $step): array|string|null
+{
+    $total = count($tokens);
+    for ($index += $step; $index >= 0 && $index < $total; $index += $step) {
+        $token = $tokens[$index];
+        if (is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+            continue;
+        }
+        return $token;
+    }
+    return null;
+}
+
+/**
+ * tokenizer（而非正则）判断文件是否声明了名为 $name 的 class/interface/trait/enum。
+ *
+ * T_CLASS 既会出现在 `class Foo` 声明处，也会出现在 `Foo::class` 魔术常量里，
+ * 因此不能一遇到 T_CLASS 就下结论：需要看它前一个有意义的 token 是不是
+ * `::`（T_DOUBLE_COLON，说明是 ::class）或 `new`（T_NEW，说明是匿名类），
+ * 是的话跳过继续扫描；只有在整段 token 流都扫完仍未命中时才返回 false。
+ */
 function declaresSymbol(string $source, string $name): bool
 {
     $tokens = token_get_all($source);
@@ -23,12 +44,13 @@ function declaresSymbol(string $source, string $name): bool
         if (!is_array($token) || !in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM], true)) {
             continue;
         }
-        for ($j = $i + 1; $j < count($tokens); $j++) {
-            $next = $tokens[$j];
-            if (is_array($next) && $next[0] === T_WHITESPACE) {
-                continue;
-            }
-            return is_array($next) && $next[0] === T_STRING && $next[1] === $name;
+        $prev = significantToken($tokens, $i, -1);
+        if (is_array($prev) && in_array($prev[0], [T_DOUBLE_COLON, T_NEW], true)) {
+            continue; // Foo::class 魔术常量、匿名类 new class，都不是声明
+        }
+        $next = significantToken($tokens, $i, 1);
+        if (is_array($next) && $next[0] === T_STRING && $next[1] === $name) {
+            return true;
         }
     }
     return false;
