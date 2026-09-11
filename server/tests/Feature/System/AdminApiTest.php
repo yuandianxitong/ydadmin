@@ -229,6 +229,22 @@ final class AdminApiTest extends ApiTestCase
         $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
     }
 
+    /**
+     * assertCanModify() 只在「actor 非超管」时才会拦；两个超管互相操作时它直接放行，
+     * 禁用超管的唯一防线是 updateAdmin() 里的 `if ($disabling) { $this->assertCanDisable($id); }`。
+     * 这条用例专门钉住这道防线，防止它被静默删掉。
+     */
+    public function test_super_admin_cannot_disable_another_super_admin_via_update(): void
+    {
+        $first = $this->actingAsAdmin('super');
+        $second = $this->actingAsAdmin('super');
+
+        $this->assertSame(lang('auth.super_admin_no_disable'), $this->put(self::BASE . "/{$second->id}", ['status' => 0], $first->token)->assertCode(400)->message());
+
+        $this->assertSame(1, (int) Db::table('admins')->where('id', $second->id)->value('status'));
+        $this->get('/adminapi/auth/info', [], $second->token)->assertOk();
+    }
+
     public function test_reset_password(): void
     {
         $actor = $this->actingAsAdmin(['system.admin.update']);
