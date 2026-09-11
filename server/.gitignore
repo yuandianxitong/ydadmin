@@ -1,0 +1,6 @@
+/vendor/
+/.env
+/runtime/
+/public/storage/
+.php-cs-fixer.cache
+.phpunit.result.cache
