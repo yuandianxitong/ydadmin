@@ -16,8 +16,9 @@ final class ValidatorFactory
     private const DEFAULT_LOCALE = 'zh_CN';
 
     /**
-     * 只读消息目录缓存（check:context 白名单）。「当前 locale」是请求态，不存放在这里：
-     * translator() 每次调用前从 support\Context 读取并 setLocale()，保证不跨请求泄漏。
+     * 只读消息目录缓存（check:context 白名单）。当前 locale 存在 support\Context，
+     * translator() 每次调用前 setLocale()。前提：非协程运行模式——Translator 是进程级单例，
+     * locale 写在它身上；启用协程/异步驱动前必须改为按请求构造 Translator，否则并发请求之间 locale 会串。
      */
     private static ?Translator $translator = null;
 
