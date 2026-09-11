@@ -116,6 +116,14 @@ final class AdminApiTest extends ApiTestCase
         $this->assertSame(lang('business.system_role_no_assign'), $this->post(self::BASE, $this->payload(['role_ids' => [1]]), $actor->token)->assertCode(400)->message());
     }
 
+    public function test_non_super_cannot_grant_the_system_role_via_update(): void
+    {
+        $actor = $this->actingAsAdmin(['system.admin.update']);
+        $target = $this->actingAsAdmin();
+
+        $this->assertSame(lang('business.system_role_no_assign'), $this->put(self::BASE . "/{$target->id}", ['role_ids' => [1]], $actor->token)->assertCode(400)->message());
+    }
+
     public function test_update_changes_fields_and_roles_and_revokes_on_password_change(): void
     {
         $super = $this->actingAsAdmin('super');
@@ -128,6 +136,29 @@ final class AdminApiTest extends ApiTestCase
 
         $this->put(self::BASE . "/{$target->id}", ['password' => 'Changed#123'], $super->token)->assertOk();
         $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
+    }
+
+    public function test_update_rejects_blank_username_email_or_status(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $target = $this->actingAsAdmin();
+        $originalUsername = $target->username;
+        $originalEmail = (string) Db::table('admins')->where('id', $target->id)->value('email');
+
+        $usernameResponse = $this->put(self::BASE . "/{$target->id}", ['username' => ''], $super->token);
+        $usernameResponse->assertCode(422);
+        $this->assertArrayHasKey('username', $usernameResponse->data()['errors']);
+
+        $emailResponse = $this->put(self::BASE . "/{$target->id}", ['email' => ''], $super->token);
+        $emailResponse->assertCode(422);
+        $this->assertArrayHasKey('email', $emailResponse->data()['errors']);
+
+        $statusResponse = $this->put(self::BASE . "/{$target->id}", ['status' => ''], $super->token);
+        $statusResponse->assertCode(422);
+        $this->assertArrayHasKey('status', $statusResponse->data()['errors']);
+
+        $this->assertSame($originalUsername, Db::table('admins')->where('id', $target->id)->value('username'));
+        $this->assertSame($originalEmail, Db::table('admins')->where('id', $target->id)->value('email'));
     }
 
     public function test_non_super_cannot_modify_a_super_admin(): void
@@ -157,13 +188,16 @@ final class AdminApiTest extends ApiTestCase
         $actor = $this->actingAsAdmin(['system.admin.delete']);
         $a = $this->actingAsAdmin();
         $b = $this->actingAsAdmin();
-        $super = $this->actingAsAdmin('super');
 
         $this->assertSame(['count' => 2], $this->post(self::BASE . '/batch-delete', ['ids' => [$a->id, $b->id]], $actor->token)->assertOk()->data());
 
         $c = $this->actingAsAdmin();
+        // super 建在 $c 之后（id 更大）：visibleIds() 按 id 升序处理，保证 $c 先被处理、super 保护规则最后才失败，
+        // 这样断言才真正覆盖了「$c 的软删除与 token 吊销随事务一起回滚」。
+        $super = $this->actingAsAdmin('super');
         $this->post(self::BASE . '/batch-delete', ['ids' => [$c->id, $super->id]], $actor->token)->assertCode(400);
         $this->assertNull(Db::table('admins')->where('id', $c->id)->value('deleted_at'), '任一失败整体回滚');
+        $this->get('/adminapi/auth/info', [], $c->token)->assertOk(); // $c 的 token 吊销回调也应随事务被丢弃
         $this->assertSame(lang('business.please_select_admin'), $this->post(self::BASE . '/batch-delete', ['ids' => []], $actor->token)->assertCode(400)->message());
     }
 
@@ -178,6 +212,21 @@ final class AdminApiTest extends ApiTestCase
         $this->put(self::BASE . "/{$target->id}/status", ['status' => 0], $actor->token)->assertOk();
         $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
         $this->put(self::BASE . "/{$target->id}/status", ['status' => 2], $actor->token)->assertCode(422);
+    }
+
+    public function test_update_with_status_zero_applies_disable_protections(): void
+    {
+        $actor = $this->actingAsAdmin(['system.admin.update']);
+        $super = $this->actingAsAdmin('super');
+        $target = $this->actingAsAdmin();
+
+        // updateAdmin() 先跑 assertCanModify()——非超管经 update() 触碰超管账号的任何字段（含 status）都会先在这里
+        // 被挡下，拿到的是更笼统的 super_admin_no_modify，不会走到 assertCanDisable() 的 super_admin_no_disable；
+        // 这与既有的 test_non_super_cannot_modify_a_super_admin 一致，是比「仅挡禁用」更严格的保护。
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$super->id}", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->assertSame(lang('auth.cannot_disable_self'), $this->put(self::BASE . "/{$actor->id}", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->put(self::BASE . "/{$target->id}", ['status' => 0], $actor->token)->assertOk();
+        $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
     }
 
     public function test_reset_password(): void

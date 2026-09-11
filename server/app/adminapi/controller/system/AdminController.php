@@ -125,18 +125,21 @@ class AdminController extends Controller
     /** @return array<string, string> */
     private function rules(string $scene): array
     {
-        $presence = $scene === 'create' ? 'required' : 'nullable';
+        $isCreate = $scene === 'create';
+        // username/email/status 在更新场景下用 sometimes|required：字段不传时跳过校验（局部更新），
+        // 传了空字符串则必须校验失败——不能像 nullable 那样对 '' 直接放行（会写出空用户名/邮箱、非法状态）。
+        $presence = $isCreate ? 'required' : 'sometimes|required';
 
         return [
             'username'      => "{$presence}|string|min:3|max:20|alpha_dash:ascii",
             'email'         => "{$presence}|email|max:100",
-            'password'      => "{$presence}|" . $this->adminService->passwordRule(),
+            'password'      => ($isCreate ? 'required' : 'nullable') . '|' . $this->adminService->passwordRule(),
             'mobile'        => 'nullable|regex:/^1[3-9]\d{9}$/',
             'nickname'      => 'nullable|string|min:2|max:20',
             'avatar'        => 'nullable|string|max:255',
             'department_id' => 'nullable|integer|min:0',
             'position'      => 'nullable|string|max:100',
-            'status'        => 'nullable|integer|in:0,1',
+            'status'        => $isCreate ? 'nullable|integer|in:0,1' : 'sometimes|required|integer|in:0,1',
             'role_ids'      => 'nullable|array',
             'role_ids.*'    => 'integer|min:1',
         ];
@@ -157,6 +160,7 @@ class AdminController extends Controller
             'mobile.regex'        => 'validation.mobile_format',
             'nickname.min'        => 'validation.nickname_length',
             'nickname.max'        => 'validation.nickname_length',
+            'status.required'     => 'validation.status_invalid',
             'status.in'           => 'validation.status_invalid',
             'role_ids.array'      => 'validation.role_ids_array',
             'role_ids.*.integer'  => 'validation.role_ids_integer',
