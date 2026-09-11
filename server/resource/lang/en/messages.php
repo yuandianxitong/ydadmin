@@ -34,4 +34,6 @@ return [
     'mark_read_success'       => 'Marked as read',
     'mark_all_read_success'   => 'All marked as read',
     'clear_success'           => 'Cleared successfully',
+    'operation'               => 'Operation',
+    'execute_operation'       => 'Execute operation',
 ];

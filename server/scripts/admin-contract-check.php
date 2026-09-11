@@ -132,6 +132,7 @@ register_shutdown_function(static function () use (&$cleanup): void {
     foreach ($cleanup['admin_ids'] as $id) {
         support\Db::table('admin_roles')->where('admin_id', $id)->delete();
         support\Db::table('admin_login_logs')->where('admin_id', $id)->delete();
+        support\Db::table('admin_operation_logs')->where('admin_id', $id)->delete();
     }
     foreach ($cleanup['role_ids'] as $id) {
         support\Db::table('admin_roles')->where('role_id', $id)->delete();

@@ -12,6 +12,7 @@ use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
+use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
 use app\middleware\CorsMiddleware;
 use app\middleware\LocaleMiddleware;
@@ -23,9 +24,9 @@ use Webman\Route;
 // 所有 API 路由组的外层中间件：先种 trace，再定 locale，再处理跨域（fallback 同样挂载）。
 $apiOuter = [RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddleware::class];
 
-// 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝）。
+// 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝），最内层记操作日志（只记写请求）。
 // 除下方三个公开路由外，/adminapi 下的路由都必须挂在这个组里——Test6 会逐条检查。
-$adminAuth = [AdminAuthMiddleware::class, AdminPermissionMiddleware::class];
+$adminAuth = [AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class];
 
 Route::group('/adminapi', function () use ($adminAuth) {
     // ---- 公开路由（与 Test6 的白名单保持一致）

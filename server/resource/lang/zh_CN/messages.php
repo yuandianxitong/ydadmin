@@ -34,4 +34,6 @@ return [
     'mark_read_success'       => '已标记为已读',
     'mark_all_read_success'   => '全部标记为已读',
     'clear_success'           => '清空成功',
+    'operation'               => '操作',
+    'execute_operation'       => '执行操作',
 ];
