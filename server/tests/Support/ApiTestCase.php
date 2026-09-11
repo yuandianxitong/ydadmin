@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace tests\Support;
 
+use core\auth\Permission;
+use core\auth\TokenManager;
+use core\auth\TokenVersion;
+use support\Container;
+use support\Db;
 use support\Log;
+use support\Redis;
 use support\Request;
 use tests\TestCase;
 use Webman\App;
@@ -18,11 +24,155 @@ abstract class ApiTestCase extends TestCase
     /** 进程内共享的 App 实例（测试代码，不受 check:context 约束） */
     private static ?App $app = null;
 
+    /** @var array<string, list<int>> 本用例创建的行：表 → id，tearDown 时删除 */
+    private array $created = [];
+
+    /** @var list<int> 本用例创建的管理员（tearDown 时连同关联行、缓存一起清） */
+    private array $createdAdminIds = [];
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
         self::ensureRoutesLoaded();
         self::$app ??= new App(Request::class, Log::channel('default'), app_path(), public_path());
+    }
+
+    protected function tearDown(): void
+    {
+        $this->cleanupFixtures();
+        parent::tearDown();
+    }
+
+    /**
+     * 当场创建一个管理员并签发 token（spec §7.1）。不用事务回滚隔离——afterCommit 回调不会触发；
+     * 夹具登记自己创建的行，tearDown 时删除。
+     *
+     * @param list<string>|string   $permissions 权限点列表（在种子菜单里按 menus.permission 找菜单授权）；
+     *                                           'super' 表示挂种子里的超管角色（id=1）
+     * @param array<string, mixed>  $admin       覆盖 admins 列，如 ['department_id' => 2, 'status' => 0]
+     * @param array<string, mixed>  $role        覆盖为它新建的专属角色的列，如 ['data_scope' => 5]；
+     *                                           特殊键 dept_ids 写入 role_departments
+     */
+    protected function actingAsAdmin(array|string $permissions = [], array $admin = [], array $role = []): TestAdmin
+    {
+        $now = date('Y-m-d H:i:s');
+        $suffix = bin2hex(random_bytes(4));
+        $username = (string) ($admin['username'] ?? "t_{$suffix}");
+        $password = 'Passw0rd!';
+        $adminId = (int) Db::table('admins')->insertGetId(array_merge([
+            'username'   => $username,
+            'email'      => "{$username}@test.local",
+            'password'   => password_hash($password, PASSWORD_DEFAULT),
+            'nickname'   => $username,
+            'status'     => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $admin));
+        $this->trackAdmin($adminId);
+
+        if ($permissions === 'super') {
+            $roleId = 1;
+        } else {
+            $permissions = (array) $permissions;
+            $deptIds = (array) ($role['dept_ids'] ?? []);
+            unset($role['dept_ids']);
+            $roleId = (int) Db::table('roles')->insertGetId(array_merge([
+                'name'       => "r_{$suffix}",
+                'title'      => "测试角色{$suffix}",
+                'data_scope' => 1,
+                'is_system'  => 0,
+                'status'     => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $role));
+            $this->track('roles', $roleId);
+
+            $menuIds = $permissions === [] ? [] : Db::table('menus')->whereIn('permission', $permissions)->pluck('id')->all();
+            $this->assertCount(count(array_unique($permissions)), $menuIds, '种子菜单里找不到部分权限点：' . implode(',', $permissions));
+            foreach ($menuIds as $menuId) {
+                Db::table('role_menus')->insert(['role_id' => $roleId, 'menu_id' => $menuId, 'created_at' => $now, 'updated_at' => $now]);
+            }
+            foreach ($deptIds as $deptId) {
+                Db::table('role_departments')->insert(['role_id' => $roleId, 'department_id' => (int) $deptId, 'created_at' => $now, 'updated_at' => $now]);
+            }
+        }
+        Db::table('admin_roles')->insert(['admin_id' => $adminId, 'role_id' => $roleId, 'created_at' => $now, 'updated_at' => $now]);
+
+        // 测试库重建后自增 id 会复用：先清掉这个 id 可能残留的缓存
+        $this->forgetAdminCaches($adminId);
+
+        $token = TokenManager::scope('admin')->generate([
+            'admin_id' => $adminId,
+            'username' => $username,
+            'ver'      => TokenVersion::current($adminId),
+        ]);
+
+        return new TestAdmin($adminId, $username, $password, $token);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    protected function createDepartment(array $attributes = []): int
+    {
+        $now = date('Y-m-d H:i:s');
+        $id = (int) Db::table('departments')->insertGetId(array_merge([
+            'parent_id'  => 0,
+            'name'       => '测试部门' . bin2hex(random_bytes(3)),
+            'status'     => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $attributes));
+        $this->track('departments', $id);
+
+        return $id;
+    }
+
+    /** 登记需要在 tearDown 删除的行（经接口创建的记录也要登记）。 */
+    protected function track(string $table, int $id): void
+    {
+        $this->created[$table][] = $id;
+    }
+
+    /** 登记管理员：除删行外，还会清它的角色关联、登录日志、权限缓存与 token 版本号。 */
+    protected function trackAdmin(int $id): void
+    {
+        $this->track('admins', $id);
+        $this->createdAdminIds[] = $id;
+    }
+
+    /** 清掉某个管理员在 Redis 里的派生状态。 */
+    protected function forgetAdminCaches(int $adminId): void
+    {
+        Container::get(Permission::class)->clearUserCache($adminId);
+        Redis::del("admin_token_ver:{$adminId}");
+    }
+
+    private function cleanupFixtures(): void
+    {
+        $adminIds = $this->createdAdminIds;
+        $roleIds = $this->created['roles'] ?? [];
+        $menuIds = $this->created['menus'] ?? [];
+        if ($adminIds !== []) {
+            Db::table('admin_roles')->whereIn('admin_id', $adminIds)->delete();
+            Db::table('admin_login_logs')->whereIn('admin_id', $adminIds)->delete();
+        }
+        if ($roleIds !== []) {
+            Db::table('admin_roles')->whereIn('role_id', $roleIds)->delete();
+            Db::table('role_menus')->whereIn('role_id', $roleIds)->delete();
+            Db::table('role_departments')->whereIn('role_id', $roleIds)->delete();
+        }
+        if ($menuIds !== []) {
+            Db::table('role_menus')->whereIn('menu_id', $menuIds)->delete();
+        }
+        foreach (array_reverse($this->created, true) as $table => $ids) {
+            Db::table($table)->whereIn('id', array_values(array_unique($ids)))->delete();
+        }
+        foreach ($adminIds as $id) {
+            $this->forgetAdminCaches($id);
+        }
+        // 夹具建的角色、菜单会影响别人的权限集合
+        Container::get(Permission::class)->clearAllCache();
+        $this->created = [];
+        $this->createdAdminIds = [];
     }
 
     /**

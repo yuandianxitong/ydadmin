@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\middleware;
 
 use core\auth\TokenManager;
+use core\auth\TokenVersion;
 use core\context\RequestContext;
 use core\exception\AuthException;
 use core\response\Api;
@@ -35,6 +36,11 @@ class AdminAuthMiddleware implements MiddlewareInterface
         $adminId = (int) ($data['admin_id'] ?? 0);
         if ($adminId <= 0) {
             return Api::error(lang('auth.token_invalid'), 401);
+        }
+
+        // 禁用、删除、改密码等会让版本号自增，旧 token 立即失效（spec §4.4）
+        if ((int) ($data['ver'] ?? 0) !== TokenVersion::current($adminId)) {
+            return Api::error(lang('auth.token_expired'), 401);
         }
 
         $request->userId = $adminId;

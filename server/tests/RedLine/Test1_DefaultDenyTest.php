@@ -21,14 +21,14 @@ final class Test1_DefaultDenyTest extends RedLineCase
         return $this->code($middleware->process($request, fn () => Api::success()));
     }
 
-    public function test_container_default_denies_everything_but_skip(): void
+    public function test_real_checker_denies_an_admin_without_roles(): void
     {
-        // 走真实容器绑定（M0 = DenyAllChecker），确认安全默认值确实生效
+        // 走真实容器绑定（core\auth\Permission）：一个没有任何角色的管理员只能访问 #[PermissionSkip]
         $middleware = Container::get(AdminPermissionMiddleware::class);
 
-        $this->assertSame(403, $this->dispatch($middleware, 'bare', 1));
-        $this->assertSame(403, $this->dispatch($middleware, 'annotated', 1));
-        $this->assertSame(200, $this->dispatch($middleware, 'skipped', 1));
+        $this->assertSame(403, $this->dispatch($middleware, 'bare', 999999999));
+        $this->assertSame(403, $this->dispatch($middleware, 'annotated', 999999999));
+        $this->assertSame(200, $this->dispatch($middleware, 'skipped', 999999999));
     }
 
     public function test_unannotated_action_is_denied_even_with_every_permission_granted(): void

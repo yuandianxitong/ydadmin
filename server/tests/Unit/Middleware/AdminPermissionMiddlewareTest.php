@@ -6,7 +6,6 @@ namespace tests\Unit\Middleware;
 
 use app\middleware\AdminPermissionMiddleware;
 use core\context\RequestContext;
-use core\permission\DenyAllChecker;
 use core\permission\Permission;
 use core\permission\PermissionCheckerInterface;
 use core\permission\PermissionSkip;
@@ -79,9 +78,9 @@ final class AdminPermissionMiddlewareTest extends TestCase
         $this->assertSame(403, $this->code(new FakeChecker(true), 'index', 1, 'app\\NoSuchController'));
     }
 
-    public function test_permission_skip_passes_even_with_deny_all(): void
+    public function test_permission_skip_passes_even_without_any_permission(): void
     {
-        $this->assertSame(200, $this->code(new DenyAllChecker(), 'skipped'));
+        $this->assertSame(200, $this->code(new FakeChecker(false, []), 'skipped'));
     }
 
     public function test_annotated_action_follows_checker(): void
@@ -101,8 +100,8 @@ final class AdminPermissionMiddlewareTest extends TestCase
         $this->assertSame(200, $this->code(new FakeChecker(true), 'annotated'));
     }
 
-    public function test_container_default_checker_is_deny_all(): void
+    public function test_container_checker_is_the_rbac_implementation(): void
     {
-        $this->assertInstanceOf(DenyAllChecker::class, Container::get(PermissionCheckerInterface::class));
+        $this->assertInstanceOf(\core\auth\Permission::class, Container::get(PermissionCheckerInterface::class));
     }
 }

@@ -4,8 +4,8 @@ $builder = new \DI\ContainerBuilder();
 $builder->useAttributes(true);
 $builder->useAutowiring(true);
 $builder->addDefinitions([
-    // M0 安全默认：RBAC 落地前拒绝一切带权限点的访问；M1 改绑 core\auth\Permission
-    core\permission\PermissionCheckerInterface::class => \DI\autowire(core\permission\DenyAllChecker::class),
+    // RBAC：接口与 core\auth\Permission 解析为同一个单例（清缓存与鉴权用的是同一个实例）
+    core\permission\PermissionCheckerInterface::class => \DI\get(core\auth\Permission::class),
 ]);
 
 return $builder->build();

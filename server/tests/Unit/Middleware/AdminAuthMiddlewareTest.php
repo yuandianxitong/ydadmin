@@ -6,8 +6,10 @@ namespace tests\Unit\Middleware;
 
 use app\middleware\AdminAuthMiddleware;
 use core\auth\TokenManager;
+use core\auth\TokenVersion;
 use core\context\RequestContext;
 use core\response\Api;
+use support\Redis;
 use tests\TestCase;
 use Webman\Http\Request;
 use Webman\Http\Response;
@@ -73,5 +75,21 @@ final class AdminAuthMiddlewareTest extends TestCase
 
         $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
         $this->assertSame(401, $this->code($response));
+    }
+
+    public function test_token_with_stale_version_is_401(): void
+    {
+        Redis::del('admin_token_ver:77');
+        $token = TokenManager::scope('admin')->generate(['admin_id' => 77, 'username' => 'bob', 'ver' => TokenVersion::current(77)]);
+        $this->assertSame(200, $this->code((new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success())));
+
+        TokenVersion::bump(77);
+        try {
+            $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+            $this->assertSame(401, $this->code($response));
+            $this->assertSame(lang('auth.token_expired'), json_decode((string) $response->rawBody(), true)['message']);
+        } finally {
+            Redis::del('admin_token_ver:77');
+        }
     }
 }
