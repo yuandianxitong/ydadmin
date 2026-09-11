@@ -23,6 +23,8 @@ PHP 8.4（pdo_mysql、redis、pcntl、posix）· MySQL 8 · Redis · Composer 2 
 cd server
 composer install
 cp .env.example .env    # 填写 DB_* 与 REDIS_*，两个 JWT secret 各用 php -r "echo bin2hex(random_bytes(32));" 生成
+php webman db:reset     # 仅开发环境：删库重建并导入 database/install 下的表结构与初始数据
+php webman admin:init --username=admin --password=你的密码   # 建立超级管理员（重复执行即重置密码）
 php start.php start     # 开发模式（文件变更自动重载）；生产环境用 php start.php start -d
 ```
 
@@ -43,8 +45,8 @@ cd admin && pnpm install && pnpm dev   # 接口代理到 http://127.0.0.1:8000
 | `composer test` | phpunit 全部套件（unit + redline 安全红线） |
 | `composer lint` | php-cs-fixer（`composer lint:fix` 自动修复） |
 | `composer analyse` | phpstan level 6 |
-| `composer check:context` | 常驻内存纪律：禁止可变静态属性；Service/Controller 禁止直接调用 `Db::` |
-| `composer contract` | 对运行中的服务做接口契约检查（先 `php start.php start -d`） |
+| `composer check:context` | 常驻内存纪律：禁止可变静态属性；Service/Controller 禁止 `Db::` 与 Model 静态查询；Repository 查询必须从 `query()` 起手 |
+| `composer contract` | 对运行中的服务做接口契约检查（先 `php webman db:reset` 一次，再 `php start.php start -d`） |
 
 测试固定使用 `${DB_NAME}_test` 库与 Redis DB 15，首次运行自动建库；`YDADMIN_TEST_DB_RESET=1 composer test` 可重建测试库。
 
@@ -53,7 +55,7 @@ cd admin && pnpm install && pnpm dev   # 接口代理到 http://127.0.0.1:8000
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
 | M0 | 骨架：统一响应与异常、双 scope JWT、默认拒绝的权限、测试与门禁 | ✅ |
-| M1 | 系统核心 + 数据权限 | 进行中 |
+| M1 | 系统核心 + 数据权限 | 进行中（M1a 已完成：认证、RBAC、数据权限，管理员/角色/菜单/部门） |
 | M2 | 代码生成器 + API 文档 | |
 | M3 | 调度器与队列 | |
 | M4 | WebSocket 实时通道 | |

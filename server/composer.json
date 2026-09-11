@@ -1,27 +1,19 @@
 {
-  "name": "workerman/webman",
+  "name": "yuandianxitong/ydadmin",
   "type": "project",
-  "keywords": [
-    "high performance",
-    "http service"
-  ],
-  "homepage": "https://www.workerman.net",
+  "keywords": ["admin", "rbac", "webman", "workerman"],
+  "homepage": "https://github.com/yuandianxitong/ydadmin",
   "license": "MIT",
-  "description": "High performance HTTP Service Framework.",
+  "description": "元点Admin：基于 webman 的通用后台管理系统",
   "authors": [
     {
-      "name": "walkor",
-      "email": "walkor@workerman.net",
-      "homepage": "https://www.workerman.net",
-      "role": "Developer"
+      "name": "元点系统",
+      "homepage": "https://github.com/yuandianxitong"
     }
   ],
   "support": {
-    "email": "walkor@workerman.net",
-    "issues": "https://github.com/walkor/webman/issues",
-    "forum": "https://wenda.workerman.net/",
-    "wiki": "https://workerman.net/doc/webman",
-    "source": "https://github.com/walkor/webman"
+    "issues": "https://github.com/yuandianxitong/ydadmin/issues",
+    "source": "https://github.com/yuandianxitong/ydadmin"
   },
   "require": {
     "php": "^8.4",
@@ -37,7 +29,8 @@
     "illuminate/translation": "^13.31",
     "php-di/php-di": "^7.1",
     "firebase/php-jwt": "^7.1",
-    "vlucas/phpdotenv": "^5.7"
+    "vlucas/phpdotenv": "^5.7",
+    "guzzlehttp/guzzle": "^7.9"
   },
   "suggest": {
     "ext-event": "For better performance. "
