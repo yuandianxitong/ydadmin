@@ -81,6 +81,31 @@ if [ -d app/repository ]; then
 fi
 [ "$repo_fail" = 0 ] && echo "✅ 规则四通过：Repository 未直接使用 \$this->model->"
 
-if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ]; then
+# ---------------------------------------------------------------------------
+# 规则五：数据权限是 Eloquent 全局作用域（core\datascope\DataScopeScope，由 Repository::query() 按查询挂载）。
+# app/、core/ 禁止移除全局作用域：withoutGlobalScope / withoutGlobalScopes / withoutGlobalScopesExcept
+# 都会连数据权限一起摘掉。唯一放行的写法是 withoutGlobalScope(SoftDeletingScope::class)——只摘软删作用域
+# （查重要含软删行），与数据权限无关。判定时先删掉这种写法再找剩下的调用，同一行夹带别的移除照样报。
+# 同理 Repository 禁止 ->getQuery()：它返回的底层查询还没套用全局作用域。
+scope_fail=0
+scope_hits=$(grep -rnE --include='*.php' 'withoutGlobalScope' app core \
+  | sed -E 's/withoutGlobalScope\(SoftDeletingScope::class\)//g' \
+  | grep -E 'withoutGlobalScope' || true)
+if [ -n "$scope_hits" ]; then
+  echo "❌ 移除了全局作用域（会连数据权限一起摘掉；输出行已去掉放行的软删写法）："
+  echo "$scope_hits"
+  scope_fail=1
+fi
+if [ -d app/repository ]; then
+  getq_hits=$(grep -rnE --include='*.php' -e '->getQuery\(' app/repository || true)
+  if [ -n "$getq_hits" ]; then
+    echo "❌ Repository 使用了 ->getQuery()（底层查询尚未套用全局作用域，会绕开数据权限）："
+    echo "$getq_hits"
+    scope_fail=1
+  fi
+fi
+[ "$scope_fail" = 0 ] && echo "✅ 规则五通过：未移除全局作用域，Repository 未使用 ->getQuery()"
+
+if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ] || [ "$scope_fail" != 0 ]; then
   exit 1
 fi

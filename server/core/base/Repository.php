@@ -6,14 +6,14 @@ namespace core\base;
 
 use core\context\RequestContext;
 use core\datascope\DataScope;
-use core\datascope\DataScopeSnapshot;
+use core\datascope\DataScopeScope;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * 数据访问层基类：唯一与 Model 交互的层。
  *
- * 所有查询必须经 query() 起手，禁止 $this->model->where()——M1 会在 query() 里注入
- * 数据权限条件（spec §5），绕开它就等于绕开数据权限。
+ * 所有查询必须经 query() 起手，禁止 $this->model->where()——query() 在受控表上以全局作用域挂上
+ * 数据权限条件（core\datascope\DataScopeScope，spec §5），绕开它就等于绕开数据权限。
  * 底层异常不在这里包装，直接上抛给 Handler（避免把 SQL 错误原文返回给客户端）。
  */
 abstract class Repository
@@ -37,6 +37,12 @@ abstract class Repository
     /** 部门列；配置后「部门」类范围直接按它过滤。 */
     protected ?string $deptColumn = null;
 
+    /**
+     * 创建人列：受控表 create() 时数据未提供就填当前管理员（spec §5.2）。表里没有这一列时设为 null
+     * （如登录日志、操作日志：归属人是 admin_id，没有 created_by）。
+     */
+    protected ?string $creatorColumn = 'created_by';
+
     protected Model $model;
 
     public function __construct()
@@ -46,44 +52,27 @@ abstract class Repository
 
     abstract protected function getModel(): Model;
 
-    /** @return Builder<Model> */
+    /**
+     * 受控表且当前快照不是「全部」时，给这条查询挂上数据权限全局作用域（快照此刻取定，列名带表名前缀）。
+     * 只作用于根表：with() 预加载不再过滤；不要用 whereHas() 伸入另一张受控表做访问控制。
+     *
+     * @return Builder<Model>
+     */
     protected function query(): Builder
     {
         $query = $this->model->newQuery();
         if ($this->dataScoped) {
             $snapshot = DataScope::current();
             if ($snapshot !== null && !$snapshot->all) {
-                $this->applyDataScope($query, $snapshot);
+                $query->withGlobalScope(DataScopeScope::class, new DataScopeScope(
+                    $snapshot,
+                    $this->qualify($this->ownerColumn),
+                    $this->deptColumn !== null ? $this->qualify($this->deptColumn) : null,
+                ));
             }
         }
 
         return $query;
-    }
-
-    /**
-     * 列名一律带表名前缀。只作用于根表：with() 预加载不再过滤；不要用 whereHas() 伸入另一张受控表做访问控制。
-     *
-     * @param Builder<Model> $query
-     */
-    private function applyDataScope(Builder $query, DataScopeSnapshot $snapshot): void
-    {
-        $owner = $this->qualify($this->ownerColumn);
-        $deptColumn = $this->deptColumn !== null ? $this->qualify($this->deptColumn) : null;
-        $query->where(static function (Builder $q) use ($snapshot, $owner, $deptColumn): void {
-            if ($snapshot->deptIds !== []) {
-                if ($deptColumn !== null) {
-                    $q->whereIn($deptColumn, $snapshot->deptIds);
-                } else {
-                    $q->whereIn($owner, static fn ($sub) => $sub->select('id')->from('admins')->whereIn('department_id', $snapshot->deptIds));
-                }
-            }
-            if ($snapshot->self) {
-                $q->orWhere($owner, $snapshot->adminId);
-            }
-            if ($snapshot->deptIds === [] && !$snapshot->self) {
-                $q->whereRaw('1 = 0');
-            }
-        });
     }
 
     /** @return array<string, mixed>|null */
@@ -102,15 +91,17 @@ abstract class Repository
     }
 
     /**
-     * 插入不经 query()——查询条件对 INSERT 不起作用；受控表在数据未提供时自动填 created_by（spec §5.2）。
+     * 插入不经 query()——作用域对 INSERT 不起作用；受控表在数据未提供时自动填 $creatorColumn（spec §5.2），
+     * 该列为 null 的仓储不填。
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
     public function create(array $data): array
     {
-        if ($this->dataScoped && !array_key_exists('created_by', $data) && RequestContext::actingUser() > 0) {
-            $data['created_by'] = RequestContext::actingUser();
+        $creator = $this->creatorColumn;
+        if ($this->dataScoped && $creator !== null && !array_key_exists($creator, $data) && RequestContext::actingUser() > 0) {
+            $data[$creator] = RequestContext::actingUser();
         }
 
         return $this->model->newQuery()->create($data)->toArray();

@@ -120,8 +120,9 @@ final class DataScopeTest extends ApiTestCase
         $this->assertEqualsCanonicalizing([$this->targets['b'], $viewer->id], $visible);
 
         // 钉住条件分组：viewer 自己在 deptA，但它的范围是「仅本人」+ 部门 B，deptA 里的
-        // 'a' 不在这个并集里。如果 applyDataScope() 里那层嵌套闭包被拆掉，条件会散成
-        // "dept IN (B) OR id = viewer AND id IN (...)"，'a' 会被最后的 AND 误放行。
+        // 'a' 不在这个并集里。数据权限条件（dept IN (B) OR id = viewer）必须作为一组与调用方的
+        // id IN (...) 相与（DataScopeScope 以全局作用域挂载，由 Eloquent 分组）；分组一旦散开，
+        // 'a' 会被误放行。
         Context::destroy();
         RequestContext::setActingUser($viewer->id);
         $this->assertSame([], (new AdminRepository())->visibleIds([$this->targets['a']]));
