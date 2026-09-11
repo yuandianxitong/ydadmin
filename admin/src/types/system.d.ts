@@ -1,0 +1,455 @@
+import type { PageQuery } from './common'
+
+// ========== 登录相关 ==========
+export interface LoginReq {
+    username: string
+    password: string
+    captcha: string
+    captcha_key: string
+}
+
+export interface CaptchaRes {
+    key: string
+    image: string
+}
+
+export interface LoginRes {
+    token: string
+    admin: AdminInfo
+}
+
+// ========== 管理员 ==========
+export interface AdminInfo {
+    id: number
+    username: string
+    email?: string
+    mobile?: string
+    nickname?: string
+    avatar?: string
+    department_id?: number | null
+    department?: string
+    position?: string
+    status: number
+    last_login_ip?: string
+    last_login_time?: string
+    login_count?: number
+    roles?: RoleInfo[]
+    permissions?: string[]
+}
+
+export interface AdminReq {
+    username: string
+    email?: string
+    mobile?: string
+    password?: string
+    nickname?: string
+    avatar?: string
+    department_id?: number | null
+    position?: string
+    status: number
+    role_ids?: number[]
+}
+
+export interface AdminQuery extends PageQuery {
+    status?: number
+    department?: string
+}
+
+// ========== 用户认证信息（含路由和权限） ==========
+export interface AuthInfoRes {
+    admin: AdminInfo
+    routes: MenuInfo[]
+    permissions: string[]
+}
+
+// ========== 角色 ==========
+export interface RoleInfo {
+    id: number
+    name: string
+    title: string
+    description?: string
+    data_scope?: number
+    is_system: boolean
+    status: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface RoleReq {
+    name: string
+    title: string
+    description?: string
+    data_scope?: number
+    status: number
+}
+
+export interface RoleQuery extends PageQuery {
+    status?: number
+}
+
+export interface RoleOption {
+    id: number
+    name: string
+    title: string
+}
+
+// ========== 权限 ==========
+export interface PermissionInfo {
+    id: number
+    name: string
+    title: string
+    group: string
+    description?: string
+    guard_name: string
+    created_at?: string
+    updated_at?: string
+}
+
+export interface PermissionReq {
+    name: string
+    title: string
+    group: string
+    description?: string
+    guard_name?: string
+}
+
+export interface AssignPermissionsReq {
+    menu_ids: number[]
+}
+
+// ========== 菜单 ==========
+export interface MenuInfo {
+    id: number
+    parent_id: number
+    type: number // 1目录/2菜单/3按钮
+    title: string
+    name?: string
+    path?: string
+    component?: string
+    icon?: string
+    permission?: string
+    sort?: number
+    status: number
+    redirect?: string
+    meta?: MenuMeta
+    children?: MenuInfo[]
+    created_at?: string
+    updated_at?: string
+}
+
+export interface MenuMeta {
+    title?: string
+    icon?: string
+    permission?: string
+    activeMenu?: string
+    hidden?: boolean
+    cache?: boolean
+    affix?: boolean
+    badge?: string
+    dot?: boolean
+    iframe?: string
+}
+
+export interface MenuReq {
+    parent_id: number
+    type: number
+    title: string
+    name?: string
+    path?: string
+    component?: string
+    icon?: string
+    permission?: string
+    sort?: number
+    status: number
+    meta?: MenuMeta
+}
+
+export interface MenuQuery {
+    status?: number
+    type?: number
+    title?: string
+}
+
+export interface MenuSortItem {
+    id: number
+    parent_id: number
+    sort: number
+}
+
+// ========== 系统配置 ==========
+export interface ConfigInfo {
+    id: number
+    config_key: string
+    config_name: string
+    config_value: any
+    config_type: string
+    config_group: string
+    config_desc?: string
+    config_options?: any
+    config_depends?: string
+    sort_order?: number
+    status?: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface ConfigReq {
+    config_key: string
+    config_name: string
+    config_value: any
+    config_type: string
+    config_group: string
+    config_desc?: string
+    config_options?: any
+    config_depends?: string
+    sort_order?: number
+    status?: number
+}
+
+export interface ConfigGroup {
+    name: string
+    title: string
+    icon?: string
+}
+
+export interface ConfigBatchUpdateItem {
+    config_key: string
+    config_value: string | number | boolean
+}
+
+// ========== 部门管理 ==========
+export interface DepartmentInfo {
+    id: number
+    parent_id: number
+    name: string
+    sort?: number
+    status: number
+    leader?: string
+    phone?: string
+    email?: string
+    children?: DepartmentInfo[]
+    created_at?: string
+    updated_at?: string
+}
+
+export interface DepartmentReq {
+    parent_id: number
+    name: string
+    sort?: number
+    status?: number
+    leader?: string
+    phone?: string
+    email?: string
+}
+
+// ========== 数据字典 ==========
+export interface DictionaryInfo {
+    id: number
+    name: string
+    code: string
+    description?: string
+    status: number
+    sort?: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface DictionaryItemInfo {
+    id: number
+    dictionary_id: number
+    label: string
+    value: string
+    tag_type?: string
+    description?: string
+    status: number
+    sort?: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface DictionaryQuery extends PageQuery {
+    status?: number
+}
+
+export interface DictionaryReq {
+    name: string
+    code: string
+    description?: string
+    status?: number
+    sort?: number
+}
+
+export interface DictionaryItemReq {
+    dictionary_id: number
+    label: string
+    value: string
+    tag_type?: string
+    description?: string
+    status?: number
+    sort?: number
+}
+
+// ========== 操作日志 ==========
+export interface LogInfo {
+    id: number
+    admin_id: number
+    admin_name: string
+    action: string
+    module: string
+    description?: string
+    ip: string
+    user_agent?: string
+    request_data?: any
+    response_data?: any
+    created_at: string
+}
+
+export interface LogQuery extends PageQuery {
+    admin_id?: number
+    action?: string
+    module?: string
+    start_date?: string
+    end_date?: string
+}
+
+export interface LoginLogInfo {
+    id: number
+    admin_id?: number
+    username: string
+    ip: string
+    user_agent?: string
+    login_time: string
+    login_result: number
+    login_message?: string
+}
+
+export interface LoginLogQuery extends PageQuery {
+    username?: string
+    login_result?: number
+    start_date?: string
+    end_date?: string
+}
+
+export interface OperationLogInfo {
+    id: number
+    admin_id: number
+    admin_name: string
+    module: string
+    action: string
+    method: string
+    url: string
+    ip: string
+    request_data?: Record<string, unknown>
+    response_code?: number
+    duration?: number
+    created_at: string
+}
+
+export interface OperationLogQuery extends PageQuery {
+    admin_name?: string
+    module?: string
+    action?: string
+    start_date?: string
+    end_date?: string
+}
+
+// ========== 通知管理 ==========
+export interface NotificationInfo {
+    id: number
+    title: string
+    content: string
+    type: number
+    status: number
+    send_to?: string
+    read_count?: number
+    created_at?: string
+    updated_at?: string
+}
+
+export interface NotificationReq {
+    title: string
+    content: string
+    type: number
+    send_to?: string | number[]
+}
+
+export interface NotificationQuery extends PageQuery {
+    type?: number
+}
+
+// ========== 定时任务 ==========
+export interface CronJobInfo {
+    id: number
+    name: string
+    command: string
+    cron_expression: string
+    description?: string
+    status: number
+    last_run_at?: string
+    next_run_at?: string
+    created_at?: string
+    updated_at?: string
+}
+
+export interface CronJobReq {
+    name: string
+    command: string
+    cron_expression: string
+    description?: string
+    status?: number
+}
+
+export interface CronJobQuery extends PageQuery {
+    status?: number
+}
+
+export interface CronJobLogInfo {
+    id: number
+    cron_job_id: number
+    status: number
+    output?: string
+    duration?: number
+    started_at: string
+    finished_at?: string
+}
+
+// ========== 文件管理 ==========
+export interface FileInfo {
+    id: number
+    name: string
+    path: string
+    url: string
+    mime_type: string
+    extension: string
+    size: number
+    group: string
+    storage: string
+    upload_by?: number
+    created_at?: string
+}
+
+export interface FileQuery extends PageQuery {
+    group?: string
+    mime_type?: string
+}
+
+// ========== 地区数据 ==========
+export interface RegionInfo {
+    id: number
+    parent_id: number
+    name: string
+    code: string
+    level: number
+    sort: number
+    status: number
+    children?: RegionInfo[]
+}
+
+export interface RegionReq {
+    parent_id?: number
+    name: string
+    code: string
+    level?: number
+    sort?: number
+    status?: number
+}

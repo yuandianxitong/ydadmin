@@ -1,0 +1,49 @@
+/* ============================================================
+ * 通用 CRUD 列表页布局工具类
+ *
+ * 所有列表页几乎都有相同的 "搜索卡片 + 表格卡片 + 分页" 结构，
+ * 这里把共享的样式提取为全局工具类，避免在每个页面的 scoped SCSS 里复制粘贴。
+ *
+ * 使用约定：外层容器可保留业务命名（如 .admin-container），但不再重复
+ * 定义 .table-header / .table-title / .table-actions / .pagination 这些共享 class。
+ * ============================================================ */
+
+/* 搜索卡片：放在顶部的搜索表单 */
+.search-card {
+    margin-bottom: 16px;
+
+    .search-form {
+        margin: 0;
+    }
+}
+
+/* 表格卡片头部：左边 title + 右边操作按钮组 */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.table-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* 表格下方分页区域，右对齐 */
+.pagination {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 兼容历史命名：pagination-wrap */
+.pagination-wrap {
+    @extend .pagination;
+}

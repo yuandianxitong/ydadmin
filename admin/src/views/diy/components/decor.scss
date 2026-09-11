@@ -1,0 +1,56 @@
+// 装修子页面共享样式（对齐原型 tenant-decor 的布局/排版，令牌化）
+
+.decor-page {
+  // 外层布局已有 p-4 内边距，这里不再重复加
+}
+
+// 紧凑的标签表单：label 11.5/secondary、控件 ~32px
+.decor-form {
+  :deep(.el-form-item__label) {
+    padding-bottom: 4px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+}
+
+.decor-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.decor-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+// 空状态文案
+.decor-empty {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary);
+}
+
+// 提示条（原型里灰底说明块）
+.decor-hint {
+  padding: 12px 14px;
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+
+// 工具栏（页头右侧动作的补充：表格上方等）
+.decor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
