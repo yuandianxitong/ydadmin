@@ -61,6 +61,12 @@ return [
     'menu_path_require'         => '菜单类型时路由地址不能为空',
     'menu_component_require'    => '菜单类型时组件地址不能为空',
     'button_permission_require' => '按钮类型时权限标识不能为空',
+    'config_value_present'      => '缺少配置值',
+    'configs_require'           => '配置数据不能为空',
+    'configs_array'             => '配置数据格式错误',
+    'config_key_require'        => '配置键不能为空',
+    'config_key_max'            => '配置键最多100个字符',
+    'config_group_invalid'      => '配置分组格式不正确',
 
     'required'   => ':attribute 不能为空',
     'string'     => ':attribute 必须是字符串',

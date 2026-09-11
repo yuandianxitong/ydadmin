@@ -61,6 +61,12 @@ return [
     'menu_path_require'         => 'Route path is required for menu type',
     'menu_component_require'    => 'Component is required for menu type',
     'button_permission_require' => 'Permission is required for button type',
+    'config_value_present'      => 'Configuration value is missing',
+    'configs_require'           => 'Configuration data is required',
+    'configs_array'             => 'Configuration data format is invalid',
+    'config_key_require'        => 'Configuration key is required',
+    'config_key_max'            => 'Configuration key may not exceed 100 characters',
+    'config_group_invalid'      => 'Invalid configuration group',
 
     /*
     |--------------------------------------------------------------------------

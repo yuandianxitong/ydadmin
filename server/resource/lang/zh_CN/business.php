@@ -45,4 +45,9 @@ return [
     'cannot_change_own_roles'      => '不能修改自己的角色',
     'role_exceeds_own_permissions' => '不能授予超出自己权限的角色',
     'role_scope_exceeds_own'       => '不能授予超出自己数据范围的角色',
+
+    // 系统配置
+    'config_not_found'          => '配置不存在',
+    'config_key_not_found'      => '配置项不存在：:key',
+    'config_value_invalid'      => '配置项 :key 的值格式不正确',
 ];

@@ -7,12 +7,20 @@ namespace app\repository\system;
 use app\model\system\SystemConfig;
 use core\base\Model;
 use core\base\Repository;
+use Illuminate\Database\Eloquent\Builder;
 use support\Cache;
 
-/** 系统配置仓储。全部启用配置缓存在 system_config.all，写配置的路径必须经 forgetCache()。 */
+/**
+ * 系统配置仓储。有两份缓存：
+ *   - system_config.all：全部启用配置，供后端读配置用（登录安全、密码长度等）；
+ *   - system_config.public：启用且 is_public=1 的配置，供 config/global 用。
+ * 写配置的路径必须经 forgetCache()，它同时清两份；clear-cache 也只清这两份。
+ */
 class SystemConfigRepository extends Repository
 {
     private const CACHE_KEY = 'system_config.all';
+
+    private const PUBLIC_CACHE_KEY = 'system_config.public';
 
     private const CACHE_TTL = 3600;
 
@@ -31,16 +39,21 @@ class SystemConfigRepository extends Repository
      */
     public function getAllConfigs(): array
     {
-        $cached = Cache::get(self::CACHE_KEY);
-        if (is_array($cached)) {
-            return $cached;
-        }
-        $result = $this->convertRowsToKeyValue(
-            $this->query()->where($this->qualify('status'), 1)->orderBy($this->qualify('sort_order'))->get()->toArray()
-        );
-        Cache::set(self::CACHE_KEY, $result, self::CACHE_TTL);
+        return $this->remember(self::CACHE_KEY, fn (): array => $this->convertRowsToKeyValue(
+            $this->enabledQuery()->get()->toArray()
+        ));
+    }
 
-        return $result;
+    /**
+     * 前端公开配置（config/global 的第一道闸）：启用且 is_public=1，config_key → 转换后的值。
+     *
+     * @return array<string, mixed>
+     */
+    public function getPublicConfigs(): array
+    {
+        return $this->remember(self::PUBLIC_CACHE_KEY, fn (): array => $this->convertRowsToKeyValue(
+            $this->enabledQuery()->where($this->qualify('is_public'), 1)->get()->toArray()
+        ));
     }
 
     public function getConfigValue(string $key, mixed $default = null): mixed
@@ -51,21 +64,58 @@ class SystemConfigRepository extends Repository
     }
 
     /**
-     * 按分组取启用配置（无缓存）。
+     * 某分组的启用配置原始行（契约 §2.7 index：config_value 保持库里的字符串），按 sort_order、id 升序。
      *
-     * @return array<string, mixed>
+     * @return array<int, array<string, mixed>>
      */
-    public function getConfigsByGroup(string $group): array
+    public function getRowsByGroup(string $group): array
     {
-        return $this->convertRowsToKeyValue(
-            $this->query()->where($this->qualify('config_group'), $group)->where($this->qualify('status'), 1)
-                ->orderBy($this->qualify('sort_order'))->get()->toArray()
-        );
+        return $this->enabledQuery()->where($this->qualify('config_group'), $group)->get()->toArray();
+    }
+
+    /**
+     * 按键取原始行（不限 status；软删除的行视为不存在）。
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByKey(string $key): ?array
+    {
+        return $this->query()->where($this->qualify('config_key'), $key)->first()?->toArray();
+    }
+
+    public function updateValueByKey(string $key, string $value): int
+    {
+        return $this->query()->where($this->qualify('config_key'), $key)->update(['config_value' => $value]);
     }
 
     public function forgetCache(): void
     {
-        Cache::delete(self::CACHE_KEY);
+        Cache::deleteMultiple([self::CACHE_KEY, self::PUBLIC_CACHE_KEY]);
+    }
+
+    /** @return Builder<Model> */
+    private function enabledQuery(): Builder
+    {
+        $query = $this->query()->where($this->qualify('status'), 1);
+        $query->orderBy($this->qualify('sort_order'))->orderBy($this->qualify('id'));
+
+        return $query;
+    }
+
+    /**
+     * @param \Closure(): array<string, mixed> $load
+     * @return array<string, mixed>
+     */
+    private function remember(string $key, \Closure $load): array
+    {
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+        $result = $load();
+        Cache::set($key, $result, self::CACHE_TTL);
+
+        return $result;
     }
 
     /**

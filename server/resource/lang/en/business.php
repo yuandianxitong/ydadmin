@@ -45,4 +45,9 @@ return [
     'cannot_change_own_roles'      => 'You cannot change your own roles',
     'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',
     'role_scope_exceeds_own'       => 'Cannot assign roles whose data scope exceeds your own',
+
+    // System config
+    'config_not_found'          => 'Configuration not found',
+    'config_key_not_found'      => 'Configuration key not found: :key',
+    'config_value_invalid'      => 'Invalid value for configuration :key',
 ];

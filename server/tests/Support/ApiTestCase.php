@@ -170,13 +170,22 @@ abstract class ApiTestCase extends TestCase
     /** 临时修改一项系统配置；tearDown 时恢复原值并清配置缓存。 */
     protected function setConfig(string $key, string $value): void
     {
-        if (!array_key_exists($key, $this->originalConfigs)) {
+        $this->rememberConfig($key);
+        Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+        (new SystemConfigRepository())->forgetCache();
+    }
+
+    /** 只登记配置原值（经接口修改配置的用例先调它）；tearDown 时恢复原值并清配置缓存。 */
+    protected function rememberConfig(string ...$keys): void
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $this->originalConfigs)) {
+                continue;
+            }
             $original = Db::table('system_configs')->where('config_key', $key)->value('config_value');
             $this->assertNotNull($original, "system_configs 里没有 {$key}");
             $this->originalConfigs[$key] = (string) $original;
         }
-        Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
-        (new SystemConfigRepository())->forgetCache();
     }
 
     private function cleanupFixtures(): void

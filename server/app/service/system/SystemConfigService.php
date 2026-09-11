@@ -6,15 +6,40 @@ namespace app\service\system;
 
 use app\repository\system\SystemConfigRepository;
 use core\base\Service;
+use core\exception\BusinessException;
 use DI\Attribute\Inject;
 
+/**
+ * 系统配置（契约 §2.7）。
+ *
+ * - config/global 有两道闸：先只取 status=1 且 is_public=1 的行（白名单），再过一遍凭据类键名黑名单。
+ *   凭据键即使被误标公开也出不去。spec §6.1 原文只有黑名单，这里细化为「白名单 + 黑名单」，
+ *   由 M1a 最终评审提出，用户已认可。
+ * - 单条与批量写配置都在事务里完成，提交后经 afterCommit 清配置缓存（全部、公开两份）。
+ *   批量更新里出现不存在的键时整批回滚。
+ * - clear-cache 只清配置缓存。权限、字典、验证码、token 黑名单与版本号都不动（spec §1.1 第 4 条，红线 Test14）。
+ */
 class SystemConfigService extends Service
 {
     /**
-     * 凭据类键名片段（不区分大小写）：命中任一即不出现在 config/global（spec §6.1）。
-     * 在 spec 列出的片段之外补了 pass、api_key/api_v3_key、aes_key，覆盖 smtp_pass、支付与微信的密钥。
+     * 凭据类键名片段，不区分大小写。命中任一，即使 is_public=1 也不出现在 config/global（spec §6.1）。
+     * 在 spec 列出的片段之外，补了 pass、api_key/api_v3_key、aes_key，以及以 _key 结尾的键（mch_key、app_key 等）。
+     * 最后一条锚定结尾，所以 site_keywords 不受影响。
      */
-    private const SENSITIVE_KEY_PATTERN = '/secret|password|pass|access_key|private|token|api_(v\d+_)?key|aes_key/i';
+    private const SENSITIVE_KEY_PATTERN = '/secret|password|pass|access_key|private|token|api_(v\d+_)?key|aes_key|_key$/i';
+
+    /**
+     * 配置分组：契约 §2.7 硬编码的 5 组，是前端配置页 tab 的来源。形式为 group => lang key。
+     *
+     * @var array<string, string>
+     */
+    private const GROUPS = [
+        'basic'   => 'messages.config_group_basic',
+        'email'   => 'messages.config_group_email',
+        'sms'     => 'messages.config_group_sms',
+        'storage' => 'messages.config_group_storage',
+        'payment' => 'messages.config_group_payment',
+    ];
 
     #[Inject]
     protected SystemConfigRepository $systemConfigRepository;
@@ -25,16 +50,84 @@ class SystemConfigService extends Service
         return $this->systemConfigRepository->getConfigValue($key, $default);
     }
 
+    /** @return array<string, string> group => 当前语言的名称 */
+    public function getConfigGroups(): array
+    {
+        $groups = [];
+        foreach (self::GROUPS as $group => $langKey) {
+            $groups[$group] = lang($langKey);
+        }
+
+        return $groups;
+    }
+
     /**
-     * 前端启动配置（契约 §4.1）：全部启用配置的扁平映射（已按 config_type 转换），排除凭据类键。
+     * 某分组的启用配置原始行（config_value 不做类型转换，契约如此）。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getConfigsByGroup(string $group): array
+    {
+        return $this->systemConfigRepository->getRowsByGroup($group);
+    }
+
+    /**
+     * 单条配置原始行（不限状态）。不存在抛 business.config_not_found（code 400，照 TP8）。
+     *
+     * @return array<string, mixed>
+     */
+    public function getConfigById(int $id): array
+    {
+        return $this->systemConfigRepository->find($id) ?? throw new BusinessException(lang('business.config_not_found'));
+    }
+
+    public function updateConfig(int $id, mixed $value): bool
+    {
+        $stored = $this->serializeValue($this->getConfigById($id), $value);
+        $this->runInTransaction(function () use ($id, $stored): void {
+            $this->systemConfigRepository->update($id, ['config_value' => $stored]);
+            $this->afterCommit(fn () => $this->systemConfigRepository->forgetCache());
+        });
+
+        return true;
+    }
+
+    /**
+     * 按 config_key 批量更新；任一键不存在则整批回滚（BusinessException）。
+     *
+     * @param list<array{config_key: string, config_value: mixed}> $configs
+     */
+    public function batchUpdateConfigs(array $configs): bool
+    {
+        $this->runInTransaction(function () use ($configs): void {
+            foreach ($configs as $item) {
+                $key = $item['config_key'];
+                $config = $this->systemConfigRepository->findByKey($key)
+                    ?? throw new BusinessException(lang('business.config_key_not_found', ['key' => $key]));
+                $this->systemConfigRepository->updateValueByKey($key, $this->serializeValue($config, $item['config_value']));
+            }
+            $this->afterCommit(fn () => $this->systemConfigRepository->forgetCache());
+        });
+
+        return true;
+    }
+
+    /** 只清配置缓存（spec §1.1 第 4 条）。 */
+    public function clearConfigCache(): void
+    {
+        $this->systemConfigRepository->forgetCache();
+    }
+
+    /**
+     * 前端启动配置（契约 §4.1）：公开且启用的配置的扁平映射（已按 config_type 转换），再排除凭据类键。
      *
      * @return array<string, mixed>
      */
     public function getGlobalConfigs(): array
     {
         return array_filter(
-            $this->systemConfigRepository->getAllConfigs(),
-            static fn (string $key): bool => !self::isSensitiveKey($key),
+            $this->systemConfigRepository->getPublicConfigs(),
+            static fn (int|string $key): bool => !self::isSensitiveKey((string) $key),
             ARRAY_FILTER_USE_KEY
         );
     }
@@ -42,5 +135,38 @@ class SystemConfigService extends Service
     public static function isSensitiveKey(string $key): bool
     {
         return preg_match(self::SENSITIVE_KEY_PATTERN, $key) === 1;
+    }
+
+    /**
+     * 把请求值序列化成库里存的字符串：
+     *   - json：本身是合法 JSON 的非空字符串原样存；其余一律 json_encode。
+     *     前端 handleSave 会先 JSON.stringify，TP8 再 json_encode 就会双重编码。
+     *   - 其它类型：布尔转 '1'/'0'，null 转 ''，标量转字符串；数组或对象视为格式错误。
+     *
+     * @param array<string, mixed> $config
+     */
+    private function serializeValue(array $config, mixed $value): string
+    {
+        if ((string) $config['config_type'] === 'json') {
+            if (is_string($value) && trim($value) !== '' && json_validate($value)) {
+                return $value;
+            }
+            $encoded = json_encode($value, JSON_UNESCAPED_UNICODE);
+
+            return $encoded !== false ? $encoded : throw $this->invalidValue($config);
+        }
+
+        return match (true) {
+            is_bool($value)   => $value ? '1' : '0',
+            $value === null   => '',
+            is_scalar($value) => (string) $value,
+            default           => throw $this->invalidValue($config),
+        };
+    }
+
+    /** @param array<string, mixed> $config */
+    private function invalidValue(array $config): BusinessException
+    {
+        return new BusinessException(lang('business.config_value_invalid', ['key' => (string) $config['config_key']]));
     }
 }

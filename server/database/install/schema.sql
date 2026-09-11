@@ -141,6 +141,7 @@ CREATE TABLE `system_configs` (
   `config_depends` json DEFAULT NULL COMMENT '前端联动显示条件',
   `sort_order` int NOT NULL DEFAULT 0,
   `status` tinyint NOT NULL DEFAULT 1,
+  `is_public` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否出现在 config/global（前端公开）',
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,

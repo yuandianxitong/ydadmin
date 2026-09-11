@@ -20,11 +20,12 @@ final class GlobalConfigTest extends ApiTestCase
     public function test_returns_flat_converted_map_without_credentials(): void
     {
         $now = date('Y-m-d H:i:s');
-        $keys = ['storage_oss_access_key', 'storage_oss_access_secret', 'smtp_pass', 'pay_wechat_api_v3_key', 'wechat_official_aes_key', 'third_party_token', 'pay_alipay_private_key'];
+        $keys = ['storage_oss_access_key', 'storage_oss_access_secret', 'smtp_pass', 'pay_wechat_api_v3_key', 'wechat_official_aes_key', 'third_party_token', 'pay_alipay_private_key', 'pay_wechat_mch_key'];
         foreach ($keys as $i => $key) {
+            // 故意标成公开：白名单放行后，必须由键名黑名单拦下
             $this->track('system_configs', (int) Db::table('system_configs')->insertGetId([
                 'config_key' => $key, 'config_value' => "SECRET-{$i}", 'config_group' => 'global_test',
-                'config_type' => 'string', 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
+                'config_type' => 'string', 'status' => 1, 'is_public' => 1, 'created_at' => $now, 'updated_at' => $now,
             ]));
         }
         (new SystemConfigRepository())->forgetCache();
@@ -49,10 +50,10 @@ final class GlobalConfigTest extends ApiTestCase
 
     public function test_sensitive_key_rule(): void
     {
-        foreach (['smtp_pass', 'sms_access_secret', 'storage_cos_secret_key', 'storage_qiniu_access_key', 'pay_wechat_api_v3_key', 'pay_wechat_api_key', 'wechat_mini_aes_key', 'API_TOKEN', 'password_min_length'] as $key) {
+        foreach (['smtp_pass', 'sms_access_secret', 'storage_cos_secret_key', 'storage_qiniu_access_key', 'pay_wechat_api_v3_key', 'pay_wechat_api_key', 'wechat_mini_aes_key', 'API_TOKEN', 'password_min_length', 'pay_wechat_mch_key', 'wechat_open_app_key'] as $key) {
             $this->assertTrue(SystemConfigService::isSensitiveKey($key), $key);
         }
-        foreach (['site_name', 'site_keywords', 'login_captcha', 'storage_oss_domain', 'storage_driver', 'login_max_retry'] as $key) {
+        foreach (['site_name', 'site_keywords', 'login_captcha', 'storage_oss_domain', 'storage_driver', 'login_max_retry', 'key_hint'] as $key) {
             $this->assertFalse(SystemConfigService::isSensitiveKey($key), $key);
         }
     }

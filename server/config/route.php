@@ -50,7 +50,13 @@ Route::group('/adminapi', function () use ($adminAuth) {
     })->middleware($adminAuth);
 
     Route::group('/system/config', function () {
+        Route::get('', [SystemConfigController::class, 'index']);
+        Route::get('/groups', [SystemConfigController::class, 'groups']);
         Route::get('/global', [SystemConfigController::class, 'global']);
+        Route::post('/batch-update', [SystemConfigController::class, 'batchUpdate']);
+        Route::post('/clear-cache', [SystemConfigController::class, 'clearCache']);
+        Route::get('/{id:\d+}', [SystemConfigController::class, 'show']);
+        Route::put('/{id:\d+}', [SystemConfigController::class, 'update']);
     })->middleware($adminAuth);
 
     Route::group('/system/role', function () {

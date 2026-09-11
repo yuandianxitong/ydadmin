@@ -37,6 +37,15 @@ final class SchemaTest extends TestCase
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }
 
+    public function test_config_menu_seeds_keep_tp8_ids(): void
+    {
+        $menus = Db::table('menus')->whereIn('id', [100, 101])->orderBy('id')->get()->all();
+        $this->assertCount(2, $menus);
+        $this->assertSame([2, 100], [(int) $menus[0]->parent_id, (int) $menus[1]->parent_id]);
+        $this->assertSame(['system.config.list', 'system.config.update'], [$menus[0]->permission, $menus[1]->permission]);
+        $this->assertSame('/system/config/index', $menus[0]->component);
+    }
+
     public function test_role_department_and_config_seeds(): void
     {
         $role = Db::table('roles')->where('id', 1)->first();
@@ -54,6 +63,8 @@ final class SchemaTest extends TestCase
         $this->assertSame('30', $basic['login_lock_duration']);
         $this->assertSame('6', $basic['password_min_length']);
         $this->assertSame('/storage/uploads/images/favicon.ico', $basic['site_favicon']);
+        $this->assertTrue(Db::schema()->hasColumn('system_configs', 'is_public'));
+        $this->assertSame(18, Db::table('system_configs')->where('config_group', 'basic')->where('is_public', 1)->count(), 'basic 18 项都是前端公开配置');
     }
 
     public function test_init_sql_contains_no_admin_account(): void
