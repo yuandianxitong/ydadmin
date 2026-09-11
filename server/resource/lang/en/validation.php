@@ -19,6 +19,20 @@ return [
     'role_ids_integer'       => 'Role ID must be an integer',
     'password_max'           => 'Password may not exceed 20 characters',
     'new_password_different' => 'The new password must differ from the current one',
+    'role_name_require'    => 'Role identifier is required',
+    'role_name_length'     => 'Role identifier must be 2-50 characters',
+    'role_name_alpha_dash' => 'Role identifier may only contain letters, numbers, dashes and underscores',
+    'role_title_require'   => 'Role name is required',
+    'role_title_length'    => 'Role name must be 2-100 characters',
+    'role_desc_max'        => 'Role description may not exceed 500 characters',
+    'data_scope_invalid'   => 'Invalid data scope',
+    'status_integer'       => 'Status must be an integer',
+    'sort_integer'         => 'Sort must be an integer',
+    'sort_min'             => 'Sort may not be negative',
+    'menu_ids_array'       => 'Menus must be an array',
+    'menu_ids_integer'     => 'Menu ID must be an integer',
+    'dept_ids_array'       => 'Departments must be an array',
+    'dept_ids_integer'     => 'Department ID must be an integer',
 
     /*
     |--------------------------------------------------------------------------

@@ -32,4 +32,14 @@ class MenuService extends Service
     {
         return $this->menuRepository->getButtonPermissionsByMenuIds($menuIds);
     }
+
+    /**
+     * 菜单树（含按钮）。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getMenuTree(bool $onlyEnabled = true): array
+    {
+        return $this->menuRepository->getMenuTree($onlyEnabled);
+    }
 }

@@ -4,6 +4,7 @@ use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\MenuController;
+use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
@@ -41,6 +42,21 @@ Route::group('/adminapi', function () use ($adminAuth) {
 
     Route::group('/system/config', function () {
         Route::get('/global', [SystemConfigController::class, 'global']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/role', function () {
+        Route::get('', [RoleController::class, 'index']);
+        Route::get('/permission/tree', [RoleController::class, 'permissionTree']);
+        Route::get('/menu/tree', [RoleController::class, 'menuTree']);
+        Route::get('/options', [RoleController::class, 'options']);
+        Route::post('/batch-delete', [RoleController::class, 'batchDelete']);
+        Route::get('/{id:\d+}/permissions', [RoleController::class, 'permissions']);
+        Route::put('/{id:\d+}/assign-permissions', [RoleController::class, 'assignPermissions']);
+        Route::put('/{id:\d+}/status', [RoleController::class, 'status']);
+        Route::get('/{id:\d+}', [RoleController::class, 'show']);
+        Route::post('', [RoleController::class, 'store']);
+        Route::put('/{id:\d+}', [RoleController::class, 'update']);
+        Route::delete('/{id:\d+}', [RoleController::class, 'delete']);
     })->middleware($adminAuth);
 
     Route::group('/system/admin', function () {
