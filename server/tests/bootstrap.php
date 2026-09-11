@@ -116,3 +116,11 @@ foreach ((array) config('bootstrap', []) as $class) {
         $class::start(null);
     }
 }
+
+// 6. 清空测试 Redis（DB 15 专供测试）。测试库重建后自增 id 会复用，不清空会读到
+//    上一轮留下的权限 / 数据范围 / token 版本缓存。
+if ((int) config('redis.default.database') !== 15) {
+    fwrite(STDERR, "测试 Redis 必须是 DB 15，当前为 " . config('redis.default.database') . "\n");
+    exit(1);
+}
+support\Redis::connection('default')->flushdb();
