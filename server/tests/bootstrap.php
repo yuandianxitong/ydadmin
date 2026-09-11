@@ -11,6 +11,7 @@ $overrides = [
     'DB_NAME'   => ($_ENV['DB_NAME'] ?? 'dev007_ydadmin') . '_test',
     'DB_PREFIX' => '',
     'REDIS_DB'  => '15',
+    'CORS_ALLOWED_ORIGINS' => 'http://allowed.test',
 ];
 foreach ($overrides as $name => $value) {
     $_ENV[$name] = $value;
