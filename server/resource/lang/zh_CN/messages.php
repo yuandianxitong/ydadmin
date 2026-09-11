@@ -36,4 +36,12 @@ return [
     'clear_success'           => '清空成功',
     'operation'               => '操作',
     'execute_operation'       => '执行操作',
+    'dashboard_login_success' => '登录系统',
+    'dashboard_login_failed'  => '登录失败',
+    'time_just_now'           => '刚刚',
+    'time_minutes_ago'        => ':count分钟前',
+    'time_hours_ago'          => ':count小时前',
+    'time_days_ago'           => ':count天前',
+    'time_months_ago'         => ':count个月前',
+    'time_long_ago'           => '更早',
 ];

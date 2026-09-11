@@ -15,6 +15,7 @@ return [
     'mobile_format'          => '手机号格式不正确',
     'nickname_length'        => '昵称长度为2-20个字符',
     'status_invalid'         => '状态值无效',
+    'dashboard_period_invalid' => '统计周期只能是 day、week 或 month',
     'role_ids_array'         => '角色必须是数组',
     'role_ids_integer'       => '角色ID必须是整数',
     'password_max'           => '密码最多20个字符',

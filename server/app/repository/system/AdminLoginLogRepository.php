@@ -15,6 +15,7 @@ use core\support\Like;
  * record() 复用基类 create()；browser/os 由 User-Agent 正则派生（parseBrowser/
  * parseOs，纯字符串匹配，无第三方库）。受数据权限约束（owner 列 admin_id，spec §5.5）；
  * 登录时尚无当前管理员，record() 不受影响。
+ * 仪表盘用的统计、趋势、排行方法同样经 query()，按数据范围统计。
  */
 class AdminLoginLogRepository extends Repository
 {
@@ -90,6 +91,107 @@ class AdminLoginLogRepository extends Repository
             'browser'       => $this->parseBrowser($userAgent),
             'os'            => $this->parseOs($userAgent),
         ]);
+    }
+
+    /** 今日登录成功次数（按数据范围，仪表盘用）。 */
+    public function getTodaySuccessCount(): int
+    {
+        $today = new \DateTimeImmutable('today');
+
+        return $this->countSuccessBetween($today, $today->add(new \DateInterval('P1D')));
+    }
+
+    /** 上周同日（7 天前那一天）登录成功次数，仪表盘环比用。 */
+    public function getLastWeekSameDaySuccessCount(): int
+    {
+        $day = (new \DateTimeImmutable('today'))->sub(new \DateInterval('P7D'));
+
+        return $this->countSuccessBetween($day, $day->add(new \DateInterval('P1D')));
+    }
+
+    /**
+     * 最近 N 天（含今天）每天的登录成功次数：一次 GROUP BY，PHP 侧补零；date 为 m-d（与 TP8 一致）。
+     *
+     * @return list<array{date: string, count: int}>
+     */
+    public function getRecentTrend(int $days): array
+    {
+        $days = max(1, $days);
+        $today = new \DateTimeImmutable('today');
+        $start = $today->sub(new \DateInterval('P' . ($days - 1) . 'D'));
+
+        $rows = $this->query()
+            ->where('login_result', 1)
+            ->where('login_time', '>=', $start->format('Y-m-d H:i:s'))
+            ->toBase() // toBase() 先应用全局作用域（数据权限）再取底层查询，结果不经模型的 casts/appends；
+            // 放在 selectRaw()/groupBy() 之前调用：这两个方法未在 Eloquent\Builder 上显式声明，
+            // 经 @mixin 转发解析出的返回类型是 Query\Builder，此时再调用 toBase() 会被 PHPStan 判定为未定义方法
+            ->selectRaw('DATE(login_time) AS log_date, COUNT(*) AS total')
+            ->groupBy('log_date')
+            ->get();
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row->log_date] = (int) $row->total;
+        }
+
+        $trend = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = $today->sub(new \DateInterval('P' . $i . 'D'));
+            $trend[] = ['date' => $day->format('m-d'), 'count' => $counts[$day->format('Y-m-d')] ?? 0];
+        }
+
+        return $trend;
+    }
+
+    /**
+     * 最近的登录日志（全字段，按登录时间倒序）。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentLogs(int $limit = 10): array
+    {
+        return $this->query()->orderByDesc('login_time')->orderByDesc('id')->limit($limit)->get()->toArray();
+    }
+
+    /**
+     * 按登录成功次数排行（period：day 今天、week 本周一起、month 本月一日起）。按用户名分组，与 TP8 一致。
+     *
+     * @return list<array{username: string, count: int}>
+     */
+    public function getActiveRanking(string $period, int $limit = 10): array
+    {
+        $since = match ($period) {
+            'week'  => (new \DateTimeImmutable('monday this week'))->format('Y-m-d 00:00:00'),
+            'month' => date('Y-m-01 00:00:00'),
+            default => date('Y-m-d 00:00:00'),
+        };
+
+        $rows = $this->query()
+            ->where('login_result', 1)
+            ->where('login_time', '>=', $since)
+            ->toBase() // 先于 selectRaw()/groupBy() 调用，理由同 getRecentTrend()
+            ->selectRaw('username, COUNT(*) AS total')
+            ->groupBy('username')
+            ->orderByDesc('total')
+            ->orderBy('username')
+            ->limit($limit)
+            ->get();
+        $list = [];
+        foreach ($rows as $row) {
+            $list[] = ['username' => (string) $row->username, 'count' => (int) $row->total];
+        }
+
+        return $list;
+    }
+
+    /** [开始, 结束) 区间内的登录成功次数；用区间比较而不是 whereDate()，能用上 login_time 索引。 */
+    private function countSuccessBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return $this->query()
+            ->where('login_result', 1)
+            ->where('login_time', '>=', $from->format('Y-m-d H:i:s'))
+            ->where('login_time', '<', $to->format('Y-m-d H:i:s'))
+            ->count();
     }
 
     /** 解析浏览器（纯字符串/正则匹配，无第三方库）。 */

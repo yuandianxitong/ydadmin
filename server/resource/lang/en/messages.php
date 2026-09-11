@@ -36,4 +36,12 @@ return [
     'clear_success'           => 'Cleared successfully',
     'operation'               => 'Operation',
     'execute_operation'       => 'Execute operation',
+    'dashboard_login_success' => 'signed in',
+    'dashboard_login_failed'  => 'failed to sign in',
+    'time_just_now'           => 'just now',
+    'time_minutes_ago'        => ':count minutes ago',
+    'time_hours_ago'          => ':count hours ago',
+    'time_days_ago'           => ':count days ago',
+    'time_months_ago'         => ':count months ago',
+    'time_long_ago'           => 'long ago',
 ];

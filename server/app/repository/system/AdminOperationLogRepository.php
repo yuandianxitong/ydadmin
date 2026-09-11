@@ -98,4 +98,30 @@ class AdminOperationLogRepository extends Repository
     {
         return (int) $this->query()->delete();
     }
+
+    /** 今日操作日志条数（按数据范围，仪表盘用）。 */
+    public function getTodayCount(): int
+    {
+        $today = new \DateTimeImmutable('today');
+
+        return $this->query()
+            ->where('operation_time', '>=', $today->format('Y-m-d H:i:s'))
+            ->where('operation_time', '<', $today->add(new \DateInterval('P1D'))->format('Y-m-d H:i:s'))
+            ->count();
+    }
+
+    /**
+     * 最近的操作日志（字段裁剪，仪表盘「最近动态」用）。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentActivities(int $limit = 5): array
+    {
+        return $this->query()
+            ->orderByDesc('operation_time')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get(['id', 'username', 'action', 'description', 'method', 'operation_time'])
+            ->toArray();
+    }
 }

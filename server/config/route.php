@@ -1,6 +1,7 @@
 <?php
 
 use app\adminapi\controller\auth\AuthController;
+use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\DepartmentController;
@@ -135,6 +136,13 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [NotificationController::class, 'store']);
         Route::put('/{id:\d+}', [NotificationController::class, 'update']);
         Route::delete('/{id:\d+}', [NotificationController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/dashboard', function () {
+        Route::get('/stats', [DashboardController::class, 'stats']);
+        Route::get('/recent-logs', [DashboardController::class, 'recentLogs']);
+        Route::get('/recent-activities', [DashboardController::class, 'recentActivities']);
+        Route::get('/active-ranking', [DashboardController::class, 'activeRanking']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

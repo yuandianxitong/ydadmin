@@ -15,6 +15,7 @@ return [
     'mobile_format'          => 'Invalid mobile number',
     'nickname_length'        => 'Nickname must be 2-20 characters',
     'status_invalid'         => 'Invalid status',
+    'dashboard_period_invalid' => 'Period must be one of: day, week, month',
     'role_ids_array'         => 'Roles must be an array',
     'role_ids_integer'       => 'Role ID must be an integer',
     'password_max'           => 'Password may not exceed 20 characters',
