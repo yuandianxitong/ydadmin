@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\System;
 
+use core\datascope\DataScope;
 use support\Db;
 use tests\Support\ApiTestCase;
 use tests\Support\TestAdmin;
@@ -122,6 +123,51 @@ final class AdminApiTest extends ApiTestCase
         $target = $this->actingAsAdmin();
 
         $this->assertSame(lang('business.system_role_no_assign'), $this->put(self::BASE . "/{$target->id}", ['role_ids' => [1]], $actor->token)->assertCode(400)->message());
+    }
+
+    /** 数据范围逃逸：本部门范围的管理员不能把人（含自己）挪到范围外的部门，否则下一请求就能看到那个部门的管理员。 */
+    public function test_dept_scoped_admin_cannot_assign_a_department_outside_the_scope(): void
+    {
+        $a = $this->createDepartment(['name' => '范围A']);
+        $b = $this->createDepartment(['name' => '范围B']);
+        $actor = $this->actingAsAdmin(['system.admin.create', 'system.admin.update'], ['department_id' => $a], ['data_scope' => DataScope::DEPT]);
+        $inScope = $this->actingAsAdmin([], ['department_id' => $a]);
+
+        $this->assertSame(lang('business.dept_out_of_scope'), $this->post(self::BASE, $this->payload(['department_id' => $b]), $actor->token)->assertCode(400)->message());
+        $this->assertSame(lang('business.dept_out_of_scope'), $this->put(self::BASE . "/{$inScope->id}", ['department_id' => $b], $actor->token)->assertCode(400)->message());
+        $this->assertSame(lang('business.cannot_change_own_department'), $this->put(self::BASE . "/{$actor->id}", ['department_id' => $b], $actor->token)->assertCode(400)->message());
+        $this->assertSame($a, (int) Db::table('admins')->where('id', $inScope->id)->value('department_id'));
+        $this->assertSame($a, (int) Db::table('admins')->where('id', $actor->id)->value('department_id'));
+
+        // 范围内的部门照常可分配；原样回传自己的部门（前端表单总会带上 department_id）不算修改
+        $this->trackAdmin((int) $this->post(self::BASE, $this->payload(['department_id' => $a]), $actor->token)->assertOk()->data()['id']);
+        $this->put(self::BASE . "/{$actor->id}", ['nickname' => '改自己昵称', 'department_id' => $a], $actor->token)->assertOk();
+    }
+
+    /** 仅本人范围（deptIds 为空）：任何非空部门都在范围外，但原样回传自己当前的部门不受影响。 */
+    public function test_self_scoped_admin_can_resubmit_own_department_but_not_assign_any(): void
+    {
+        $own = $this->createDepartment();
+        $actor = $this->actingAsAdmin(['system.admin.create', 'system.admin.update'], ['department_id' => $own], ['data_scope' => DataScope::SELF]);
+
+        $this->assertSame(lang('business.dept_out_of_scope'), $this->post(self::BASE, $this->payload(['department_id' => $own]), $actor->token)->assertCode(400)->message());
+        $this->put(self::BASE . "/{$actor->id}", ['nickname' => '改自己昵称', 'department_id' => $own], $actor->token)->assertOk();
+    }
+
+    public function test_super_admin_can_assign_any_department(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $b = $this->createDepartment();
+        $target = $this->actingAsAdmin([], ['department_id' => $this->createDepartment()]);
+
+        $id = (int) $this->post(self::BASE, $this->payload(['department_id' => $b]), $super->token)->assertOk()->data()['id'];
+        $this->trackAdmin($id);
+        $this->put(self::BASE . "/{$target->id}", ['department_id' => $b], $super->token)->assertOk();
+        $this->put(self::BASE . "/{$super->id}", ['department_id' => $b], $super->token)->assertOk();
+
+        foreach ([$id, $target->id, $super->id] as $adminId) {
+            $this->assertSame($b, (int) Db::table('admins')->where('id', $adminId)->value('department_id'));
+        }
     }
 
     public function test_update_changes_fields_and_roles_and_revokes_on_password_change(): void

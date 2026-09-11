@@ -195,6 +195,8 @@ class AdminService extends Service
         $this->assertUniqueIdentity($data, 0);
         $roleIds = $this->validRoleIds((array) ($data['role_ids'] ?? []));
         $this->assertCanAssignRoles($roleIds);
+        $departmentId = $this->validDepartmentId($data['department_id'] ?? null);
+        $this->assertDepartmentInScope($departmentId);
         $row = [
             'username'      => $data['username'],
             'email'         => $data['email'],
@@ -202,7 +204,7 @@ class AdminService extends Service
             'password'      => password_hash((string) $data['password'], PASSWORD_DEFAULT),
             'nickname'      => $data['nickname'] ?? $data['username'],
             'avatar'        => $data['avatar'] ?? null,
-            'department_id' => $this->validDepartmentId($data['department_id'] ?? null),
+            'department_id' => $departmentId,
             'position'      => $data['position'] ?? null,
             'status'        => (int) ($data['status'] ?? 1),
         ];
@@ -218,7 +220,7 @@ class AdminService extends Service
     /** @param array<string, mixed> $data 控制器 validate() 的返回值（字段均可选） */
     public function updateAdmin(int $id, array $data): void
     {
-        $this->findOrFail($id);
+        $admin = $this->findOrFail($id);
         $this->assertCanModify($id);
         $this->assertUniqueIdentity($data, $id);
         $disabling = isset($data['status']) && (int) $data['status'] === 0;
@@ -231,7 +233,13 @@ class AdminService extends Service
             static fn ($value) => $value !== null
         );
         if (array_key_exists('department_id', $data)) {
-            $update['department_id'] = $this->validDepartmentId($data['department_id']);
+            $departmentId = $this->validDepartmentId($data['department_id']);
+            $current = isset($admin['department_id']) ? (int) $admin['department_id'] : null;
+            if ($departmentId !== $current) {
+                // 前端表单总会原样带回 department_id：只有真正换部门时才走部门分配限制
+                $this->assertCanChangeDepartment($id, $departmentId);
+            }
+            $update['department_id'] = $departmentId;
         }
         $passwordChanged = !empty($data['password']);
         if ($passwordChanged) {
@@ -377,6 +385,43 @@ class AdminService extends Service
         if ($actor > 0 && !$this->permission->isSuperAdmin($actor) && $this->roleRepository->containsSystemRole($roleIds)) {
             throw new BusinessException(lang('business.system_role_no_assign'));
         }
+    }
+
+    /**
+     * 防数据范围逃逸：非超管不能改自己的部门（挪进别的部门，下一请求就能看到那里的管理员），
+     * 给别人换部门也只能换到自己数据范围内的部门。无管理员身份（CLI）与超管不受限。
+     */
+    private function assertCanChangeDepartment(int $id, ?int $departmentId): void
+    {
+        if (!$this->actorIsScopeLimited()) {
+            return;
+        }
+        if ($id === RequestContext::actingUser()) {
+            throw new BusinessException(lang('business.cannot_change_own_department'));
+        }
+        $this->assertDepartmentInScope($departmentId);
+    }
+
+    /**
+     * 分配的非空部门必须在操作者的数据范围内；「仅本人」或无部门的范围 deptIds 为空，任何非空部门都拒绝。
+     * 无管理员身份（CLI）、超管与 DataScope::bypass() 内不受限。
+     */
+    private function assertDepartmentInScope(?int $departmentId): void
+    {
+        if ($departmentId === null || !$this->actorIsScopeLimited()) {
+            return;
+        }
+        $snapshot = DataScope::current();
+        if ($snapshot !== null && !$snapshot->all && !in_array($departmentId, $snapshot->deptIds, true)) {
+            throw new BusinessException(lang('business.dept_out_of_scope'));
+        }
+    }
+
+    private function actorIsScopeLimited(): bool
+    {
+        $actor = RequestContext::actingUser();
+
+        return $actor > 0 && !$this->permission->isSuperAdmin($actor);
     }
 
     /**

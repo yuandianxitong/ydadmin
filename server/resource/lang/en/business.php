@@ -39,5 +39,7 @@ return [
     'dept_has_admins'           => 'Department has admins and cannot be deleted',
 
     // Admin
-    'please_select_admin'       => 'Please select admins to delete',
+    'please_select_admin'          => 'Please select admins to delete',
+    'dept_out_of_scope'            => 'Cannot assign an admin to a department outside your data scope',
+    'cannot_change_own_department' => 'You cannot change your own department',
 ];

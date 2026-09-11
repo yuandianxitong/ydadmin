@@ -39,5 +39,7 @@ return [
     'dept_has_admins'           => '该部门下存在管理员，无法删除',
 
     // 管理员
-    'please_select_admin'       => '请选择要删除的管理员',
+    'please_select_admin'          => '请选择要删除的管理员',
+    'dept_out_of_scope'            => '不能把管理员分配到数据权限范围外的部门',
+    'cannot_change_own_department' => '不能修改自己的所属部门',
 ];
