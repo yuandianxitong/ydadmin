@@ -11,4 +11,12 @@ return [
     'captcha_invalid'   => 'Captcha is incorrect or expired',
     'token_empty'       => 'Token must not be empty',
     'admin_not_found'   => 'Administrator not found',
+    'username_exists'        => 'Username already exists',
+    'email_exists'           => 'Email already exists',
+    'old_password_error'     => 'Current password is incorrect',
+    'super_admin_no_delete'  => 'Super admin cannot be deleted',
+    'super_admin_no_disable' => 'Super admin cannot be disabled',
+    'super_admin_no_modify'  => 'Only a super admin can modify a super admin account',
+    'cannot_delete_self'     => 'Cannot delete yourself',
+    'cannot_disable_self'    => 'Cannot disable yourself',
 ];

@@ -7,17 +7,25 @@ namespace app\service\system;
 use app\repository\system\AdminLoginLogRepository;
 use app\repository\system\AdminRepository;
 use app\repository\system\MenuRepository;
+use app\repository\system\RoleRepository;
+use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
 use core\datascope\DataScope;
+use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
+use core\validation\ValidatorFactory;
 use DI\Attribute\Inject;
 use support\Log;
 
 class AdminService extends Service
 {
+    public const SUPER_ADMIN_ID = 1;
+
+    public const SUPER_ROLE_ID = 1;
+
     /**
      * 用户名不存在时也要跑一次 bcrypt（成本与真实校验相同），抵消时序差异——否则「用户名不存在」
      * 分支比「密码错误」分支快得多，攻击者可以靠响应耗时枚举出哪些用户名存在。密文对应明文
@@ -36,6 +44,18 @@ class AdminService extends Service
 
     #[Inject]
     protected MenuService $menuService;
+
+    #[Inject]
+    protected RoleRepository $roleRepository;
+
+    #[Inject]
+    protected SystemConfigService $systemConfigService;
+
+    #[Inject]
+    protected Permission $permission;
+
+    #[Inject]
+    protected DataScopeResolver $dataScopeResolver;
 
     /**
      * 登录（spec §4.3）。成功与失败都同步写登录日志；写日志、更新登录信息失败只记日志，不影响登录。
@@ -126,6 +146,64 @@ class AdminService extends Service
     public function getSelfInfo(int $adminId): array
     {
         return DataScope::bypass(fn (): array => $this->getAdminInfo($adminId));
+    }
+
+    /** 密码规则（不含 required/nullable）：最短长度读 password_min_length（登录安全配置全部生效）。 */
+    public function passwordRule(): string
+    {
+        $min = max(1, min(20, (int) $this->systemConfigService->getConfigValue('password_min_length', 6)));
+
+        return "string|min:{$min}|max:20";
+    }
+
+    /**
+     * 建立或重置 id=1 的超级管理员（spec §3.3）：挂超管角色，自增 token 版本号（该账号已签发的 token 全部失效）。
+     * admin:init 命令与 M8 安装向导共用。
+     *
+     * @return array{id: int, username: string, created: bool}
+     */
+    public function initSuperAdmin(string $username, string $password, ?string $email, ?string $nickname): array
+    {
+        ValidatorFactory::validate(
+            ['username' => $username, 'password' => $password, 'email' => $email, 'nickname' => $nickname],
+            [
+                'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
+                'password' => 'required|' . $this->passwordRule(),
+                'email'    => 'nullable|email|max:100',
+                'nickname' => 'nullable|string|max:50',
+            ]
+        );
+        if ($this->adminRepository->existsUsername($username, self::SUPER_ADMIN_ID)) {
+            throw new BusinessException(lang('auth.username_exists'));
+        }
+        if ($email !== null && $this->adminRepository->existsEmail($email, self::SUPER_ADMIN_ID)) {
+            throw new BusinessException(lang('auth.email_exists'));
+        }
+        if ($this->roleRepository->existingIds([self::SUPER_ROLE_ID]) === []) {
+            throw new BusinessException(lang('business.role_not_found'));
+        }
+
+        $data = array_filter([
+            'username' => $username,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'email'    => $email,
+            'nickname' => $nickname,
+            'status'   => 1,
+        ], static fn ($value) => $value !== null);
+
+        $created = $this->runInTransaction(function () use ($data, $username): bool {
+            $created = $this->adminRepository->upsertById(self::SUPER_ADMIN_ID, $data, ['nickname' => $username]);
+            $this->adminRepository->assignRoles(self::SUPER_ADMIN_ID, [self::SUPER_ROLE_ID]);
+            $this->afterCommit(function (): void {
+                TokenVersion::bump(self::SUPER_ADMIN_ID);
+                $this->permission->clearUserCache(self::SUPER_ADMIN_ID);
+                $this->dataScopeResolver->forget(self::SUPER_ADMIN_ID);
+            });
+
+            return $created;
+        });
+
+        return ['id' => self::SUPER_ADMIN_ID, 'username' => $username, 'created' => $created];
     }
 
     protected function issueToken(int $adminId, string $username): string

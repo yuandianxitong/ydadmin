@@ -150,4 +150,24 @@ class AdminRepository extends Repository
 
         return array_values(array_map('intval', $this->query()->whereIn($this->qualify('id'), $ids)->pluck($this->qualify('id'))->all()));
     }
+
+    /**
+     * 按 id 插入或更新（更新时恢复软删行）。只给 admin:init 用——业务新增走 create()（自增 id）。
+     *
+     * @param array<string, mixed> $data       插入与更新都写的列
+     * @param array<string, mixed> $insertOnly 仅插入时写的列
+     * @return bool 是否新插入
+     */
+    public function upsertById(int $id, array $data, array $insertOnly = []): bool
+    {
+        $now = date('Y-m-d H:i:s');
+        if (Db::table('admins')->where('id', $id)->exists()) {
+            Db::table('admins')->where('id', $id)->update($data + ['deleted_at' => null, 'updated_at' => $now]);
+
+            return false;
+        }
+        Db::table('admins')->insert(['id' => $id] + $data + $insertOnly + ['created_at' => $now, 'updated_at' => $now]);
+
+        return true;
+    }
 }

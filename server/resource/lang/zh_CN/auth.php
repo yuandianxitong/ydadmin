@@ -11,4 +11,12 @@ return [
     'captcha_invalid'   => '验证码错误或已过期',
     'token_empty'       => 'Token不能为空',
     'admin_not_found'   => '管理员不存在',
+    'username_exists'        => '用户名已存在',
+    'email_exists'           => '邮箱已存在',
+    'old_password_error'     => '原密码错误',
+    'super_admin_no_delete'  => '超级管理员不能删除',
+    'super_admin_no_disable' => '超级管理员不能禁用',
+    'super_admin_no_modify'  => '只有超级管理员可以修改超级管理员账号',
+    'cannot_delete_self'     => '不能删除自己',
+    'cannot_disable_self'    => '不能禁用自己',
 ];
