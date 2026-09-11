@@ -3,6 +3,7 @@
 use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
+use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
@@ -65,6 +66,16 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [RoleController::class, 'store']);
         Route::put('/{id:\d+}', [RoleController::class, 'update']);
         Route::delete('/{id:\d+}', [RoleController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/department', function () {
+        Route::get('', [DepartmentController::class, 'index']);
+        Route::get('/options', [DepartmentController::class, 'options']);
+        Route::put('/{id:\d+}/status', [DepartmentController::class, 'status']);
+        Route::get('/{id:\d+}', [DepartmentController::class, 'show']);
+        Route::post('', [DepartmentController::class, 'store']);
+        Route::put('/{id:\d+}', [DepartmentController::class, 'update']);
+        Route::delete('/{id:\d+}', [DepartmentController::class, 'delete']);
     })->middleware($adminAuth);
 
     Route::group('/system/admin', function () {
