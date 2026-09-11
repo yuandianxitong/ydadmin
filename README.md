@@ -36,6 +36,49 @@ php start.php start     # 开发模式（文件变更自动重载）；生产环
 cd admin && pnpm install && pnpm dev   # 接口代理到 http://127.0.0.1:8000
 ```
 
+## 部署与升级
+
+### 全新安装（生产）
+
+```bash
+mysql -u root -p -e "CREATE DATABASE ydadmin DEFAULT CHARACTER SET utf8mb4"
+mysql -u root -p ydadmin < server/database/install/schema.sql   # 先表结构
+mysql -u root -p ydadmin < server/database/install/init.sql     # 再初始数据
+cd server
+composer install
+cp .env.example .env    # 见下方说明
+php webman admin:init --username=admin --password=你的密码
+php start.php start -d
+```
+
+`.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。
+
+`php webman db:reset` 会删库重建，只供开发环境使用，`APP_DEBUG` 未开启时拒绝执行。
+
+### Redis
+
+token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 Redis，这些 key 丢了，已吊销的 token 会在过期前重新生效：
+
+- 开启持久化（AOF 或 RDB），并设置 `maxmemory-policy noeviction`，不要让 Redis 淘汰 key；
+- 建议给本应用单独一个 Redis DB（`REDIS_DB`），不与其他应用共用；
+- 生产环境不要对它执行 `FLUSHDB`，也不要调用 `Cache::clear()`。
+
+### nginx 反向代理
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+同时把 `TRUSTED_PROXIES` 设为 nginx 的地址（同机部署即 `127.0.0.1`）。只有来自这些地址的请求才读取 `X-Forwarded-For`（取最右侧的非代理地址），登录限流与登录日志按它记录客户端 IP；在代理后面却不配置时，所有请求都会被当成来自代理地址，登录限流会按同一个 IP 计数。
+
+### 升级
+
+`schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
+
 ## 质量门禁
 
 在 `server/` 下执行，每个里程碑收尾必须全部通过：
