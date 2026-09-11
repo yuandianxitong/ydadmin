@@ -104,6 +104,38 @@ final class RoleApiTest extends ApiTestCase
         $this->assertEquals($before, $after, '校验失败的更新不应改动角色行');
     }
 
+    public function test_blank_data_scope_or_sort_is_rejected(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $roleId = $this->createRole($super);
+        $before = (array) Db::table('roles')->where('id', $roleId)->first();
+
+        foreach (['data_scope' => '', 'sort' => ''] as $field => $value) {
+            $errors = $this->put(self::BASE . "/{$roleId}", [$field => $value], $super->token)->assertCode(422)->data()['errors'];
+            $this->assertArrayHasKey($field, $errors, "字段 {$field} 提交空字符串应校验失败");
+        }
+        $after = (array) Db::table('roles')->where('id', $roleId)->first();
+        $this->assertEquals($before, $after, '校验失败的更新不应改动角色行');
+
+        $errors = $this->post(self::BASE, ['name' => 'r_' . bin2hex(random_bytes(3)), 'title' => '空数据范围', 'data_scope' => ''], $super->token)->assertCode(422)->data()['errors'];
+        $this->assertArrayHasKey('data_scope', $errors);
+    }
+
+    public function test_assign_permissions_validates_menu_ids(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $roleId = $this->createRole($super, ['menu_ids' => [10]]);
+
+        $this->put(self::BASE . "/{$roleId}/assign-permissions", ['menu_ids' => '11'], $super->token)->assertCode(422);
+        $this->assertSame([10], array_map('intval', Db::table('role_menus')->where('role_id', $roleId)->pluck('menu_id')->all()));
+
+        $this->put(self::BASE . "/{$roleId}/assign-permissions", [], $super->token)->assertCode(422);
+        $this->assertSame([10], array_map('intval', Db::table('role_menus')->where('role_id', $roleId)->pluck('menu_id')->all()));
+
+        $this->put(self::BASE . "/{$roleId}/assign-permissions", ['menu_ids' => []], $super->token)->assertOk();
+        $this->assertSame(0, Db::table('role_menus')->where('role_id', $roleId)->count());
+    }
+
     public function test_assign_permissions_takes_effect_on_the_next_request(): void
     {
         $super = $this->actingAsAdmin('super');
@@ -126,6 +158,8 @@ final class RoleApiTest extends ApiTestCase
         $super = $this->actingAsAdmin('super');
         $member = $this->actingAsAdmin(['system.admin.list']);
 
+        // 先证明成员当前能访问（预热权限缓存），status 变更之后必须让它下一请求就失效
+        $this->get('/adminapi/system/admin', [], $member->token)->assertOk();
         $this->put(self::BASE . "/{$this->roleOf($member)}/status", ['status' => 0], $super->token)->assertOk();
         $this->get('/adminapi/system/admin', [], $member->token)->assertCode(403);
         $this->put(self::BASE . '/1/status', ['status' => 0], $super->token)->assertCode(400);

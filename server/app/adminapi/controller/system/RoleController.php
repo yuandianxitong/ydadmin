@@ -102,9 +102,17 @@ class RoleController extends Controller
     #[Permission('system.role.permission')]
     public function assignPermissions(Request $request, string $id): Response
     {
-        $menuIds = $this->body($request)['menu_ids'] ?? [];
+        $data = $this->validate($this->body($request), [
+            'menu_ids'   => 'present|array',
+            'menu_ids.*' => 'integer|min:1',
+        ], [
+            'menu_ids.present'     => 'validation.menu_ids_array',
+            'menu_ids.array'       => 'validation.menu_ids_array',
+            'menu_ids.*.integer'   => 'validation.menu_ids_integer',
+            'menu_ids.*.min'       => 'validation.menu_ids_integer',
+        ]);
 
-        $this->roleService->assignPermissions((int) $id, is_array($menuIds) ? $menuIds : []);
+        $this->roleService->assignPermissions((int) $id, $data['menu_ids']);
 
         return $this->success([], lang('messages.authorize_success'));
     }
@@ -169,11 +177,13 @@ class RoleController extends Controller
                 'name'         => 'required|string|min:2|max:50|alpha_dash:ascii',
                 'title'        => 'required|string|min:2|max:100',
                 'description'  => 'nullable|string|max:500',
-                'data_scope'   => 'nullable|integer|in:1,2,3,4,5',
+                // data_scope/sort 与 name/title/status 同理：字段缺失时用 sometimes 跳过（Service 有默认值），
+                // 传了空字符串必须校验失败，否则 '' 会绕过 nullable 直接写库触发 MySQL 严格模式报错或写出非法值 0。
+                'data_scope'   => 'sometimes|required|integer|in:1,2,3,4,5',
                 'dept_ids'     => 'nullable|array',
                 'dept_ids.*'   => 'integer|min:1',
                 'status'       => 'nullable|integer|in:0,1',
-                'sort'         => 'nullable|integer|min:0',
+                'sort'         => 'sometimes|required|integer|min:0',
                 // update 不含 menu_ids：改授权走 assign-permissions（契约 §2.3）
                 'menu_ids'     => 'nullable|array',
                 'menu_ids.*'   => 'integer|min:1',
@@ -184,11 +194,11 @@ class RoleController extends Controller
             'name'        => 'sometimes|required|string|min:2|max:50|alpha_dash:ascii',
             'title'       => 'sometimes|required|string|min:2|max:100',
             'description' => 'nullable|string|max:500',
-            'data_scope'  => 'nullable|integer|in:1,2,3,4,5',
+            'data_scope'  => 'sometimes|required|integer|in:1,2,3,4,5',
             'dept_ids'    => 'nullable|array',
             'dept_ids.*'  => 'integer|min:1',
             'status'      => 'sometimes|required|integer|in:0,1',
-            'sort'        => 'nullable|integer|min:0',
+            'sort'        => 'sometimes|required|integer|min:0',
         ];
     }
 
@@ -207,10 +217,13 @@ class RoleController extends Controller
             'title.min'                => 'validation.role_title_length',
             'title.max'                => 'validation.role_title_length',
             'description.max'         => 'validation.role_desc_max',
+            'data_scope.required'      => 'validation.data_scope_invalid',
+            'data_scope.integer'       => 'validation.data_scope_invalid',
             'data_scope.in'            => 'validation.data_scope_invalid',
             'status.required'          => 'validation.status_invalid',
             'status.integer'           => 'validation.status_integer',
             'status.in'                => 'validation.status_invalid',
+            'sort.required'            => 'validation.sort_integer',
             'sort.integer'             => 'validation.sort_integer',
             'sort.min'                 => 'validation.sort_min',
             'menu_ids.array'           => 'validation.menu_ids_array',
