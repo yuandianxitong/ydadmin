@@ -47,7 +47,10 @@
       "": "./",
       "app\\": "./app",
       "core\\": "./core"
-    }
+    },
+    "files": [
+      "core/support/lang.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
