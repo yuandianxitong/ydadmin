@@ -17,6 +17,7 @@ return [
     'super_admin_no_delete'  => 'Super admin cannot be deleted',
     'super_admin_no_disable' => 'Super admin cannot be disabled',
     'super_admin_no_modify'  => 'Only a super admin can modify a super admin account',
+    'super_admin_only'       => 'Only super administrators can perform this action',
     'cannot_delete_self'     => 'Cannot delete yourself',
     'cannot_disable_self'    => 'Cannot disable yourself',
 ];

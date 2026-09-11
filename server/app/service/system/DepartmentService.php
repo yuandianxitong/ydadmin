@@ -6,14 +6,17 @@ namespace app\service\system;
 
 use app\repository\system\AdminRepository;
 use app\repository\system\DepartmentRepository;
+use core\auth\Permission;
 use core\base\Service;
 use core\context\RequestContext;
+use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
 use DI\Attribute\Inject;
 
 /**
  * 部门（契约 §2.5）；增改删经 afterCommit 清全部数据范围缓存。
+ * 非超管、且数据范围不是「全部」时，写操作限在自己的 deptIds 内（M1b 路径 E，见 assertDepartmentWritable()）。
  */
 class DepartmentService extends Service
 {
@@ -25,6 +28,9 @@ class DepartmentService extends Service
 
     #[Inject]
     protected DataScopeResolver $dataScopeResolver;
+
+    #[Inject]
+    protected Permission $permission;
 
     /**
      * 部门树，支持 keyword（name/code 模糊）/status 过滤。
@@ -111,6 +117,7 @@ class DepartmentService extends Service
         if ($parentId > 0 && $this->departmentRepository->find($parentId) === null) {
             throw new BusinessException(lang('business.parent_dept_not_found'));
         }
+        $this->assertDepartmentWritable($parentId);
 
         $departmentData = [
             'parent_id'  => $parentId,
@@ -145,6 +152,11 @@ class DepartmentService extends Service
         $department = $this->departmentRepository->find($id);
         if ($department === null) {
             throw new BusinessException(lang('business.dept_not_found'));
+        }
+        $this->assertDepartmentWritable($id);
+        if (isset($data['parent_id']) && (int) $data['parent_id'] !== (int) $department['parent_id']) {
+            // 改挂：新上级也必须在范围内（根 0 永远不在）；表单原样回传当前上级不算改挂
+            $this->assertDepartmentWritable((int) $data['parent_id']);
         }
 
         // 不能将自己设为上级
@@ -206,6 +218,7 @@ class DepartmentService extends Service
         if ($department === null) {
             throw new BusinessException(lang('business.dept_not_found'));
         }
+        $this->assertDepartmentWritable($id);
 
         $childIds = $this->departmentRepository->getChildIds($id);
         if ($childIds !== []) {
@@ -229,8 +242,26 @@ class DepartmentService extends Service
         if ($department === null) {
             throw new BusinessException(lang('business.dept_not_found'));
         }
+        $this->assertDepartmentWritable($id);
 
         $this->departmentRepository->update($id, ['status' => $status]);
+    }
+
+    /**
+     * 部门写操作的数据范围限制（M1b 路径 E）：非超管、且数据范围不是「全部」时，新建的上级部门、被改 / 删 / 改状态的
+     * 部门、改挂的新上级都必须在自己的 deptIds 内；根（0）永远不在范围内。否则改挂 parent_id 就能把别的部门挂到
+     * 自己名下，扩大自己「本部门及下级」的范围。无管理员身份（CLI）、超管与 DataScope::bypass() 内不受限。
+     */
+    private function assertDepartmentWritable(int $departmentId): void
+    {
+        $actor = RequestContext::actingUser();
+        if ($actor <= 0 || $this->permission->isSuperAdmin($actor)) {
+            return;
+        }
+        $snapshot = DataScope::current();
+        if ($snapshot !== null && !$snapshot->all && !in_array($departmentId, $snapshot->deptIds, true)) {
+            throw new BusinessException(lang('business.dept_out_of_scope'));
+        }
     }
 
     /**

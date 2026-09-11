@@ -40,7 +40,7 @@ return [
 
     // Admin
     'please_select_admin'          => 'Please select admins to delete',
-    'dept_out_of_scope'            => 'Cannot assign an admin to a department outside your data scope',
+    'dept_out_of_scope'            => 'The department is outside your data scope',
     'cannot_change_own_department' => 'You cannot change your own department',
     'cannot_change_own_roles'      => 'You cannot change your own roles',
     'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',

@@ -6,11 +6,16 @@ namespace app\service\system;
 
 use app\repository\system\MenuRepository;
 use core\auth\Permission;
+use core\auth\SuperAdminGuard;
 use core\base\Service;
 use core\context\RequestContext;
 use core\exception\BusinessException;
 use DI\Attribute\Inject;
 
+/**
+ * 菜单。写操作（增、改——含经 update 改状态、删、批量删、批量排序）仅超管（SuperAdminGuard，M1b 越权收口）：
+ * 菜单的权限码就是 RBAC 本身，改它等于给持有该菜单的人换权限。读接口照旧按权限点。
+ */
 class MenuService extends Service
 {
     #[Inject]
@@ -18,6 +23,9 @@ class MenuService extends Service
 
     #[Inject]
     protected Permission $permission;
+
+    #[Inject]
+    protected SuperAdminGuard $superAdminGuard;
 
     /**
      * 前端路由树（契约 §4.3）：auth/info 与 menu/routes 共用，保证两者一致。
@@ -68,6 +76,8 @@ class MenuService extends Service
      */
     public function createMenu(array $data): array
     {
+        $this->superAdminGuard->assert();
+
         if (!empty($data['name']) && $this->menuRepository->existsName((string) $data['name'])) {
             throw new BusinessException(lang('business.menu_name_exists'));
         }
@@ -127,6 +137,8 @@ class MenuService extends Service
      */
     public function updateMenu(int $id, array $data): void
     {
+        $this->superAdminGuard->assert();
+
         $menu = $this->menuRepository->find($id);
         if ($menu === null) {
             throw new BusinessException(lang('business.menu_not_found'));
@@ -190,6 +202,8 @@ class MenuService extends Service
     /** 删除菜单（软删）。 */
     public function deleteMenu(int $id): void
     {
+        $this->superAdminGuard->assert();
+
         $menu = $this->menuRepository->find($id);
         if ($menu === null) {
             throw new BusinessException(lang('business.menu_not_found'));
@@ -216,6 +230,8 @@ class MenuService extends Service
      */
     public function batchDeleteMenus(array $ids): void
     {
+        $this->superAdminGuard->assert();
+
         if ($ids === []) {
             return;
         }
@@ -238,6 +254,8 @@ class MenuService extends Service
      */
     public function batchSort(array $items): void
     {
+        $this->superAdminGuard->assert();
+
         foreach ($items as $row) {
             if (!isset($row['id'], $row['parent_id'], $row['sort'])) {
                 throw new BusinessException(lang('business.sort_field_missing'));

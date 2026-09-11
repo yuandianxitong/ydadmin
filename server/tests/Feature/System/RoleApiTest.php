@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\System;
 
+use core\datascope\DataScope;
 use support\Db;
 use tests\Support\ApiTestCase;
 use tests\Support\TestAdmin;
@@ -198,5 +199,43 @@ final class RoleApiTest extends ApiTestCase
         $tree = $this->get(self::BASE . '/menu/tree', [], $admin->token)->assertOk()->data();
         $this->assertSame($tree, $this->get(self::BASE . '/permission/tree', [], $admin->token)->assertOk()->data());
         $this->assertContains(2, array_column($tree, 'id'));
+    }
+
+    /**
+     * 角色写操作仅超管（M1b 路径 A/B）：非超管即便持有全部角色权限点，也不能新建、改（含 data_scope）、删、
+     * 授权、改状态——否则可以调大自己所在角色的范围、往角色里塞超出自己的菜单。超管照常可用（见本类其余用例）。
+     */
+    public function test_role_writes_are_super_only(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $actor = $this->actingAsAdmin(['system.role.list', 'system.role.create', 'system.role.update', 'system.role.delete', 'system.role.permission', 'system.role.status'], [], ['data_scope' => DataScope::DEPT]);
+        $own = $this->roleOf($actor);
+        $ownMenus = array_map('intval', Db::table('role_menus')->where('role_id', $own)->orderBy('menu_id')->pluck('menu_id')->all());
+        $roleId = $this->createRole($super, ['menu_ids' => [10]]);
+        $before = (array) Db::table('roles')->where('id', $roleId)->first();
+        $denied = lang('auth.super_admin_only');
+        $name = 'r_' . bin2hex(random_bytes(3));
+
+        $response = $this->post(self::BASE, ['name' => $name, 'title' => '越权新建'], $actor->token);
+        $this->track('roles', (int) ($response->data()['id'] ?? 0)); // 回归时误建的行也要清掉
+        $this->assertSame($denied, $response->assertCode(400)->message());
+        $this->assertSame(0, Db::table('roles')->where('name', $name)->count());
+
+        $this->assertSame($denied, $this->put(self::BASE . "/{$roleId}", ['title' => '越权改名'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->put(self::BASE . "/{$roleId}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->put(self::BASE . "/{$roleId}/assign-permissions", ['menu_ids' => [10, 20]], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->delete(self::BASE . "/{$roleId}", [], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->post(self::BASE . '/batch-delete', ['ids' => [$roleId]], $actor->token)->assertCode(400)->message());
+        $this->assertEquals($before, (array) Db::table('roles')->where('id', $roleId)->first());
+        $this->assertSame([10], array_map('intval', Db::table('role_menus')->where('role_id', $roleId)->pluck('menu_id')->all()));
+
+        // 路径 B：调大自己所在角色的数据范围；路径 A：给自己所在的角色加菜单
+        $this->assertSame($denied, $this->put(self::BASE . "/{$own}", ['data_scope' => DataScope::ALL], $actor->token)->assertCode(400)->message());
+        $this->assertSame(DataScope::DEPT, (int) Db::table('roles')->where('id', $own)->value('data_scope'));
+        $this->assertSame($denied, $this->put(self::BASE . "/{$own}/assign-permissions", ['menu_ids' => [...$ownMenus, 50, 51, 52, 53]], $actor->token)->assertCode(400)->message());
+        $this->assertSame($ownMenus, array_map('intval', Db::table('role_menus')->where('role_id', $own)->orderBy('menu_id')->pluck('menu_id')->all()));
+
+        // 读接口照旧按权限点
+        $this->get(self::BASE, [], $actor->token)->assertOk();
     }
 }

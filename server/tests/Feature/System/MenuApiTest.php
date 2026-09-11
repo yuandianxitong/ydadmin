@@ -176,4 +176,31 @@ final class MenuApiTest extends ApiTestCase
 
         $this->assertEquals($before, Db::table('menus')->where('id', $id)->first(), '校验失败的请求不应改动数据');
     }
+
+    /** 菜单写操作仅超管（M1b 路径 C）：非超管即便持有菜单权限点，也不能改权限码、状态、排序，不能增删。 */
+    public function test_menu_writes_are_super_only(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $actor = $this->actingAsAdmin(['system.menu.list', 'system.menu.create', 'system.menu.update', 'system.menu.delete']);
+        $button = $this->createMenu($super, ['parent_id' => 10, 'type' => 3, 'title' => '越权探针', 'permission' => 'system.admin.probe_' . bin2hex(random_bytes(2))]);
+        $before = (array) Db::table('menus')->where('id', $button)->first();
+        $denied = lang('auth.super_admin_only');
+        $page = $this->pageMenu();
+
+        $response = $this->post(self::BASE, $page, $actor->token);
+        $this->track('menus', (int) ($response->data()['id'] ?? 0)); // 回归时误建的行也要清掉
+        $this->assertSame($denied, $response->assertCode(400)->message());
+        $this->assertSame(0, Db::table('menus')->where('name', $page['name'])->count());
+
+        // 路径 C：把手里按钮的权限码改成别的权限码
+        $this->assertSame($denied, $this->put(self::BASE . "/{$button}", ['parent_id' => 10, 'type' => 3, 'title' => '越权探针', 'permission' => 'system.role.update'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->put(self::BASE . "/{$button}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->post(self::BASE . '/batch-sort', ['items' => [['id' => $button, 'parent_id' => 10, 'sort' => 99]]], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->delete(self::BASE . "/{$button}", [], $actor->token)->assertCode(400)->message());
+        $this->assertSame($denied, $this->post(self::BASE . '/batch-delete', ['ids' => [$button]], $actor->token)->assertCode(400)->message());
+        $this->assertEquals($before, (array) Db::table('menus')->where('id', $button)->first());
+
+        // 读接口照旧按权限点
+        $this->get(self::BASE, [], $actor->token)->assertOk();
+    }
 }

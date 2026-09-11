@@ -8,6 +8,7 @@ use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use core\auth\Permission;
+use core\auth\SuperAdminGuard;
 use core\base\Service;
 use core\context\RequestContext;
 use core\datascope\DataScope;
@@ -18,6 +19,7 @@ use DI\Attribute\Inject;
 /**
  * 角色（契约 §2.3）。角色的授权、状态、data_scope、dept_ids 变更后，经 afterCommit 清掉该角色下
  * 每个管理员的权限缓存与数据范围缓存（下一请求即生效）；角色变更不自增 token 版本号（spec §4.4）。
+ * 写操作（增、改、删、批量删、授权、改状态）仅超管（SuperAdminGuard，M1b 越权收口）；读接口照旧按权限点。
  */
 class RoleService extends Service
 {
@@ -35,6 +37,9 @@ class RoleService extends Service
 
     #[Inject]
     protected DataScopeResolver $dataScopeResolver;
+
+    #[Inject]
+    protected SuperAdminGuard $superAdminGuard;
 
     /**
      * @param array<string, mixed> $params keyword（name/title 模糊）、status
@@ -86,6 +91,8 @@ class RoleService extends Service
      */
     public function createRole(array $data): array
     {
+        $this->superAdminGuard->assert();
+
         if ($this->roleRepository->existsName((string) $data['name'])) {
             throw new BusinessException(lang('business.role_code_exists'));
         }
@@ -115,6 +122,8 @@ class RoleService extends Service
     /** @param array<string, mixed> $data 字段均可选；不含 menu_ids（授权走 assignPermissions） */
     public function updateRole(int $id, array $data): void
     {
+        $this->superAdminGuard->assert();
+
         $role = $this->findOrFail($id);
         if (!empty($role['is_system'])) {
             if (isset($data['name']) && $data['name'] !== $role['name']) {
@@ -153,6 +162,8 @@ class RoleService extends Service
 
     public function deleteRole(int $id): void
     {
+        $this->superAdminGuard->assert();
+
         $role = $this->findOrFail($id);
         if (!empty($role['is_system'])) {
             throw new BusinessException(lang('business.system_role_no_delete'));
@@ -170,6 +181,8 @@ class RoleService extends Service
      */
     public function batchDeleteRoles(array $ids): void
     {
+        $this->superAdminGuard->assert();
+
         $this->runInTransaction(function () use ($ids): void {
             foreach ($ids as $id) {
                 $this->deleteRole((int) $id);
@@ -184,6 +197,8 @@ class RoleService extends Service
      */
     public function assignPermissions(int $id, array $menuIds): void
     {
+        $this->superAdminGuard->assert();
+
         $role = $this->findOrFail($id);
         if (!empty($role['is_system'])) {
             throw new BusinessException(lang('business.system_role_no_permission'), 403);
@@ -198,6 +213,8 @@ class RoleService extends Service
 
     public function updateStatus(int $id, int $status): void
     {
+        $this->superAdminGuard->assert();
+
         $role = $this->findOrFail($id);
         if (!empty($role['is_system'])) {
             throw new BusinessException(lang('business.system_role_no_status'));
