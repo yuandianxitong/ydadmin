@@ -121,6 +121,15 @@ final class RoleApiTest extends ApiTestCase
         $this->assertArrayHasKey('data_scope', $errors);
     }
 
+    public function test_store_rejects_blank_status(): void
+    {
+        $super = $this->actingAsAdmin('super');
+
+        $response = $this->post(self::BASE, ['name' => 'r_' . bin2hex(random_bytes(3)), 'title' => '空状态角色', 'status' => ''], $super->token);
+        $this->track('roles', (int) ($response->data()['id'] ?? 0)); // 回归时误建的行也要清掉
+        $this->assertArrayHasKey('status', $response->assertCode(422)->data()['errors']);
+    }
+
     public function test_assign_permissions_validates_menu_ids(): void
     {
         $super = $this->actingAsAdmin('super');

@@ -126,8 +126,10 @@ class AdminController extends Controller
     private function rules(string $scene): array
     {
         $isCreate = $scene === 'create';
-        // username/email/status 在更新场景下用 sometimes|required：字段不传时跳过校验（局部更新），
+        // username/email 在更新场景下用 sometimes|required：字段不传时跳过校验（局部更新），
         // 传了空字符串则必须校验失败——不能像 nullable 那样对 '' 直接放行（会写出空用户名/邮箱、非法状态）。
+        // status 两个场景都用 sometimes|required：新建时不传取默认 1，传空串不能被当成 0（禁用）保存。
+        // role_ids 用 sometimes|array：不传不改、[] 清空，传 null 拒绝（否则等同清空全部角色）。
         $presence = $isCreate ? 'required' : 'sometimes|required';
 
         return [
@@ -139,8 +141,8 @@ class AdminController extends Controller
             'avatar'        => 'nullable|string|max:255',
             'department_id' => 'nullable|integer|min:0',
             'position'      => 'nullable|string|max:100',
-            'status'        => $isCreate ? 'nullable|integer|in:0,1' : 'sometimes|required|integer|in:0,1',
-            'role_ids'      => 'nullable|array',
+            'status'        => 'sometimes|required|integer|in:0,1',
+            'role_ids'      => 'sometimes|array',
             'role_ids.*'    => 'integer|min:1',
         ];
     }

@@ -182,7 +182,7 @@ class RoleController extends Controller
                 'data_scope'   => 'sometimes|required|integer|in:1,2,3,4,5',
                 'dept_ids'     => 'nullable|array',
                 'dept_ids.*'   => 'integer|min:1',
-                'status'       => 'nullable|integer|in:0,1',
+                'status'       => 'sometimes|required|integer|in:0,1',
                 'sort'         => 'sometimes|required|integer|min:0',
                 // update 不含 menu_ids：改授权走 assign-permissions（契约 §2.3）
                 'menu_ids'     => 'nullable|array',

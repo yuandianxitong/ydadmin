@@ -207,6 +207,26 @@ final class AdminApiTest extends ApiTestCase
         $this->assertSame($originalEmail, Db::table('admins')->where('id', $target->id)->value('email'));
     }
 
+    public function test_store_rejects_blank_status(): void
+    {
+        $super = $this->actingAsAdmin('super');
+
+        $response = $this->post(self::BASE, $this->payload(['status' => '']), $super->token);
+        $this->trackAdmin((int) ($response->data()['id'] ?? 0)); // 回归时误建的行也要清掉
+        $this->assertArrayHasKey('status', $response->assertCode(422)->data()['errors']);
+    }
+
+    public function test_update_rejects_null_role_ids_and_keeps_roles(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $target = $this->actingAsAdmin(['system.admin.list']);
+        $roleId = $this->roleOf($target);
+
+        $response = $this->put(self::BASE . "/{$target->id}", ['role_ids' => null], $super->token);
+        $this->assertArrayHasKey('role_ids', $response->assertCode(422)->data()['errors']);
+        $this->assertSame([$roleId], array_map('intval', Db::table('admin_roles')->where('admin_id', $target->id)->pluck('role_id')->all()));
+    }
+
     public function test_non_super_cannot_modify_a_super_admin(): void
     {
         $actor = $this->actingAsAdmin(['system.admin.update']);
