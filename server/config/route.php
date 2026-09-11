@@ -2,6 +2,8 @@
 
 use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
+use app\adminapi\controller\system\MenuController;
+use app\adminapi\controller\system\SystemConfigController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminPermissionMiddleware;
@@ -30,6 +32,14 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/info', [AuthController::class, 'info']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
         Route::post('/logout', [AuthController::class, 'logout']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/menu', function () {
+        Route::get('/routes', [MenuController::class, 'routes']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/config', function () {
+        Route::get('/global', [SystemConfigController::class, 'global']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 
