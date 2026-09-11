@@ -41,8 +41,8 @@ export const useAppStore = defineStore('app', {
 
             // 生产环境：按优先级拼接域名
             // 1. OSS 域名（后台配置）
-            if (this.config.oss_domain) {
-                return `${this.config.oss_domain}${url}`
+            if (this.config.storage_oss_domain) {
+                return `${this.config.storage_oss_domain}${url}`
             }
             // 2. 站点域名（后台配置）
             if (this.config.site_url) {

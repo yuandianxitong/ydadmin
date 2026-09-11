@@ -164,7 +164,6 @@ const quickNavItems = [
     { label: 'dashboard.quickNavItems.userManage',    icon: User,       route: '/user/list',                  gradient: grad(P.indigo) },
     { label: 'dashboard.quickNavItems.roleManage',    icon: UserFilled, route: '/system/role',                gradient: grad(P.teal)   },
     { label: 'dashboard.quickNavItems.menuManage',    icon: MenuIcon,   route: '/system/menu',                gradient: grad(P.amber)  },
-    { label: 'dashboard.quickNavItems.permManage',    icon: Lock,       route: '/system/permission',          gradient: grad(P.purple) },
     { label: 'dashboard.quickNavItems.systemConfig',  icon: Setting,    route: '/system/config',              gradient: grad(P.teal)   },
     { label: 'dashboard.quickNavItems.loginLog',      icon: Document,   route: '/system/admin_login_log',     gradient: grad(P.coral)  },
     { label: 'dashboard.quickNavItems.article',       icon: Document,   route: '/content/article',            gradient: grad(P.blue)   },

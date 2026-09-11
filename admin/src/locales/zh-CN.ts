@@ -384,6 +384,9 @@ export default {
             self: '仅本人数据权限',
             custom: '自定义数据权限'
         },
+        deptScope: '数据范围部门',
+        deptScopePlaceholder: '请选择部门（可多选）',
+        deptScopeRequired: '自定义数据权限至少选择一个部门',
         assignPermissions: '分配权限',
         roleLabel: '角色：',
         codeLabel: '标识：',

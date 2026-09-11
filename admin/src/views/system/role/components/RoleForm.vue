@@ -39,6 +39,21 @@
                 </el-select>
             </el-form-item>
 
+            <el-form-item v-if="form.data_scope === 5" :label="$t('role.deptScope')" prop="dept_ids">
+                <el-tree-select
+                    v-model="form.dept_ids"
+                    :data="departmentOptions"
+                    node-key="id"
+                    :props="{ label: 'name' }"
+                    :placeholder="$t('role.deptScopePlaceholder')"
+                    multiple
+                    show-checkbox
+                    check-strictly
+                    clearable
+                    style="width: 100%"
+                />
+            </el-form-item>
+
             <el-form-item :label="$t('common.status')" prop="status">
                 <el-radio-group v-model="form.status">
                     <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
@@ -60,9 +75,10 @@
 
 <script setup lang="ts" name="RoleForm">
 import type { FormRules } from 'element-plus'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { departmentApi } from '@/api/department'
 import { roleApi } from '@/api/role'
 import { useFormDialog } from '@/hooks/useFormDialog'
 import type { RoleInfo, RoleReq } from '@/types/system'
@@ -92,6 +108,7 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
             title: '',
             description: '',
             data_scope: 1,
+            dept_ids: [] as number[],
             status: 1
         },
         modelValue: () => props.modelValue,
@@ -101,6 +118,24 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
         updateFn: (id, data) => roleApi.updateRole(id, data),
         sourceData: () => props.formData as Partial<RoleFormData>
     })
+
+// 自定义数据权限（data_scope=5）的部门树：弹窗第一次打开时加载
+interface DeptNode {
+    id: number
+    name: string
+    children?: DeptNode[]
+}
+const departmentOptions = ref<DeptNode[]>([])
+watch(
+    () => props.modelValue,
+    async (open) => {
+        if (open && departmentOptions.value.length === 0) {
+            const response = await departmentApi.getOptions()
+            departmentOptions.value = response.data as unknown as DeptNode[]
+        }
+    },
+    { immediate: true }
+)
 
 // 表单验证规则
 const rules = computed<FormRules>(() => ({
@@ -117,7 +152,16 @@ const rules = computed<FormRules>(() => ({
         { required: true, message: t('role.validate.nameRequired'), trigger: 'blur' },
         { min: 2, max: 50, message: t('role.validate.nameRequired'), trigger: 'blur' }
     ],
-    data_scope: [{ required: true, message: t('common.selectPlaceholder'), trigger: 'change' }]
+    data_scope: [{ required: true, message: t('common.selectPlaceholder'), trigger: 'change' }],
+    dept_ids: [
+        {
+            validator: (_rule: unknown, value: number[] | undefined, callback: (error?: Error) => void) =>
+                form.data_scope === 5 && (!value || value.length === 0)
+                    ? callback(new Error(t('role.deptScopeRequired')))
+                    : callback(),
+            trigger: 'change'
+        }
+    ]
 }))
 </script>
 

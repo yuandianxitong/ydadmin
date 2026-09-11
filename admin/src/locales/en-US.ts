@@ -392,6 +392,9 @@ export default {
             self: 'Self only',
             custom: 'Custom'
         },
+        deptScope: 'Departments',
+        deptScopePlaceholder: 'Select departments',
+        deptScopeRequired: 'Select at least one department for custom data scope',
         assignPermissions: 'Assign Permissions',
         roleLabel: 'Role: ',
         codeLabel: 'Code: ',

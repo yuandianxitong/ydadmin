@@ -69,6 +69,7 @@ export interface RoleInfo {
     title: string
     description?: string
     data_scope?: number
+    dept_ids?: number[]
     is_system: boolean
     status: number
     created_at?: string
@@ -80,6 +81,7 @@ export interface RoleReq {
     title: string
     description?: string
     data_scope?: number
+    dept_ids?: number[]
     status: number
 }
 

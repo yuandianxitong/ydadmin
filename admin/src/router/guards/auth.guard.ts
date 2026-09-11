@@ -18,9 +18,9 @@ export default function createInitGuard(router: Router): void {
             try {
                 const data: any = await appStore.getConfig()
 
-                // 如果后端返回了 web_favicon，就更新页面 favicon
-                if (data.web_favicon) {
-                    const faviconUrl = appStore.getImageUrl(data.web_favicon)
+                // 如果后端返回了 site_favicon，就更新页面 favicon
+                if (data.site_favicon) {
+                    const faviconUrl = appStore.getImageUrl(data.site_favicon)
                     let favicon = document.querySelector(
                         'link[rel="icon"]'
                     ) as HTMLLinkElement | null
