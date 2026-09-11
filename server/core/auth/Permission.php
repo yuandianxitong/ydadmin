@@ -75,14 +75,17 @@ final class Permission implements PermissionCheckerInterface
         Redis::del("perm.super.{$adminId}", "perm.list.{$adminId}");
     }
 
-    /** 菜单/按钮变更会影响所有人的权限集时调用。 */
+    /**
+     * 菜单/按钮变更会影响所有人的权限集时调用。
+     * 注册表只增不删（见 remember()），所以这里能覆盖到当前所有存活的 key；
+     * 唯一的残留是已经过期的 key 的名字留在集合里，无害——DEL 一个不存在的 key 是空操作。
+     */
     public function clearAllCache(): void
     {
         $keys = (array) Redis::sMembers(self::REGISTRY);
         if ($keys !== []) {
             Redis::del(...$keys);
         }
-        Redis::del(self::REGISTRY);
     }
 
     private function remember(string $key, \Closure $compute): mixed
@@ -92,7 +95,8 @@ final class Permission implements PermissionCheckerInterface
             return json_decode($cached, true);
         }
         $value = $compute();
-        // 先登记再写值：clearAllCache() 与写入并发时，最坏情况是注册表里多一个不存在的 key
+        // 先登记再写值，且注册表永不整体清空：clearAllCache() 与本方法并发时，
+        // 不会出现「registry 已清、这个 key 还没登记」的窗口，clearAllCache() 总能覆盖到它。
         Redis::sAdd(self::REGISTRY, $key);
         Redis::setEx($key, self::TTL, (string) json_encode($value));
 
