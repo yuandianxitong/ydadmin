@@ -7,6 +7,7 @@ namespace app\repository\system;
 use app\model\system\Dictionary;
 use core\base\Model;
 use core\base\Repository;
+use core\support\Like;
 use support\Cache;
 
 /**
@@ -46,7 +47,7 @@ class DictionaryRepository extends Repository
 
         $keyword = trim((string) ($params['keyword'] ?? ''));
         if ($keyword !== '') {
-            $like = '%' . $keyword . '%';
+            $like = Like::contains($keyword);
             $query->where(function ($q) use ($like): void {
                 $q->where($this->qualify('name'), 'like', $like)->orWhere($this->qualify('code'), 'like', $like);
             });

@@ -1,0 +1,101 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\repository\system;
+
+use app\model\system\AdminOperationLog;
+use core\base\Model;
+use core\base\Repository;
+use core\support\Like;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * 管理员操作日志仓储。
+ *
+ * 受数据权限约束（spec §5.5）：日志的归属人是被记录的管理员（admin_id）；日志表没有 created_by，
+ * 所以 $creatorColumn = null，create() 不自动填。列表、删除、清空都只作用于当前管理员范围内的行。
+ */
+class AdminOperationLogRepository extends Repository
+{
+    protected bool $dataScoped = true;
+
+    protected string $ownerColumn = 'admin_id';
+
+    protected ?string $creatorColumn = null;
+
+    protected function getModel(): Model
+    {
+        return new AdminOperationLog();
+    }
+
+    /**
+     * @param array<string, mixed> $params keyword（username/action/description 模糊）、method、path（模糊）、start_date、end_date（Y-m-d）
+     * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
+     */
+    public function getSearchList(array $params, int $page, int $limit): array
+    {
+        $page = max(1, $page);
+        $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
+        $query = $this->query();
+
+        $keyword = trim((string) ($params['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $like = Like::contains($keyword);
+            $columns = [$this->qualify('username'), $this->qualify('action'), $this->qualify('description')];
+            $query->where(static function (Builder $q) use ($like, $columns): void {
+                foreach ($columns as $column) {
+                    $q->orWhere($column, 'like', $like);
+                }
+            });
+        }
+        $method = strtoupper(trim((string) ($params['method'] ?? '')));
+        if ($method !== '') {
+            $query->where($this->qualify('method'), $method);
+        }
+        $path = trim((string) ($params['path'] ?? ''));
+        if ($path !== '') {
+            $query->where($this->qualify('path'), 'like', Like::contains($path));
+        }
+        if (!empty($params['start_date'])) {
+            $query->where($this->qualify('operation_time'), '>=', (string) $params['start_date'] . ' 00:00:00');
+        }
+        if (!empty($params['end_date'])) {
+            $query->where($this->qualify('operation_time'), '<=', (string) $params['end_date'] . ' 23:59:59');
+        }
+
+        $total = (clone $query)->count();
+        $list = $query->orderBy($this->qualify('id'), 'desc')->forPage($page, $limit)->get()->toArray();
+
+        return $this->buildPagination($list, $page, $limit, $total);
+    }
+
+    /**
+     * 写入一条操作日志（AdminLogMiddleware 调用）。字符串按列宽截断，避免超长路径或文案让写库失败。
+     *
+     * @param array<string, mixed> $data
+     */
+    public function record(array $data): void
+    {
+        $this->create([
+            'admin_id'       => (int) ($data['admin_id'] ?? 0),
+            'username'       => mb_substr((string) ($data['username'] ?? ''), 0, 50),
+            'method'         => strtoupper(mb_substr((string) ($data['method'] ?? ''), 0, 10)),
+            'path'           => mb_substr((string) ($data['path'] ?? ''), 0, 255),
+            'ip'             => mb_substr((string) ($data['ip'] ?? ''), 0, 45),
+            'user_agent'     => (string) ($data['user_agent'] ?? ''),
+            'action'         => mb_substr((string) ($data['action'] ?? ''), 0, 100),
+            'description'    => mb_substr((string) ($data['description'] ?? ''), 0, 255),
+            'params'         => (array) ($data['params'] ?? []),
+            'result'         => (array) ($data['result'] ?? []),
+            'operation_time' => date('Y-m-d H:i:s'),
+            'execution_time' => (float) ($data['execution_time'] ?? 0),
+        ]);
+    }
+
+    /** 删除当前管理员数据范围内可见的全部操作日志（不软删，一条 DELETE）。 @return int 删除条数 */
+    public function clearVisible(): int
+    {
+        return (int) $this->query()->delete();
+    }
+}

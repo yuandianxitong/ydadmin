@@ -5,6 +5,7 @@ use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
+use app\adminapi\controller\system\LogController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
@@ -111,6 +112,15 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [DictionaryController::class, 'store']);
         Route::put('/{id:\d+}', [DictionaryController::class, 'update']);
         Route::delete('/{id:\d+}', [DictionaryController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/log', function () {
+        Route::get('/login', [LogController::class, 'loginLog']);
+        Route::get('/operation', [LogController::class, 'operationLog']);
+        Route::post('/login/clear', [LogController::class, 'clearLoginLog']);
+        Route::post('/operation/clear', [LogController::class, 'clearOperationLog']);
+        Route::delete('/login/{id:\d+}', [LogController::class, 'deleteLoginLog']);
+        Route::delete('/operation/{id:\d+}', [LogController::class, 'deleteOperationLog']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

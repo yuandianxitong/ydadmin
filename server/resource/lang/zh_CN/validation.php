@@ -85,6 +85,10 @@ return [
     'config_key_require'        => '配置键不能为空',
     'config_key_max'            => '配置键最多100个字符',
     'config_group_invalid'      => '配置分组格式不正确',
+    'log_filter_invalid'        => '筛选条件格式不正确',
+    'log_filter_too_long'       => '筛选条件过长',
+    'login_result_invalid'      => '登录结果只能是 0 或 1',
+    'log_date_format'           => '日期格式应为 YYYY-MM-DD',
 
     'required'   => ':attribute 不能为空',
     'string'     => ':attribute 必须是字符串',

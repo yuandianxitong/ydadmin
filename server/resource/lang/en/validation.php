@@ -85,6 +85,10 @@ return [
     'config_key_require'        => 'Configuration key is required',
     'config_key_max'            => 'Configuration key may not exceed 100 characters',
     'config_group_invalid'      => 'Invalid configuration group',
+    'log_filter_invalid'        => 'Invalid filter value',
+    'log_filter_too_long'       => 'Filter value is too long',
+    'login_result_invalid'      => 'Login result must be 0 or 1',
+    'log_date_format'           => 'Date must be in YYYY-MM-DD format',
 
     /*
     |--------------------------------------------------------------------------

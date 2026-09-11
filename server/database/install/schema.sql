@@ -201,3 +201,29 @@ CREATE TABLE `dictionary_items` (
   UNIQUE KEY `uk_dict_value` (`dictionary_id`, `value`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据字典项';
+
+-- ---------------------------------------------------------------- M1b：操作日志
+
+CREATE TABLE `admin_operation_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `admin_id` int unsigned NOT NULL DEFAULT 0 COMMENT '管理员ID',
+  `username` varchar(50) NOT NULL DEFAULT '' COMMENT '用户名',
+  `method` varchar(10) NOT NULL DEFAULT '' COMMENT '请求方法',
+  `path` varchar(255) NOT NULL DEFAULT '' COMMENT '请求路径',
+  `ip` varchar(45) NOT NULL DEFAULT '' COMMENT '操作IP',
+  `user_agent` text COMMENT '用户代理',
+  `action` varchar(100) NOT NULL DEFAULT '' COMMENT '操作动作',
+  `description` varchar(255) NOT NULL DEFAULT '' COMMENT '操作描述',
+  `params` json DEFAULT NULL COMMENT '请求参数（已脱敏）',
+  `result` json DEFAULT NULL COMMENT '操作结果 {code, message}',
+  `operation_time` datetime NOT NULL COMMENT '操作时间',
+  `execution_time` decimal(8,3) DEFAULT NULL COMMENT '执行时间(秒)',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_admin` (`admin_id`),
+  KEY `idx_username` (`username`),
+  KEY `idx_method` (`method`),
+  KEY `idx_path` (`path`),
+  KEY `idx_action` (`action`),
+  KEY `idx_operation_time` (`operation_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员操作日志';

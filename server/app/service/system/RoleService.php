@@ -14,6 +14,7 @@ use core\context\RequestContext;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
+use core\support\Like;
 use DI\Attribute\Inject;
 
 /**
@@ -50,7 +51,7 @@ class RoleService extends Service
         $where = [];
         $keyword = trim((string) ($params['keyword'] ?? ''));
         if ($keyword !== '') {
-            $like = '%' . $keyword . '%';
+            $like = Like::contains($keyword);
             $where[] = [static function ($query) use ($like): void {
                 $query->where('roles.name', 'like', $like)->orWhere('roles.title', 'like', $like);
             }];

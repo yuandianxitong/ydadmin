@@ -137,7 +137,7 @@ abstract class ApiTestCase extends TestCase
         $this->created[$table][] = $id;
     }
 
-    /** 登记管理员：除删行外，还会清它的角色关联、登录日志、权限缓存与 token 版本号。 */
+    /** 登记管理员：除删行外，还会清它的角色关联、登录日志、操作日志、权限缓存与 token 版本号。 */
     protected function trackAdmin(int $id): void
     {
         $this->track('admins', $id);
@@ -204,6 +204,7 @@ abstract class ApiTestCase extends TestCase
         if ($adminIds !== []) {
             Db::table('admin_roles')->whereIn('admin_id', $adminIds)->delete();
             Db::table('admin_login_logs')->whereIn('admin_id', $adminIds)->delete();
+            Db::table('admin_operation_logs')->whereIn('admin_id', $adminIds)->delete();
         }
         if ($roleIds !== []) {
             Db::table('admin_roles')->whereIn('role_id', $roleIds)->delete();

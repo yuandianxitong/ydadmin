@@ -18,6 +18,7 @@ use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
+use core\support\Like;
 use core\validation\ValidatorFactory;
 use DI\Attribute\Inject;
 use support\Log;
@@ -172,7 +173,7 @@ class AdminService extends Service
         $where = [];
         $keyword = trim((string) ($params['keyword'] ?? ''));
         if ($keyword !== '') {
-            $like = '%' . $keyword . '%';
+            $like = Like::contains($keyword);
             $where[] = [static function ($query) use ($like): void {
                 $query->where('admins.username', 'like', $like)
                     ->orWhere('admins.email', 'like', $like)

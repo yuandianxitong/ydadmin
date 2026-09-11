@@ -30,4 +30,5 @@ return [
     'config_group_storage'    => 'Storage Settings',
     'config_group_payment'    => 'Payment Settings',
     'login_rate_limit'        => 'Too many login attempts, please retry in %d seconds',
+    'clear_success'           => 'Cleared successfully',
 ];

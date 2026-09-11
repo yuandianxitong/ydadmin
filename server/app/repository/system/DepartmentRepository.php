@@ -7,6 +7,7 @@ namespace app\repository\system;
 use app\model\system\Department;
 use core\base\Model;
 use core\base\Repository;
+use core\support\Like;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 /**
@@ -35,7 +36,7 @@ class DepartmentRepository extends Repository
         $query = $this->query();
 
         if (!empty($params['keyword'])) {
-            $keyword = '%' . $params['keyword'] . '%';
+            $keyword = Like::contains((string) $params['keyword']);
             $query->where(static function ($q) use ($keyword) {
                 $q->where('name', 'like', $keyword)->orWhere('code', 'like', $keyword);
             });
