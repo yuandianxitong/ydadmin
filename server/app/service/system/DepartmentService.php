@@ -160,8 +160,8 @@ class DepartmentService extends Service
             }
         }
 
-        if (isset($data['code']) && trim((string) $data['code']) !== ''
-            && $this->departmentRepository->existsCode(trim((string) $data['code']), $id)) {
+        $code = trim((string) ($data['code'] ?? ''));
+        if ($code !== '' && $this->departmentRepository->existsCode($code, $id)) {
             throw new BusinessException(lang('business.dept_code_exists'));
         }
 
@@ -175,7 +175,6 @@ class DepartmentService extends Service
         $updateData = array_filter([
             'parent_id'  => isset($data['parent_id']) ? (int) $data['parent_id'] : null,
             'name'       => $data['name'] ?? null,
-            'code'       => $data['code'] ?? null,
             'leader'     => $data['leader'] ?? null,
             'phone'      => $data['phone'] ?? null,
             'email'      => $data['email'] ?? null,
@@ -184,6 +183,11 @@ class DepartmentService extends Service
             'remark'     => $data['remark'] ?? null,
             'updated_by' => RequestContext::actingUser() ?: null,
         ], static fn ($value) => $value !== null);
+        // code 传了就写：trim 后为空存 NULL（与 createDepartment 一致）。部门树把 NULL 显示成 ''，表单原样回传，
+        // 空串原样写库会让第二个这样保存的部门撞 uk_code；所以 code 不放进上面的 array_filter（要能写入 NULL）。
+        if (array_key_exists('code', $data)) {
+            $updateData['code'] = $code !== '' ? $code : null;
+        }
 
         $this->runInTransaction(function () use ($id, $updateData): void {
             $this->departmentRepository->update($id, $updateData);

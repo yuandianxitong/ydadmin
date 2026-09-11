@@ -95,6 +95,24 @@ final class DepartmentApiTest extends ApiTestCase
         $this->assertSame(5, (int) $row->sort);
     }
 
+    /** 部门树把 NULL 编码显示成 ''，编辑表单原样回传：空编码必须存成 NULL，否则第二个这样保存的部门撞 uk_code 报 500。 */
+    public function test_blank_code_on_update_is_stored_as_null(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $first = $this->createViaApi($super->token, ['parent_id' => 0, 'name' => '无编码一']);
+        $second = $this->createViaApi($super->token, ['parent_id' => 0, 'name' => '无编码二']);
+
+        $this->put(self::BASE . "/{$first}", ['name' => '无编码一', 'code' => ''], $super->token)->assertOk();
+        $this->put(self::BASE . "/{$second}", ['name' => '无编码二', 'code' => ''], $super->token)->assertOk();
+
+        $this->assertNull(Db::table('departments')->where('id', $first)->value('code'));
+        $this->assertNull(Db::table('departments')->where('id', $second)->value('code'));
+
+        $code = 'TRIM-' . strtoupper(bin2hex(random_bytes(3)));
+        $this->put(self::BASE . "/{$first}", ['name' => '无编码一', 'code' => "  {$code}  "], $super->token)->assertOk();
+        $this->assertSame($code, Db::table('departments')->where('id', $first)->value('code'));
+    }
+
     public function test_delete_protections_and_status(): void
     {
         $super = $this->actingAsAdmin('super');
