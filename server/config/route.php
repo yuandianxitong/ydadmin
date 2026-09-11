@@ -2,6 +2,7 @@
 
 use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
+use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\controller\SpaController;
@@ -40,6 +41,19 @@ Route::group('/adminapi', function () use ($adminAuth) {
 
     Route::group('/system/config', function () {
         Route::get('/global', [SystemConfigController::class, 'global']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/admin', function () {
+        Route::get('', [AdminController::class, 'index']);
+        Route::get('/role/options', [AdminController::class, 'roleOptions']);
+        Route::put('/change-password', [AdminController::class, 'changePassword']);
+        Route::post('/batch-delete', [AdminController::class, 'batchDelete']);
+        Route::put('/{id:\d+}/status', [AdminController::class, 'status']);
+        Route::put('/{id:\d+}/reset-password', [AdminController::class, 'resetPassword']);
+        Route::get('/{id:\d+}', [AdminController::class, 'show']);
+        Route::post('', [AdminController::class, 'store']);
+        Route::put('/{id:\d+}', [AdminController::class, 'update']);
+        Route::delete('/{id:\d+}', [AdminController::class, 'delete']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

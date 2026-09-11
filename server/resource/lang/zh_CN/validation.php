@@ -8,6 +8,17 @@ return [
     'password_length'      => '密码长度为6-20个字符',
     'captcha_require'      => '请输入验证码',
     'captcha_length'       => '验证码长度不正确',
+    'username_length_3_20'   => '用户名长度为3-20个字符',
+    'username_alpha_dash'    => '用户名只能包含字母、数字、下划线和破折号',
+    'email_require'          => '邮箱不能为空',
+    'email_format'           => '邮箱格式不正确',
+    'mobile_format'          => '手机号格式不正确',
+    'nickname_length'        => '昵称长度为2-20个字符',
+    'status_invalid'         => '状态值无效',
+    'role_ids_array'         => '角色必须是数组',
+    'role_ids_integer'       => '角色ID必须是整数',
+    'password_max'           => '密码最多20个字符',
+    'new_password_different' => '新密码不能与原密码相同',
 
     'required'   => ':attribute 不能为空',
     'string'     => ':attribute 必须是字符串',
@@ -43,5 +54,11 @@ return [
         'string'  => ':attribute 长度必须在 :min 到 :max 个字符之间',
         'array'   => ':attribute 必须有 :min 到 :max 项',
         'file'    => ':attribute 必须在 :min 到 :max KB 之间',
+    ],
+
+    'attributes' => [
+        'password'     => '密码',
+        'new_password' => '新密码',
+        'old_password' => '原密码',
     ],
 ];

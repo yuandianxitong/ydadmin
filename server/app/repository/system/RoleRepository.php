@@ -150,6 +150,12 @@ class RoleRepository extends Repository
     }
 
     /** @param array<int, int> $ids */
+    public function containsSystemRole(array $ids): bool
+    {
+        return $ids !== [] && $this->query()->whereIn($this->qualify('id'), $ids)->where($this->qualify('is_system'), 1)->exists();
+    }
+
+    /** @param array<int, int> $ids */
     private function replacePivot(string $table, string $column, int $roleId, array $ids): void
     {
         $now = date('Y-m-d H:i:s');

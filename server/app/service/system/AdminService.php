@@ -6,12 +6,14 @@ namespace app\service\system;
 
 use app\repository\system\AdminLoginLogRepository;
 use app\repository\system\AdminRepository;
+use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
+use core\context\RequestContext;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
@@ -56,6 +58,9 @@ class AdminService extends Service
 
     #[Inject]
     protected DataScopeResolver $dataScopeResolver;
+
+    #[Inject]
+    protected DepartmentRepository $departmentRepository;
 
     /**
      * 登录（spec §4.3）。成功与失败都同步写登录日志；写日志、更新登录信息失败只记日志，不影响登录。
@@ -154,6 +159,261 @@ class AdminService extends Service
         $min = max(1, min(20, (int) $this->systemConfigService->getConfigValue('password_min_length', 6)));
 
         return "string|min:{$min}|max:20";
+    }
+
+    /**
+     * 列表（受数据权限约束，分页总数按范围统计）。
+     *
+     * @param array<string, mixed> $params keyword、status
+     * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
+     */
+    public function getAdminList(array $params, int $page, int $limit): array
+    {
+        $where = [];
+        $keyword = trim((string) ($params['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $like = '%' . $keyword . '%';
+            $where[] = [static function ($query) use ($like): void {
+                $query->where('admins.username', 'like', $like)
+                    ->orWhere('admins.email', 'like', $like)
+                    ->orWhere('admins.nickname', 'like', $like);
+            }];
+        }
+        if (isset($params['status']) && $params['status'] !== '') {
+            $where[] = ['admins.status', '=', (int) $params['status']];
+        }
+
+        return $this->adminRepository->getListWithRoles($where, $page, $limit);
+    }
+
+    /**
+     * @param array<string, mixed> $data 控制器 validate() 的返回值
+     * @return array<string, mixed>
+     */
+    public function createAdmin(array $data): array
+    {
+        $this->assertUniqueIdentity($data, 0);
+        $roleIds = $this->validRoleIds((array) ($data['role_ids'] ?? []));
+        $this->assertCanAssignRoles($roleIds);
+        $row = [
+            'username'      => $data['username'],
+            'email'         => $data['email'],
+            'mobile'        => $data['mobile'] ?? null,
+            'password'      => password_hash((string) $data['password'], PASSWORD_DEFAULT),
+            'nickname'      => $data['nickname'] ?? $data['username'],
+            'avatar'        => $data['avatar'] ?? null,
+            'department_id' => $this->validDepartmentId($data['department_id'] ?? null),
+            'position'      => $data['position'] ?? null,
+            'status'        => (int) ($data['status'] ?? 1),
+        ];
+
+        return $this->runInTransaction(function () use ($row, $roleIds): array {
+            $admin = $this->adminRepository->create($row); // created_by 由 Repository 自动填
+            $this->adminRepository->assignRoles((int) $admin['id'], $roleIds);
+
+            return $admin;
+        });
+    }
+
+    /** @param array<string, mixed> $data 控制器 validate() 的返回值（字段均可选） */
+    public function updateAdmin(int $id, array $data): void
+    {
+        $this->findOrFail($id);
+        $this->assertCanModify($id);
+        $this->assertUniqueIdentity($data, $id);
+        $disabling = isset($data['status']) && (int) $data['status'] === 0;
+        if ($disabling) {
+            $this->assertCanDisable($id);
+        }
+
+        $update = array_filter(
+            array_intersect_key($data, array_flip(['username', 'email', 'mobile', 'nickname', 'avatar', 'position', 'status'])),
+            static fn ($value) => $value !== null
+        );
+        if (array_key_exists('department_id', $data)) {
+            $update['department_id'] = $this->validDepartmentId($data['department_id']);
+        }
+        $passwordChanged = !empty($data['password']);
+        if ($passwordChanged) {
+            $update['password'] = password_hash((string) $data['password'], PASSWORD_DEFAULT);
+        }
+        $update['updated_by'] = RequestContext::actingUser() ?: null;
+        $roleIds = array_key_exists('role_ids', $data) ? $this->validRoleIds((array) ($data['role_ids'] ?? [])) : null;
+        if ($roleIds !== null) {
+            $this->assertCanAssignRoles($roleIds);
+        }
+
+        $this->runInTransaction(function () use ($id, $update, $roleIds, $passwordChanged, $disabling): void {
+            $this->adminRepository->update($id, $update);
+            if ($roleIds !== null) {
+                $this->adminRepository->assignRoles($id, $roleIds);
+            }
+            $this->afterCommit(fn () => $this->forgetAdmin($id, $passwordChanged || $disabling));
+        });
+    }
+
+    /** 软删除。范围外或不存在 → 404；超管、本人不可删。 */
+    public function deleteAdmin(int $id): void
+    {
+        $info = $this->getAdminInfo($id);
+        if (!empty($info['is_super'])) {
+            throw new BusinessException(lang('auth.super_admin_no_delete'));
+        }
+        if ($id === RequestContext::actingUser()) {
+            throw new BusinessException(lang('auth.cannot_delete_self'));
+        }
+
+        $this->runInTransaction(function () use ($id): void {
+            $this->adminRepository->delete($id);
+            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+        });
+    }
+
+    /**
+     * 批量删除：范围外的 ID 不生效（spec §5.3），其余逐个按单删规则，任一失败整体回滚。
+     *
+     * @param array<int, int|string> $ids
+     * @return int 实际删除数
+     */
+    public function batchDeleteAdmins(array $ids): int
+    {
+        $visible = $this->adminRepository->visibleIds($ids);
+        $this->runInTransaction(function () use ($visible): void {
+            foreach ($visible as $id) {
+                $this->deleteAdmin($id);
+            }
+        });
+
+        return count($visible);
+    }
+
+    public function updateStatus(int $id, int $status): void
+    {
+        $this->findOrFail($id);
+        if ($status === 0) {
+            $this->assertCanDisable($id);
+        }
+
+        $this->runInTransaction(function () use ($id, $status): void {
+            $this->adminRepository->update($id, ['status' => $status, 'updated_by' => RequestContext::actingUser() ?: null]);
+            $this->afterCommit(fn () => $this->forgetAdmin($id, $status === 0));
+        });
+    }
+
+    /** 管理员重置他人密码（无需旧密码）。 */
+    public function resetPassword(int $id, string $password): void
+    {
+        $this->findOrFail($id);
+        $this->assertCanModify($id);
+
+        $this->runInTransaction(function () use ($id, $password): void {
+            $this->adminRepository->update($id, [
+                'password'   => password_hash($password, PASSWORD_DEFAULT),
+                'updated_by' => RequestContext::actingUser() ?: null,
+            ]);
+            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+        });
+    }
+
+    /** 修改自己的密码；成功后当前会话也失效，前端收到 401 回登录页（spec §4.4）。 */
+    public function changePassword(int $id, string $oldPassword, string $newPassword): void
+    {
+        $admin = $this->adminRepository->findWithPassword($id) ?? throw new NotFoundException();
+        if (!password_verify($oldPassword, (string) $admin['password'])) {
+            throw new BusinessException(lang('auth.old_password_error'));
+        }
+
+        $this->runInTransaction(function () use ($id, $newPassword): void {
+            DataScope::bypass(fn (): bool => $this->adminRepository->update($id, ['password' => password_hash($newPassword, PASSWORD_DEFAULT)]));
+            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private function findOrFail(int $id): array
+    {
+        return $this->adminRepository->find($id) ?? throw new NotFoundException();
+    }
+
+    /** @param array<string, mixed> $data */
+    private function assertUniqueIdentity(array $data, int $excludeId): void
+    {
+        if (!empty($data['username']) && $this->adminRepository->existsUsername((string) $data['username'], $excludeId)) {
+            throw new BusinessException(lang('auth.username_exists'));
+        }
+        if (!empty($data['email']) && $this->adminRepository->existsEmail((string) $data['email'], $excludeId)) {
+            throw new BusinessException(lang('auth.email_exists'));
+        }
+    }
+
+    /** 超管与本人不能禁用（spec §4.6）。 */
+    private function assertCanDisable(int $id): void
+    {
+        if (!empty($this->getAdminInfo($id)['is_super'])) {
+            throw new BusinessException(lang('auth.super_admin_no_disable'));
+        }
+        if ($id === RequestContext::actingUser()) {
+            throw new BusinessException(lang('auth.cannot_disable_self'));
+        }
+    }
+
+    /** 防提权：非超管不能编辑、重置超管账号。无管理员身份（CLI）不受限。 */
+    private function assertCanModify(int $id): void
+    {
+        $actor = RequestContext::actingUser();
+        if ($actor > 0 && $actor !== $id && $this->permission->isSuperAdmin($id) && !$this->permission->isSuperAdmin($actor)) {
+            throw new BusinessException(lang('auth.super_admin_no_modify'));
+        }
+    }
+
+    /**
+     * 防提权：系统角色只能由超管分配。无管理员身份（CLI）不受限。
+     *
+     * @param list<int> $roleIds
+     */
+    private function assertCanAssignRoles(array $roleIds): void
+    {
+        $actor = RequestContext::actingUser();
+        if ($actor > 0 && !$this->permission->isSuperAdmin($actor) && $this->roleRepository->containsSystemRole($roleIds)) {
+            throw new BusinessException(lang('business.system_role_no_assign'));
+        }
+    }
+
+    /**
+     * @param array<int, mixed> $roleIds
+     * @return list<int>
+     */
+    private function validRoleIds(array $roleIds): array
+    {
+        $roleIds = array_values(array_unique(array_map('intval', $roleIds)));
+        if (count($this->roleRepository->existingIds($roleIds)) !== count($roleIds)) {
+            throw new BusinessException(lang('business.role_not_found'));
+        }
+
+        return $roleIds;
+    }
+
+    private function validDepartmentId(mixed $value): ?int
+    {
+        $id = (int) ($value ?? 0);
+        if ($id <= 0) {
+            return null;
+        }
+        if ($this->departmentRepository->existingIds([$id]) === []) {
+            throw new BusinessException(lang('business.dept_not_found'));
+        }
+
+        return $id;
+    }
+
+    /** 管理员变更后的缓存失效；$revokeTokens 为真时自增 token 版本号（禁用、删除、改密码）。 */
+    private function forgetAdmin(int $id, bool $revokeTokens): void
+    {
+        $this->permission->clearUserCache($id);
+        $this->dataScopeResolver->forget($id);
+        if ($revokeTokens) {
+            TokenVersion::bump($id);
+        }
     }
 
     /**

@@ -8,6 +8,17 @@ return [
     'password_length'      => 'Password must be 6-20 characters',
     'captcha_require'      => 'Please enter the captcha',
     'captcha_length'       => 'Captcha length is invalid',
+    'username_length_3_20'   => 'Username must be 3-20 characters',
+    'username_alpha_dash'    => 'Username may only contain letters, numbers, dashes and underscores',
+    'email_require'          => 'Email is required',
+    'email_format'           => 'Invalid email format',
+    'mobile_format'          => 'Invalid mobile number',
+    'nickname_length'        => 'Nickname must be 2-20 characters',
+    'status_invalid'         => 'Invalid status',
+    'role_ids_array'         => 'Roles must be an array',
+    'role_ids_integer'       => 'Role ID must be an integer',
+    'password_max'           => 'Password may not exceed 20 characters',
+    'new_password_different' => 'The new password must differ from the current one',
 
     /*
     |--------------------------------------------------------------------------
@@ -204,6 +215,10 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'password'     => 'password',
+        'new_password' => 'new password',
+        'old_password' => 'current password',
+    ],
 
 ];
