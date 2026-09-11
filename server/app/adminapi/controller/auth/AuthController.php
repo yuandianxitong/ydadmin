@@ -13,6 +13,7 @@ use core\auth\TokenVersion;
 use core\base\Controller;
 use core\context\RequestContext;
 use core\exception\BusinessException;
+use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\Response;
@@ -52,7 +53,7 @@ class AuthController extends Controller
         $result = $this->adminService->login(
             (string) $data['username'],
             (string) $data['password'],
-            (string) $request->getRealIp(),
+            ClientIp::resolve($request),
             (string) $request->header('user-agent', '')
         );
 

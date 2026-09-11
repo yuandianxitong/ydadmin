@@ -10,9 +10,10 @@ use tests\Support\TestResponse;
 /** 红线：验证码一次性；登录失败次数与锁定时长按系统配置生效（spec §1.1 差异 1、2）。 */
 final class Test12_CaptchaAndLoginLockTest extends ApiTestCase
 {
-    private function loginWithoutCaptcha(string $username, string $password): TestResponse
+    /** @param array<string, string> $headers */
+    private function loginWithoutCaptcha(string $username, string $password, array $headers = []): TestResponse
     {
-        return $this->post('/adminapi/auth/login', ['username' => $username, 'password' => $password]);
+        return $this->post('/adminapi/auth/login', ['username' => $username, 'password' => $password], null, $headers);
     }
 
     public function test_captcha_can_only_be_used_once(): void
@@ -65,6 +66,24 @@ final class Test12_CaptchaAndLoginLockTest extends ApiTestCase
         $this->loginWithoutCaptcha(strtoupper($admin->username), 'bad-pass-2')->assertCode(400);
         $locked = $this->loginWithoutCaptcha($admin->username, $admin->password);
 
+        $locked->assertCode(429);
+    }
+
+    /**
+     * 直连地址不是可信代理（测试环境不配置 TRUSTED_PROXIES，请求来自 127.0.0.1）时 X-Forwarded-For 一律不读：
+     * 每次换一个伪造的 X-Forwarded-For 也落在同一个限流 key 上，不能靠它绕过锁定。
+     */
+    public function test_rotating_x_forwarded_for_does_not_bypass_the_lockout(): void
+    {
+        $this->setConfig('login_captcha', '0');
+        $this->setConfig('login_max_retry', '2');
+        $admin = $this->actingAsAdmin();
+
+        $this->loginWithoutCaptcha($admin->username, 'bad-pass-1', ['X-Forwarded-For' => '198.51.100.1'])->assertCode(400);
+        $this->loginWithoutCaptcha($admin->username, 'bad-pass-2', ['X-Forwarded-For' => '198.51.100.2'])->assertCode(400);
+        $locked = $this->loginWithoutCaptcha($admin->username, $admin->password, ['X-Forwarded-For' => '198.51.100.3']);
+
+        $this->assertSame(200, $locked->status());
         $locked->assertCode(429);
     }
 

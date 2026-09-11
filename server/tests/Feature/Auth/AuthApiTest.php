@@ -36,6 +36,21 @@ final class AuthApiTest extends ApiTestCase
         $this->get('/adminapi/auth/info', [], $data['token'])->assertOk();
     }
 
+    public function test_login_ip_ignores_x_forwarded_for_from_an_untrusted_peer(): void
+    {
+        $admin = $this->actingAsAdmin();
+        [$key, $code] = $this->solveCaptcha();
+        $this->post('/adminapi/auth/login', [
+            'username'    => $admin->username,
+            'password'    => $admin->password,
+            'captcha_key' => $key,
+            'captcha'     => $code,
+        ], null, ['X-Forwarded-For' => '198.51.100.7'])->assertOk();
+
+        $this->assertSame('127.0.0.1', Db::table('admins')->where('id', $admin->id)->value('last_login_ip'));
+        $this->assertSame(['127.0.0.1'], Db::table('admin_login_logs')->where('admin_id', $admin->id)->pluck('ip')->all());
+    }
+
     public function test_wrong_password_is_a_business_error_and_is_logged(): void
     {
         $admin = $this->actingAsAdmin();

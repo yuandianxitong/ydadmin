@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\middleware;
 
 use app\service\system\SystemConfigService;
+use core\http\ClientIp;
 use core\response\Api;
 use support\Redis;
 use Webman\Http\Request;
@@ -12,7 +13,8 @@ use Webman\Http\Response;
 use Webman\MiddlewareInterface;
 
 /**
- * 登录限流（spec §4.3，只挂在 auth/login）：按 md5(IP|用户名) 计数，以响应体 code !== 200 计一次失败
+ * 登录限流（spec §4.3，只挂在 auth/login）：按 md5(IP|用户名) 计数（IP 取 core\http\ClientIp：只有直连地址是
+ * 可信代理时才读 X-Forwarded-For，否则伪造该头就能每次换一个 key 绕过锁定），以响应体 code !== 200 计一次失败
  * （TP8 按 HTTP 状态判断，业务失败也是 200，几乎永不锁定）；达到 login_max_retry 次锁定
  * login_lock_duration 分钟，锁定期间 HTTP 200 + code 429；成功清零。计数用 Redis INCR + EXPIRE。
  * 用户名统一 trim + mb_strtolower 后再算 key：admins.username 是不区分大小写/重音的排序规则
@@ -28,7 +30,7 @@ class LoginRateLimitMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $handler): Response
     {
         $username = $this->username($request);
-        $hash = md5($request->getRealIp() . '|' . (is_string($username) ? mb_strtolower(trim($username)) : ''));
+        $hash = md5(ClientIp::resolve($request) . '|' . (is_string($username) ? mb_strtolower(trim($username)) : ''));
         $lockKey = "login_lock:{$hash}";
         $failKey = "login_fail:{$hash}";
 
