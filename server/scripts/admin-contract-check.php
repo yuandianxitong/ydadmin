@@ -229,7 +229,7 @@ $r = http('GET', "{$base}/adminapi/auth/captcha", $api);
 check('captcha：data 为 {key, image}', isEnvelope($r['json']) && array_keys((array) respData($r)) === ['key', 'image'], $r['body']);
 check('captcha：image 为 PNG data URI', str_starts_with((string) (respData($r)['image'] ?? ''), 'data:image/png;base64,'));
 $captchaKey = (string) (respData($r)['key'] ?? '');
-$captcha = (string) support\Cache::get('captcha.' . $captchaKey);
+$captcha = (string) support\Redis::get('captcha.' . $captchaKey);
 
 $r = http('POST', "{$base}/adminapi/auth/login", $api, ['username' => $username, 'password' => $password, 'captcha_key' => $captchaKey, 'captcha' => $captcha]);
 check('login：code 200，data 为 {token, admin}', respCode($r) === 200 && array_keys((array) respData($r)) === ['token', 'admin'], $r['body']);
