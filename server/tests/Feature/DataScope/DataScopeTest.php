@@ -8,6 +8,7 @@ use app\repository\system\AdminRepository;
 use core\context\RequestContext;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
+use core\datascope\DataScopeSnapshot;
 use support\Container;
 use support\Context;
 use support\Db;
@@ -61,6 +62,26 @@ final class DataScopeTest extends ApiTestCase
             Db::table('role_departments')->insert(['role_id' => $roleId, 'department_id' => $deptId, 'created_at' => $now, 'updated_at' => $now]);
         }
         Container::get(DataScopeResolver::class)->forget($adminId);
+    }
+
+    /**
+     * 建一个不挂给任何人的角色（simulate() 用）。
+     *
+     * @param array<string, mixed> $attributes
+     * @param list<int> $deptIds
+     */
+    private function looseRole(array $attributes, array $deptIds = []): int
+    {
+        $now = date('Y-m-d H:i:s');
+        $roleId = (int) Db::table('roles')->insertGetId(array_merge([
+            'name' => 'ds_sim_' . bin2hex(random_bytes(3)), 'title' => '模拟角色', 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
+        ], $attributes));
+        $this->track('roles', $roleId);
+        foreach ($deptIds as $deptId) {
+            Db::table('role_departments')->insert(['role_id' => $roleId, 'department_id' => $deptId, 'created_at' => $now, 'updated_at' => $now]);
+        }
+
+        return $roleId;
     }
 
     public function test_all_scope_and_super_admin_see_everything(): void
@@ -196,5 +217,36 @@ final class DataScopeTest extends ApiTestCase
         Db::table('roles')->where('id', $roleId)->update(['data_scope' => DataScope::DEPT]);
         $resolver->forgetAll();
         $this->assertFalse($resolver->resolve($viewer->id)->all);
+    }
+
+    public function test_simulate_computes_like_resolve_without_touching_the_cache(): void
+    {
+        $viewer = $this->actingAsAdmin([], ['department_id' => $this->deptA], ['data_scope' => DataScope::DEPT_AND_CHILDREN]);
+        $resolver = Container::get(DataScopeResolver::class);
+        $roleIds = array_map('intval', Db::table('admin_roles')->where('admin_id', $viewer->id)->pluck('role_id')->all());
+
+        $this->assertEquals($resolver->resolve($viewer->id), $resolver->simulate($viewer->id, $this->deptA, $roleIds));
+
+        // 预演换到部门 B：只是计算，不改库，也不写这个管理员的缓存
+        $resolver->forget($viewer->id);
+        $this->assertSame([$this->deptB], $resolver->simulate($viewer->id, $this->deptB, $roleIds)->deptIds);
+        $this->assertSame([$this->deptA, $this->deptA1], $resolver->resolve($viewer->id)->deptIds);
+    }
+
+    public function test_simulate_counts_only_enabled_undeleted_roles(): void
+    {
+        $resolver = Container::get(DataScopeResolver::class);
+        $disabledAll = $this->looseRole(['data_scope' => DataScope::ALL, 'status' => 0]);
+        $deletedAll = $this->looseRole(['data_scope' => DataScope::ALL, 'deleted_at' => date('Y-m-d H:i:s')]);
+        $custom = $this->looseRole(['data_scope' => DataScope::CUSTOM], [$this->deptB]);
+        $self = $this->looseRole(['data_scope' => DataScope::SELF]);
+
+        $snapshot = $resolver->simulate(0, $this->deptA, [$disabledAll, $deletedAll, $custom, $self, $custom]);
+        $this->assertFalse($snapshot->all, '禁用、已删的「全部」角色不算');
+        $this->assertSame([$this->deptB], $snapshot->deptIds);
+        $this->assertTrue($snapshot->self);
+
+        $this->assertTrue($resolver->simulate(0, null, [1])->all, '系统角色 → 全部');
+        $this->assertEquals(new DataScopeSnapshot(false, [], false, 0), $resolver->simulate(0, $this->deptA, []));
     }
 }

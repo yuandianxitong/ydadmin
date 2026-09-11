@@ -195,8 +195,10 @@ class AdminService extends Service
         $this->assertUniqueIdentity($data, 0);
         $roleIds = $this->validRoleIds((array) ($data['role_ids'] ?? []));
         $this->assertCanAssignRoles($roleIds);
+        $this->assertRolesWithinOwnPermissions($roleIds);
         $departmentId = $this->validDepartmentId($data['department_id'] ?? null);
         $this->assertDepartmentInScope($departmentId);
+        $this->assertScopeWithinOwn(0, $departmentId, $roleIds);
         $row = [
             'username'      => $data['username'],
             'email'         => $data['email'],
@@ -232,10 +234,13 @@ class AdminService extends Service
             array_intersect_key($data, array_flip(['username', 'email', 'mobile', 'nickname', 'avatar', 'position', 'status'])),
             static fn ($value) => $value !== null
         );
+        $currentDepartmentId = isset($admin['department_id']) ? (int) $admin['department_id'] : null;
+        $departmentId = $currentDepartmentId;
+        $departmentChanged = false;
         if (array_key_exists('department_id', $data)) {
             $departmentId = $this->validDepartmentId($data['department_id']);
-            $current = isset($admin['department_id']) ? (int) $admin['department_id'] : null;
-            if ($departmentId !== $current) {
+            $departmentChanged = $departmentId !== $currentDepartmentId;
+            if ($departmentChanged) {
                 // 前端表单总会原样带回 department_id：只有真正换部门时才走部门分配限制
                 $this->assertCanChangeDepartment($id, $departmentId);
             }
@@ -246,9 +251,23 @@ class AdminService extends Service
             $update['password'] = password_hash((string) $data['password'], PASSWORD_DEFAULT);
         }
         $update['updated_by'] = RequestContext::actingUser() ?: null;
+
+        $currentRoleIds = $this->roleRepository->getRoleIdsByAdminId($id);
         $roleIds = array_key_exists('role_ids', $data) ? $this->validRoleIds((array) ($data['role_ids'] ?? [])) : null;
+        $rolesChanged = false;
         if ($roleIds !== null) {
+            // 同样，表单总会原样带回 role_ids：集合相同（忽略顺序与重复）不算改角色
+            $rolesChanged = !self::sameIds($roleIds, $currentRoleIds);
+            if ($rolesChanged) {
+                $this->assertNotOwnRoles($id);
+            }
             $this->assertCanAssignRoles($roleIds);
+            if ($rolesChanged) {
+                $this->assertRolesWithinOwnPermissions($roleIds);
+            }
+        }
+        if ($rolesChanged || $departmentChanged) {
+            $this->assertScopeWithinOwn($id, $departmentId, $roleIds ?? $currentRoleIds);
         }
 
         $this->runInTransaction(function () use ($id, $update, $roleIds, $passwordChanged, $disabling): void {
@@ -429,6 +448,74 @@ class AdminService extends Service
         $actor = RequestContext::actingUser();
 
         return $actor > 0 && !$this->permission->isSuperAdmin($actor);
+    }
+
+    /**
+     * 防提权（M1b 路径 D）：谁都不能改自己的角色——超管也不行（移除自己的系统角色会把自己锁在门外），
+     * 非超管给自己加角色更是提权。调用方已按集合比较，原样回传不会走到这里。无管理员身份（CLI）不受限。
+     */
+    private function assertNotOwnRoles(int $id): void
+    {
+        $actor = RequestContext::actingUser();
+        if ($actor > 0 && $actor === $id) {
+            throw new BusinessException(lang('business.cannot_change_own_roles'));
+        }
+    }
+
+    /**
+     * 防提权（M1b 路径 A）：非超管授出的角色，菜单并集必须是自己菜单的子集——只能在自己已有的权限内授权。
+     * 自己的菜单取 getSelfInfo()['menu_ids']（与 auth/info 同源）；目标角色只算启用、未删除的。
+     * 无管理员身份（CLI）与超管不受限。
+     *
+     * @param list<int> $roleIds 授予后的完整角色集合
+     */
+    private function assertRolesWithinOwnPermissions(array $roleIds): void
+    {
+        if ($roleIds === [] || !$this->actorIsScopeLimited()) {
+            return;
+        }
+        $own = array_map('intval', (array) $this->getSelfInfo(RequestContext::actingUser())['menu_ids']);
+        if (array_diff($this->roleRepository->getMenuIdsByRoleIds($roleIds), $own) !== []) {
+            throw new BusinessException(lang('business.role_exceeds_own_permissions'));
+        }
+    }
+
+    /**
+     * 防数据范围逃逸（M1b）：非超管新建管理员、或改其角色 / 部门时，按「改完之后」的部门与角色预演目标的数据范围，
+     * 必须被自己的范围覆盖（DataScopeSnapshot::covers）。挡住两条路：授予「全部」等更宽的角色；
+     * 给持「本部门及下级」角色的人换到有下级的部门，范围越过操作者。
+     * 无管理员身份（CLI）、超管与 DataScope::bypass() 内不受限。
+     *
+     * @param list<int> $roleIds 改完之后的完整角色集合
+     */
+    private function assertScopeWithinOwn(int $targetId, ?int $departmentId, array $roleIds): void
+    {
+        if (!$this->actorIsScopeLimited()) {
+            return;
+        }
+        $actorSnapshot = DataScope::current();
+        if ($actorSnapshot === null) {
+            return;
+        }
+        if (!$actorSnapshot->covers($this->dataScopeResolver->simulate($targetId, $departmentId, $roleIds))) {
+            throw new BusinessException(lang('business.role_scope_exceeds_own'));
+        }
+    }
+
+    /**
+     * 两组 id 作为集合是否相等（忽略顺序与重复）。
+     *
+     * @param list<int> $a
+     * @param list<int> $b
+     */
+    private static function sameIds(array $a, array $b): bool
+    {
+        $a = array_values(array_unique($a));
+        $b = array_values(array_unique($b));
+        sort($a);
+        sort($b);
+
+        return $a === $b;
     }
 
     /**

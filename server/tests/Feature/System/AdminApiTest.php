@@ -26,6 +26,46 @@ final class AdminApiTest extends ApiTestCase
         return (int) Db::table('admin_roles')->where('admin_id', $admin->id)->value('role_id');
     }
 
+    /** @return list<int> 管理员当前的角色 id（升序） */
+    private function roleIdsOf(int $adminId): array
+    {
+        $ids = array_map('intval', Db::table('admin_roles')->where('admin_id', $adminId)->pluck('role_id')->all());
+        sort($ids);
+
+        return $ids;
+    }
+
+    /**
+     * 建一个不挂给任何人的角色，授予 $permissions 对应的种子菜单。
+     *
+     * @param list<string> $permissions
+     * @param list<int> $deptIds 自定义范围的部门
+     */
+    private function createRole(array $permissions, int $dataScope = DataScope::SELF, array $deptIds = []): int
+    {
+        $now = date('Y-m-d H:i:s');
+        $id = (int) Db::table('roles')->insertGetId([
+            'name'       => 'grant_' . bin2hex(random_bytes(3)),
+            'title'      => '授权测试角色',
+            'data_scope' => $dataScope,
+            'is_system'  => 0,
+            'status'     => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $this->track('roles', $id);
+        $menuIds = $permissions === [] ? [] : Db::table('menus')->whereIn('permission', $permissions)->pluck('id')->all();
+        $this->assertCount(count($permissions), $menuIds, '种子菜单里找不到部分权限点：' . implode(',', $permissions));
+        foreach ($menuIds as $menuId) {
+            Db::table('role_menus')->insert(['role_id' => $id, 'menu_id' => (int) $menuId, 'created_at' => $now, 'updated_at' => $now]);
+        }
+        foreach ($deptIds as $deptId) {
+            Db::table('role_departments')->insert(['role_id' => $id, 'department_id' => $deptId, 'created_at' => $now, 'updated_at' => $now]);
+        }
+
+        return $id;
+    }
+
     public function test_index_returns_pagination_with_roles_and_caps_limit(): void
     {
         $super = $this->actingAsAdmin('super');
@@ -168,6 +208,113 @@ final class AdminApiTest extends ApiTestCase
         foreach ([$id, $target->id, $super->id] as $adminId) {
             $this->assertSame($b, (int) Db::table('admins')->where('id', $adminId)->value('department_id'));
         }
+    }
+
+    /** 路径 D 与自授：谁都不能改自己的角色——超管移除自己的系统角色会自锁，非超管给自己加角色是提权。原样回传不算修改。 */
+    public function test_nobody_can_change_their_own_roles(): void
+    {
+        $super = $this->actingAsAdmin('super');
+
+        $this->assertSame(lang('business.cannot_change_own_roles'), $this->put(self::BASE . "/{$super->id}", ['role_ids' => []], $super->token)->assertCode(400)->message());
+        $this->assertSame([1], $this->roleIdsOf($super->id));
+        $this->put(self::BASE . "/{$super->id}", ['nickname' => '超管改昵称', 'role_ids' => [1]], $super->token)->assertOk();
+        $this->assertSame('超管改昵称', Db::table('admins')->where('id', $super->id)->value('nickname'));
+
+        $actor = $this->actingAsAdmin(['system.admin.update']);
+        $own = $this->roleOf($actor);
+        $extra = $this->createRole([]); // 无菜单、仅本人：规则 2、3 都拦不住它，只有规则 1 能拦
+        $this->assertSame(lang('business.cannot_change_own_roles'), $this->put(self::BASE . "/{$actor->id}", ['role_ids' => [$own, $extra]], $actor->token)->assertCode(400)->message());
+        $this->assertSame([$own], $this->roleIdsOf($actor->id));
+        $this->put(self::BASE . "/{$actor->id}", ['nickname' => '改自己昵称', 'role_ids' => [$own, $own]], $actor->token)->assertOk();
+    }
+
+    /** 路径 A（经 role_ids）：非超管授予的角色，菜单并集不能超出自己已有的菜单。 */
+    public function test_non_super_cannot_assign_roles_beyond_own_permissions(): void
+    {
+        $actor = $this->actingAsAdmin(['system.admin.create', 'system.admin.update']);
+        $target = $this->actingAsAdmin();
+        $targetRole = $this->roleOf($target);
+        $wider = $this->createRole(['system.admin.create', 'system.role.list']);
+        $payload = $this->payload(['role_ids' => [$wider]]);
+
+        $response = $this->post(self::BASE, $payload, $actor->token);
+        $this->trackAdmin((int) ($response->data()['id'] ?? 0)); // 回归时误建的行也要清掉
+        $this->assertSame(lang('business.role_exceeds_own_permissions'), $response->assertCode(400)->message());
+        $this->assertSame(0, Db::table('admins')->where('username', $payload['username'])->count());
+        $this->assertSame(lang('business.role_exceeds_own_permissions'), $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$wider]], $actor->token)->assertCode(400)->message());
+        $this->assertSame([$targetRole], $this->roleIdsOf($target->id));
+
+        // 子集照常可授；超管不受此限
+        $subset = $this->createRole(['system.admin.create']);
+        $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$subset]], $actor->token)->assertOk();
+        $this->assertSame([$subset], $this->roleIdsOf($target->id));
+        $super = $this->actingAsAdmin('super');
+        $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$wider]], $super->token)->assertOk();
+        $this->assertSame([$wider], $this->roleIdsOf($target->id));
+    }
+
+    /** 基于角色的数据范围逃逸：授予的角色按目标的部门模拟出范围，必须被操作者的范围覆盖。 */
+    public function test_non_super_cannot_assign_a_role_whose_scope_exceeds_own(): void
+    {
+        $a = $this->createDepartment(['name' => '授权范围A']);
+        $actor = $this->actingAsAdmin(['system.admin.create', 'system.admin.update'], ['department_id' => $a], ['data_scope' => DataScope::DEPT]);
+        $inScope = $this->actingAsAdmin([], ['department_id' => $a]);
+        $inScopeRole = $this->roleOf($inScope);
+
+        // 「全部」范围的非系统角色
+        $allScope = $this->createRole([], DataScope::ALL);
+        $payload = $this->payload(['department_id' => $a, 'role_ids' => [$allScope]]);
+        $response = $this->post(self::BASE, $payload, $actor->token);
+        $this->trackAdmin((int) ($response->data()['id'] ?? 0));
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $response->assertCode(400)->message());
+        $this->assertSame(0, Db::table('admins')->where('username', $payload['username'])->count());
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $this->put(self::BASE . "/{$inScope->id}", ['role_ids' => [$allScope]], $actor->token)->assertCode(400)->message());
+
+        // 「本部门及下级」：部门 A 有下级时，目标的范围会越过操作者的「本部门」
+        $this->createDepartment(['name' => '授权范围A1', 'parent_id' => $a]);
+        $withChildren = $this->createRole([], DataScope::DEPT_AND_CHILDREN);
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $this->put(self::BASE . "/{$inScope->id}", ['role_ids' => [$withChildren]], $actor->token)->assertCode(400)->message());
+
+        // 自定义范围里有操作者范围外的部门
+        $custom = $this->createRole([], DataScope::CUSTOM, [$this->createDepartment(['name' => '授权范围B'])]);
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $this->put(self::BASE . "/{$inScope->id}", ['role_ids' => [$custom]], $actor->token)->assertCode(400)->message());
+
+        $this->assertSame([$inScopeRole], $this->roleIdsOf($inScope->id));
+    }
+
+    /** 换部门也要预演：持「本部门及下级」角色的人换到有下级的部门（该部门本身在范围内），范围会越过操作者。 */
+    public function test_moving_an_admin_cannot_widen_their_scope_past_the_actor(): void
+    {
+        $a = $this->createDepartment(['name' => '换部门A']);
+        $b = $this->createDepartment(['name' => '换部门B']);
+        $this->createDepartment(['name' => '换部门B1', 'parent_id' => $b]);
+        $c = $this->createDepartment(['name' => '换部门C']);
+        $actor = $this->actingAsAdmin(['system.admin.update'], [], ['data_scope' => DataScope::CUSTOM, 'dept_ids' => [$a, $b, $c]]);
+        $target = $this->actingAsAdmin([], ['department_id' => $a], ['data_scope' => DataScope::DEPT_AND_CHILDREN]);
+
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $this->put(self::BASE . "/{$target->id}", ['department_id' => $b], $actor->token)->assertCode(400)->message());
+        $this->assertSame($a, (int) Db::table('admins')->where('id', $target->id)->value('department_id'));
+
+        // 换到没有下级的范围内部门：模拟出的范围只有该部门，放行
+        $this->put(self::BASE . "/{$target->id}", ['department_id' => $c], $actor->token)->assertOk();
+        $this->assertSame($c, (int) Db::table('admins')->where('id', $target->id)->value('department_id'));
+    }
+
+    /** 正对照：本部门范围的管理员，在本部门内授予「菜单是自己子集、范围为本部门」的角色。 */
+    public function test_dept_scoped_admin_can_grant_a_subset_role_inside_own_department(): void
+    {
+        $a = $this->createDepartment(['name' => '授权正例A']);
+        $actor = $this->actingAsAdmin(['system.admin.list', 'system.admin.create', 'system.admin.update'], ['department_id' => $a], ['data_scope' => DataScope::DEPT]);
+        $role = $this->createRole(['system.admin.list'], DataScope::DEPT);
+
+        $id = (int) $this->post(self::BASE, $this->payload(['department_id' => $a, 'role_ids' => [$role]]), $actor->token)->assertOk()->data()['id'];
+        $this->trackAdmin($id);
+        $this->assertSame([$role], $this->roleIdsOf($id));
+        $this->assertSame($a, (int) Db::table('admins')->where('id', $id)->value('department_id'));
+
+        $inScope = $this->actingAsAdmin([], ['department_id' => $a]);
+        $this->put(self::BASE . "/{$inScope->id}", ['role_ids' => [$role]], $actor->token)->assertOk();
+        $this->assertSame([$role], $this->roleIdsOf($inScope->id));
     }
 
     public function test_update_changes_fields_and_roles_and_revokes_on_password_change(): void

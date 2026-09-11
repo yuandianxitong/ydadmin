@@ -148,6 +148,40 @@ final class SystemRepositoriesTest extends TestCase
         $this->assertSame('全部数据', $row['data_scope_text']);
     }
 
+    public function test_role_ids_by_admin_and_menu_ids_by_roles(): void
+    {
+        $enabled = $this->role();
+        $other = $this->role();
+        $disabled = $this->role(['status' => 0]);
+        $deleted = $this->role(['deleted_at' => date('Y-m-d H:i:s')]);
+        $goneMenu = (int) Db::table('menus')->insertGetId([
+            'parent_id'  => 2,
+            'type'       => 3,
+            'title'      => '已删按钮',
+            'permission' => 'repo.gone.' . bin2hex(random_bytes(2)),
+            'deleted_at' => date('Y-m-d H:i:s'),
+        ]);
+        $this->rows['menus'][] = $goneMenu;
+        Db::table('role_menus')->insert([
+            ['role_id' => $enabled, 'menu_id' => 11],
+            ['role_id' => $enabled, 'menu_id' => 10],
+            ['role_id' => $other, 'menu_id' => 11],
+            ['role_id' => $other, 'menu_id' => 20],
+            ['role_id' => $other, 'menu_id' => $goneMenu],
+            ['role_id' => $disabled, 'menu_id' => 30],
+            ['role_id' => $deleted, 'menu_id' => 50],
+        ]);
+        $repo = new RoleRepository();
+
+        // 只算启用、未删除角色的菜单；已软删的菜单不计（与 getAdminInfo() 的 menu_ids 口径一致）
+        $this->assertSame([10, 11, 20], $repo->getMenuIdsByRoleIds([$other, $enabled, $disabled, $deleted]));
+        $this->assertSame([], $repo->getMenuIdsByRoleIds([]));
+
+        $adminId = $this->admin();
+        (new AdminRepository())->assignRoles($adminId, [$disabled, $enabled, $deleted]);
+        $this->assertSame([$enabled, $disabled], $repo->getRoleIdsByAdminId($adminId), '含禁用角色、不含软删角色，升序');
+    }
+
     public function test_enabled_role_options_only_expose_id_name_title(): void
     {
         $options = (new RoleRepository())->getAllEnabled();

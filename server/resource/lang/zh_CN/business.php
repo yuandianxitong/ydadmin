@@ -42,4 +42,7 @@ return [
     'please_select_admin'          => '请选择要删除的管理员',
     'dept_out_of_scope'            => '不能把管理员分配到数据权限范围外的部门',
     'cannot_change_own_department' => '不能修改自己的所属部门',
+    'cannot_change_own_roles'      => '不能修改自己的角色',
+    'role_exceeds_own_permissions' => '不能授予超出自己权限的角色',
+    'role_scope_exceeds_own'       => '不能授予超出自己数据范围的角色',
 ];

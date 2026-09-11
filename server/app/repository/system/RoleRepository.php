@@ -165,6 +165,50 @@ class RoleRepository extends Repository
             ->exists();
     }
 
+    /**
+     * 管理员当前持有的角色 id（升序）。不含软删角色（与 AdminService::validRoleIds() 能接受的集合一致），含禁用角色。
+     *
+     * @return list<int>
+     */
+    public function getRoleIdsByAdminId(int $adminId): array
+    {
+        $ids = array_map('intval', $this->query()
+            ->join('admin_roles', 'admin_roles.role_id', '=', $this->qualify('id'))
+            ->where('admin_roles.admin_id', $adminId)
+            ->pluck($this->qualify('id'))
+            ->all());
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+
+        return $ids;
+    }
+
+    /**
+     * 一组角色授予的菜单 id 并集（升序去重）。只算启用、未删除的角色（与 core\auth\Permission、
+     * DataScopeResolver 同口径）；已软删的菜单不计（AdminService::getAdminInfo() 的 menu_ids 同样不含）。
+     *
+     * @param array<int, int> $roleIds
+     * @return list<int>
+     */
+    public function getMenuIdsByRoleIds(array $roleIds): array
+    {
+        if ($roleIds === []) {
+            return [];
+        }
+        $ids = array_map('intval', $this->query()
+            ->join('role_menus', 'role_menus.role_id', '=', $this->qualify('id'))
+            ->join('menus', 'menus.id', '=', 'role_menus.menu_id')
+            ->whereIn($this->qualify('id'), $roleIds)
+            ->where($this->qualify('status'), 1)
+            ->whereNull('menus.deleted_at')
+            ->pluck('role_menus.menu_id')
+            ->all());
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+
+        return $ids;
+    }
+
     /** @param array<int, int> $ids */
     private function replacePivot(string $table, string $column, int $roleId, array $ids): void
     {
