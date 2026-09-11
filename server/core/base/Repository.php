@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace core\base;
 
+use core\context\RequestContext;
+use core\datascope\DataScope;
+use core\datascope\DataScopeSnapshot;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -25,6 +28,15 @@ abstract class Repository
      */
     protected array $sortable = ['id', 'sort', 'created_at', 'updated_at'];
 
+    /** 是否受数据权限约束（spec §5.2）。 */
+    protected bool $dataScoped = false;
+
+    /** 数据归属人列（「仅本人」按它过滤；未配置部门列时经它反查 admins.department_id）。 */
+    protected string $ownerColumn = 'created_by';
+
+    /** 部门列；配置后「部门」类范围直接按它过滤。 */
+    protected ?string $deptColumn = null;
+
     protected Model $model;
 
     public function __construct()
@@ -37,7 +49,41 @@ abstract class Repository
     /** @return Builder<Model> */
     protected function query(): Builder
     {
-        return $this->model->newQuery();
+        $query = $this->model->newQuery();
+        if ($this->dataScoped) {
+            $snapshot = DataScope::current();
+            if ($snapshot !== null && !$snapshot->all) {
+                $this->applyDataScope($query, $snapshot);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * 列名一律带表名前缀。只作用于根表：with() 预加载不再过滤；不要用 whereHas() 伸入另一张受控表做访问控制。
+     *
+     * @param Builder<Model> $query
+     */
+    private function applyDataScope(Builder $query, DataScopeSnapshot $snapshot): void
+    {
+        $owner = $this->qualify($this->ownerColumn);
+        $deptColumn = $this->deptColumn !== null ? $this->qualify($this->deptColumn) : null;
+        $query->where(static function (Builder $q) use ($snapshot, $owner, $deptColumn): void {
+            if ($snapshot->deptIds !== []) {
+                if ($deptColumn !== null) {
+                    $q->whereIn($deptColumn, $snapshot->deptIds);
+                } else {
+                    $q->whereIn($owner, static fn ($sub) => $sub->select('id')->from('admins')->whereIn('department_id', $snapshot->deptIds));
+                }
+            }
+            if ($snapshot->self) {
+                $q->orWhere($owner, $snapshot->adminId);
+            }
+            if ($snapshot->deptIds === [] && !$snapshot->self) {
+                $q->whereRaw('1 = 0');
+            }
+        });
     }
 
     /** @return array<string, mixed>|null */
@@ -56,14 +102,17 @@ abstract class Repository
     }
 
     /**
-     * 插入不经 query()——查询条件对 INSERT 不起作用；M1 数据权限在本方法内显式填入
-     * created_by（spec §5.4），不要把 scope 逻辑加到这里的查询构造上。
+     * 插入不经 query()——查询条件对 INSERT 不起作用；受控表在数据未提供时自动填 created_by（spec §5.2）。
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
     public function create(array $data): array
     {
+        if ($this->dataScoped && !array_key_exists('created_by', $data) && RequestContext::actingUser() > 0) {
+            $data['created_by'] = RequestContext::actingUser();
+        }
+
         return $this->model->newQuery()->create($data)->toArray();
     }
 

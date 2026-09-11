@@ -7,6 +7,7 @@ namespace tests\Support;
 use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
+use core\datascope\DataScopeResolver;
 use support\Container;
 use support\Db;
 use support\Log;
@@ -144,6 +145,7 @@ abstract class ApiTestCase extends TestCase
     {
         Container::get(Permission::class)->clearUserCache($adminId);
         Redis::del("admin_token_ver:{$adminId}");
+        Container::get(DataScopeResolver::class)->forget($adminId);
     }
 
     private function cleanupFixtures(): void
@@ -171,6 +173,8 @@ abstract class ApiTestCase extends TestCase
         }
         // 夹具建的角色、菜单会影响别人的权限集合
         Container::get(Permission::class)->clearAllCache();
+        // 夹具建的部门、角色会改变别人的数据范围
+        Container::get(DataScopeResolver::class)->forgetAll();
         $this->created = [];
         $this->createdAdminIds = [];
     }

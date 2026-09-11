@@ -7,14 +7,22 @@ namespace app\repository\system;
 use app\model\system\Admin;
 use core\base\Model;
 use core\base\Repository;
+use core\datascope\DataScope;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use support\Db;
 
-/** 管理员仓储。数据权限（spec §5.5）在 Task 7 接入。 */
+/** 管理员仓储。受数据权限约束（部门列 department_id，归属人为本人）；认证查找、查重与部门删除保护经 DataScope::bypass() 看全表。 */
 class AdminRepository extends Repository
 {
     /** @var list<string> */
     protected array $sortable = ['id', 'created_at', 'updated_at', 'last_login_time'];
+
+    protected bool $dataScoped = true;
+
+    /** 管理员表的数据归属人就是管理员本人（spec §5.5）。 */
+    protected string $ownerColumn = 'id';
+
+    protected ?string $deptColumn = 'department_id';
 
     protected function getModel(): Model
     {
@@ -28,7 +36,7 @@ class AdminRepository extends Repository
      */
     public function findByUsername(string $username): ?array
     {
-        return $this->query()->where($this->qualify('username'), $username)->first()?->makeVisible('password')->toArray();
+        return DataScope::bypass(fn (): ?array => $this->query()->where($this->qualify('username'), $username)->first()?->makeVisible('password')->toArray());
     }
 
     /**
@@ -38,7 +46,7 @@ class AdminRepository extends Repository
      */
     public function findWithPassword(int $id): ?array
     {
-        return $this->query()->where($this->qualify('id'), $id)->first()?->makeVisible('password')->toArray();
+        return DataScope::bypass(fn (): ?array => $this->query()->where($this->qualify('id'), $id)->first()?->makeVisible('password')->toArray());
     }
 
     /**
@@ -69,11 +77,11 @@ class AdminRepository extends Repository
 
     public function updateLastLogin(int $id, string $ip): bool
     {
-        return $this->query()->where($this->qualify('id'), $id)->update([
+        return DataScope::bypass(fn (): bool => $this->query()->where($this->qualify('id'), $id)->update([
             'last_login_ip'   => $ip,
             'last_login_time' => date('Y-m-d H:i:s'),
             'login_count'     => Db::raw('login_count + 1'),
-        ]) > 0;
+        ]) > 0);
     }
 
     /**
@@ -99,29 +107,33 @@ class AdminRepository extends Repository
     /** 用户名是否已占用。含软删行：唯一索引对软删行同样生效。 */
     public function existsUsername(string $username, int $excludeId = 0): bool
     {
-        $query = $this->query()->withoutGlobalScope(SoftDeletingScope::class)->where($this->qualify('username'), $username);
-        if ($excludeId > 0) {
-            $query->where($this->qualify('id'), '<>', $excludeId);
-        }
+        return DataScope::bypass(function () use ($username, $excludeId): bool {
+            $query = $this->query()->withoutGlobalScope(SoftDeletingScope::class)->where($this->qualify('username'), $username);
+            if ($excludeId > 0) {
+                $query->where($this->qualify('id'), '<>', $excludeId);
+            }
 
-        return $query->exists();
+            return $query->exists();
+        });
     }
 
     /** 邮箱是否已占用。含软删行。 */
     public function existsEmail(string $email, int $excludeId = 0): bool
     {
-        $query = $this->query()->withoutGlobalScope(SoftDeletingScope::class)->where($this->qualify('email'), $email);
-        if ($excludeId > 0) {
-            $query->where($this->qualify('id'), '<>', $excludeId);
-        }
+        return DataScope::bypass(function () use ($email, $excludeId): bool {
+            $query = $this->query()->withoutGlobalScope(SoftDeletingScope::class)->where($this->qualify('email'), $email);
+            if ($excludeId > 0) {
+                $query->where($this->qualify('id'), '<>', $excludeId);
+            }
 
-        return $query->exists();
+            return $query->exists();
+        });
     }
 
     /** 部门下是否还有（未删除的）管理员——部门删除保护。 */
     public function existsByDepartment(int $departmentId): bool
     {
-        return $this->query()->where($this->qualify('department_id'), $departmentId)->exists();
+        return DataScope::bypass(fn (): bool => $this->query()->where($this->qualify('department_id'), $departmentId)->exists());
     }
 
     /**
