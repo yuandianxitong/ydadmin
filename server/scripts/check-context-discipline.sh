@@ -3,6 +3,9 @@
 #
 # 规则一：app/、core/ 禁止可变静态属性——请求态必须放 support\Context。
 #   白名单按「文件:属性名」登记（不按行号，改代码不会让白名单失效），每条都要写明为什么安全。
+#   用反射（scripts/check-static-properties.php）而不是正则匹配源码：修饰符顺序
+#   （private static / static private）、是否换行、逗号并列声明多个属性等书写方式的
+#   变化都不会绕过反射得到的属性元数据。
 # 规则二：Service 与 Controller 禁止直接调用 Db::——查询一律封装在 Repository。
 set -eo pipefail
 cd "$(dirname "$0")/.."
@@ -16,30 +19,12 @@ STATIC_WHITELIST=(
 
 fail=0
 
-static_hits=$(grep -rnE --include='*.php' '(private|protected|public)[[:space:]]+static[[:space:]]+(\?|[A-Za-z]|\$)' app core \
-  | grep -vE 'static[[:space:]]+function' | grep -v 'const ' || true)
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  file="${line%%:*}"
-  prop=$(printf '%s' "$line" | grep -oE '\$[A-Za-z_][A-Za-z0-9_]*' | head -1)
-  allowed=0
-  for entry in "${STATIC_WHITELIST[@]}"; do
-    if [ "$entry" = "${file}:${prop}" ]; then
-      allowed=1
-      break
-    fi
-  done
-  if [ "$allowed" = 0 ]; then
-    echo "❌ 可变静态属性（违反常驻内存纪律，请求态请放 support\\Context）：$line"
-    fail=1
-  fi
-done <<< "$static_hits"
-[ "$fail" = 0 ] && echo "✅ 规则一通过：无未登记的可变静态属性"
+php scripts/check-static-properties.php "${STATIC_WHITELIST[@]}" || fail=1
 
 # 新增例外时在这里登记，格式 "文件路径"，并写明理由；目前没有例外。
 DB_WHITELIST=""
 db_dirs=""
-for d in app/service app/adminapi/controller app/api/controller; do
+for d in app/service app/controller app/adminapi/controller app/api/controller; do
   [ -d "$d" ] && db_dirs="$db_dirs $d"
 done
 db_fail=0
