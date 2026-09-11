@@ -1,6 +1,13 @@
 <?php
 
 return [
+    // Application-level messages referenced as 'validation.xxx' in controllers
+    'username_require'     => 'Username is required',
+    'username_length_3_50' => 'Username must be 3-50 characters',
+    'password_require'     => 'Password is required',
+    'password_length'      => 'Password must be 6-20 characters',
+    'captcha_require'      => 'Please enter the captcha',
+    'captcha_length'       => 'Captcha length is invalid',
 
     /*
     |--------------------------------------------------------------------------

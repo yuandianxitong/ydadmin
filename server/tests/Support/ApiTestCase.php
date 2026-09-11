@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace tests\Support;
 
+use app\repository\system\SystemConfigRepository;
 use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
+use support\Cache;
 use support\Container;
 use support\Db;
 use support\Log;
@@ -30,6 +32,9 @@ abstract class ApiTestCase extends TestCase
 
     /** @var list<int> 本用例创建的管理员（tearDown 时连同关联行、缓存一起清） */
     private array $createdAdminIds = [];
+
+    /** @var array<string, string> 被本用例改过的配置的原值 */
+    private array $originalConfigs = [];
 
     public static function setUpBeforeClass(): void
     {
@@ -148,8 +153,43 @@ abstract class ApiTestCase extends TestCase
         Container::get(DataScopeResolver::class)->forget($adminId);
     }
 
+    /** @return array{0: string, 1: string} [captcha_key, 验证码明文]（从服务同一缓存读取，校验照常执行） */
+    protected function solveCaptcha(): array
+    {
+        $key = (string) $this->get('/adminapi/auth/captcha')->assertOk()->data()['key'];
+
+        return [$key, (string) Cache::get('captcha.' . $key)];
+    }
+
+    protected function login(string $username, string $password): TestResponse
+    {
+        [$key, $code] = $this->solveCaptcha();
+
+        return $this->post('/adminapi/auth/login', ['username' => $username, 'password' => $password, 'captcha_key' => $key, 'captcha' => $code]);
+    }
+
+    /** 临时修改一项系统配置；tearDown 时恢复原值并清配置缓存。 */
+    protected function setConfig(string $key, string $value): void
+    {
+        if (!array_key_exists($key, $this->originalConfigs)) {
+            $original = Db::table('system_configs')->where('config_key', $key)->value('config_value');
+            $this->assertNotNull($original, "system_configs 里没有 {$key}");
+            $this->originalConfigs[$key] = (string) $original;
+        }
+        Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+        (new SystemConfigRepository())->forgetCache();
+    }
+
     private function cleanupFixtures(): void
     {
+        foreach ($this->originalConfigs as $key => $value) {
+            Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+        }
+        if ($this->originalConfigs !== []) {
+            (new SystemConfigRepository())->forgetCache();
+        }
+        $this->originalConfigs = [];
+
         $adminIds = $this->createdAdminIds;
         $roleIds = $this->created['roles'] ?? [];
         $menuIds = $this->created['menus'] ?? [];

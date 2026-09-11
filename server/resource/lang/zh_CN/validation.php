@@ -1,6 +1,14 @@
 <?php
 
 return [
+    // 应用级校验消息：控制器 messages() 里以 'validation.xxx' 引用
+    'username_require'     => '用户名不能为空',
+    'username_length_3_50' => '用户名长度为3-50个字符',
+    'password_require'     => '密码不能为空',
+    'password_length'      => '密码长度为6-20个字符',
+    'captcha_require'      => '请输入验证码',
+    'captcha_length'       => '验证码长度不正确',
+
     'required'   => ':attribute 不能为空',
     'string'     => ':attribute 必须是字符串',
     'integer'    => ':attribute 必须是整数',

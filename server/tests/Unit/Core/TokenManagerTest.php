@@ -7,6 +7,7 @@ namespace tests\Unit\Core;
 use core\auth\TokenManager;
 use core\exception\AuthException;
 use Firebase\JWT\JWT;
+use support\Redis;
 use tests\TestCase;
 
 final class TokenManagerTest extends TestCase
@@ -162,5 +163,25 @@ final class TokenManagerTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
         TokenManager::assertKeyStrength('admin', '');
+    }
+
+    public function test_concurrent_refresh_of_one_token_only_succeeds_once(): void
+    {
+        $mgr = TokenManager::scope('admin');
+        $token = $mgr->generate(['admin_id' => 9, 'username' => 'race']);
+        $claims = json_decode((string) base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+        // 模拟另一个并发请求已抢到刷新锁
+        Redis::setex("refresh_lock.admin.{$claims['jti']}", 60, '1');
+
+        $this->expectException(AuthException::class);
+        $mgr->refresh($token);
+    }
+
+    public function test_refresh_applies_payload_overrides(): void
+    {
+        $mgr = TokenManager::scope('admin');
+        $token = $mgr->generate(['admin_id' => 9, 'username' => 'race', 'ver' => 0]);
+
+        $this->assertSame(3, $mgr->verify($mgr->refresh($token, ['ver' => 3]))['ver']);
     }
 }

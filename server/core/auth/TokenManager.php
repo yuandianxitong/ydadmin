@@ -8,6 +8,7 @@ use core\exception\AuthException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use support\Cache;
+use support\Redis;
 use Webman\Http\Request;
 
 /**
@@ -114,8 +115,13 @@ final class TokenManager
         return $this->payloadOf($claims);
     }
 
-    /** 换发新 token 并拉黑旧 token；沿用 login_at，超过 7 天上限必须重新登录。 */
-    public function refresh(string $token): string
+    /**
+     * 换发新 token 并拉黑旧 token；沿用 login_at，超过 7 天上限必须重新登录。
+     * 同一个 token 被并发刷新时只允许一个请求成功（SET NX 抢锁，TTL = 旧 token 剩余有效期）。
+     *
+     * @param array<string, mixed> $payloadOverrides 覆盖旧 payload 的字段（如当前 token 版本号 ver）
+     */
+    public function refresh(string $token, array $payloadOverrides = []): string
     {
         $claims = $this->decode($token);
         if ($this->isBlacklisted($claims)) {
@@ -125,9 +131,13 @@ final class TokenManager
         if (time() - $loginAt > $this->refreshExpire) {
             throw new AuthException(lang('auth.login_expired'));
         }
+        $ttl = max(1, (int) $claims['exp'] - time());
+        if (Redis::set("refresh_lock.{$this->scope}.{$claims['jti']}", '1', 'EX', $ttl, 'NX') !== true) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
         $this->blacklistClaims($claims);
 
-        return $this->generate($this->payloadOf($claims), $loginAt);
+        return $this->generate(array_merge($this->payloadOf($claims), $payloadOverrides), $loginAt);
     }
 
     /** 拉黑 token（登出用）。无效 token 静默忽略——它本来就无法通过校验。 */

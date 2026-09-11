@@ -1,18 +1,35 @@
 <?php
 
+use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\HealthController;
 use app\controller\SpaController;
+use app\middleware\AdminAuthMiddleware;
+use app\middleware\AdminPermissionMiddleware;
 use app\middleware\LocaleMiddleware;
+use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
 use core\response\Api;
 use Webman\Route;
 
 // 所有 API 路由组的外层中间件：先种 trace，再定 locale。
-// 需要登录的路由在组内再嵌套 group，依次追加 AdminAuthMiddleware → AdminPermissionMiddleware（M1 起）。
 $apiOuter = [RequestContextMiddleware::class, LocaleMiddleware::class];
 
-Route::group('/adminapi', function () {
+// 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝）。
+// 除下方三个公开路由外，/adminapi 下的路由都必须挂在这个组里——Test6 会逐条检查。
+$adminAuth = [AdminAuthMiddleware::class, AdminPermissionMiddleware::class];
+
+Route::group('/adminapi', function () use ($adminAuth) {
+    // ---- 公开路由（与 Test6 的白名单保持一致）
     Route::get('/health', [HealthController::class, 'index']);
+    Route::get('/auth/captcha', [AuthController::class, 'captcha']);
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);
+
+    // ---- 认证组。具名路由必须写在 {id} 通配路由之前，否则会被 {id} 吞掉
+    Route::group('/auth', function () {
+        Route::get('/info', [AuthController::class, 'info']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    })->middleware($adminAuth);
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径
