@@ -86,7 +86,11 @@ fi
 # app/、core/ 禁止移除全局作用域：withoutGlobalScope / withoutGlobalScopes / withoutGlobalScopesExcept
 # 都会连数据权限一起摘掉。唯一放行的写法是 withoutGlobalScope(SoftDeletingScope::class)——只摘软删作用域
 # （查重要含软删行），与数据权限无关。判定时先删掉这种写法再找剩下的调用，同一行夹带别的移除照样报。
-# 同理 Repository 禁止 ->getQuery()：它返回的底层查询还没套用全局作用域。
+# 同理 Repository 禁止 ->getQuery()/->forceDelete()/->getModels()：全局作用域是惰性套用的，只在
+# Builder::applyScopes() 里生效；这三个方法都绕过它直接操作底层查询——->getQuery() 拿到的底层查询
+# 还没套用作用域，->forceDelete() 直接对底层查询发 delete，->getModels() 直接对底层查询发 get，全都
+# 会绕开数据权限。（对已在范围内取到的模型实例调用 forceDelete() 是安全的，但 Repository 不得对
+# query() 链式调用它；受控表的硬删一律走 query()->delete()。）
 scope_fail=0
 scope_hits=$(grep -rnE --include='*.php' 'withoutGlobalScope' app core \
   | sed -E 's/withoutGlobalScope\(SoftDeletingScope::class\)//g' \
@@ -97,14 +101,14 @@ if [ -n "$scope_hits" ]; then
   scope_fail=1
 fi
 if [ -d app/repository ]; then
-  getq_hits=$(grep -rnE --include='*.php' -e '->getQuery\(' app/repository || true)
+  getq_hits=$(grep -rnE --include='*.php' -e '->getQuery\(' -e '->forceDelete\(' -e '->getModels\(' app/repository || true)
   if [ -n "$getq_hits" ]; then
-    echo "❌ Repository 使用了 ->getQuery()（底层查询尚未套用全局作用域，会绕开数据权限）："
+    echo "❌ Repository 使用了 ->getQuery()/->forceDelete()/->getModels()（都会绕开惰性套用的数据权限全局作用域）："
     echo "$getq_hits"
     scope_fail=1
   fi
 fi
-[ "$scope_fail" = 0 ] && echo "✅ 规则五通过：未移除全局作用域，Repository 未使用 ->getQuery()"
+[ "$scope_fail" = 0 ] && echo "✅ 规则五通过：未移除全局作用域，Repository 未使用 ->getQuery()/->forceDelete()/->getModels()"
 
 if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ] || [ "$scope_fail" != 0 ]; then
   exit 1
