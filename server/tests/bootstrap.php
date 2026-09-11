@@ -45,69 +45,16 @@ $GLOBALS['__phpunit_testdb_lock'] = $lockHandle;
 Webman\Config::clear();
 support\App::loadAllConfig(['route']);
 
-// 4. 测试库不存在（或 YDADMIN_TEST_DB_RESET=1）时重建并导入 schema + init
-$pdo = new PDO(
-    sprintf('mysql:host=%s;port=%s;charset=utf8mb4', $_ENV['DB_HOST'] ?? '127.0.0.1', $_ENV['DB_PORT'] ?? '3306'),
-    $_ENV['DB_USER'] ?? 'root',
-    $_ENV['DB_PASSWORD'] ?? '',
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+// 4. 测试库不存在、安装脚本有变化（指纹不符）或 YDADMIN_TEST_DB_RESET=1 时，删库重建并导入 schema + init
+$installDir = dirname(__DIR__) . '/database/install';
+$fingerprintFile = $lockDir . '/phpunit-testdb.fingerprint';
+$fingerprint = $testDb . ':' . core\database\DatabaseInstaller::fingerprint($installDir);
+$pdo = core\database\DatabaseInstaller::connect((array) config('database.connections.mysql'));
 $exists = $pdo->query('SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($testDb))->fetch();
-if (!$exists || getenv('YDADMIN_TEST_DB_RESET') === '1') {
-    $pdo->exec("DROP DATABASE IF EXISTS `{$testDb}`");
-    $pdo->exec("CREATE DATABASE `{$testDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
-    $pdo->exec("USE `{$testDb}`");
-    foreach (['schema.sql', 'init.sql'] as $file) {
-        $sql = (string) file_get_contents(dirname(__DIR__) . '/database/install/' . $file);
-        foreach (splitSqlStatements($sql) as $statement) {
-            $pdo->exec($statement);
-        }
-    }
-}
-
-/**
- * 按分号切分 SQL，识别单/双/反引号字符串与转义，避免字符串里的分号被误切；
- * 去掉 `--` 注释后为空的片段直接丢弃（MySQL 对纯注释语句报 "Query was empty"）。
- *
- * @return list<string>
- */
-function splitSqlStatements(string $sql): array
-{
-    $statements = [];
-    $buffer = '';
-    $quote = null;
-    $length = strlen($sql);
-    $flush = static function (string $chunk) use (&$statements): void {
-        $trimmed = trim($chunk, "; \t\r\n");
-        $withoutComments = trim((string) preg_replace('/^\s*--.*$/m', '', $trimmed));
-        if ($withoutComments !== '') {
-            $statements[] = $trimmed;
-        }
-    };
-    for ($i = 0; $i < $length; $i++) {
-        $char = $sql[$i];
-        $buffer .= $char;
-        if ($quote !== null) {
-            if ($char === '\\' && $quote !== '`' && $i + 1 < $length) {
-                $buffer .= $sql[++$i];
-                continue;
-            }
-            if ($char === $quote) {
-                $quote = null;
-            }
-            continue;
-        }
-        if ($char === "'" || $char === '"' || $char === '`') {
-            $quote = $char;
-            continue;
-        }
-        if ($char === ';') {
-            $flush($buffer);
-            $buffer = '';
-        }
-    }
-    $flush($buffer);
-    return $statements;
+$recorded = is_file($fingerprintFile) ? (string) file_get_contents($fingerprintFile) : '';
+if (!$exists || getenv('YDADMIN_TEST_DB_RESET') === '1' || $recorded !== $fingerprint) {
+    core\database\DatabaseInstaller::reinstall($pdo, $testDb, $installDir);
+    file_put_contents($fingerprintFile, $fingerprint);
 }
 
 // 5. 执行 config/bootstrap.php 注册的引导类（Eloquent 等）
