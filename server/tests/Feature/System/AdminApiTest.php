@@ -236,6 +236,45 @@ final class AdminApiTest extends ApiTestCase
         $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$super->id}", ['nickname' => '被改'], $actor->token)->assertCode(400)->message());
     }
 
+    /**
+     * 32732cb 之后 Permission::isSuperAdmin() join 了 admins.status=1：禁用的超管在它眼里「不是超管」，
+     * assertCanModify() 原先直接拿它判断目标，防线因此失效——非超管一次 PUT 改密码 + 启用就能接管被禁用的
+     * 超管账号。修复后目标改按角色判定（roleRepository->adminHoldsSystemRole），不看账号状态。
+     */
+    public function test_non_super_cannot_take_over_a_disabled_super_admin(): void
+    {
+        $actor = $this->actingAsAdmin(['system.admin.update', 'system.admin.status']);
+        $target = $this->actingAsAdmin('super', ['status' => 0]);
+        $originalHash = (string) Db::table('admins')->where('id', $target->id)->value('password');
+
+        // 1. 一次更新同时带密码与启用：两者都不能生效
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$target->id}", ['password' => 'Takeover#1', 'status' => 1], $actor->token)->assertCode(400)->message());
+        $this->assertSame(0, (int) Db::table('admins')->where('id', $target->id)->value('status'));
+        $this->assertSame($originalHash, (string) Db::table('admins')->where('id', $target->id)->value('password'));
+
+        // 2. 单走状态接口启用
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$target->id}/status", ['status' => 1], $actor->token)->assertCode(400)->message());
+        $this->assertSame(0, (int) Db::table('admins')->where('id', $target->id)->value('status'));
+
+        // 3. 单独重置密码
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$target->id}/reset-password", ['password' => 'Takeover#2'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($originalHash, (string) Db::table('admins')->where('id', $target->id)->value('password'));
+
+        // 4. 正对照：超管本人可以把它重新启用
+        $super = $this->actingAsAdmin('super');
+        $this->put(self::BASE . "/{$target->id}/status", ['status' => 1], $super->token)->assertOk();
+        $this->assertSame(1, (int) Db::table('admins')->where('id', $target->id)->value('status'));
+    }
+
+    /** 目标已经是启用中的超管：把它的状态设成 1 对它是空操作，但也不能靠「反正状态没变」绕过 assertCanModify()。 */
+    public function test_non_super_with_status_permission_cannot_noop_enable_an_enabled_super_admin(): void
+    {
+        $actor = $this->actingAsAdmin(['system.admin.status']);
+        $super = $this->actingAsAdmin('super');
+
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$super->id}/status", ['status' => 1], $actor->token)->assertCode(400)->message());
+    }
+
     public function test_delete_protections_and_revocation(): void
     {
         $actor = $this->actingAsAdmin(['system.admin.delete']);
@@ -273,7 +312,10 @@ final class AdminApiTest extends ApiTestCase
         $super = $this->actingAsAdmin('super');
         $target = $this->actingAsAdmin();
 
-        $this->assertSame(lang('auth.super_admin_no_disable'), $this->put(self::BASE . "/{$super->id}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
+        // updateStatus() 现在对任何 status 值都先跑 assertCanModify()（禁用的超管也受保护，见
+        // test_non_super_cannot_take_over_a_disabled_super_admin），所以非超管碰超管账号一律先在
+        // 这里被挡下，拿到的是更笼统的 super_admin_no_modify，走不到 assertCanDisable() 那句。
+        $this->assertSame(lang('auth.super_admin_no_modify'), $this->put(self::BASE . "/{$super->id}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
         $this->assertSame(lang('auth.cannot_disable_self'), $this->put(self::BASE . "/{$actor->id}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
         $this->put(self::BASE . "/{$target->id}/status", ['status' => 0], $actor->token)->assertOk();
         $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);

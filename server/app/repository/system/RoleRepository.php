@@ -155,6 +155,16 @@ class RoleRepository extends Repository
         return $ids !== [] && $this->query()->whereIn($this->qualify('id'), $ids)->where($this->qualify('is_system'), 1)->exists();
     }
 
+    /** 管理员是否持有系统角色（is_system=1）。不看管理员自身状态、也不看角色状态：防提权判定要 fail closed。 */
+    public function adminHoldsSystemRole(int $adminId): bool
+    {
+        return $this->query()
+            ->join('admin_roles', 'admin_roles.role_id', '=', $this->qualify('id'))
+            ->where('admin_roles.admin_id', $adminId)
+            ->where($this->qualify('is_system'), 1)
+            ->exists();
+    }
+
     /** @param array<int, int> $ids */
     private function replacePivot(string $table, string $column, int $roleId, array $ids): void
     {

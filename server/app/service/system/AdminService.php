@@ -298,6 +298,7 @@ class AdminService extends Service
     public function updateStatus(int $id, int $status): void
     {
         $this->findOrFail($id);
+        $this->assertCanModify($id);
         if ($status === 0) {
             $this->assertCanDisable($id);
         }
@@ -365,11 +366,17 @@ class AdminService extends Service
         }
     }
 
-    /** 防提权：非超管不能编辑、重置超管账号。无管理员身份（CLI）不受限。 */
+    /**
+     * 防提权：非超管不能编辑、重置超管账号。无管理员身份（CLI）不受限。
+     *
+     * 目标是否「超管」按其持有的角色判定（roleRepository->adminHoldsSystemRole），不看
+     * Permission::isSuperAdmin($id)——后者会 join admins.status=1，禁用的超管会被判成「不是超管」，
+     * 保护就失效了。actor 是已认证的当前会话，必然是启用状态，isSuperAdmin($actor) 不受此影响。
+     */
     private function assertCanModify(int $id): void
     {
         $actor = RequestContext::actingUser();
-        if ($actor > 0 && $actor !== $id && $this->permission->isSuperAdmin($id) && !$this->permission->isSuperAdmin($actor)) {
+        if ($actor > 0 && $actor !== $id && $this->roleRepository->adminHoldsSystemRole($id) && !$this->permission->isSuperAdmin($actor)) {
             throw new BusinessException(lang('auth.super_admin_no_modify'));
         }
     }
