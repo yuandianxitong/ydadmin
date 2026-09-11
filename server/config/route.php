@@ -37,7 +37,15 @@ Route::group('/adminapi', function () use ($adminAuth) {
     })->middleware($adminAuth);
 
     Route::group('/system/menu', function () {
+        Route::get('', [MenuController::class, 'index']);
+        Route::get('/options', [MenuController::class, 'options']);
         Route::get('/routes', [MenuController::class, 'routes']);
+        Route::post('', [MenuController::class, 'store']);
+        Route::post('/batch-delete', [MenuController::class, 'batchDelete']);
+        Route::post('/batch-sort', [MenuController::class, 'batchSort']);
+        Route::put('/{id:\d+}/status', [MenuController::class, 'status']);
+        Route::put('/{id:\d+}', [MenuController::class, 'update']);
+        Route::delete('/{id:\d+}', [MenuController::class, 'delete']);
     })->middleware($adminAuth);
 
     Route::group('/system/config', function () {
