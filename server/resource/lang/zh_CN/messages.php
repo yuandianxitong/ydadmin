@@ -30,5 +30,8 @@ return [
     'config_group_storage'    => '存储配置',
     'config_group_payment'    => '支付配置',
     'login_rate_limit'        => '登录尝试次数过多，请 %d 秒后重试',
+    'publish_success'         => '发布成功',
+    'mark_read_success'       => '已标记为已读',
+    'mark_all_read_success'   => '全部标记为已读',
     'clear_success'           => '清空成功',
 ];

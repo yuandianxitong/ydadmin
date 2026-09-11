@@ -30,5 +30,8 @@ return [
     'config_group_storage'    => 'Storage Settings',
     'config_group_payment'    => 'Payment Settings',
     'login_rate_limit'        => 'Too many login attempts, please retry in %d seconds',
+    'publish_success'         => 'Published successfully',
+    'mark_read_success'       => 'Marked as read',
+    'mark_all_read_success'   => 'All marked as read',
     'clear_success'           => 'Cleared successfully',
 ];

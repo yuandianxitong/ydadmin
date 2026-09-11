@@ -48,6 +48,9 @@ return [
     'dict_code_exists'       => '字典编码已存在',
     'dict_item_not_found'    => '字典项不存在',
     'dict_item_value_exists' => '字典项值已存在',
+
+    // 站内通知
+    'notification_not_found' => '通知不存在',
     'cannot_change_own_roles'      => '不能修改自己的角色',
     'role_exceeds_own_permissions' => '不能授予超出自己权限的角色',
     'role_scope_exceeds_own'       => '不能授予超出自己数据范围的角色',

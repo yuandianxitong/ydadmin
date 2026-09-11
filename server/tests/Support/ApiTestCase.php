@@ -204,6 +204,7 @@ abstract class ApiTestCase extends TestCase
         if ($adminIds !== []) {
             Db::table('admin_roles')->whereIn('admin_id', $adminIds)->delete();
             Db::table('admin_login_logs')->whereIn('admin_id', $adminIds)->delete();
+            Db::table('notification_reads')->whereIn('admin_id', $adminIds)->delete();
             Db::table('admin_operation_logs')->whereIn('admin_id', $adminIds)->delete();
         }
         if ($roleIds !== []) {

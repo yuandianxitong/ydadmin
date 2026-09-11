@@ -227,3 +227,33 @@ CREATE TABLE `admin_operation_logs` (
   KEY `idx_action` (`action`),
   KEY `idx_operation_time` (`operation_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员操作日志';
+
+-- ---------------------------------------------------------------- M1b：站内通知
+
+CREATE TABLE `notifications` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` text COMMENT '内容',
+  `type` tinyint NOT NULL DEFAULT 1 COMMENT '1系统通知 2待办提醒 3业务消息',
+  `sender_id` int unsigned DEFAULT NULL COMMENT '发送人（管理员 id，NULL 为系统）',
+  `target_type` tinyint NOT NULL DEFAULT 1 COMMENT '1全部 2指定用户（M1 只支持 1，2 在 M4 实现）',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1已发布 0草稿',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_type` (`type`),
+  KEY `idx_sender` (`sender_id`),
+  KEY `idx_status_target` (`status`, `target_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='站内通知';
+
+CREATE TABLE `notification_reads` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `notification_id` int unsigned NOT NULL,
+  `admin_id` int unsigned NOT NULL,
+  `read_at` datetime DEFAULT NULL COMMENT '阅读时间',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_notification_admin` (`notification_id`, `admin_id`),
+  KEY `idx_admin` (`admin_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知已读记录';

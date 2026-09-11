@@ -79,6 +79,17 @@ return [
     'dict_value_require'   => 'Value is required',
     'dict_value_length'    => 'Value must be 1-100 characters',
     'dict_tag_type_max'    => 'Tag type may not exceed 50 characters',
+
+    // Notification
+    'notification_title_require'      => 'Please enter notification title',
+    'notification_title_max'          => 'Title may not exceed 200 characters',
+    'notification_content_require'    => 'Please enter notification content',
+    'notification_content_max'        => 'Content may not exceed 10000 characters',
+    'notification_type_require'       => 'Please select notification type',
+    'notification_type_invalid'       => 'Invalid notification type',
+    'notification_target_invalid'     => 'Invalid notification target type',
+    'notification_target_unsupported' => 'Targeted notifications are not supported yet',
+    'notification_is_read_invalid'    => 'Invalid read status',
     'config_value_present'      => 'Configuration value is missing',
     'configs_require'           => 'Configuration data is required',
     'configs_array'             => 'Configuration data format is invalid',

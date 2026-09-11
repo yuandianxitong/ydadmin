@@ -7,6 +7,7 @@ use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
 use app\adminapi\controller\system\LogController;
 use app\adminapi\controller\system\MenuController;
+use app\adminapi\controller\system\NotificationController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\controller\SpaController;
@@ -121,6 +122,18 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('/operation/clear', [LogController::class, 'clearOperationLog']);
         Route::delete('/login/{id:\d+}', [LogController::class, 'deleteLoginLog']);
         Route::delete('/operation/{id:\d+}', [LogController::class, 'deleteOperationLog']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/notification', function () {
+        Route::get('', [NotificationController::class, 'index']);
+        Route::get('/mine', [NotificationController::class, 'mine']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/read-all', [NotificationController::class, 'readAll']);
+        Route::post('/{id:\d+}/read', [NotificationController::class, 'read']);
+        Route::get('/{id:\d+}', [NotificationController::class, 'show']);
+        Route::post('', [NotificationController::class, 'store']);
+        Route::put('/{id:\d+}', [NotificationController::class, 'update']);
+        Route::delete('/{id:\d+}', [NotificationController::class, 'delete']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

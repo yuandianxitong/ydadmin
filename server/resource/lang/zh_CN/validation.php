@@ -79,6 +79,17 @@ return [
     'dict_value_require'   => '值不能为空',
     'dict_value_length'    => '值长度为1-100个字符',
     'dict_tag_type_max'    => '标签类型不能超过50个字符',
+
+    // 站内通知
+    'notification_title_require'      => '请输入通知标题',
+    'notification_title_max'          => '标题最多200个字符',
+    'notification_content_require'    => '请输入通知内容',
+    'notification_content_max'        => '通知内容最多10000个字符',
+    'notification_type_require'       => '请选择通知类型',
+    'notification_type_invalid'       => '通知类型无效',
+    'notification_target_invalid'     => '通知目标类型无效',
+    'notification_target_unsupported' => '暂不支持指定用户通知',
+    'notification_is_read_invalid'    => '已读状态值无效',
     'config_value_present'      => '缺少配置值',
     'configs_require'           => '配置数据不能为空',
     'configs_array'             => '配置数据格式错误',

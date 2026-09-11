@@ -48,6 +48,9 @@ return [
     'dict_code_exists'       => 'Dictionary code already exists',
     'dict_item_not_found'    => 'Dictionary item not found',
     'dict_item_value_exists' => 'Dictionary item value already exists',
+
+    // Notification
+    'notification_not_found' => 'Notification not found',
     'cannot_change_own_roles'      => 'You cannot change your own roles',
     'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',
     'role_scope_exceeds_own'       => 'Cannot assign roles whose data scope exceeds your own',
