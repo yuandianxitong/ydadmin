@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace tests\Feature\Auth;
 
-use support\Cache;
 use support\Db;
+use support\Redis;
 use tests\Support\ApiTestCase;
 
 final class AuthApiTest extends ApiTestCase
@@ -16,7 +16,8 @@ final class AuthApiTest extends ApiTestCase
 
         $this->assertSame(['key', 'image'], array_keys($data), '契约：{key, image}，不是 captcha_key/captcha_image');
         $this->assertStringStartsWith('data:image/png;base64,', $data['image']);
-        $this->assertIsString(Cache::get('captcha.' . $data['key']));
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $data['key']);
+        $this->assertMatchesRegularExpression('/^[a-z2-9]{4}$/', (string) Redis::get('captcha.' . $data['key']), '明文直接存在 Redis 的 captcha.{key}');
     }
 
     public function test_login_returns_token_and_admin_info_and_writes_login_log(): void

@@ -458,14 +458,17 @@ class AdminService extends Service
         return $id;
     }
 
-    /** 管理员变更后的缓存失效；$revokeTokens 为真时自增 token 版本号（禁用、删除、改密码）。 */
+    /**
+     * 管理员变更后的收尾：$revokeTokens 为真时（禁用、删除、改密码）先自增 token 版本号，再清权限与数据范围缓存。
+     * 吊销必须放在最前面：清缓存抛异常会中止后面的语句，吊销放在后面就会被跳过。
+     */
     private function forgetAdmin(int $id, bool $revokeTokens): void
     {
-        $this->permission->clearUserCache($id);
-        $this->dataScopeResolver->forget($id);
         if ($revokeTokens) {
             TokenVersion::bump($id);
         }
+        $this->permission->clearUserCache($id);
+        $this->dataScopeResolver->forget($id);
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\RedLine;
 
+use support\Redis;
 use tests\Support\ApiTestCase;
 use tests\Support\TestResponse;
 
@@ -97,5 +98,30 @@ final class Test12_CaptchaAndLoginLockTest extends ApiTestCase
         $this->loginWithoutCaptcha($admin->username, $admin->password)->assertOk();
         $this->loginWithoutCaptcha($admin->username, 'bad-pass-2')->assertCode(400);
         $this->loginWithoutCaptcha($admin->username, $admin->password)->assertOk();
+    }
+
+    /**
+     * 失败计数的 INCR 与 EXPIRE 在一段 Lua 里原子执行；遇到没有过期时间的旧计数（旧版两条命令之间
+     * worker 退出会留下）顺带补上过期时间，失败次数不会永久累积。
+     */
+    public function test_failure_counter_always_carries_a_ttl(): void
+    {
+        $this->setConfig('login_captcha', '0');
+        $this->setConfig('login_max_retry', '5');
+        $this->setConfig('login_lock_duration', '1');
+        $admin = $this->actingAsAdmin();
+        // 与 LoginRateLimitMiddleware 同一个 key：直连地址 127.0.0.1（测试不配置可信代理）+ 小写用户名
+        $failKey = 'login_fail:' . md5('127.0.0.1|' . mb_strtolower($admin->username));
+        Redis::set($failKey, '1'); // 残留的旧计数：存在，但没有过期时间
+
+        try {
+            $this->loginWithoutCaptcha($admin->username, 'bad-pass-1')->assertCode(400);
+            $this->assertSame('2', Redis::get($failKey));
+            $ttl = (int) Redis::ttl($failKey);
+            $this->assertGreaterThan(0, $ttl, '计数必须带过期时间');
+            $this->assertLessThanOrEqual(60, $ttl);
+        } finally {
+            Redis::del($failKey);
+        }
     }
 }

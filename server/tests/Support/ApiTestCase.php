@@ -9,7 +9,6 @@ use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
-use support\Cache;
 use support\Container;
 use support\Db;
 use support\Log;
@@ -153,12 +152,12 @@ abstract class ApiTestCase extends TestCase
         Container::get(DataScopeResolver::class)->forget($adminId);
     }
 
-    /** @return array{0: string, 1: string} [captcha_key, 验证码明文]（从服务同一缓存读取，校验照常执行） */
+    /** @return array{0: string, 1: string} [captcha_key, 验证码明文]（从服务同一个 Redis key 读取，校验照常执行） */
     protected function solveCaptcha(): array
     {
         $key = (string) $this->get('/adminapi/auth/captcha')->assertOk()->data()['key'];
 
-        return [$key, (string) Cache::get('captcha.' . $key)];
+        return [$key, (string) Redis::get('captcha.' . $key)];
     }
 
     protected function login(string $username, string $password): TestResponse

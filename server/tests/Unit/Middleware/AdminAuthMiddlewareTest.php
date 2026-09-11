@@ -22,6 +22,12 @@ final class AdminAuthMiddlewareTest extends TestCase
         TokenManager::flushInstances();
     }
 
+    protected function tearDown(): void
+    {
+        Redis::del('admin_token_ver:5', 'admin_token_ver:77');
+        parent::tearDown();
+    }
+
     private function request(?string $token): Request
     {
         $auth = $token !== null ? "Authorization: Bearer {$token}\r\n" : '';
@@ -42,7 +48,7 @@ final class AdminAuthMiddlewareTest extends TestCase
 
     public function test_valid_admin_token_passes_and_sets_identity(): void
     {
-        $token = TokenManager::scope('admin')->generate(['admin_id' => 5, 'username' => 'alice']);
+        $token = TokenManager::scope('admin')->generate(['admin_id' => 5, 'username' => 'alice', 'ver' => TokenVersion::current(5)]);
         $request = $this->request($token);
 
         $response = (new AdminAuthMiddleware())->process($request, fn () => Api::success());
@@ -67,10 +73,18 @@ final class AdminAuthMiddlewareTest extends TestCase
         $this->assertSame(401, $this->code($response));
     }
 
+    public function test_token_without_version_claim_is_401(): void
+    {
+        // 版本号有随机基数、永不为 0，不带 ver 的 token 按 0 比对，一律失效
+        $token = TokenManager::scope('admin')->generate(['admin_id' => 5, 'username' => 'alice']);
+        $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+    }
+
     public function test_blacklisted_token_is_401(): void
     {
         $mgr = TokenManager::scope('admin');
-        $token = $mgr->generate(['admin_id' => 5, 'username' => 'alice']);
+        $token = $mgr->generate(['admin_id' => 5, 'username' => 'alice', 'ver' => TokenVersion::current(5)]);
         $mgr->blacklist($token);
 
         $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
@@ -84,12 +98,8 @@ final class AdminAuthMiddlewareTest extends TestCase
         $this->assertSame(200, $this->code((new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success())));
 
         TokenVersion::bump(77);
-        try {
-            $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
-            $this->assertSame(401, $this->code($response));
-            $this->assertSame(lang('auth.token_expired'), json_decode((string) $response->rawBody(), true)['message']);
-        } finally {
-            Redis::del('admin_token_ver:77');
-        }
+        $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+        $this->assertSame(lang('auth.token_expired'), json_decode((string) $response->rawBody(), true)['message']);
     }
 }

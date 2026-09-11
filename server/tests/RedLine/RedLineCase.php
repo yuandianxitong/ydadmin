@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\RedLine;
 
 use core\auth\TokenManager;
+use core\auth\TokenVersion;
 use core\permission\Permission;
 use core\permission\PermissionCheckerInterface;
 use core\permission\PermissionSkip;
@@ -65,7 +66,7 @@ abstract class RedLineCase extends TestCase
 
     protected function adminToken(int $adminId = 1): string
     {
-        return TokenManager::scope('admin')->generate(['admin_id' => $adminId, 'username' => "rl-{$adminId}"]);
+        return TokenManager::scope('admin')->generate(['admin_id' => $adminId, 'username' => "rl-{$adminId}", 'ver' => TokenVersion::current($adminId)]);
     }
 
     protected function userToken(int $userId = 1): string

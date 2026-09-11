@@ -204,7 +204,7 @@ function solveCaptcha(string $base, array $api): array
     $r = http('GET', "{$base}/adminapi/auth/captcha", $api);
     $key = (string) (respData($r)['key'] ?? '');
 
-    return [$key, (string) support\Cache::get('captcha.' . $key)];
+    return [$key, (string) support\Redis::get('captcha.' . $key)];
 }
 
 /** 用给定账号密码登录，返回 token（登录失败返回空字符串）。

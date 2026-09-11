@@ -57,7 +57,7 @@ php start.php start -d
 
 ### Redis
 
-token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 Redis，这些 key 丢了，已吊销的 token 会在过期前重新生效：
+token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 Redis。版本号 key 丢了会重新随机播种，所有旧 token 一律失效，全部管理员需要重新登录（禁用、删除、改密码造成的吊销不会因此复活）；黑名单 key 单独丢失时，已登出的 token 会在过期前重新生效。因此：
 
 - 开启持久化（AOF 或 RDB），并设置 `maxmemory-policy noeviction`，不要让 Redis 淘汰 key；
 - 建议给本应用单独一个 Redis DB（`REDIS_DB`），不与其他应用共用；
