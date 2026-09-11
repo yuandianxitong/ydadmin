@@ -1,15 +1,10 @@
 <?php
-/**
- * This file is part of webman.
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author    walkor<walkor@workerman.net>
- * @copyright walkor<walkor@workerman.net>
- * @link      http://www.workerman.net/
- * @license   http://www.opensource.org/licenses/mit-license.php MIT License
- */
 
-return new Webman\Container;
+$builder = new \DI\ContainerBuilder();
+$builder->useAttributes(true);
+$builder->useAutowiring(true);
+$builder->addDefinitions([
+    // 接口 → 实现的显式绑定放这里（Task 7 起追加）
+]);
+
+return $builder->build();
