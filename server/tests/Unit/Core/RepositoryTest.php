@@ -124,4 +124,49 @@ final class RepositoryTest extends TestCase
         $this->assertSame(1, $this->repo->inc(['name' => 'item-2'], 'sort', 5));
         $this->assertSame(5, (int) $this->repo->value(['name' => 'item-2'], 'sort'));
     }
+
+    public function test_find_where_returns_matching_row_or_null(): void
+    {
+        $this->seed(3); // item-1 sort1, item-2 sort0, item-3 sort1
+
+        $row = $this->repo->findWhere(['name' => 'item-2']);
+        $this->assertSame('item-2', $row['name']);
+        $this->assertSame(0, (int) $row['sort']);
+
+        $this->assertNull($this->repo->findWhere(['name' => 'missing']));
+    }
+
+    public function test_update_where_returns_affected_count_and_changes_rows(): void
+    {
+        $this->seed(3); // sort: 1,0,1
+
+        $affected = $this->repo->updateWhere(['sort' => 1], ['sort' => 9]);
+        $this->assertSame(2, $affected);
+        $this->assertSame(9, (int) $this->repo->value(['name' => 'item-1'], 'sort'));
+        $this->assertSame(9, (int) $this->repo->value(['name' => 'item-3'], 'sort'));
+        $this->assertSame(0, (int) $this->repo->value(['name' => 'item-2'], 'sort'));
+
+        $this->assertSame(0, $this->repo->updateWhere(['name' => 'missing'], ['sort' => 5]));
+    }
+
+    public function test_delete_where_returns_count_and_removes_only_matching_rows(): void
+    {
+        $this->seed(3); // sort: 1,0,1
+
+        $deleted = $this->repo->deleteWhere(['sort' => 1]);
+        $this->assertSame(2, $deleted);
+        $this->assertNull($this->repo->findWhere(['name' => 'item-1']));
+        $this->assertNull($this->repo->findWhere(['name' => 'item-3']));
+        $this->assertSame('item-2', $this->repo->findWhere(['name' => 'item-2'])['name']);
+        $this->assertSame(1, $this->repo->count());
+    }
+
+    public function test_dec_decrements_field_and_returns_affected_rows(): void
+    {
+        $this->repo->create(['name' => 'x', 'sort' => 10]);
+
+        $affected = $this->repo->dec(['name' => 'x'], 'sort', 3);
+        $this->assertSame(1, $affected);
+        $this->assertSame(7, (int) $this->repo->value(['name' => 'x'], 'sort'));
+    }
 }

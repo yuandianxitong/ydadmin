@@ -46,6 +46,9 @@ abstract class Repository
     }
 
     /**
+     * 插入不经 query()——查询条件对 INSERT 不起作用；M1 数据权限在本方法内显式填入
+     * created_by（spec §5.4），不要把 scope 逻辑加到这里的查询构造上。
+     *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
