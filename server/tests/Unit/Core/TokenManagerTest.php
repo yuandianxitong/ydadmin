@@ -180,9 +180,10 @@ final class TokenManagerTest extends TestCase
     public function test_refresh_applies_payload_overrides(): void
     {
         $mgr = TokenManager::scope('admin');
-        $token = $mgr->generate(['admin_id' => 9, 'username' => 'race', 'ver' => 3]);
+        $token = $mgr->generate(['admin_id' => 9, 'username' => 'race', 'ver' => 0]);
+        $new = $mgr->refresh($token, ['ver' => 0, 'username' => 'renamed']);
 
-        $this->assertSame(3, $mgr->verify($mgr->refresh($token, ['ver' => 3]))['ver']);
+        $this->assertSame('renamed', $mgr->verify($new)['username']);
     }
 
     public function test_refresh_rejects_a_token_whose_version_was_bumped(): void
