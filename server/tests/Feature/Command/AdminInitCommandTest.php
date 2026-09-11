@@ -57,6 +57,28 @@ final class AdminInitCommandTest extends ApiTestCase
         $this->assertSame('站长', Db::table('admins')->where('id', 1)->value('nickname'));
     }
 
+    public function test_reset_without_nickname_keeps_the_existing_nickname(): void
+    {
+        $this->runInit(['--username' => 'root_admin', '--password' => 'Init#2026', '--nickname' => '站长']);
+
+        $tester = $this->runInit(['--username' => 'root_admin', '--password' => 'Reset#2026']);
+
+        $this->assertStringContainsString('已重置', $tester->getDisplay());
+        $this->assertSame('站长', Db::table('admins')->where('id', 1)->value('nickname'), '重置时不给 --nickname 应保留原昵称');
+    }
+
+    public function test_rerun_restores_a_soft_deleted_super_admin(): void
+    {
+        $this->runInit(['--username' => 'root_admin', '--password' => 'Init#2026']);
+        Db::table('admins')->where('id', 1)->update(['deleted_at' => date('Y-m-d H:i:s')]);
+
+        $tester = $this->runInit(['--username' => 'root_admin', '--password' => 'Reset#2026']);
+
+        $this->assertStringContainsString('已重置', $tester->getDisplay());
+        $this->assertNull(Db::table('admins')->where('id', 1)->value('deleted_at'), '重跑 admin:init 应恢复软删的超管行');
+        $this->login('root_admin', 'Reset#2026')->assertOk();
+    }
+
     public function test_rejects_short_password_and_taken_username(): void
     {
         $this->setConfig('password_min_length', '10');
