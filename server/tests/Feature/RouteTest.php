@@ -32,4 +32,14 @@ final class RouteTest extends TestCase
     {
         $this->assertSame(Dispatcher::NOT_FOUND, Route::dispatch('GET', '/adminapi/nope')[0]);
     }
+
+    /**
+     * 每条 adminapi 路由的鉴权都假定 webman 的「/控制器/方法」默认路由已关闭：
+     * 一旦这行被移除或失效，未注册的 /adminapi/<ctrl>/<action> 会绕过路由组中间件直达控制器方法。
+     * Route::dispatch 从不触发默认路由，所以只能直接断言开关状态。
+     */
+    public function test_default_route_is_disabled_for_main_app(): void
+    {
+        $this->assertTrue(Route::isDefaultRouteDisabled('', '*'));
+    }
 }
