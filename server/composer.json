@@ -72,7 +72,18 @@
     ],
     "setup-webman": [
       "support\\Setup::run"
-    ]
+    ],
+    "test": "phpunit",
+    "test:unit": "phpunit --testsuite unit",
+    "test:redline": "phpunit --testsuite redline",
+    "lint": "php-cs-fixer fix --dry-run --diff",
+    "lint:fix": "php-cs-fixer fix",
+    "analyse": "phpstan analyse --memory-limit=1G",
+    "check:context": "bash scripts/check-context-discipline.sh",
+    "contract": "php scripts/admin-contract-check.php"
+  },
+  "config": {
+    "process-timeout": 0
   },
   "minimum-stability": "dev",
   "prefer-stable": true,

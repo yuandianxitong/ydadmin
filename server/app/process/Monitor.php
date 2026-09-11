@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * This file is part of webman.
  *
@@ -28,17 +30,17 @@ use Workerman\Worker;
 class Monitor
 {
     /**
-     * @var array
+     * @var array<int, string>
      */
     protected array $paths = [];
 
     /**
-     * @var array
+     * @var array<int, string>
      */
     protected array $extensions = [];
 
     /**
-     * @var array
+     * @var array<string, int>
      */
     protected array $loadedFiles = [];
 
@@ -89,9 +91,9 @@ class Monitor
 
     /**
      * FileMonitor constructor.
-     * @param $monitorDir
-     * @param $monitorExtensions
-     * @param array $options
+     * @param string|array<int, string> $monitorDir
+     * @param array<int, string> $monitorExtensions
+     * @param array<string, mixed> $options
      */
     public function __construct($monitorDir, $monitorExtensions, array $options = [])
     {
@@ -126,7 +128,7 @@ class Monitor
     }
 
     /**
-     * @param $monitorDir
+     * @param string $monitorDir
      * @return bool
      */
     public function checkFilesChange($monitorDir): bool
@@ -148,7 +150,7 @@ class Monitor
         }
         $count = 0;
         foreach ($iterator as $file) {
-            $count ++;
+            $count++;
             /** @var SplFileInfo $file */
             if (is_dir($file->getRealPath())) {
                 continue;
@@ -226,7 +228,7 @@ class Monitor
     }
 
     /**
-     * @param $memoryLimit
+     * @param int $memoryLimit
      * @return void
      */
     public function checkMemory($memoryLimit): void
@@ -263,7 +265,7 @@ class Monitor
 
     /**
      * Get memory limit
-     * @param $memoryLimit
+     * @param int|string|null $memoryLimit
      * @return int
      */
     protected function getMemoryLimit($memoryLimit): int
@@ -284,11 +286,11 @@ class Monitor
         $memoryLimit = (int)$memoryLimit;
         if ($unit === 'g') {
             $memoryLimit = 1024 * $memoryLimit;
-        } else if ($unit === 'k') {
+        } elseif ($unit === 'k') {
             $memoryLimit = ($memoryLimit / 1024);
-        } else if ($unit === 'm') {
+        } elseif ($unit === 'm') {
             $memoryLimit = (int)($memoryLimit);
-        } else if ($unit === 't') {
+        } elseif ($unit === 't') {
             $memoryLimit = (1024 * 1024 * $memoryLimit);
         } else {
             $memoryLimit = ($memoryLimit / (1024 * 1024));

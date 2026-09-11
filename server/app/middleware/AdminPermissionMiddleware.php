@@ -40,8 +40,8 @@ class AdminPermissionMiddleware implements MiddlewareInterface
             return Api::error(lang('auth.please_login'), 401);
         }
 
-        $controller = (string) ($request->controller ?? '');
-        $action = (string) ($request->action ?? '');
+        $controller = is_string($request->controller) ? $request->controller : '';
+        $action = is_string($request->action) ? $request->action : '';
         if ($controller === '' || $action === '' || !method_exists($controller, $action)) {
             return Api::error(lang('auth.permission_denied'), 403);
         }
