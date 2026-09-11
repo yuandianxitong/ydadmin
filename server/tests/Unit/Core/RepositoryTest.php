@@ -169,4 +169,41 @@ final class RepositoryTest extends TestCase
         $this->assertSame(1, $affected);
         $this->assertSame(7, (int) $this->repo->value(['name' => 'x'], 'sort'));
     }
+
+    public function test_get_list_caps_limit_at_100(): void
+    {
+        $this->seed(3);
+        $this->assertSame(100, $this->repo->getList([], 1, 500)['pagination']['per_page']);
+    }
+
+    public function test_order_rejects_columns_outside_the_whitelist(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->repo->getAll([], 'name asc');
+    }
+
+    public function test_order_rejects_malformed_segments(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->repo->getAll([], 'id desc nulls');
+    }
+
+    public function test_order_rejects_injection_attempts(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->repo->getAll([], 'id;drop table x');
+    }
+
+    public function test_find_uses_table_qualified_primary_key(): void
+    {
+        $id = $this->repo->create(['name' => 'q'])['id'];
+        Db::connection()->flushQueryLog();
+        Db::connection()->enableQueryLog();
+        $this->repo->find($id);
+        $sql = (string) (Db::connection()->getQueryLog()[0]['query'] ?? '');
+        Db::connection()->disableQueryLog();
+        Db::connection()->flushQueryLog();
+
+        $this->assertStringContainsString('`test_repo_items`.`id`', $sql);
+    }
 }

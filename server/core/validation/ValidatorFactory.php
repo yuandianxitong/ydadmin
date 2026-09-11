@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace core\validation;
 
 use core\exception\ValidationException;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Translation\FileLoader;
 use Illuminate\Translation\Translator;
+use Illuminate\Validation\DatabasePresenceVerifier;
 use Illuminate\Validation\Factory;
 use support\Context;
 
@@ -69,7 +71,13 @@ final class ValidatorFactory
     private static function factory(): Factory
     {
         if (self::$factory === null) {
-            self::$factory = new Factory(self::translator());
+            $factory = new Factory(self::translator());
+            // unique: / exists: 规则需要。构建时接一次；不在请求内对共享工厂 setConnection（进程级单例）
+            $resolver = EloquentModel::getConnectionResolver();
+            if ($resolver !== null) {
+                $factory->setPresenceVerifier(new DatabasePresenceVerifier($resolver));
+            }
+            self::$factory = $factory;
         }
         // 确保本次校验使用当前请求的 locale
         self::translator();

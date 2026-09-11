@@ -15,6 +15,16 @@ use Illuminate\Database\Eloquent\Builder;
  */
 abstract class Repository
 {
+    /** 分页每页上限（spec §1.2：前端没有超过 100 的取数，超出按 100 截断）。 */
+    public const MAX_PAGE_SIZE = 100;
+
+    /**
+     * 可排序列白名单。排序串可能来自请求，白名单外的列一律拒绝；子类按表覆盖。
+     *
+     * @var list<string>
+     */
+    protected array $sortable = ['id', 'sort', 'created_at', 'updated_at'];
+
     protected Model $model;
 
     public function __construct()
@@ -33,7 +43,7 @@ abstract class Repository
     /** @return array<string, mixed>|null */
     public function find(int|string $id): ?array
     {
-        return $this->query()->where($this->model->getKeyName(), $id)->first()?->toArray();
+        return $this->query()->where($this->model->getQualifiedKeyName(), $id)->first()?->toArray();
     }
 
     /**
@@ -60,7 +70,7 @@ abstract class Repository
     /** @param array<string, mixed> $data */
     public function update(int|string $id, array $data): bool
     {
-        return $this->query()->where($this->model->getKeyName(), $id)->update($data) > 0;
+        return $this->query()->where($this->model->getQualifiedKeyName(), $id)->update($data) > 0;
     }
 
     /**
@@ -75,7 +85,7 @@ abstract class Repository
     /** 经模型实例 delete()，让 SoftDeletes 等模型事件正确触发。 */
     public function delete(int|string $id): bool
     {
-        $instance = $this->query()->where($this->model->getKeyName(), $id)->first();
+        $instance = $this->query()->where($this->model->getQualifiedKeyName(), $id)->first();
 
         return $instance !== null && (bool) $instance->delete();
     }
@@ -98,7 +108,7 @@ abstract class Repository
     public function getList(array $where = [], int $page = 1, int $limit = 15, string $order = 'id desc'): array
     {
         $page = max(1, $page);
-        $limit = max(1, $limit);
+        $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
         $query = $this->query()->where($where);
         $total = (clone $query)->count();
         $list = $this->applyOrder($query, $order)->forPage($page, $limit)->get()->toArray();
@@ -155,7 +165,8 @@ abstract class Repository
     }
 
     /**
-     * 解析 'sort asc, id desc' 形式的排序串；方向不是 asc/desc 时按 asc 处理。
+     * 解析 'sort asc, id desc' 形式的排序串：列必须在 $sortable 白名单内，方向不是 asc/desc 时按 asc；
+     * 每段最多两个词（'id desc nulls' 之类视为格式错误）。列名带表名前缀。
      *
      * @param Builder<Model> $query
      * @return Builder<Model>
@@ -167,11 +178,24 @@ abstract class Repository
             if ($segment === '') {
                 continue;
             }
-            [$column, $direction] = array_pad(preg_split('/\s+/', $segment, 2) ?: [], 2, 'asc');
-            $query->orderBy((string) $column, strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
+            $parts = preg_split('/\s+/', $segment) ?: [];
+            if (count($parts) > 2) {
+                throw new \InvalidArgumentException("排序片段格式错误：{$segment}");
+            }
+            [$column, $direction] = array_pad($parts, 2, 'asc');
+            if (!in_array($column, $this->sortable, true)) {
+                throw new \InvalidArgumentException("不允许按 {$column} 排序");
+            }
+            $query->orderBy($this->qualify((string) $column), strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
         }
 
         return $query;
+    }
+
+    /** 表名限定的列名，如 qualify('id') → 'admins.id'。 */
+    protected function qualify(string $column): string
+    {
+        return $this->model->qualifyColumn($column);
     }
 
     /**

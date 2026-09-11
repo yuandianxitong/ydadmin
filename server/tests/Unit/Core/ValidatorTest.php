@@ -67,4 +67,17 @@ final class ValidatorTest extends TestCase
             $this->assertSame('请填写名称', $e->errors()['name']);
         }
     }
+
+    public function test_unique_and_exists_rules_use_the_database(): void
+    {
+        // 依赖 init.sql 种子：departments 有 id=1，system_configs 有 site_name
+        $this->assertSame(['dept' => 1], ValidatorFactory::validate(['dept' => 1], ['dept' => 'exists:departments,id']));
+
+        try {
+            ValidatorFactory::validate(['key' => 'site_name'], ['key' => 'unique:system_configs,config_key']);
+            $this->fail('应抛出 ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('key', $e->errors());
+        }
+    }
 }

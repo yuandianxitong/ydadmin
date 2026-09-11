@@ -53,6 +53,23 @@ abstract class Controller
         $page = (int) ($request->input('page') ?? $request->input('page_no') ?? 1);
         $limit = (int) ($request->input('limit') ?? $request->input('page_size') ?? $defaultLimit);
 
-        return [max(1, $page), max(1, $limit)];
+        return [max(1, $page), min(Repository::MAX_PAGE_SIZE, max(1, $limit))];
+    }
+
+    /**
+     * 请求体：JSON 与表单提交都支持（Workerman 会把 JSON 请求体解析进 post()，
+     * 这里再兜底解析一次原始 body）。只作为 validate() 的输入，写库必须用 validate() 的返回值。
+     *
+     * @return array<string, mixed>
+     */
+    protected function body(Request $request): array
+    {
+        $data = $request->post();
+        if (is_array($data) && $data !== []) {
+            return $data;
+        }
+        $json = json_decode((string) $request->rawBody(), true);
+
+        return is_array($json) ? $json : [];
     }
 }

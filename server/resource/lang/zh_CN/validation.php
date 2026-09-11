@@ -14,6 +14,10 @@ return [
     'regex'      => ':attribute 格式不正确',
     'alpha_dash' => ':attribute 只能包含字母、数字、短横线和下划线',
     'confirmed'  => ':attribute 两次输入不一致',
+    'unique'     => ':attribute 已存在',
+    'exists'     => ':attribute 不存在',
+    'different'  => ':attribute 必须与 :other 不同',
+    'required_if' => ':attribute 不能为空',
     'max' => [
         'numeric' => ':attribute 不能大于 :max',
         'string'  => ':attribute 不能超过 :max 个字符',

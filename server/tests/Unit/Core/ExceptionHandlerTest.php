@@ -8,6 +8,7 @@ use app\exception\Handler;
 use core\exception\AuthException;
 use core\exception\BusinessException;
 use core\exception\ForbiddenException;
+use core\exception\NotFoundException;
 use core\exception\ValidationException;
 use Psr\Log\NullLogger;
 use tests\TestCase;
@@ -51,8 +52,23 @@ final class ExceptionHandlerTest extends TestCase
 
     public function test_auth_and_forbidden(): void
     {
-        $this->assertSame(401, $this->body($this->render(new AuthException()))['code']);
-        $this->assertSame(403, $this->body($this->render(new ForbiddenException()))['code']);
+        // 前端最依赖的约定：401/403 只写在 body.code，HTTP 状态仍是 200
+        $auth = $this->render(new AuthException());
+        $this->assertSame(200, $auth->getStatusCode());
+        $this->assertSame(401, $this->body($auth)['code']);
+
+        $forbidden = $this->render(new ForbiddenException());
+        $this->assertSame(200, $forbidden->getStatusCode());
+        $this->assertSame(403, $this->body($forbidden)['code']);
+    }
+
+    public function test_not_found_exception_is_business_404_with_http_200(): void
+    {
+        $response = $this->render(new NotFoundException());
+
+        $this->assertSame(200, $response->getStatusCode(), '记录不存在是业务错误，区别于未知路由的 HTTP 404');
+        $this->assertSame(404, $this->body($response)['code']);
+        $this->assertSame(lang('messages.data_not_found'), $this->body($response)['message']);
     }
 
     public function test_validation_exception_renders_422_with_errors(): void
