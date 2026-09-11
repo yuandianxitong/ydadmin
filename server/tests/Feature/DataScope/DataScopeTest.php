@@ -118,6 +118,23 @@ final class DataScopeTest extends ApiTestCase
 
         $visible = (new AdminRepository())->visibleIds([...array_values($this->targets), $viewer->id]);
         $this->assertEqualsCanonicalizing([$this->targets['b'], $viewer->id], $visible);
+
+        // 钉住条件分组：viewer 自己在 deptA，但它的范围是「仅本人」+ 部门 B，deptA 里的
+        // 'a' 不在这个并集里。如果 applyDataScope() 里那层嵌套闭包被拆掉，条件会散成
+        // "dept IN (B) OR id = viewer AND id IN (...)"，'a' 会被最后的 AND 误放行。
+        Context::destroy();
+        RequestContext::setActingUser($viewer->id);
+        $this->assertSame([], (new AdminRepository())->visibleIds([$this->targets['a']]));
+    }
+
+    public function test_disabled_or_deleted_all_scope_role_is_ignored(): void
+    {
+        $viewer = $this->actingAsAdmin([], ['department_id' => $this->deptA], ['data_scope' => DataScope::DEPT]);
+        $this->attachExtraRole($viewer->id, ['data_scope' => DataScope::ALL, 'status' => 0]);
+        $this->attachExtraRole($viewer->id, ['data_scope' => DataScope::ALL, 'deleted_at' => date('Y-m-d H:i:s')]);
+        Container::get(DataScopeResolver::class)->forget($viewer->id);
+
+        $this->assertSame(['a'], $this->visibleAs($viewer->id));
     }
 
     public function test_no_acting_user_and_bypass_are_unrestricted(): void
