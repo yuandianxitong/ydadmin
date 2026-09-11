@@ -1,0 +1,1 @@
+import{d as a,b as s,c as n,_ as r}from"./index.ri5AvAGu.js";const e=["innerHTML"],o=r(a({__name:"RichText",props:{props:{}},setup(a){const r=a;return(a,o)=>{var p;return s(),n("div",{class:"pv-rich",innerHTML:(null==(p=r.props)?void 0:p.content)||"<span style='color:#9aa4b2'>富文本</span>"},null,8,e)}}}),[["__scopeId","data-v-3a6a12ca"]]);export{o as default};

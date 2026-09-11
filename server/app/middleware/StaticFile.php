@@ -1,42 +1,29 @@
 <?php
-/**
- * This file is part of webman.
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author    walkor<walkor@workerman.net>
- * @copyright walkor<walkor@workerman.net>
- * @link      http://www.workerman.net/
- * @license   http://www.opensource.org/licenses/mit-license.php MIT License
- */
+
+declare(strict_types=1);
 
 namespace app\middleware;
 
-use Webman\MiddlewareInterface;
-use Webman\Http\Response;
 use Webman\Http\Request;
+use Webman\Http\Response;
+use Webman\MiddlewareInterface;
 
 /**
- * Class StaticFile
- * @package app\middleware
+ * 静态文件中间件。禁止访问点开头的隐藏文件；加 X-Content-Type-Options: nosniff，
+ * 防止浏览器把 /storage 下的上传文件嗅探成 HTML/脚本执行（上传扩展名白名单之外的第二道防线）。
  */
 class StaticFile implements MiddlewareInterface
 {
     public function process(Request $request, callable $handler): Response
     {
-        // Access to files beginning with. Is prohibited
-        if (strpos($request->path(), '/.') !== false) {
+        if (str_contains($request->path(), '/.')) {
             return response('<h1>403 forbidden</h1>', 403);
         }
+
         /** @var Response $response */
         $response = $handler($request);
-        // Add cross domain HTTP header
-        /*$response->withHeaders([
-            'Access-Control-Allow-Origin'      => '*',
-            'Access-Control-Allow-Credentials' => 'true',
-        ]);*/
+        $response->withHeaders(['X-Content-Type-Options' => 'nosniff']);
+
         return $response;
     }
 }

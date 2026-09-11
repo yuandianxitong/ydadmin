@@ -1,0 +1,1 @@
+import{_ as o}from"./RegionForm.vue_vue_type_script_setup_true_lang.CwX6wLXn.js";import"./index.ri5AvAGu.js";/* empty css                *//* empty css               *//* empty css             *//* empty css                    *//* empty css              *//* empty css                     *//* empty css                  */import"./useFormDialog.6AV-esXN.js";export{o as default};

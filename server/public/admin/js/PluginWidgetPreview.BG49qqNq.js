@@ -1,0 +1,1 @@
+import{d as a,b as s,c as e,_ as p}from"./index.ri5AvAGu.js";const t={class:"plugin-stub"},d=p(a({__name:"PluginWidgetPreview",props:{type:{},props:{},meta:{}},setup:a=>(a,p)=>(s(),e("div",t,"插件组件未启用"))}),[["__scopeId","data-v-017aaa18"]]);export{d as default};
