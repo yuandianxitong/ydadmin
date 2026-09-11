@@ -1,0 +1,77 @@
+<?php
+
+declare(strict_types=1);
+
+namespace tests\Unit\Middleware;
+
+use app\middleware\AdminAuthMiddleware;
+use core\auth\TokenManager;
+use core\context\RequestContext;
+use core\response\Api;
+use tests\TestCase;
+use Webman\Http\Request;
+use Webman\Http\Response;
+
+final class AdminAuthMiddlewareTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        TokenManager::flushInstances();
+    }
+
+    private function request(?string $token): Request
+    {
+        $auth = $token !== null ? "Authorization: Bearer {$token}\r\n" : '';
+        return new Request("GET /adminapi/demo HTTP/1.1\r\nHost: localhost\r\n{$auth}\r\n");
+    }
+
+    private function code(Response $response): int
+    {
+        return (int) json_decode((string) $response->rawBody(), true)['code'];
+    }
+
+    public function test_missing_token_is_401(): void
+    {
+        $response = (new AdminAuthMiddleware())->process($this->request(null), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+        $this->assertSame(lang('auth.please_login'), json_decode((string) $response->rawBody(), true)['message']);
+    }
+
+    public function test_valid_admin_token_passes_and_sets_identity(): void
+    {
+        $token = TokenManager::scope('admin')->generate(['admin_id' => 5, 'username' => 'alice']);
+        $request = $this->request($token);
+
+        $response = (new AdminAuthMiddleware())->process($request, fn () => Api::success());
+
+        $this->assertSame(200, $this->code($response));
+        $this->assertSame(5, $request->userId);
+        $this->assertSame('alice', $request->username);
+        $this->assertSame(5, RequestContext::actingUser());
+    }
+
+    public function test_user_scope_token_is_401(): void
+    {
+        $token = TokenManager::scope('user')->generate(['user_id' => 5]);
+        $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+    }
+
+    public function test_token_without_admin_id_is_401(): void
+    {
+        $token = TokenManager::scope('admin')->generate(['username' => 'ghost']);
+        $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+    }
+
+    public function test_blacklisted_token_is_401(): void
+    {
+        $mgr = TokenManager::scope('admin');
+        $token = $mgr->generate(['admin_id' => 5, 'username' => 'alice']);
+        $mgr->blacklist($token);
+
+        $response = (new AdminAuthMiddleware())->process($this->request($token), fn () => Api::success());
+        $this->assertSame(401, $this->code($response));
+    }
+}

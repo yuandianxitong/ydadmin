@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\middleware;
+
+use core\auth\TokenManager;
+use core\context\RequestContext;
+use core\exception\AuthException;
+use core\response\Api;
+use Webman\Http\Request;
+use Webman\Http\Response;
+use Webman\MiddlewareInterface;
+
+/**
+ * 管理端认证：只接受 admin scope 的 token。
+ * 中间件是容器单例，身份只能写到本次的 $request 与 support\Context，不得写实例属性。
+ */
+class AdminAuthMiddleware implements MiddlewareInterface
+{
+    public function process(Request $request, callable $handler): Response
+    {
+        $mgr = TokenManager::scope('admin');
+        $token = $mgr->getTokenFromHeader($request);
+        if ($token === null) {
+            return Api::error(lang('auth.please_login'), 401);
+        }
+
+        try {
+            $data = $mgr->verify($token);
+        } catch (AuthException $e) {
+            return Api::error($e->getMessage(), 401);
+        }
+
+        $adminId = (int) ($data['admin_id'] ?? 0);
+        if ($adminId <= 0) {
+            return Api::error(lang('auth.token_invalid'), 401);
+        }
+
+        $request->userId = $adminId;
+        $request->username = (string) ($data['username'] ?? '');
+        RequestContext::setActingUser($adminId);
+
+        return $handler($request);
+    }
+}
