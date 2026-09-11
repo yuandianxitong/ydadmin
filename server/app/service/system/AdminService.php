@@ -18,6 +18,13 @@ use support\Log;
 
 class AdminService extends Service
 {
+    /**
+     * 用户名不存在时也要跑一次 bcrypt（成本与真实校验相同），抵消时序差异——否则「用户名不存在」
+     * 分支比「密码错误」分支快得多，攻击者可以靠响应耗时枚举出哪些用户名存在。密文对应明文
+     * 是什么不重要，固定即可，用 password_hash('x', PASSWORD_DEFAULT) 生成一次写死在这里。
+     */
+    private const DUMMY_PASSWORD_HASH = '$2y$12$cSHA1L2hbXvwZHh/q8T3GO9BunJtH1nllHhcbtYGIwuaqUPJPFrU6';
+
     #[Inject]
     protected AdminRepository $adminRepository;
 
@@ -32,7 +39,8 @@ class AdminService extends Service
 
     /**
      * 登录（spec §4.3）。成功与失败都同步写登录日志；写日志、更新登录信息失败只记日志，不影响登录。
-     * 失败时对外统一返回「用户名或密码错误」，具体原因只写进登录日志。
+     * 防计时枚举：用户名不存在与密码错误返回同一条消息、跑同一次 bcrypt 成本，响应耗时不可区分；
+     * 禁用账户是 TP8 契约要求的独立分支，走自己的消息，不在防枚举范围内。
      *
      * @return array{token: string, admin: array<string, mixed>}
      */
@@ -40,6 +48,7 @@ class AdminService extends Service
     {
         $admin = $this->adminRepository->findByUsername($username);
         if ($admin === null) {
+            password_verify($password, self::DUMMY_PASSWORD_HASH);
             $this->recordLoginLog(0, $username, $ip, $userAgent, false, '用户名不存在');
             throw new BusinessException(lang('auth.login_failed'));
         }

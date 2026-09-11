@@ -15,6 +15,8 @@ use Webman\MiddlewareInterface;
  * 登录限流（spec §4.3，只挂在 auth/login）：按 md5(IP|用户名) 计数，以响应体 code !== 200 计一次失败
  * （TP8 按 HTTP 状态判断，业务失败也是 200，几乎永不锁定）；达到 login_max_retry 次锁定
  * login_lock_duration 分钟，锁定期间 HTTP 200 + code 429；成功清零。计数用 Redis INCR + EXPIRE。
+ * 用户名统一 trim + mb_strtolower 后再算 key：admins.username 是不区分大小写/重音的排序规则
+ * （utf8mb4_0900_ai_ci），大小写/重音变体会登录同一个账号，必须落在同一个限流 key 上，否则限流可被绕过。
  * 容器单例，不存请求态。
  */
 class LoginRateLimitMiddleware implements MiddlewareInterface
@@ -25,8 +27,8 @@ class LoginRateLimitMiddleware implements MiddlewareInterface
 
     public function process(Request $request, callable $handler): Response
     {
-        $username = $request->post('username');
-        $hash = md5($request->getRealIp() . '|' . (is_string($username) ? $username : ''));
+        $username = $this->username($request);
+        $hash = md5($request->getRealIp() . '|' . (is_string($username) ? mb_strtolower(trim($username)) : ''));
         $lockKey = "login_lock:{$hash}";
         $failKey = "login_fail:{$hash}";
 
@@ -56,5 +58,20 @@ class LoginRateLimitMiddleware implements MiddlewareInterface
         }
 
         return $response;
+    }
+
+    /**
+     * 与 core\base\Controller::body() 取同一个请求体来源：post() 非空就用它，否则兜底解析 JSON
+     * 请求体（中间件不是 Controller，拿不到基类的 body()，这里单独实现一份同样的逻辑）。
+     */
+    private function username(Request $request): mixed
+    {
+        $data = $request->post();
+        if (!is_array($data) || $data === []) {
+            $json = json_decode((string) $request->rawBody(), true);
+            $data = is_array($json) ? $json : [];
+        }
+
+        return $data['username'] ?? null;
     }
 }

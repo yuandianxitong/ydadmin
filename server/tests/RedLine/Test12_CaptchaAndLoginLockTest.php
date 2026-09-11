@@ -55,6 +55,19 @@ final class Test12_CaptchaAndLoginLockTest extends ApiTestCase
         $this->loginWithoutCaptcha($other->username, $other->password)->assertOk();
     }
 
+    public function test_lockout_counts_case_variants_of_the_username_together(): void
+    {
+        $this->setConfig('login_captcha', '0');
+        $this->setConfig('login_max_retry', '2');
+        $admin = $this->actingAsAdmin();
+
+        $this->loginWithoutCaptcha($admin->username, 'bad-pass-1')->assertCode(400);
+        $this->loginWithoutCaptcha(strtoupper($admin->username), 'bad-pass-2')->assertCode(400);
+        $locked = $this->loginWithoutCaptcha($admin->username, $admin->password);
+
+        $locked->assertCode(429);
+    }
+
     public function test_success_resets_the_failure_counter(): void
     {
         $this->setConfig('login_captcha', '0');
