@@ -96,6 +96,25 @@ final class AuthApiTest extends ApiTestCase
         $this->post('/adminapi/auth/login', ['username' => $admin->username, 'password' => $admin->password])->assertOk();
     }
 
+    /**
+     * login_captcha 是布尔配置，SystemConfig::convertValueByType() 只把 '1'/'true'/'yes'/'on' 当真，
+     * 其余一律 false——写坏一个值就静默关掉了验证码（fail open）。登录安全开关反过来取安全默认：
+     * 认不出的值按「开」算，只有明确的关闭值才关得掉。
+     */
+    public function test_an_unparseable_login_captcha_value_keeps_the_captcha_required(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $this->setConfig('login_captcha', 'banana');
+
+        $response = $this->post('/adminapi/auth/login', ['username' => $admin->username, 'password' => $admin->password]);
+        $response->assertCode(422);
+        $this->assertArrayHasKey('captcha', $response->data()['errors']);
+
+        // 明确的关闭值仍然关得掉
+        $this->setConfig('login_captcha', '0');
+        $this->post('/adminapi/auth/login', ['username' => $admin->username, 'password' => $admin->password])->assertOk();
+    }
+
     public function test_login_validation_errors_use_lang_messages(): void
     {
         $response = $this->post('/adminapi/auth/login', ['username' => 'ab', 'password' => '123']);

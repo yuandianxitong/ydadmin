@@ -11,16 +11,19 @@ use Illuminate\Database\Eloquent\Builder;
 use support\Cache;
 
 /**
- * 系统配置仓储。有两份缓存：
- *   - system_config.all：全部启用配置，供后端读配置用（登录安全、密码长度等）；
- *   - system_config.public：启用且 is_public=1 的配置，供 config/global 用。
- * 写配置的路径必须经 forgetCache()，它同时清两份；clear-cache 也只清这两份。
+ * 系统配置仓储。有三份缓存：
+ *   - system_config.all：全部启用配置（已按 config_type 转换），供后端读配置用（登录安全、密码长度等）；
+ *   - system_config.public：启用且 is_public=1 的配置，供 config/global 用；
+ *   - system_config.raw：全部启用配置的原始字符串，供需要分辨「明确关闭」与「值写坏了」的开关用。
+ * 写配置的路径必须经 forgetCache()，它同时清三份；clear-cache 也只清这三份。
  */
 class SystemConfigRepository extends Repository
 {
     private const CACHE_KEY = 'system_config.all';
 
     private const PUBLIC_CACHE_KEY = 'system_config.public';
+
+    private const RAW_CACHE_KEY = 'system_config.raw';
 
     private const CACHE_TTL = 3600;
 
@@ -64,6 +67,24 @@ class SystemConfigRepository extends Repository
     }
 
     /**
+     * 启用配置的原始字符串值（不按 config_type 转换）。布尔配置转换后 '0' 与写坏的 'banana' 都是 false，
+     * 分不出「明确关掉」和「值坏了」；登录安全类开关要按原值判断（见 SystemConfigService::isSecuritySwitchOn()）。
+     */
+    public function getRawConfigValue(string $key, ?string $default = null): ?string
+    {
+        $raw = $this->remember(self::RAW_CACHE_KEY, function (): array {
+            $result = [];
+            foreach ($this->enabledQuery()->get()->toArray() as $row) {
+                $result[(string) $row['config_key']] = (string) $row['config_value'];
+            }
+
+            return $result;
+        });
+
+        return array_key_exists($key, $raw) ? (string) $raw[$key] : $default;
+    }
+
+    /**
      * 某分组的启用配置原始行（契约 §2.7 index：config_value 保持库里的字符串），按 sort_order、id 升序。
      *
      * @return array<int, array<string, mixed>>
@@ -90,7 +111,7 @@ class SystemConfigRepository extends Repository
 
     public function forgetCache(): void
     {
-        Cache::deleteMultiple([self::CACHE_KEY, self::PUBLIC_CACHE_KEY]);
+        Cache::deleteMultiple([self::CACHE_KEY, self::PUBLIC_CACHE_KEY, self::RAW_CACHE_KEY]);
     }
 
     /** @return Builder<Model> */

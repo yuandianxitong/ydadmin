@@ -28,6 +28,9 @@ class SystemConfigService extends Service
      */
     private const SENSITIVE_KEY_PATTERN = '/secret|password|pass|access_key|private|token|api_(v\d+_)?key|aes_key|_key$/i';
 
+    /** 登录安全开关认定为「关」的取值（不区分大小写、忽略首尾空白）；其余非空值一律按「开」。 */
+    private const SWITCH_OFF_VALUES = ['0', 'false', 'no', 'off'];
+
     /**
      * 配置分组：契约 §2.7 硬编码的 5 组，是前端配置页 tab 的来源。形式为 group => lang key。
      *
@@ -48,6 +51,19 @@ class SystemConfigService extends Service
     public function getConfigValue(string $key, mixed $default = null): mixed
     {
         return $this->systemConfigRepository->getConfigValue($key, $default);
+    }
+
+    /**
+     * 登录安全类的布尔开关（login_captcha 等）：只有明确的关闭值才算关，认不出的值一律取安全默认。
+     * SystemConfig::convertValueByType() 的布尔解析是白名单（只认 '1'/'true'/'yes'/'on'），其余一概为假——
+     * 对这类开关是 fail open：把值写坏就静默关掉了验证码。那个方法是共享的，不动；只在这里按原值收紧读法。
+     * 配置不存在、被禁用或值为空时取 $default。
+     */
+    public function isSecuritySwitchOn(string $key, bool $default = true): bool
+    {
+        $raw = strtolower(trim((string) $this->systemConfigRepository->getRawConfigValue($key)));
+
+        return $raw === '' ? $default : !in_array($raw, self::SWITCH_OFF_VALUES, true);
     }
 
     /** @return array<string, string> group => 当前语言的名称 */
