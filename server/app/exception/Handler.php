@@ -33,7 +33,7 @@ class Handler extends ExceptionHandler
         }
 
         if (!$this->debug) {
-            return Api::errorWithStatus('服务器内部错误', 500);
+            return Api::errorWithStatus(lang('messages.server_error'), 500);
         }
 
         return Api::errorWithStatus($exception->getMessage(), 500, [

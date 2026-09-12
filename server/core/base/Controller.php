@@ -15,7 +15,8 @@ use Webman\Http\Request;
  */
 abstract class Controller
 {
-    protected function success(mixed $data = [], string $message = '操作成功'): Response
+    /** $message 为 null 时取 lang('messages.success')。 */
+    protected function success(mixed $data = [], ?string $message = null): Response
     {
         return Api::success($data, $message);
     }

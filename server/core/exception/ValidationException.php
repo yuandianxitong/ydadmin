@@ -10,7 +10,7 @@ class ValidationException extends BusinessException
     /** @param array<string, string> $errors */
     public function __construct(private readonly array $errors, string $message = '')
     {
-        $first = $errors === [] ? '参数错误' : (string) reset($errors);
+        $first = $errors === [] ? lang('messages.invalid_params') : (string) reset($errors);
         parent::__construct($message !== '' ? $message : $first, 422);
     }
 

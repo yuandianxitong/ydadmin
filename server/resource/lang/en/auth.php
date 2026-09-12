@@ -20,4 +20,6 @@ return [
     'super_admin_only'       => 'Only super administrators can perform this action',
     'cannot_delete_self'     => 'Cannot delete yourself',
     'cannot_disable_self'    => 'Cannot disable yourself',
+    'unauthenticated'        => 'Not logged in or the login has expired',
+    'forbidden'              => 'Access denied',
 ];

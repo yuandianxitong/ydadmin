@@ -4,6 +4,8 @@ return [
     'success'                 => '操作成功',
     'api_not_found'           => '接口不存在',
     'server_error'            => '服务器内部错误',
+    'invalid_params'          => '参数错误',
+    'response_encode_failed'  => '响应序列化失败',
     'data_not_found'          => '数据不存在',
     'get_success'             => '获取成功',
     'create_success'          => '创建成功',

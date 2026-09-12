@@ -4,6 +4,8 @@ return [
     'success'                 => 'Success',
     'api_not_found'           => 'API not found',
     'server_error'            => 'Internal server error',
+    'invalid_params'          => 'Invalid parameters',
+    'response_encode_failed'  => 'Failed to encode the response',
     'data_not_found'          => 'Data not found',
     'get_success'             => 'Retrieved successfully',
     'create_success'          => 'Created successfully',

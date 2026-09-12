@@ -20,4 +20,6 @@ return [
     'super_admin_only'       => '仅超级管理员可执行此操作',
     'cannot_delete_self'     => '不能删除自己',
     'cannot_disable_self'    => '不能禁用自己',
+    'unauthenticated'        => '未登录或登录已过期',
+    'forbidden'              => '无权限访问',
 ];
