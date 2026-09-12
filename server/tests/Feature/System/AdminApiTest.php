@@ -282,6 +282,30 @@ final class AdminApiTest extends ApiTestCase
         $this->assertSame([$inScopeRole], $this->roleIdsOf($inScope->id));
     }
 
+    /**
+     * 防提权判定 fail closed：禁用的角色照样算数。否则非超管可以先挂一个「菜单更宽 / 范围更大」的禁用角色，
+     * 等超管哪天把它启用，被挂的人就静默获得了越权。生效的权限与数据范围仍然只认启用的角色，不受影响。
+     */
+    public function test_disabled_roles_still_count_in_the_anti_escalation_checks(): void
+    {
+        $dept = $this->createDepartment(['name' => '禁用角色A']);
+        $actor = $this->actingAsAdmin(['system.admin.update'], ['department_id' => $dept], ['data_scope' => DataScope::DEPT]);
+        $target = $this->actingAsAdmin([], ['department_id' => $dept], ['data_scope' => DataScope::DEPT]);
+        $targetRole = $this->roleOf($target);
+        $widerMenus = $this->createRole(['system.role.list'], DataScope::DEPT);
+        $widerScope = $this->createRole([], DataScope::ALL);
+        Db::table('roles')->whereIn('id', [$widerMenus, $widerScope])->update(['status' => 0]);
+
+        $this->assertSame(lang('business.role_exceeds_own_permissions'), $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$widerMenus]], $actor->token)->assertCode(400)->message());
+        $this->assertSame(lang('business.role_scope_exceeds_own'), $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$widerScope]], $actor->token)->assertCode(400)->message());
+        $this->assertSame([$targetRole], $this->roleIdsOf($target->id));
+
+        // 超管不受这两道判定约束
+        $super = $this->actingAsAdmin('super');
+        $this->put(self::BASE . "/{$target->id}", ['role_ids' => [$widerScope]], $super->token)->assertOk();
+        $this->assertSame([$widerScope], $this->roleIdsOf($target->id));
+    }
+
     /** 换部门也要预演：持「本部门及下级」角色的人换到有下级的部门（该部门本身在范围内），范围会越过操作者。 */
     public function test_moving_an_admin_cannot_widen_their_scope_past_the_actor(): void
     {

@@ -38,20 +38,26 @@ final class DataScopeResolver
     }
 
     /**
-     * 预演：按给定部门与角色计算数据范围，不缓存。与 compute() 同口径——只算启用、未删除的角色，
-     * 系统角色或「全部」→ all。$adminId 只写进快照（「仅本人」按它过滤）；新建管理员时传 0。
+     * 预演：按给定部门与角色计算数据范围，不缓存。$adminId 只写进快照（「仅本人」按它过滤）；新建管理员时传 0。
+     * 默认与 compute() 同口径——只算启用、未删除的角色，系统角色或「全部」→ all。
+     *
+     * $countDisabledRoles 为真时把禁用的角色也算上，只给防提权判定用（fail closed）：否则非超管可以授出
+     * 一个「范围更大但被禁用」的角色蒙混过关，等超管哪天启用它，被授权的人就静默拿到了更大的数据范围。
+     * 软删的角色任何时候都不算。
      *
      * @param array<int, int> $roleIds
      */
-    public function simulate(int $adminId, ?int $departmentId, array $roleIds): DataScopeSnapshot
+    public function simulate(int $adminId, ?int $departmentId, array $roleIds, bool $countDisabledRoles = false): DataScopeSnapshot
     {
         $roleIds = array_values(array_unique(array_map('intval', $roleIds)));
-        $roles = $roleIds === [] ? [] : Db::table('roles')
-            ->whereIn('id', $roleIds)
-            ->where('status', 1)
-            ->whereNull('deleted_at')
-            ->get(['id', 'data_scope', 'is_system'])
-            ->all();
+        $roles = [];
+        if ($roleIds !== []) {
+            $query = Db::table('roles')->whereIn('id', $roleIds)->whereNull('deleted_at');
+            if (!$countDisabledRoles) {
+                $query->where('status', 1);
+            }
+            $roles = $query->get(['id', 'data_scope', 'is_system'])->all();
+        }
 
         return $this->merge($adminId, $departmentId, $roles);
     }
@@ -96,7 +102,7 @@ final class DataScopeResolver
     /**
      * compute() 与 simulate() 共用的合并规则。
      *
-     * @param array<int, \stdClass> $roles 每行含 id、data_scope、is_system；调用方已只取启用、未删除的角色
+     * @param array<int, \stdClass> $roles 每行含 id、data_scope、is_system；调用方已筛掉软删的角色（是否含禁用角色由调用方决定）
      */
     private function merge(int $adminId, ?int $departmentId, array $roles): DataScopeSnapshot
     {

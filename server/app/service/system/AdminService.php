@@ -498,7 +498,8 @@ class AdminService extends Service
         if ($actorSnapshot === null) {
             return;
         }
-        if (!$actorSnapshot->covers($this->dataScopeResolver->simulate($targetId, $departmentId, $roleIds))) {
+        // 预演时连禁用的角色一起算（fail closed）：授出一个「范围更大但被禁用」的角色，等它被启用就是静默提权
+        if (!$actorSnapshot->covers($this->dataScopeResolver->simulate($targetId, $departmentId, $roleIds, true))) {
             throw new BusinessException(lang('business.role_scope_exceeds_own'));
         }
     }

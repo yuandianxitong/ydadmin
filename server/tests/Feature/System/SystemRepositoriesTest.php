@@ -173,8 +173,8 @@ final class SystemRepositoriesTest extends TestCase
         ]);
         $repo = new RoleRepository();
 
-        // 只算启用、未删除角色的菜单；已软删的菜单不计（与 getAdminInfo() 的 menu_ids 口径一致）
-        $this->assertSame([10, 11, 20], $repo->getMenuIdsByRoleIds([$other, $enabled, $disabled, $deleted]));
+        // 防提权判定专用，fail closed：禁用角色的菜单照样算（30），软删角色的不算（50）；已软删的菜单不计
+        $this->assertSame([10, 11, 20, 30], $repo->getMenuIdsByRoleIds([$other, $enabled, $disabled, $deleted]));
         $this->assertSame([], $repo->getMenuIdsByRoleIds([]));
 
         $adminId = $this->admin();
