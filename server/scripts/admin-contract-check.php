@@ -5,6 +5,8 @@
  *
  * 用法：php webman db:reset --force（开发库首次或表结构变化后）→ php start.php start -d → php scripts/admin-contract-check.php
  * M1a 起：用 .env 配置的库临时建一个超管账号（contract_ 前缀），跑完删除；验证码从服务同一个 Redis 读取，校验照常执行。
+ * M1b 起：覆盖配置、字典、日志、通知、仪表盘。改过的配置在退出时写回原值；日志的删除与清空只用一个
+ *   「本部门」数据范围的临时账号执行，只会动到本次运行自己产生的日志；操作日志中间件为临时账号记下的日志随账号一起删除。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -125,14 +127,16 @@ $created = support\Container::get(app\service\system\AdminService::class)->creat
 $contractAdminId = (int) $created['id'];
 
 // 本次运行创建的所有临时行，登记在这里；退出时（含任何异常/致命错误）统一硬删，含关联表。
-/** @var array{admin_ids: list<int>, role_ids: list<int>, menu_ids: list<int>, dept_ids: list<int>} $cleanup */
-$cleanup = ['admin_ids' => [$contractAdminId], 'role_ids' => [], 'menu_ids' => [], 'dept_ids' => []];
+// M1b 起：操作日志中间件会为契约账号的每个写请求记一条操作日志，按 admin_id 一并删除；改过的配置写回原值。
+/** @var array{admin_ids: list<int>, role_ids: list<int>, menu_ids: list<int>, dept_ids: list<int>, dict_ids: list<int>, notification_ids: list<int>, configs: array<string, string>} $cleanup */
+$cleanup = ['admin_ids' => [$contractAdminId], 'role_ids' => [], 'menu_ids' => [], 'dept_ids' => [], 'dict_ids' => [], 'notification_ids' => [], 'configs' => []];
 register_shutdown_function(static function () use (&$cleanup): void {
     // 先删关联表（外键依赖方向），再删主表
     foreach ($cleanup['admin_ids'] as $id) {
         support\Db::table('admin_roles')->where('admin_id', $id)->delete();
         support\Db::table('admin_login_logs')->where('admin_id', $id)->delete();
         support\Db::table('admin_operation_logs')->where('admin_id', $id)->delete();
+        support\Db::table('notification_reads')->where('admin_id', $id)->delete();
     }
     foreach ($cleanup['role_ids'] as $id) {
         support\Db::table('admin_roles')->where('role_id', $id)->delete();
@@ -145,6 +149,14 @@ register_shutdown_function(static function () use (&$cleanup): void {
     foreach ($cleanup['dept_ids'] as $id) {
         support\Db::table('role_departments')->where('department_id', $id)->delete();
     }
+    foreach ($cleanup['dict_ids'] as $id) {
+        support\Db::table('dictionary_items')->where('dictionary_id', $id)->delete();
+        support\Db::table('dictionaries')->where('id', $id)->delete();
+    }
+    foreach ($cleanup['notification_ids'] as $id) {
+        support\Db::table('notification_reads')->where('notification_id', $id)->delete();
+        support\Db::table('notifications')->where('id', $id)->delete();
+    }
     foreach ($cleanup['admin_ids'] as $id) {
         support\Db::table('admins')->where('id', $id)->delete();
     }
@@ -156,6 +168,12 @@ register_shutdown_function(static function () use (&$cleanup): void {
     }
     foreach ($cleanup['dept_ids'] as $id) {
         support\Db::table('departments')->where('id', $id)->delete();
+    }
+    foreach ($cleanup['configs'] as $key => $value) {
+        support\Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+    }
+    if ($cleanup['configs'] !== []) {
+        (new app\repository\system\SystemConfigRepository())->forgetCache();
     }
 });
 
@@ -522,6 +540,314 @@ $admin5Id = (int) (respData($r)['id'] ?? 0);
 $cleanup['admin_ids'][] = $admin5Id;
 $r = http('POST', "{$base}/adminapi/system/admin/batch-delete", $auth, ['ids' => [$admin4Id, $admin5Id]]);
 check('admin batch-delete：返回 {count: 2}', respCode($r) === 200 && (respData($r)['count'] ?? null) === 2, $r['body']);
+
+// ---------------------------------------------------------------- M1b
+echo "\n=== M1b：系统配置 ===\n";
+$r = http('GET', "{$base}/adminapi/system/config/groups", $auth);
+check('config/groups：5 个固定分组', array_keys((array) respData($r)) === ['basic', 'email', 'sms', 'storage', 'payment'], $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/config?group=basic", $auth);
+$siteNameRow = [];
+foreach ((array) respData($r) as $row) {
+    if (is_array($row) && ($row['config_key'] ?? null) === 'site_name') {
+        $siteNameRow = $row;
+    }
+}
+check('config?group=basic：原始行数组，含 site_name，config_value 为字符串', array_is_list((array) respData($r)) && isset($siteNameRow['id']) && is_string($siteNameRow['config_value'] ?? null), $r['body']);
+$siteNameId = (int) ($siteNameRow['id'] ?? 0);
+$siteNameOriginal = (string) ($siteNameRow['config_value'] ?? '');
+$cleanup['configs']['site_name'] = $siteNameOriginal; // 保险：中途异常时由 shutdown 写回原值
+
+$r = http('GET', "{$base}/adminapi/system/config/{$siteNameId}", $auth);
+check('config/{id}：单条原始行', (respData($r)['config_key'] ?? null) === 'site_name', $r['body']);
+
+$r = http('PUT', "{$base}/adminapi/system/config/{$siteNameId}", $auth, ['config_value' => "契约站点_{$suffix}"]);
+$global = http('GET', "{$base}/adminapi/system/config/global", $auth);
+check('config update：data 为 true，config/global 立即读到新值（缓存已失效）', respCode($r) === 200 && respData($r) === true && (respData($global)['site_name'] ?? null) === "契约站点_{$suffix}", $r['body']);
+
+$r = http('POST', "{$base}/adminapi/system/config/batch-update", $auth, ['configs' => [['config_key' => 'site_name', 'config_value' => "契约站点2_{$suffix}"]]]);
+$show = http('GET', "{$base}/adminapi/system/config/{$siteNameId}", $auth);
+check('config batch-update：详情读到新值', respCode($r) === 200 && (respData($show)['config_value'] ?? null) === "契约站点2_{$suffix}", $r['body']);
+
+$r = http('POST', "{$base}/adminapi/system/config/batch-update", $auth, ['configs' => [
+    ['config_key' => 'site_name', 'config_value' => "契约站点3_{$suffix}"],
+    ['config_key' => "contract_missing_{$suffix}", 'config_value' => 'x'],
+]]);
+$show = http('GET', "{$base}/adminapi/system/config/{$siteNameId}", $auth);
+check('config batch-update：含未知键时整批失败（事务），排在前面的键也没有落库', respCode($r) === 400 && (respData($show)['config_value'] ?? null) === "契约站点2_{$suffix}", $r['body']);
+
+$r = http('POST', "{$base}/adminapi/system/config/batch-update", $auth, ['configs' => [['config_key' => 'site_name', 'config_value' => $siteNameOriginal]]]);
+check('config batch-update：site_name 写回原值', respCode($r) === 200, $r['body']);
+
+http('GET', "{$base}/adminapi/system/config/global", $auth); // 预热配置缓存
+$warmed = support\Cache::has('system_config.all') || support\Cache::has('system_config.public');
+$r = http('POST', "{$base}/adminapi/system/config/clear-cache", $auth);
+check(
+    'config clear-cache：配置缓存被清掉，当前 token 仍然有效（不再清全站缓存）',
+    $warmed
+        && respCode($r) === 200
+        && !support\Cache::has('system_config.all')
+        && !support\Cache::has('system_config.public')
+        && respCode(http('GET', "{$base}/adminapi/auth/info", $auth)) === 200,
+    $r['body']
+);
+
+echo "\n=== M1b：数据字典 ===\n";
+$dictCode = "contract_dict_{$suffix}";
+$r = http('POST', "{$base}/adminapi/system/dictionary", $auth, ['name' => "契约字典_{$suffix}", 'code' => $dictCode, 'status' => 1]);
+$dictId = (int) (respData($r)['id'] ?? 0);
+check('dictionary store：返回新建行（含 id）', respCode($r) === 200 && $dictId > 0, $r['body']);
+$cleanup['dict_ids'][] = $dictId;
+
+$r = http('POST', "{$base}/adminapi/system/dictionary", $auth, ['name' => '非法编码', 'code' => 'bad code!']);
+check('dictionary store：code 不是 alpha_dash → 422，errors.code', respCode($r) === 422 && isset(respData($r)['errors']['code']), $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/dictionary?keyword={$dictCode}&page=1&limit=100", $auth);
+$dictRow = [];
+foreach ((array) (respData($r)['list'] ?? []) as $row) {
+    if (is_array($row) && (int) ($row['id'] ?? 0) === $dictId) {
+        $dictRow = $row;
+    }
+}
+check('dictionary 列表：{list, pagination}，行含 items_count', array_keys((array) respData($r)) === ['list', 'pagination'] && array_key_exists('items_count', $dictRow), $r['body']);
+
+$r = http('POST', "{$base}/adminapi/system/dictionary/item", $auth, ['dictionary_id' => $dictId, 'label' => '甲', 'value' => 'a', 'sort' => 1]);
+$itemAId = (int) (respData($r)['id'] ?? 0);
+check('dictionary item store：返回新建项', respCode($r) === 200 && $itemAId > 0, $r['body']);
+$r = http('POST', "{$base}/adminapi/system/dictionary/item", $auth, ['dictionary_id' => $dictId, 'label' => '乙', 'value' => 'b', 'sort' => 2]);
+$itemBId = (int) (respData($r)['id'] ?? 0);
+$r = http('POST', "{$base}/adminapi/system/dictionary/item", $auth, ['dictionary_id' => $dictId, 'label' => '重复', 'value' => 'a']);
+$items = http('GET', "{$base}/adminapi/system/dictionary/{$dictId}/items", $auth);
+check('dictionary item store：同一字典内 value 重复被拒，项数不变', in_array(respCode($r), [400, 422], true) && count((array) respData($items)) === 2, $r['body']);
+check('dictionary {id}/items：纯数组', $itemBId > 0 && array_is_list((array) respData($items)), $items['body']);
+
+$r = http('GET', "{$base}/adminapi/system/dictionary/{$dictId}", $auth);
+check('dictionary 详情：含 items（两项）', respCode($r) === 200 && count((array) (respData($r)['items'] ?? [])) === 2, $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/dictionary/options?code={$dictCode}", $auth);
+$labels = array_column((array) respData($r), 'label');
+check('dictionary options：返回启用的两项', count($labels) === 2 && in_array('甲', $labels, true) && in_array('乙', $labels, true), $r['body']);
+
+$r = http('PUT', "{$base}/adminapi/system/dictionary/item/{$itemAId}", $auth, ['label' => '甲改']);
+$opts = http('GET', "{$base}/adminapi/system/dictionary/options?code={$dictCode}", $auth);
+check('dictionary item update：options 缓存被刷新，读到新标签', respCode($r) === 200 && in_array('甲改', array_column((array) respData($opts), 'label'), true), $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/dictionary/batch-options?codes={$dictCode},contract_none_{$suffix}", $auth);
+$batch = (array) respData($r);
+check('dictionary batch-options：按 code 分组，未知 code 没有数据', count((array) ($batch[$dictCode] ?? [])) === 2 && (array) ($batch["contract_none_{$suffix}"] ?? []) === [], $r['body']);
+
+$r = http('DELETE', "{$base}/adminapi/system/dictionary/item/{$itemBId}", $auth);
+$items = http('GET', "{$base}/adminapi/system/dictionary/{$dictId}/items", $auth);
+check('dictionary item delete：{id}/items 只剩一项', respCode($r) === 200 && count((array) respData($items)) === 1, $r['body']);
+
+$r = http('PUT', "{$base}/adminapi/system/dictionary/{$dictId}", $auth, ['name' => "契约字典改_{$suffix}"]);
+$show = http('GET', "{$base}/adminapi/system/dictionary/{$dictId}", $auth);
+check('dictionary update：详情读到新名称', respCode($r) === 200 && (respData($show)['name'] ?? null) === "契约字典改_{$suffix}", $r['body']);
+
+$r = http('PUT', "{$base}/adminapi/system/dictionary/{$dictId}", $auth, ['status' => 0]);
+$opts = http('GET', "{$base}/adminapi/system/dictionary/options?code={$dictCode}", $auth);
+check('dictionary 停用：options 返回 []（缓存同样被刷新）', respCode($r) === 200 && respData($opts) === [], $r['body']);
+
+$r = http('DELETE', "{$base}/adminapi/system/dictionary/{$dictId}", $auth);
+$show = http('GET', "{$base}/adminapi/system/dictionary/{$dictId}", $auth);
+check(
+    'dictionary delete：详情变成业务错误，字典项被级联删除',
+    respCode($r) === 200 && respCode($show) !== 200 && support\Db::table('dictionary_items')->where('dictionary_id', $dictId)->whereNull('deleted_at')->count() === 0,
+    $r['body']
+);
+
+$batchDictIds = [];
+foreach (['x', 'y'] as $tag) {
+    $r = http('POST', "{$base}/adminapi/system/dictionary", $auth, ['name' => "契约字典{$tag}_{$suffix}", 'code' => "contract_dict_{$tag}_{$suffix}"]);
+    $id = (int) (respData($r)['id'] ?? 0);
+    $cleanup['dict_ids'][] = $id;
+    $batchDictIds[] = $id;
+}
+$visible = static fn (int $id): bool => respCode(http('GET', "{$base}/adminapi/system/dictionary/{$id}", $auth)) === 200;
+$existedBefore = count(array_filter($batchDictIds, $visible)) === 2;
+$r = http('POST', "{$base}/adminapi/system/dictionary/batch-delete", $auth, ['ids' => $batchDictIds]);
+check('dictionary batch-delete：删除前两条都在，删除后都查不到', $existedBefore && respCode($r) === 200 && array_filter($batchDictIds, $visible) === [], $r['body']);
+
+echo "\n=== M1b：站内通知 ===\n";
+$noticeTitle = "契约通知_{$suffix}";
+$r = http('POST', "{$base}/adminapi/system/notification", $auth, ['title' => $noticeTitle, 'content' => '契约检查正文', 'type' => 1, 'target_type' => 1, 'status' => 1]);
+$noticeId = (int) (respData($r)['id'] ?? 0);
+check('notification store：返回新建行，sender_id 为当前管理员', respCode($r) === 200 && $noticeId > 0 && (int) (respData($r)['sender_id'] ?? 0) === $contractAdminId, $r['body']);
+$cleanup['notification_ids'][] = $noticeId;
+
+$r = http('POST', "{$base}/adminapi/system/notification", $auth, ['title' => "{$noticeTitle}定向", 'content' => '正文', 'type' => 1, 'target_type' => 2]);
+check('notification store：target_type=2 → 422（M1 只支持全员广播）', respCode($r) === 422 && isset(respData($r)['errors']['target_type']), $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/notification?page=1&limit=20&keyword=" . rawurlencode($noticeTitle), $auth);
+$noticeRow = (array) (respData($r)['list'][0] ?? []);
+check('notification 列表：按关键词找到，行含 reads_count', (int) ($noticeRow['id'] ?? 0) === $noticeId && array_key_exists('reads_count', $noticeRow), $r['body']);
+
+$unreadCount = static fn (): int => (int) (respData(http('GET', "{$base}/adminapi/system/notification/unread-count", $auth))['count'] ?? -1);
+/** @return array<mixed>|null */
+$mineRowOf = static function (int $id) use ($base, $auth): ?array {
+    foreach ((array) (respData(http('GET', "{$base}/adminapi/system/notification/mine?page=1&limit=20", $auth))['list'] ?? []) as $row) {
+        if (is_array($row) && (int) ($row['id'] ?? 0) === $id) {
+            return $row;
+        }
+    }
+
+    return null;
+};
+$unreadBefore = $unreadCount();
+$mineRow = $mineRowOf($noticeId);
+check('notification mine + unread-count：新通知在「我的通知」里且 is_read=false，未读数 ≥ 1', $mineRow !== null && ($mineRow['is_read'] ?? null) === false && $unreadBefore >= 1);
+
+$r = http('POST', "{$base}/adminapi/system/notification/{$noticeId}/read", $auth);
+$unreadAfterRead = $unreadCount();
+http('POST', "{$base}/adminapi/system/notification/{$noticeId}/read", $auth);
+check(
+    'notification {id}/read：未读数减 1，is_read 变为 true，重复标记幂等',
+    respCode($r) === 200 && $unreadAfterRead === $unreadBefore - 1 && ($mineRowOf($noticeId)['is_read'] ?? null) === true && $unreadCount() === $unreadAfterRead,
+    $r['body']
+);
+$r = http('POST', "{$base}/adminapi/system/notification/read-all", $auth);
+check('notification read-all：未读数归零', respCode($r) === 200 && $unreadCount() === 0, $r['body']);
+
+$r = http('PUT', "{$base}/adminapi/system/notification/{$noticeId}", $auth, ['title' => "{$noticeTitle}改"]);
+$show = http('GET', "{$base}/adminapi/system/notification/{$noticeId}", $auth);
+check('notification update + 详情：读到新标题', respCode($r) === 200 && (respData($show)['title'] ?? null) === "{$noticeTitle}改", $r['body']);
+$r = http('PUT', "{$base}/adminapi/system/notification/{$noticeId}", $auth, ['target_type' => 2]);
+check('notification update：target_type=2 → 422', respCode($r) === 422, $r['body']);
+
+$r = http('DELETE', "{$base}/adminapi/system/notification/{$noticeId}", $auth);
+$show = http('GET', "{$base}/adminapi/system/notification/{$noticeId}", $auth);
+check('notification delete：详情不再成功，「我的通知」里也没有了', respCode($r) === 200 && respCode($show) !== 200 && $mineRowOf($noticeId) === null, $r['body']);
+
+echo "\n=== M1b：日志（含数据权限） ===\n";
+// 临时建一个「本部门」数据范围的管理员：日志的越权删除与清空都用它做，只会动到本次运行自己的数据。
+$logMenuIds = array_map('intval', support\Db::table('menus')->whereIn('permission', ['system.log.login', 'system.log.operation', 'system.log.delete', 'system.log.clear'])->pluck('id')->all());
+check('日志菜单种子（111–114）存在', count($logMenuIds) === 4, implode(',', $logMenuIds));
+$r = http('POST', "{$base}/adminapi/system/department", $auth, ['parent_id' => 1, 'name' => "contract_logdept_{$suffix}"]);
+$logDeptId = (int) (respData($r)['id'] ?? 0);
+$cleanup['dept_ids'][] = $logDeptId;
+$r = http('POST', "{$base}/adminapi/system/role", $auth, ['name' => "contract_logrole_{$suffix}", 'title' => '契约日志角色', 'data_scope' => 2]);
+$logRoleId = (int) (respData($r)['id'] ?? 0);
+$cleanup['role_ids'][] = $logRoleId;
+http('PUT', "{$base}/adminapi/system/role/{$logRoleId}/assign-permissions", $auth, ['menu_ids' => $logMenuIds]);
+$logAdminName = "contract_log_{$suffix}";
+$logAdminPassword = 'Contract#2026';
+$r = http('POST', "{$base}/adminapi/system/admin", $auth, [
+    'username'      => $logAdminName,
+    'email'         => "{$logAdminName}@contract.local",
+    'password'      => $logAdminPassword,
+    'department_id' => $logDeptId,
+    'role_ids'      => [$logRoleId],
+]);
+$logAdminId = (int) (respData($r)['id'] ?? 0);
+$cleanup['admin_ids'][] = $logAdminId;
+check('日志范围账号：部门、「本部门」角色、管理员建成', $logDeptId > 0 && $logRoleId > 0 && $logAdminId > 0, $r['body']);
+$logAuth = [...$api, 'Authorization: Bearer ' . loginAs($base, $api, $logAdminName, $logAdminPassword)]; // 这次登录本身写一条登录日志
+
+$r = http('GET', "{$base}/adminapi/system/log/login?page=1&limit=100", $logAuth);
+$scopedLogins = (array) (respData($r)['list'] ?? []);
+check(
+    'log/login：「本部门」范围只看到本部门管理员的登录日志',
+    array_keys((array) respData($r)) === ['list', 'pagination'] && array_values(array_unique(array_map('intval', array_column($scopedLogins, 'admin_id')))) === [$logAdminId],
+    $r['body']
+);
+
+$r = http('GET', "{$base}/adminapi/system/log/login?keyword={$username}&page=1&limit=100", $auth);
+$contractLogin = (array) (respData($r)['list'][0] ?? []);
+$contractLoginId = (int) ($contractLogin['id'] ?? 0);
+check(
+    'log/login：keyword 按用户名搜索，行含 browser/os/login_time/login_result',
+    $contractLoginId > 0 && ($contractLogin['username'] ?? null) === $username && array_diff(['browser', 'os', 'login_time', 'login_result'], array_keys($contractLogin)) === [],
+    $r['body']
+);
+
+$r = http('DELETE', "{$base}/adminapi/system/log/login/{$contractLoginId}", $logAuth);
+check('log/login 删除：范围外的 id → 404，记录仍在', respCode($r) === 404 && support\Db::table('admin_login_logs')->where('id', $contractLoginId)->exists(), $r['body']);
+$ownLoginId = (int) ($scopedLogins[0]['id'] ?? 0);
+$r = http('DELETE', "{$base}/adminapi/system/log/login/{$ownLoginId}", $auth);
+check('log/login 删除：记录被删除', respCode($r) === 200 && $ownLoginId > 0 && !support\Db::table('admin_login_logs')->where('id', $ownLoginId)->exists(), $r['body']);
+
+loginAs($base, $api, $logAdminName, $logAdminPassword); // 再登录一次，范围内重新有一条登录日志
+$r = http('POST', "{$base}/adminapi/system/log/login/clear", $logAuth);
+$scopedLoginTotal = (int) (respData(http('GET', "{$base}/adminapi/system/log/login?page=1&limit=1", $logAuth))['pagination']['total'] ?? -1);
+check(
+    'log/login/clear：只清掉范围内的登录日志，范围外的不动',
+    respCode($r) === 200 && $scopedLoginTotal === 0 && support\Db::table('admin_login_logs')->where('id', $contractLoginId)->exists(),
+    $r['body']
+);
+
+$r = http('GET', "{$base}/adminapi/system/log/operation?page=1&limit=100", $logAuth);
+$scopedOps = (array) (respData($r)['list'] ?? []);
+check(
+    'log/operation：中间件记下了范围账号的写请求（含上一步的清空），范围内只看到自己的',
+    array_values(array_unique(array_map('intval', array_column($scopedOps, 'admin_id')))) === [$logAdminId]
+        && in_array('/adminapi/system/log/login/clear', array_column($scopedOps, 'path'), true),
+    $r['body']
+);
+check(
+    'log/operation：行含 method/path/action/description/params/result/execution_time/operation_time',
+    array_diff(['method', 'path', 'action', 'description', 'params', 'result', 'execution_time', 'operation_time'], array_keys((array) ($scopedOps[0] ?? []))) === []
+);
+
+$r = http('GET', "{$base}/adminapi/system/log/operation?keyword={$username}&method=POST&page=1&limit=100", $auth);
+$contractOps = (array) (respData($r)['list'] ?? []);
+$maskedPassword = null;
+foreach ($contractOps as $row) {
+    if (is_array($row) && ($row['path'] ?? '') === '/adminapi/system/admin' && is_array($row['params'] ?? null)) {
+        $maskedPassword = $row['params']['password'] ?? null;
+        break;
+    }
+}
+check('log/operation：新建管理员的操作日志里密码已脱敏为 ***', $maskedPassword === '***', $r['body']);
+
+$contractOpId = (int) ($contractOps[0]['id'] ?? 0);
+$r = http('DELETE', "{$base}/adminapi/system/log/operation/{$contractOpId}", $logAuth);
+check('log/operation 删除：范围外的 id → 404，记录仍在', respCode($r) === 404 && support\Db::table('admin_operation_logs')->where('id', $contractOpId)->exists(), $r['body']);
+$ownOpId = (int) ($scopedOps[0]['id'] ?? 0);
+$r = http('DELETE', "{$base}/adminapi/system/log/operation/{$ownOpId}", $auth);
+check('log/operation 删除：记录被删除', respCode($r) === 200 && $ownOpId > 0 && !support\Db::table('admin_operation_logs')->where('id', $ownOpId)->exists(), $r['body']);
+
+$r = http('POST', "{$base}/adminapi/system/log/operation/clear", $logAuth);
+$left = (array) (respData(http('GET', "{$base}/adminapi/system/log/operation?page=1&limit=100", $logAuth))['list'] ?? []);
+check(
+    'log/operation/clear：范围内清空（之后只剩这次清空请求自己的日志），范围外不动',
+    respCode($r) === 200
+        && array_column($left, 'path') === ['/adminapi/system/log/operation/clear']
+        && support\Db::table('admin_operation_logs')->where('id', $contractOpId)->exists(),
+    $r['body']
+);
+
+echo "\n=== M1b：仪表盘 ===\n";
+$r = http('GET', "{$base}/adminapi/dashboard/stats", $auth);
+$stats = (array) respData($r);
+check('dashboard/stats：12 个键，顺序同契约', array_keys($stats) === [
+    'adminCount', 'roleCount', 'menuCount', 'configCount', 'todayLoginCount', 'todayNewUsers', 'activeUsers', 'totalUsers',
+    'trends', 'operationLogCount', 'loginTrend', 'registerTrend',
+], $r['body']);
+check(
+    'dashboard/stats：trends 四个键，loginTrend 默认 7 天，registerTrend 为 []',
+    array_keys((array) ($stats['trends'] ?? [])) === ['totalUsers', 'activeUsers', 'todayNewUsers', 'todayLoginCount']
+        && count((array) ($stats['loginTrend'] ?? [])) === 7
+        && ($stats['registerTrend'] ?? null) === []
+);
+$r = http('GET', "{$base}/adminapi/dashboard/stats?days=1000", $auth);
+check('dashboard/stats：days 截断到 90', count((array) (respData($r)['loginTrend'] ?? [])) === 90, $r['body']);
+$r = http('GET', "{$base}/adminapi/dashboard/stats", $logAuth);
+check('dashboard/stats：「本部门」范围的管理员只数到本部门（adminCount=1）', (respData($r)['adminCount'] ?? null) === 1 && (int) ($stats['adminCount'] ?? 0) > 1, $r['body']);
+
+$r = http('GET', "{$base}/adminapi/dashboard/recent-logs", $auth);
+$recentLogs = (array) respData($r);
+check('dashboard/recent-logs：最多 10 条登录日志（全字段）', respCode($r) === 200 && $recentLogs !== [] && count($recentLogs) <= 10 && array_key_exists('login_time', (array) ($recentLogs[0] ?? [])), $r['body']);
+$r = http('GET', "{$base}/adminapi/dashboard/recent-activities", $auth);
+$activities = (array) respData($r);
+check(
+    'dashboard/recent-activities：最多 8 条，每条 {type, username, description, time, relative_time}',
+    respCode($r) === 200 && $activities !== [] && count($activities) <= 8 && array_keys((array) ($activities[0] ?? [])) === ['type', 'username', 'description', 'time', 'relative_time'],
+    $r['body']
+);
+$r = http('GET', "{$base}/adminapi/dashboard/active-ranking?period=week", $auth);
+check('dashboard/active-ranking：{period, list: [{rank, username, count}]}', (respData($r)['period'] ?? null) === 'week' && array_keys((array) (respData($r)['list'][0] ?? [])) === ['rank', 'username', 'count'], $r['body']);
+$r = http('GET', "{$base}/adminapi/dashboard/active-ranking?period=year", $auth);
+check('dashboard/active-ranking：非法 period → 422', respCode($r) === 422, $r['body']);
 
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);
