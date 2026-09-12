@@ -165,7 +165,7 @@ const quickNavItems = [
     { label: 'dashboard.quickNavItems.roleManage',    icon: UserFilled, route: '/system/role',                gradient: grad(P.teal)   },
     { label: 'dashboard.quickNavItems.menuManage',    icon: MenuIcon,   route: '/system/menu',                gradient: grad(P.amber)  },
     { label: 'dashboard.quickNavItems.systemConfig',  icon: Setting,    route: '/system/config',              gradient: grad(P.teal)   },
-    { label: 'dashboard.quickNavItems.loginLog',      icon: Document,   route: '/system/admin_login_log',     gradient: grad(P.coral)  },
+    { label: 'dashboard.quickNavItems.loginLog',      icon: Document,   route: '/system/log/login',           gradient: grad(P.coral)  },
     { label: 'dashboard.quickNavItems.article',       icon: Document,   route: '/content/article',            gradient: grad(P.blue)   },
     { label: 'dashboard.quickNavItems.announcement',  icon: Monitor,    route: '/content/announcement',       gradient: grad(P.amber)  }
 ]
@@ -308,7 +308,7 @@ const navigateTo = (path: string) => router.push(path)
             <div class="soft-card activity-card">
                 <div class="card-header">
                     <span class="card-title">{{ t('dashboard.recentActivities') }}</span>
-                    <span class="card-link" @click="navigateTo('/system/admin_operation_log')">{{
+                    <span class="card-link" @click="navigateTo('/system/log/operation')">{{
                         t('dashboard.viewMore')
                     }}</span>
                 </div>

@@ -54,10 +54,6 @@
                                 :label="$t('notificationMgmt.scopeOptions.all')"
                                 :value="1"
                             />
-                            <el-option
-                                :label="$t('notificationMgmt.scopeOptions.specified')"
-                                :value="2"
-                            />
                         </el-select>
                     </el-form-item>
                 </el-col>
