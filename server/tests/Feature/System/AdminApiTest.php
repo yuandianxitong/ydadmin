@@ -341,6 +341,56 @@ final class AdminApiTest extends ApiTestCase
         $this->assertSame([$role], $this->roleIdsOf($inScope->id));
     }
 
+    /**
+     * 「只能管理不比自己权力大的人」原先只覆盖改角色与换部门：范围内一个持更宽角色的账号只要不是超管，
+     * 非超管的委派者重置它的密码就能登进去接管它的全部权限。改密码、禁用、删除前都要按目标「当前」的
+     * 角色与部门再过一次防提权判定。
+     */
+    public function test_scope_limited_actor_cannot_take_over_a_more_powerful_in_scope_admin(): void
+    {
+        $dept = $this->createDepartment(['name' => '接管范围A']);
+        $actor = $this->actingAsAdmin(['system.admin.update', 'system.admin.status', 'system.admin.delete'], ['department_id' => $dept], ['data_scope' => DataScope::DEPT]);
+        $victim = $this->actingAsAdmin(['system.role.list'], ['department_id' => $dept], ['data_scope' => DataScope::DEPT]);
+        $hash = (string) Db::table('admins')->where('id', $victim->id)->value('password');
+        $message = lang('business.role_exceeds_own_permissions');
+
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}/reset-password", ['password' => 'Takeover#1'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}", ['password' => 'Takeover#2'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($hash, (string) Db::table('admins')->where('id', $victim->id)->value('password'), '两条路径都没写进新密码');
+
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->assertSame(1, (int) Db::table('admins')->where('id', $victim->id)->value('status'));
+
+        $this->assertSame($message, $this->delete(self::BASE . "/{$victim->id}", [], $actor->token)->assertCode(400)->message());
+        $this->assertNull(Db::table('admins')->where('id', $victim->id)->value('deleted_at'));
+
+        // 正对照，界定这道新防线的位置：同一个目标，只改昵称、角色与部门原样回传，照常放行
+        $this->put(self::BASE . "/{$victim->id}", ['nickname' => '只改昵称', 'role_ids' => $this->roleIdsOf($victim->id), 'department_id' => $dept], $actor->token)->assertOk();
+        $this->assertSame('只改昵称', Db::table('admins')->where('id', $victim->id)->value('nickname'));
+    }
+
+    /** 同一道防线的另一半：目标的数据范围比自己大（持「全部」角色）时同样不能接管；超管四个操作都不受限。 */
+    public function test_scope_limited_actor_cannot_take_over_a_wider_scope_admin_but_a_super_can(): void
+    {
+        $dept = $this->createDepartment(['name' => '接管范围B']);
+        $actor = $this->actingAsAdmin(['system.admin.update', 'system.admin.status', 'system.admin.delete'], ['department_id' => $dept], ['data_scope' => DataScope::DEPT]);
+        $victim = $this->actingAsAdmin([], ['department_id' => $dept], ['data_scope' => DataScope::ALL]);
+        $message = lang('business.role_scope_exceeds_own');
+
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}/reset-password", ['password' => 'Takeover#3'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}", ['password' => 'Takeover#4'], $actor->token)->assertCode(400)->message());
+        $this->assertSame($message, $this->put(self::BASE . "/{$victim->id}/status", ['status' => 0], $actor->token)->assertCode(400)->message());
+        $this->assertSame($message, $this->delete(self::BASE . "/{$victim->id}", [], $actor->token)->assertCode(400)->message());
+        $this->assertNull(Db::table('admins')->where('id', $victim->id)->value('deleted_at'));
+
+        $super = $this->actingAsAdmin('super');
+        $this->put(self::BASE . "/{$victim->id}/reset-password", ['password' => 'Reset#9876'], $super->token)->assertOk();
+        $this->put(self::BASE . "/{$victim->id}", ['password' => 'Reset#5432'], $super->token)->assertOk();
+        $this->put(self::BASE . "/{$victim->id}/status", ['status' => 0], $super->token)->assertOk();
+        $this->delete(self::BASE . "/{$victim->id}", [], $super->token)->assertOk();
+        $this->assertNotNull(Db::table('admins')->where('id', $victim->id)->value('deleted_at'));
+    }
+
     public function test_update_changes_fields_and_roles_and_revokes_on_password_change(): void
     {
         $super = $this->actingAsAdmin('super');

@@ -16,7 +16,10 @@ final class Test8_DataScopeBatchTest extends ApiTestCase
         $deptA = $this->createDepartment();
         $deptB = $this->createDepartment();
         $viewer = $this->actingAsAdmin(['system.admin.delete'], ['department_id' => $deptA], ['data_scope' => DataScope::DEPT]);
-        $inside = $this->actingAsAdmin([], ['department_id' => $deptA]);
+        // 夹具默认给的角色是「全部」数据范围，那就比 viewer 权力大，删除会先被防提权判定挡下
+        // （AdminService::assertTargetNotMorePowerful()）；这条红线钉的是「范围外 ID 不生效」，
+        // 与目标的角色宽窄无关，所以这里给一个不比 viewer 宽的角色。
+        $inside = $this->actingAsAdmin([], ['department_id' => $deptA], ['data_scope' => DataScope::DEPT]);
         $outside = $this->actingAsAdmin([], ['department_id' => $deptB]);
 
         $data = $this->post('/adminapi/system/admin/batch-delete', ['ids' => [$inside->id, $outside->id]], $viewer->token)->assertOk()->data();

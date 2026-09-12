@@ -249,6 +249,8 @@ class AdminService extends Service
         }
         $passwordChanged = !empty($data['password']);
         if ($passwordChanged) {
+            // 改密码等于接管这个账号，与 reset-password 同一道防线
+            $this->assertTargetNotMorePowerful($id);
             $update['password'] = password_hash((string) $data['password'], PASSWORD_DEFAULT);
         }
         $update['updated_by'] = RequestContext::actingUser() ?: null;
@@ -290,6 +292,7 @@ class AdminService extends Service
         if ($id === RequestContext::actingUser()) {
             throw new BusinessException(lang('auth.cannot_delete_self'));
         }
+        $this->assertTargetNotMorePowerful($id);
 
         $this->runInTransaction(function () use ($id): void {
             $this->adminRepository->delete($id);
@@ -321,6 +324,7 @@ class AdminService extends Service
         $this->assertCanModify($id);
         if ($status === 0) {
             $this->assertCanDisable($id);
+            $this->assertTargetNotMorePowerful($id);
         }
 
         $this->runInTransaction(function () use ($id, $status): void {
@@ -334,6 +338,7 @@ class AdminService extends Service
     {
         $this->findOrFail($id);
         $this->assertCanModify($id);
+        $this->assertTargetNotMorePowerful($id);
 
         $this->runInTransaction(function () use ($id, $password): void {
             $this->adminRepository->update($id, [
@@ -502,6 +507,28 @@ class AdminService extends Service
         if (!$actorSnapshot->covers($this->dataScopeResolver->simulate($targetId, $departmentId, $roleIds, true))) {
             throw new BusinessException(lang('business.role_scope_exceeds_own'));
         }
+    }
+
+    /**
+     * 防提权（M1b 终审 C1）：非超管只能管理「不比自己权力大」的人。改密码等于接管一个账号，禁用、删除等于废掉它，
+     * 所以动手前先按目标「当前」的角色与部门（不是请求里传来的值）再跑一遍既有的两道判定：授出的菜单必须是
+     * 自己菜单的子集、模拟出的数据范围必须被自己的范围覆盖。否则范围内任何一个持更宽角色的普通账号，
+     * 只要不是超管就能被重置密码后登录接管，连带拿走它的权限与数据范围。
+     *
+     * 不能放进 DataScope::bypass()：assertScopeWithinOwn() 在 DataScope::current() 为 null 时直接放行，
+     * 在 bypass 里调用等于这道判定不存在；调用点都在能看到操作者真实快照的地方。
+     * 禁用的角色照样算数（fail closed，见 RoleRepository::getMenuIdsByRoleIds()）。
+     * 无管理员身份（CLI）、超管、以及操作自己不受限。
+     */
+    private function assertTargetNotMorePowerful(int $id): void
+    {
+        if ($id === RequestContext::actingUser() || !$this->actorIsScopeLimited()) {
+            return;
+        }
+        $admin = $this->findOrFail($id);
+        $roleIds = $this->roleRepository->getRoleIdsByAdminId($id);
+        $this->assertRolesWithinOwnPermissions($roleIds);
+        $this->assertScopeWithinOwn($id, isset($admin['department_id']) ? (int) $admin['department_id'] : null, $roleIds);
     }
 
     /**
