@@ -9,7 +9,6 @@ use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
-use support\Cache;
 use support\Container;
 use support\Db;
 use support\Log;
@@ -151,21 +150,8 @@ abstract class ApiTestCase extends TestCase
         Container::get(Permission::class)->clearUserCache($adminId);
         Redis::del("admin_token_ver:{$adminId}");
         Container::get(DataScopeResolver::class)->forget($adminId);
-
-        // 仪表盘按管理员缓存 5 分钟（DashboardService::remember()）：测试库重建后自增 id 会复用，
-        // 300 秒窗口内重新跑测试可能命中上一轮同一 id 留下的缓存，DashboardApiTest 断言的是精确计数，必须清干净。
-        // 键名必须与 DashboardService::remember() 的拼接方式一致：stats、active-ranking 恒有参数后缀，
-        // recent-logs、recent-activities 没有参数，不能凭空加后缀去删一个永远不存在的键。
-        // days 1/7/30/90 覆盖 DashboardApiTest::test_days_is_clamped_to_1_through_90()
-        // 里 30、1000→90、0→1、-5→1、'abc'→7、''→7 这几种输入落地后的缓存参数值，以及其余用例用到的默认值 7。
-        foreach ([1, 7, 30, 90] as $days) {
-            Cache::delete("dashboard.stats.{$adminId}.{$days}");
-        }
-        Cache::delete("dashboard.recent-logs.{$adminId}");
-        Cache::delete("dashboard.recent-activities.{$adminId}");
-        foreach (['day', 'week', 'month'] as $period) {
-            Cache::delete("dashboard.active-ranking.{$adminId}.{$period}");
-        }
+        // 仪表盘缓存不用在这里手工清：键里带数据范围指纹（DashboardService::remember()），范围一变键就变；
+        // 测试库重建后 id 复用也不会命中上一轮的键——bootstrap 每次都会 flush 测试 Redis（DB 15）。
     }
 
     /** @return array{0: string, 1: string} [captcha_key, 验证码明文]（从服务同一个 Redis key 读取，校验照常执行） */

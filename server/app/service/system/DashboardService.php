@@ -12,6 +12,7 @@ use app\repository\system\RoleRepository;
 use app\repository\system\SystemConfigRepository;
 use core\base\Service;
 use core\context\RequestContext;
+use core\datascope\DataScope;
 use DI\Attribute\Inject;
 use support\Cache;
 
@@ -192,14 +193,17 @@ class DashboardService extends Service
     }
 
     /**
-     * 按管理员缓存 5 分钟。管理员 id 取自本次请求（RequestContext），不存在实例属性上。
+     * 按管理员 + 数据范围缓存 5 分钟。管理员 id 取自本次请求（RequestContext），不存在实例属性上。
+     * 键里带一段数据范围指纹：改角色、换部门后快照变了，键跟着变，被降权的人下一次读到的就是新范围的数字，
+     * 不必等 300 秒过期（recent-logs、recent-activities 返回的是真实的用户名、操作描述与 IP）。
      *
      * @param \Closure(): array<mixed> $compute
      * @return array<mixed>
      */
     private function remember(string $endpoint, ?string $param, \Closure $compute): array
     {
-        $key = 'dashboard.' . $endpoint . '.' . RequestContext::actingUser() . ($param !== null ? '.' . $param : '');
+        $key = 'dashboard.' . $endpoint . '.' . RequestContext::actingUser() . '.' . $this->scopeFingerprint()
+            . ($param !== null ? '.' . $param : '');
         $cached = Cache::get($key);
         if (is_array($cached)) {
             return $cached;
@@ -208,6 +212,17 @@ class DashboardService extends Service
         Cache::set($key, $value, self::CACHE_TTL);
 
         return $value;
+    }
+
+    /**
+     * 当前数据范围的短指纹。crc32 的十进制串只含数字，是 support\Cache 允许的键字符（不含 {}()/\@:）。
+     * 没有快照（CLI，或在 DataScope::bypass() 内）时用固定的 all。
+     */
+    private function scopeFingerprint(): string
+    {
+        $snapshot = DataScope::current();
+
+        return $snapshot === null ? 'all' : (string) crc32((string) json_encode($snapshot->toArray()));
     }
 
     /** 相对时间，分档照 TP8 DateHelper::diffForHumans（刚刚 / N 分钟前 / N 小时前 / N 天前 / N 个月前 / 更早）。 */

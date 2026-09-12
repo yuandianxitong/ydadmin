@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace tests\Feature\Dashboard;
 
 use core\datascope\DataScope;
+use core\datascope\DataScopeResolver;
 use support\Cache;
+use support\Container;
 use support\Db;
 use support\Redis;
 use tests\Support\ApiTestCase;
@@ -67,6 +69,14 @@ final class DashboardApiTest extends ApiTestCase
         $outsider = $this->actingAsAdmin([], ['department_id' => $deptB]);
 
         return [$viewer, $colleague, $outsider, $deptA];
+    }
+
+    /** 与 DashboardService::remember() 同口径拼出 stats 的缓存键：dashboard.stats.{管理员 id}.{数据范围指纹}.{days}。 */
+    private function statsKey(int $adminId, int $days = 7): string
+    {
+        $snapshot = Container::get(DataScopeResolver::class)->resolve($adminId);
+
+        return 'dashboard.stats.' . $adminId . '.' . crc32((string) json_encode($snapshot->toArray())) . '.' . $days;
     }
 
     public function test_all_endpoints_need_login_but_no_permission(): void
@@ -158,8 +168,8 @@ final class DashboardApiTest extends ApiTestCase
         $this->loginLog($colleague, true);
 
         $this->assertSame(1, $this->get(self::BASE . '/stats', [], $viewer->token)->data()['todayLoginCount']);
-        $key = "dashboard.stats.{$viewer->id}.7";
-        $this->assertTrue(Cache::has($key), '缓存键为 dashboard.{接口}.{管理员 id}.{参数}');
+        $key = $this->statsKey($viewer->id);
+        $this->assertTrue(Cache::has($key), '缓存键为 dashboard.{接口}.{管理员 id}.{数据范围指纹}.{参数}');
         $ttl = (int) Redis::ttl($key);
         $this->assertGreaterThan(240, $ttl);
         $this->assertLessThanOrEqual(300, $ttl);
@@ -172,6 +182,30 @@ final class DashboardApiTest extends ApiTestCase
 
         Cache::delete($key);
         $this->assertSame(2, $this->get(self::BASE . '/stats', [], $viewer->token)->data()['todayLoginCount']);
+    }
+
+    /**
+     * 数据范围收窄必须立刻生效：缓存键带数据范围指纹，范围一变键就变，不用等 300 秒过期——
+     * 否则被降权的管理员还能继续看到原来范围里的用户名、操作描述与 IP。
+     */
+    public function test_narrowing_the_scope_takes_effect_without_waiting_for_the_cache(): void
+    {
+        $deptA = $this->createDepartment();
+        $deptB = $this->createDepartment();
+        $viewer = $this->actingAsAdmin([], ['department_id' => $deptA], ['data_scope' => DataScope::CUSTOM, 'dept_ids' => [$deptA, $deptB]]);
+        $outsider = $this->actingAsAdmin([], ['department_id' => $deptB]);
+        $roleId = (int) Db::table('admin_roles')->where('admin_id', $viewer->id)->value('role_id');
+        $this->loginLog($outsider, true);
+
+        $this->assertSame(1, $this->get(self::BASE . '/stats', [], $viewer->token)->assertOk()->data()['todayLoginCount']);
+        $this->assertSame([$outsider->username], array_column($this->get(self::BASE . '/recent-logs', [], $viewer->token)->assertOk()->data(), 'username'));
+
+        // 收窄范围：自定义范围里去掉部门 B，并按业务写路径的做法清掉数据范围缓存
+        Db::table('role_departments')->where('role_id', $roleId)->where('department_id', $deptB)->delete();
+        Container::get(DataScopeResolver::class)->forget($viewer->id);
+
+        $this->assertSame(0, $this->get(self::BASE . '/stats', [], $viewer->token)->assertOk()->data()['todayLoginCount'], '收窄后立刻生效');
+        $this->assertSame([], $this->get(self::BASE . '/recent-logs', [], $viewer->token)->assertOk()->data(), '不能再读到部门 B 的登录日志');
     }
 
     public function test_recent_logs_are_the_latest_ten_in_scope(): void
