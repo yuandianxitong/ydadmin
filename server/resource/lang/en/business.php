@@ -42,6 +42,9 @@ return [
     'please_select_admin'          => 'Please select admins to delete',
     'dept_out_of_scope'            => 'The department is outside your data scope',
     'cannot_change_own_department' => 'You cannot change your own department',
+    'cannot_change_own_roles'      => 'You cannot change your own roles',
+    'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',
+    'role_scope_exceeds_own'       => 'Cannot assign roles whose data scope exceeds your own',
 
     // Dictionary
     'dict_not_found'         => 'Dictionary not found',
@@ -51,9 +54,6 @@ return [
 
     // Notification
     'notification_not_found' => 'Notification not found',
-    'cannot_change_own_roles'      => 'You cannot change your own roles',
-    'role_exceeds_own_permissions' => 'Cannot assign roles with permissions beyond your own',
-    'role_scope_exceeds_own'       => 'Cannot assign roles whose data scope exceeds your own',
 
     // System config
     'config_not_found'          => 'Configuration not found',
