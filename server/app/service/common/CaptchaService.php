@@ -12,8 +12,9 @@ use support\Redis;
  *
  * 随机性：key 取 random_bytes(16) 的十六进制，字符用 random_int 抽取（mt_rand 在 mt_srand 固定种子后可复现）；
  * 画面噪点与安全无关，仍用 mt_rand。
- * 原子性：直接经 support\Redis 存取明文（不走 support\Cache），校验时 GET 与 DEL 放在同一个 MULTI 里，
- * 并发提交同一个验证码只有一次能读到值。
+ * 原子性：直接经 support\Redis 存取明文（不走 support\Cache），校验用一条 GETDEL 取值并删除，
+ * 并发提交同一个验证码只有一次能读到值。不用 MULTI 事务：非协程 webman 里每个 worker 只有一条 Redis 连接，
+ * 开启事务到提交之间抛 RedisException 会把这条连接永久留在 MULTI 状态，之后这个 worker 的每条命令都会错乱。
  *
  * 简化点（相对旧版）：旧版优先探测 TrueType 字体（项目内置字体或系统字体路径），
  * 找不到时回退内置位图字体；新仓库未随包携带 ttf 字体文件，直接使用 GD 内置位图字体
@@ -45,16 +46,16 @@ class CaptchaService
         ];
     }
 
-    /** 校验后立即删除，防止重复使用；GET 与 DEL 在同一个 MULTI 里执行，并发校验只有一次拿得到值。 */
+    /** 校验后立即删除，防止重复使用；GETDEL 一条命令取值并删除，并发校验只有一次拿得到值。 */
     public function verify(string $key, string $code): bool
     {
         if ($key === '' || $code === '') {
             return false;
         }
 
-        $redisKey = self::KEY_PREFIX . $key;
-        $result = Redis::multi()->get($redisKey)->del($redisKey)->exec();
-        $cached = is_array($result) ? ($result[0] ?? false) : false;
+        // 经 connection() 而不是门面直呼：门面手写的 @method 清单里没有 GETDEL（Redis 6.2 才加的命令），
+        // 静态分析认不出来；connection() 返回的连接带 @mixin \Redis，能解析到扩展自己的方法。
+        $cached = Redis::connection()->getDel(self::KEY_PREFIX . $key);
         if (!is_string($cached) || $cached === '') {
             return false;
         }
