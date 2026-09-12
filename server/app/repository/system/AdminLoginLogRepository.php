@@ -125,7 +125,9 @@ class AdminLoginLogRepository extends Repository
             ->where('login_time', '>=', $start->format('Y-m-d H:i:s'))
             ->toBase() // toBase() 先应用全局作用域（数据权限）再取底层查询，结果不经模型的 casts/appends；
             // 放在 selectRaw()/groupBy() 之前调用：这两个方法未在 Eloquent\Builder 上显式声明，
-            // 经 @mixin 转发解析出的返回类型是 Query\Builder，此时再调用 toBase() 会被 PHPStan 判定为未定义方法
+            // 经 @mixin 转发解析出的返回类型是 Query\Builder，此时再调用 toBase() 会被 PHPStan 判定为未定义方法。
+            // 危险：toBase() 之后只能接投影、分组、排序；这之后再加 where/orWhere 会落在数据权限的 where 分组之外，
+            // 末尾的 orWhere 更是直接跳出该分组，等于绕开数据权限。
             ->selectRaw('DATE(login_time) AS log_date, COUNT(*) AS total')
             ->groupBy('log_date')
             ->get();
@@ -169,7 +171,8 @@ class AdminLoginLogRepository extends Repository
         $rows = $this->query()
             ->where('login_result', 1)
             ->where('login_time', '>=', $since)
-            ->toBase() // 先于 selectRaw()/groupBy() 调用，理由同 getRecentTrend()
+            ->toBase() // 先于 selectRaw()/groupBy() 调用，理由同 getRecentTrend()；同样地，toBase() 之后只能接
+            // 投影、分组、排序，不能再加 where/orWhere——末尾的 orWhere 会跳出数据权限的 where 分组
             ->selectRaw('username, COUNT(*) AS total')
             ->groupBy('username')
             ->orderByDesc('total')

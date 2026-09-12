@@ -9,6 +9,7 @@ use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
+use support\Cache;
 use support\Container;
 use support\Db;
 use support\Log;
@@ -150,6 +151,19 @@ abstract class ApiTestCase extends TestCase
         Container::get(Permission::class)->clearUserCache($adminId);
         Redis::del("admin_token_ver:{$adminId}");
         Container::get(DataScopeResolver::class)->forget($adminId);
+
+        // 仪表盘按管理员缓存 5 分钟（DashboardService::remember()）：测试库重建后自增 id 会复用，
+        // 300 秒窗口内重新跑测试可能命中上一轮同一 id 留下的缓存，DashboardApiTest 断言的是精确计数，必须清干净。
+        Cache::delete("dashboard.stats.{$adminId}");
+        foreach ([7, 30] as $days) {
+            Cache::delete("dashboard.stats.{$adminId}.{$days}");
+        }
+        Cache::delete("dashboard.recent-logs.{$adminId}");
+        Cache::delete("dashboard.recent-activities.{$adminId}");
+        Cache::delete("dashboard.active-ranking.{$adminId}");
+        foreach (['day', 'week', 'month'] as $period) {
+            Cache::delete("dashboard.active-ranking.{$adminId}.{$period}");
+        }
     }
 
     /** @return array{0: string, 1: string} [captcha_key, 验证码明文]（从服务同一个 Redis key 读取，校验照常执行） */
