@@ -182,9 +182,7 @@ final class M1bPagesContractTest extends ApiTestCase
 
         $groups = $this->get('/adminapi/system/config/groups', [], $super->token)->assertOk()->data();
         $this->assertSame(['basic', 'email', 'sms', 'storage', 'payment'], array_keys($groups));
-        foreach ($groups as $label) {
-            $this->assertIsString($label);
-        }
+        $this->assertContainsOnlyString($groups);
 
         $configs = $this->get('/adminapi/system/config', ['group' => 'basic'], $super->token)->assertOk()->data();
         $this->assertTrue(array_is_list($configs));
