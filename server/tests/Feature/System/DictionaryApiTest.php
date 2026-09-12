@@ -243,6 +243,26 @@ final class DictionaryApiTest extends ApiTestCase
         $this->assertSame([], $this->get(self::BASE . '/options', ['code' => 'bad:code'], $admin->token)->assertOk()->data());
     }
 
+    /**
+     * batch-options 的 codes 必须有上限：接口是 PermissionSkip，每个未知但合法的编码都要查一次库、
+     * 再写一条 7200 秒的负缓存，不限量就能靠一次请求把 Redis（还存着 token 版本号与黑名单）撑起来。
+     */
+    public function test_batch_options_caps_the_number_of_codes(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $fifty = array_map(static fn (int $i): string => 'cap_' . $i, range(1, 50));
+        $fiftyOne = [...$fifty, 'cap_51'];
+
+        $this->assertCount(50, $this->get(self::BASE . '/batch-options', ['codes' => implode(',', $fifty)], $admin->token)->assertOk()->data(), '50 个仍然正常');
+        $this->assertCount(50, $this->get(self::BASE . '/batch-options', ['codes' => $fifty], $admin->token)->assertOk()->data(), '数组形式同样放行');
+
+        foreach ([implode(',', $fiftyOne), $fiftyOne] as $codes) {
+            $response = $this->get(self::BASE . '/batch-options', ['codes' => $codes], $admin->token);
+            $response->assertCode(422);
+            $this->assertSame(lang('validation.dict_codes_max'), $response->data()['errors']['codes']);
+        }
+    }
+
     public function test_delete_cascades_to_items_and_batch_delete_is_atomic(): void
     {
         $admin = $this->actingAsAdmin(self::ALL);

@@ -108,12 +108,25 @@ class DictionaryController extends Controller
     #[PermissionSkip]
     public function batchOptions(Request $request): Response
     {
-        $data = $this->validate(['codes' => $request->get('codes')], ['codes' => 'required'], [
+        // 逗号分隔与数组两种写法先归一成数组再校验，上限对两种写法一致生效；
+        // 去掉空白项，'' 与 [] 一样按「必填」拒绝（与归一化之前的行为一致）
+        $codes = $request->get('codes');
+        if (is_string($codes)) {
+            $codes = explode(',', $codes);
+        }
+        if (is_array($codes)) {
+            $codes = array_values(array_filter(
+                array_map(static fn (mixed $code): string => is_scalar($code) ? trim((string) $code) : '', $codes),
+                static fn (string $code): bool => $code !== ''
+            ));
+        }
+        $data = $this->validate(['codes' => $codes], ['codes' => 'required|array|max:' . DictionaryService::MAX_BATCH_CODES], [
             'codes.required' => 'validation.dict_codes_require',
+            'codes.array'    => 'validation.dict_codes_require',
+            'codes.max'      => 'validation.dict_codes_max',
         ]);
-        $codes = is_array($data['codes']) ? $data['codes'] : (string) $data['codes'];
 
-        return $this->success($this->dictionaryService->getOptionsByCodes($codes), lang('messages.get_success'));
+        return $this->success($this->dictionaryService->getOptionsByCodes((array) $data['codes']), lang('messages.get_success'));
     }
 
     #[Permission('system.dictionary.list')]

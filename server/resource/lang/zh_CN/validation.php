@@ -70,6 +70,7 @@ return [
     'dict_code_length'     => '字典编码长度为1-100个字符',
     'dict_code_alpha_dash' => '字典编码只能包含字母、数字、下划线和短横线',
     'dict_codes_require'   => '请提供字典编码',
+    'dict_codes_max'       => '字典编码一次最多50个',
     'dict_description_max' => '描述不能超过500个字符',
     'dict_ids_require'     => '请选择要删除的字典',
     'dict_ids_integer'     => '字典ID必须是整数',

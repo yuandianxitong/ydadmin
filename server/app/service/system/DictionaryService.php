@@ -22,6 +22,12 @@ use Illuminate\Database\UniqueConstraintViolationException;
  */
 class DictionaryService extends Service
 {
+    /**
+     * batch-options 一次最多接受的编码数。接口是 PermissionSkip，每个未知但合法的编码都要查一次库、
+     * 再写一条 7200 秒的负缓存，不设上限就能靠一次请求把 Redis（还存着 token 版本号与黑名单）撑起来。
+     */
+    public const MAX_BATCH_CODES = 50;
+
     #[Inject]
     protected DictionaryRepository $dictionaryRepository;
 

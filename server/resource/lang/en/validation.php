@@ -70,6 +70,7 @@ return [
     'dict_code_length'     => 'Dictionary code must be 1-100 characters',
     'dict_code_alpha_dash' => 'Dictionary code may only contain letters, numbers, underscores and dashes',
     'dict_codes_require'   => 'Dictionary codes are required',
+    'dict_codes_max'       => 'At most 50 dictionary codes per request',
     'dict_description_max' => 'Description may not exceed 500 characters',
     'dict_ids_require'     => 'Please select dictionaries to delete',
     'dict_ids_integer'     => 'Dictionary ID must be an integer',
