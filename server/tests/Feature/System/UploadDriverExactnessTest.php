@@ -33,7 +33,7 @@ final class UploadDriverExactnessTest extends ApiTestCase
 {
     public function test_upload_reads_storage_driver_config_exactly_once(): void
     {
-        $countingRepository = new class extends SystemConfigRepository {
+        $countingRepository = new class () extends SystemConfigRepository {
             public int $storageDriverReads = 0;
 
             public function getConfigValue(string $key, mixed $default = null): mixed
