@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace tests\Feature\System;
 
+use app\service\system\UploadService;
+use ReflectionClassConstant;
 use support\Db;
 use tests\Support\ApiTestCase;
 use tests\Support\TestAdmin;
@@ -183,5 +185,17 @@ final class UploadApiTest extends ApiTestCase
         $this->assertFileExists(public_path('storage/' . $data['path']), '文件已经落盘');
         $this->assertSame(strlen($content), $data['size']);
         $this->assertSame(0, Db::table('files')->where('path', $data['path'])->count(), '入库失败被吞掉，不影响上传响应');
+    }
+
+    /**
+     * `UploadService::DEFAULT_ALLOWED_EXT` 是种子 `storage_upload_allowed_ext` 的一份副本，
+     * 在配置行被清空时它就是实际生效的白名单——两边漂移会静默改变上传行为，而没有任何东西钉住它们。
+     * 测试库由 init.sql 重建，所以这里读到的 config_value 就是种子值。
+     */
+    public function test_default_allowed_ext_constant_stays_in_sync_with_the_seeded_config(): void
+    {
+        $seeded = Db::table('system_configs')->where('config_key', 'storage_upload_allowed_ext')->value('config_value');
+
+        $this->assertSame((new ReflectionClassConstant(UploadService::class, 'DEFAULT_ALLOWED_EXT'))->getValue(), $seeded);
     }
 }
