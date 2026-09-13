@@ -1204,10 +1204,14 @@ check('upload/image：未登录 → HTTP 200 + code 401', $r['status'] === 200 &
 echo "\n=== M2a：代码生成器 ===\n";
 // module_name 用契约后缀（十六进制小写字符）天然满足 ^[a-z][a-z0-9_]{0,30}$；
 // model_name 首字母大写、其余只允许字母数字（不允许下划线），拼上同一个后缀天然满足
-// ^[A-Z][A-Za-z0-9]{0,40}$。kebab 用真实的 NameConvention 算，不手拼，避免猜错拼接规则。
+// ^[A-Z][A-Za-z0-9]{0,40}$。
+// 注意：本段刻意不调用一次成功的 generate——那会往真实仓库路径（server/app/…、admin/src/views/…、
+// config/route/… 等十一个文件）写入生成产物，而这些正是三道门禁的扫描路径；清理只要失败一次
+// （进程被杀、shutdown 注册前崩溃、磁盘写满），残留就会让之后每一轮 lint/analyse/check:context 变红，
+// 且很难定位到是契约脚本留下的。该端到端路径（真实落盘、状态三态、幂等）已由 Task 8/9 的 PHPUnit
+// 测试在 runtime/ 临时根里完整覆盖，这里只断言只读端点、无副作用的 preview、以及 generate 的拒绝路径。
 $genModule = "contract_gen_{$suffix}";
 $genModel = 'ContractGen' . strtoupper($suffix);
-$genKebab = (new core\generator\NameConvention())->kebab($genModel);
 $genTableComment = '契约检查临时生成的模块，验证通过后自动清理';
 $genPayload = [
     'table_name'    => 'dictionaries',
@@ -1253,8 +1257,10 @@ $r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPa
 check('generator/preview：module_name 穿越样本 → 422', respCode($r) === 422 && isset(respData($r)['errors']['module_name']), $r['body']);
 $r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPayload, 'model_name' => 'lowercaseStart']);
 check('generator/preview：model_name 不合法 → 422', respCode($r) === 422 && isset(respData($r)['errors']['model_name']), $r['body']);
+$r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPayload, 'module_name' => 'business']);
+check('generator/preview：module_name 撞保留模块名 business → 422', respCode($r) === 422 && (respData($r)['errors']['module_name'] ?? '') === lang('generator.module_name_reserved'), $r['body']);
 $r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPayload, 'table_name' => "contract_no_such_table_{$suffix}"]);
-check('generator/preview：table_name 不在白名单 → 业务错误', respCode($r) === 400, $r['body']);
+check('generator/preview：table_name 不在白名单 → 业务错误 generator.table_not_found', respCode($r) === 400 && (($r['json']['message'] ?? '') === lang('generator.table_not_found')), $r['body']);
 
 echo "\n=== M2a：代码生成器·权限 ===\n";
 $r = http('GET', "{$base}/adminapi/system/generator/tables", $api);
@@ -1286,69 +1292,6 @@ if (in_array($genAppDebug, ['false', '0', ''], true)) {
     echo "  （当前 APP_DEBUG={$genAppDebug}，跳过生产禁用分支的活体断言——一个已运行进程无法在运行时切换 APP_DEBUG；\n";
     echo "   负分支已由 Task 8 的 PHPUnit 红线测试覆盖，见 spec §11.4 第三条）\n";
 }
-
-echo "\n=== M2a：代码生成器·落盘 ===\n";
-$r = http('POST', "{$base}/adminapi/system/generator/generate", $auth, $genPayload);
-$genGenerateData = (array) respData($r);
-$genFiles = (array) ($genGenerateData['files'] ?? []);
-$genStatuses = array_column($genFiles, 'status');
-check(
-    'generator/generate：十一个文件全部 created，route 首行提示 reload',
-    respCode($r) === 200
-        && count($genFiles) === 11
-        && array_unique($genStatuses) === ['created']
-        && str_contains((string) ($genGenerateData['route'] ?? ''), 'reload'),
-    $r['body']
-);
-
-$genRepoRoot = dirname(__DIR__, 2);
-$genExpectSuffixes = [
-    "server/app/model/{$genModule}/{$genModel}.php",
-    "server/app/repository/{$genModule}/{$genModel}Repository.php",
-    "server/app/service/{$genModule}/{$genModel}Service.php",
-    "server/app/adminapi/controller/{$genModule}/{$genModel}Controller.php",
-    "server/config/route/{$genModule}.php",
-    "server/resource/lang/zh_CN/{$genModule}.php",
-    "server/resource/lang/en/{$genModule}.php",
-    "admin/src/api/{$genKebab}.ts",
-    "admin/src/views/{$genModule}/{$genKebab}/index.vue",
-    "admin/src/views/{$genModule}/{$genKebab}/components/{$genModel}Form.vue",
-    "server/database/generated/{$genModule}-menu.sql",
-];
-$genAllExist = true;
-foreach ($genExpectSuffixes as $genSuffixPath) {
-    $genAbsolute = "{$genRepoRoot}/{$genSuffixPath}";
-    if (!is_file($genAbsolute)) {
-        $genAllExist = false;
-        break;
-    }
-    $cleanup['temp_files'][] = $genAbsolute; // 复用既有清理机制；目录另在下面的 shutdown 里递归清
-}
-check('generator/generate：11 个产物路径全部落盘', $genAllExist, implode("\n", $genExpectSuffixes));
-
-$r = http('POST', "{$base}/adminapi/system/generator/generate", $auth, $genPayload);
-$genSecondFiles = (array) (respData($r)['files'] ?? []);
-check('generator/generate：重复生成 → 全部 skipped（生成器只创建新文件，从不覆盖）', respCode($r) === 200 && array_unique(array_column($genSecondFiles, 'status')) === ['skipped'], $r['body']);
-
-// 文件已经进了 $cleanup['temp_files']（复用既有 shutdown 逻辑），这里单独注册一个 shutdown
-// 只负责删掉生成过程中新建的、现在应该已经空了的目录（自底向上）；两个 shutdown 函数按注册顺序
-// 执行，这个在后面注册，跑的时候上面那个已经把文件删完了。
-register_shutdown_function(static function () use ($genRepoRoot, $genModule, $genKebab): void {
-    $dirs = [
-        "{$genRepoRoot}/admin/src/views/{$genModule}/{$genKebab}/components",
-        "{$genRepoRoot}/admin/src/views/{$genModule}/{$genKebab}",
-        "{$genRepoRoot}/admin/src/views/{$genModule}",
-        "{$genRepoRoot}/server/app/model/{$genModule}",
-        "{$genRepoRoot}/server/app/repository/{$genModule}",
-        "{$genRepoRoot}/server/app/service/{$genModule}",
-        "{$genRepoRoot}/server/app/adminapi/controller/{$genModule}",
-    ];
-    foreach ($dirs as $dir) {
-        if (is_dir($dir) && (glob($dir . '/*') ?: []) === []) {
-            rmdir($dir);
-        }
-    }
-});
 
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);
