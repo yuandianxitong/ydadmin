@@ -7,6 +7,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // 1. 加载 .env 后强制切到测试库与测试 Redis DB（必须在任何 config 读取之前）
 $dotenv = Dotenv\Dotenv::createMutable(dirname(__DIR__));
 $dotenv->safeLoad();
+// 开发库名（.env 的原值）：下面几行会把 DB_NAME 改成测试库，先留一份给第 4.5 步的开发库过期检查
+$devDatabase = (string) ($_ENV['DB_NAME'] ?? 'dev007_ydadmin');
 $overrides = [
     'DB_NAME'   => ($_ENV['DB_NAME'] ?? 'dev007_ydadmin') . '_test',
     'DB_PREFIX' => '',
@@ -56,6 +58,14 @@ $recorded = is_file($fingerprintFile) ? (string) file_get_contents($fingerprintF
 if (!$exists || getenv('YDADMIN_TEST_DB_RESET') === '1' || $recorded !== $fingerprint) {
     core\database\DatabaseInstaller::reinstall($pdo, $testDb, $installDir);
     file_put_contents($fingerprintFile, $fingerprint);
+}
+
+// 4.5 开发库过期检查：测试库上一步已按指纹自动重建，开发库不会自己更新。结构落后时在这里
+//     直接说清楚该做什么，而不是让开发者在业务代码里撞一个 Table doesn't exist。
+$staleParts = core\database\DevDatabaseGuard::missing($pdo, $devDatabase);
+if ($staleParts !== []) {
+    fwrite(STDERR, "开发库 {$devDatabase} 的结构已过期（" . implode('；', $staleParts) . "）。请执行 php webman db:reset\n");
+    exit(1);
 }
 
 // 5. 执行 config/bootstrap.php 注册的引导类（Eloquent 等）

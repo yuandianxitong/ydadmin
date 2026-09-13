@@ -67,6 +67,25 @@ final class SchemaTest extends TestCase
         $this->assertSame(18, Db::table('system_configs')->where('config_group', 'basic')->where('is_public', 1)->count(), 'basic 18 项都是前端公开配置');
     }
 
+    public function test_m1c_file_table_and_menu_seeds(): void
+    {
+        $this->assertTrue(Db::schema()->hasTable('files'));
+        foreach (['name', 'path', 'url', 'mime_type', 'extension', 'size', 'group', 'upload_by', 'storage', 'deleted_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('files', $column), "files 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('files', 'tenant_id'));
+        $this->assertFalse(Db::schema()->hasTable('file_categories'), 'spec §3.1：分组是 files.group 字符串，不建分类表');
+
+        $menus = Db::table('menus')->whereIn('id', [70, 71, 72])->orderBy('id')->get()->all();
+        $this->assertCount(3, $menus);
+        $this->assertSame([2, 70, 70], array_map(static fn (object $m): int => (int) $m->parent_id, $menus));
+        $this->assertSame(
+            ['system.file.list', 'system.file.delete', 'system.file.update'],
+            array_map(static fn (object $m): string => (string) $m->permission, $menus)
+        );
+        $this->assertSame('/system/file/index', $menus[0]->component);
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');

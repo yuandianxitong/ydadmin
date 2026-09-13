@@ -257,3 +257,26 @@ CREATE TABLE `notification_reads` (
   UNIQUE KEY `uk_notification_admin` (`notification_id`, `admin_id`),
   KEY `idx_admin` (`admin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知已读记录';
+
+-- ---------------------------------------------------------------- M1c：素材与上传
+
+CREATE TABLE `files` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL COMMENT '文件名',
+  `path` varchar(500) NOT NULL COMMENT '相对路径',
+  `url` varchar(500) NOT NULL COMMENT '访问URL（本地为 /storage/… 相对路径，云存储为完整URL）',
+  `mime_type` varchar(100) NOT NULL DEFAULT '' COMMENT 'MIME类型',
+  `extension` varchar(20) NOT NULL DEFAULT '' COMMENT '文件扩展名',
+  `size` bigint unsigned NOT NULL DEFAULT 0 COMMENT '文件大小（字节）',
+  `group` varchar(100) NOT NULL DEFAULT '默认' COMMENT '分组（MySQL 保留字，原生 SQL 里须加反引号）',
+  `upload_by` int unsigned NOT NULL DEFAULT 0 COMMENT '上传者ID',
+  `storage` varchar(50) NOT NULL DEFAULT 'local' COMMENT '存储方式：local/aliyun/tencent/qiniu',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_group` (`group`),
+  KEY `idx_mime_type` (`mime_type`),
+  KEY `idx_upload_by` (`upload_by`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件管理表';
