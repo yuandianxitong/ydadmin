@@ -12,8 +12,11 @@
 `use app\...`、未闭合的类定义片段等在“真正的” PHP 文件里不合法的写法）：
 
 - `phpstan.neon` 的 `excludePaths` 排除了 `core/generator/stubs/*`。
-- `.php-cs-fixer.php` 的 Finder 用 `notName('*.stub.php')` 排除。
+- `.php-cs-fixer.php` 的 Finder 用 `exclude('generator/stubs')` 排除（相对 `in()`
+  的每个目录解析，只命中 `core/generator/stubs`，不影响 `app/`、`tests/`、`scripts/`
+  下任何同名目录）。
 - `scripts/check-context-discipline.sh` 规则六的 `grep` 对 `core/` 加了
-  `--exclude-dir=stubs`。
+  `--exclude-dir='core/generator/stubs'`（路径级排除；`--exclude-dir=stubs` 会按
+  目录 basename 匹配，误伤 `core/` 下任何叫 `stubs` 的目录，排除粒度过宽）。
 
 新增模板文件、或改现有模板的变量约定，不需要再动这三处；这三处排除的是整个目录。

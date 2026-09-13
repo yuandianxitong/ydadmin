@@ -55,9 +55,10 @@ STUB);
      * PHP 对「在非对象上下文里使用 $this」的判定是运行时的 \Error，而不是编译期错误，
      * 所以只有真正执行到那一行才会抛出；这里用 render() 触发它来断言隔离生效。
      *
-     * 用 try/catch/finally 而不是 expectException()：render() 在 ob_start() 之后抛出异常，
-     * 异常穿透时缓冲区不会被 ob_get_clean() 关闭，用 expectException() 会让这个用例被
-     * PHPUnit 标成 risky（"Test code or tested code did not close its own output buffers"）。
+     * 同时断言异常穿透后 ob_get_level() 与调用前相等：render() 内部用 try/finally 保证
+     * 自己开的那层输出缓冲区无论是否抛异常都会被关闭，不靠测试兜底清理——webman 是常驻
+     * 进程，一次异常渲染留下的脏缓冲区会污染同一 worker 后续请求的
+     * ob_get_clean()/ob_end_clean()，是常驻内存纪律要防的跨请求状态泄漏。
      */
     public function test_template_cannot_access_this_because_the_including_closure_is_static(): void
     {
@@ -71,11 +72,9 @@ STUB);
             $this->fail('期望渲染抛出 \Error（模板不应该能访问 $this）。');
         } catch (\Error $e) {
             $this->assertStringContainsString('Using $this when not in object context', $e->getMessage());
-        } finally {
-            while (ob_get_level() > $levelBefore) {
-                ob_end_clean();
-            }
         }
+
+        $this->assertSame($levelBefore, ob_get_level(), 'render() 必须自己关闭抛异常前开的输出缓冲区');
     }
 
     public function test_extract_skip_prevents_vars_from_overwriting_the_closures_own_arguments(): void
