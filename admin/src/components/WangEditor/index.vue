@@ -24,7 +24,7 @@ import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/edit
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
-import request from '@/utils/request'
+import { myRequest } from '@/utils/request'
 
 interface Props {
     modelValue?: string
@@ -61,10 +61,12 @@ const editorConfig: Partial<IEditorConfig> = {
             ) {
                 const formData = new FormData()
                 formData.append('file', file)
-                const res = await request.post('/adminapi/upload/image', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                })
-                const url = res?.data?.data?.url || res?.data?.data?.path || ''
+                const res = await myRequest.post<{ url: string; path: string }>(
+                    '/adminapi/upload/image',
+                    formData,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                )
+                const url = res?.data?.url || res?.data?.path || ''
                 if (url) {
                     insertFn(url, '', '')
                 }

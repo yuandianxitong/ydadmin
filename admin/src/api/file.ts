@@ -13,7 +13,7 @@ export const fileApi = {
 
     /** 获取分组列表 */
     getGroups() {
-        return myRequest.get<string[]>('/adminapi/system/file/groups')
+        return myRequest.get<{ group: string; count: number }[]>('/adminapi/system/file/groups')
     },
 
     /** 移动到分组 */
