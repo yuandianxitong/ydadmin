@@ -61,10 +61,25 @@ final class LocalDriver implements StorageInterface
         return is_file($this->absolutePath($relativePath));
     }
 
+    /**
+     * 相对路径 → 存储根目录下的绝对路径。归一化之后拒绝任何 `..` 路径段。
+     *
+     * 🔴 这道防御在今天的代码里不可达，仍然要在：`files.path` 的唯一写入方是 `UploadService`，
+     * 路径完全由服务端生成（`uploads/{images|files}/{Ymd}/{32位随机名}.{ext}`），不含用户输入。
+     * 但 `absolutePath()` 同时服务于 `put()`、`delete()`、`exists()`，而 `files.path` 将来很可能
+     * 多出别的写入方——TP8 数据导入、种子脚本、「登记已有文件」这类功能——那一天炸的是存储根目录
+     * 之外的 `unlink()`，即「删库外的文件」，代价远大于这里的一次 explode。
+     *
+     * 判定按**路径段**做，不是子串：`foo..bar.png` 是合法文件名，不该被拒。
+     */
     private function absolutePath(string $relativePath): string
     {
         $root = (string) config('filesystem.disks.' . self::DISK . '.root', public_path('storage'));
         $normalized = ltrim(str_replace('\\', '/', $relativePath), '/');
+
+        if (in_array('..', explode('/', $normalized), true)) {
+            throw new RuntimeException("路径含 .. 路径段，拒绝访问存储根目录之外: {$relativePath}");
+        }
 
         return rtrim($root, '/\\') . DIRECTORY_SEPARATOR . $normalized;
     }

@@ -126,4 +126,51 @@ final class LocalDriverTest extends TestCase
         $this->assertFalse($this->driver->exists($relative));
         $this->assertFalse($this->driver->delete($relative), '文件不存在时返回 false，不抛异常');
     }
+
+    /**
+     * `..` 路径段一律拒绝。put/delete/exists 共用 absolutePath()，三个入口逐一断言——
+     * 真正危险的是 delete()：越出存储根目录的 unlink() 删的是别人的文件。
+     */
+    public function test_parent_directory_segments_are_rejected_on_every_entry_point(): void
+    {
+        $tmp = $this->makeTmpFile('x');
+
+        foreach (['../escaped.txt', 'unit-test/../../escaped.txt', 'a/../b.txt', '..', '/../escaped.txt', 'a\\..\\b.txt'] as $evil) {
+            $this->assertRejected(fn () => $this->driver->put($tmp, $evil), "put({$evil})");
+            $this->assertRejected(fn () => $this->driver->delete($evil), "delete({$evil})");
+            $this->assertRejected(fn () => $this->driver->exists($evil), "exists({$evil})");
+        }
+
+        $this->assertFileExists($tmp, '被拒的 put() 不该动源文件');
+    }
+
+    /** `foo..bar.png` 含 `..` 子串但不含 `..` 路径段，是合法文件名，不得被误拒。 */
+    public function test_filename_containing_dot_dot_as_a_substring_is_not_rejected(): void
+    {
+        $relative = 'unit-test/' . uniqid('foo..bar_', true) . '..png';
+        $this->createdRelativePaths[] = $relative;
+
+        $this->driver->put($this->makeTmpFile('substring'), $relative);
+
+        $this->assertSame('substring', file_get_contents($this->publicStoragePath($relative)));
+        $this->assertTrue($this->driver->exists($relative));
+        $this->assertTrue($this->driver->delete($relative));
+    }
+
+    /**
+     * 先接住异常再断言，不用 try/catch 包 $this->fail()：PHPUnit 的 AssertionFailedError
+     * 继承自 \RuntimeException，catch (RuntimeException) 会把 fail() 本身一起吞掉。
+     */
+    private function assertRejected(callable $call, string $label): void
+    {
+        $thrown = null;
+        try {
+            $call();
+        } catch (RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        $this->assertNotNull($thrown, "{$label}：含 .. 路径段必须抛 RuntimeException");
+        $this->assertStringContainsString('..', $thrown->getMessage(), $label);
+    }
 }
