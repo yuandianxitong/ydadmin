@@ -68,16 +68,18 @@ final class TypeInference
     }
 
     /**
-     * spec §7.5 + 裁定。unique 列不生成规则（改为 Service 层查重）；status/sort 固定覆盖式规则；
-     * NOT NULL 但有默认值的列产出 `sometimes|required`（客户端可以不传，传了才校验）；
-     * NOT NULL 且无默认值的列不产出必填部分，交由模板按创建/更新场景用 {$required} 拼。
+     * spec §7.5（勘误版）+ 裁定。unique 列**不生成唯一性规则**（唯一性改为 Service 层
+     * `existsBy{Column}()` 查重 + `UniqueConstraintViolationException` 兜底），但类型与长度
+     * 规则照常产出——`key === 'UNI'` 不再是短路分支，只影响 Service/Controller 模板要不要
+     * 拼一条唯一性校验（它们根本不拼）。原措辞「unique 索引不生成校验规则」曾被字面实现成
+     * 连类型规则也不生成，导致 `varchar(100) UNIQUE` 的列（如 slug）能塞进任意长度的值，
+     * 由数据库在严格模式报错、非严格模式静默截断——已改正。
+     * status/sort 固定覆盖式规则；NOT NULL 但有默认值的列产出 `sometimes|required`
+     * （客户端可以不传，传了才校验）；NOT NULL 且无默认值的列不产出必填部分，交由模板按
+     * 创建/更新场景用 {$required} 拼。
      */
     public function validationRule(ColumnDescriptor $column): string
     {
-        if ($column->key === 'UNI') {
-            return '';
-        }
-
         $lowerName = strtolower($column->name);
         if ($lowerName === 'status') {
             return 'sometimes|required|integer|in:0,1';
@@ -96,6 +98,9 @@ final class TypeInference
         switch ($column->type) {
             case 'string':
                 $parts[] = 'string|max:' . $this->varcharLength($column->rawType);
+                break;
+            case 'text':
+                $parts[] = 'string';
                 break;
             case 'integer':
                 $parts[] = 'integer';
@@ -132,14 +137,13 @@ final class TypeInference
      * 对应的消息键。二者对同一列必须严格对应（有 max: 就必须有 length，有 in: 就必须有
      * invalid，反之亦然）——由 TypeInferenceTest 的交叉校验测试钉死。
      *
+     * unique 列同样不再短路：唯一性不体现在这里（那是 Service 层的事），类型/长度对应的
+     * token 照常产出，与 validationRule() 的勘误保持一致。
+     *
      * @return list<string>
      */
     public function ruleTokens(ColumnDescriptor $column): array
     {
-        if ($column->key === 'UNI') {
-            return [];
-        }
-
         $lowerName = strtolower($column->name);
         if ($lowerName === 'status') {
             return ['require', 'integer', 'invalid'];

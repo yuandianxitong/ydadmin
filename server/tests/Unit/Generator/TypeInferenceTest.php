@@ -148,12 +148,17 @@ final class TypeInferenceTest extends TestCase
         $this->assertSame('range', $this->inference->queryStrategy($columns['deleted_at']));
     }
 
-    /** spec §7.5：unique 索引不生成校验规则（改为 Service 层查重）。 */
-    public function test_unique_column_has_no_validation_rule(): void
+    /**
+     * spec §7.5（勘误版）：unique 索引只是不生成*唯一性*校验规则（改为 Service 层
+     * existsBy{Column}() 查重 + UniqueConstraintViolationException 兜底），类型与长度
+     * 规则照常产出——否则 varchar(100) UNIQUE 的列能塞进任意长度的值，靠数据库严格模式
+     * 报错或非严格模式静默截断。
+     */
+    public function test_unique_column_still_gets_type_and_length_rule(): void
     {
         $columns = $this->describedColumns();
 
-        $this->assertSame('', $this->inference->validationRule($columns['slug']));
+        $this->assertSame('string|max:100', $this->inference->validationRule($columns['slug']));
     }
 
     /** spec §7.5：status/sort 是固定覆盖式规则，不看是否可空或是否有默认值。 */
@@ -181,11 +186,12 @@ final class TypeInferenceTest extends TestCase
         $this->assertSame('nullable|string|max:255', $this->inference->validationRule($columns['cover_image']));
     }
 
+    /** text/longtext 没有长度上限，补 string 但不补 max:。 */
     public function test_validation_rule_for_nullable_text_column_has_no_length_rule(): void
     {
         $columns = $this->describedColumns();
 
-        $this->assertSame('nullable', $this->inference->validationRule($columns['content']));
+        $this->assertSame('nullable|string', $this->inference->validationRule($columns['content']));
     }
 
     /** category 是 NOT NULL 但有默认值 'news'：客户端可以不传，传了才校验。 */
@@ -334,11 +340,12 @@ final class TypeInferenceTest extends TestCase
         $this->assertSame(['require', 'integer', 'min'], $this->inference->ruleTokens($columns['sort']));
     }
 
-    public function test_rule_tokens_for_unique_column_is_empty(): void
+    /** unique 列的类型/长度 token 照常产出，只是没有唯一性相关的 token（本来就没有这一种）。 */
+    public function test_rule_tokens_for_unique_column_matches_its_type_and_length_rule(): void
     {
         $columns = $this->describedColumns();
 
-        $this->assertSame([], $this->inference->ruleTokens($columns['slug']));
+        $this->assertSame(['require', 'length'], $this->inference->ruleTokens($columns['slug']));
     }
 
     public function test_rule_tokens_include_require_for_not_null_columns_regardless_of_default(): void
