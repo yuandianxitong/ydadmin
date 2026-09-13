@@ -111,4 +111,9 @@ return [
     'upload_image_desc'            => '上传图片文件',
     'upload_file'                  => '上传文件',
     'upload_file_desc'             => '上传附件文件',
+
+    'generator_preview'            => '预览生成代码',
+    'generator_preview_desc'       => '预览代码生成器的产物，不写入磁盘',
+    'generator_generate'           => '生成代码',
+    'generator_generate_desc'      => '生成模块代码并写入磁盘',
 ];

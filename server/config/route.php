@@ -160,6 +160,8 @@ Route::group('/adminapi', function () use ($adminAuth) {
     Route::group('/system/generator', function () {
         Route::get('/tables', [GeneratorController::class, 'tables']);
         Route::get('/columns', [GeneratorController::class, 'columns']);
+        Route::post('/preview', [GeneratorController::class, 'preview']);
+        Route::post('/generate', [GeneratorController::class, 'generate']);
     })->middleware($adminAuth);
 
     Route::group('/upload', function () {

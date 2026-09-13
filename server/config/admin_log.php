@@ -80,6 +80,11 @@ return [
         'FileController@batchDelete' => ['admin_log.file_batch_delete', 'admin_log.file_batch_delete_desc'],
         'UploadController@image'     => ['admin_log.upload_image', 'admin_log.upload_image_desc'],
         'UploadController@file'      => ['admin_log.upload_file', 'admin_log.upload_file_desc'],
+
+        // 代码生成器（M2a）。两条都是 POST，都经操作日志中间件：generate 会往磁盘写 PHP 文件，
+        // preview 虽然只渲染不落盘，但它同样暴露生成内容，两条都要留下审计痕迹。
+        'GeneratorController@preview'  => ['admin_log.generator_preview', 'admin_log.generator_preview_desc'],
+        'GeneratorController@generate' => ['admin_log.generator_generate', 'admin_log.generator_generate_desc'],
     ],
 
     'masked_params' => [

@@ -111,4 +111,9 @@ return [
     'upload_image_desc'            => 'Upload an image',
     'upload_file'                  => 'Upload file',
     'upload_file_desc'             => 'Upload a file',
+
+    'generator_preview'            => 'Preview generated code',
+    'generator_preview_desc'       => 'Preview code generator artifacts without writing to disk',
+    'generator_generate'           => 'Generate code',
+    'generator_generate_desc'      => 'Generate module code and write it to disk',
 ];
