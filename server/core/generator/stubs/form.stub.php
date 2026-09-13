@@ -5,7 +5,7 @@
  * @var string $module
  * @var string $model
  * @var string $modelKebab
- * @var string $tableComment
+ * @var string $tableCommentJs 表说明，已按 Vue 单引号字符串字面量的落点转义（见 ModuleBlueprint::vars()）
  * @var list<\core\generator\ColumnDescriptor> $formColumns
  */
 

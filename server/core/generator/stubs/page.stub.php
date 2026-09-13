@@ -6,7 +6,7 @@
  * @var string $model
  * @var string $modelSnake
  * @var string $modelKebab
- * @var string $tableComment
+ * @var string $tableCommentHtml 表说明，已按 HTML 文本节点的落点实体化（见 ModuleBlueprint::vars()）
  * @var list<\core\generator\ColumnDescriptor> $listColumns
  * @var list<\core\generator\ColumnDescriptor> $searchColumns
  * @var bool $hasStatus
@@ -315,7 +315,10 @@ $optionLinesBlock = implode(",\n", $optionLines);
 
 $replacements = [
     '__MODEL_KEBAB__' => $modelKebab,
-    '__TABLE_COMMENT__' => $tableCommentJs,
+    // 本模板里 __TABLE_COMMENT__ 只有一处落点：<div class="table-title">…</div>，即 HTML 文本节点。
+    // 用 HTML 实体转义而不是 JS 转义——这里危险的是尖括号（能开出新标签），引号无害；
+    // 反过来用 tableCommentJs 既挡不住 <img>，还会把撇号原样显示成 \'。
+    '__TABLE_COMMENT__' => $tableCommentHtml,
     '__PERM_CREATE__' => $permBase . 'create',
     '__PERM_UPDATE__' => $permBase . 'update',
     '__PERM_DELETE__' => $permBase . 'delete',

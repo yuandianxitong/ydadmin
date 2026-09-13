@@ -40,7 +40,7 @@ final class ArtifactWriter
 
         // 回到入参顺序（= 底稿 §4 的产物顺序 = 前端页签顺序），落盘顺序只是内部实现
         $ordered = [];
-        foreach ($files as $key => $_) {
+        foreach (array_keys($files) as $key) {
             $ordered[$key] = $statuses[$key];
         }
 

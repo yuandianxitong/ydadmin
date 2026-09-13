@@ -92,6 +92,7 @@ final class ModuleBlueprint
             // 三种完全不同的字面量上下文，转义规则各不相同。统一在这里按落点派生，模板只许
             // 取对应的那个变量——模板里再也不得直接输出 $tableComment（见各 stub 的注释）。
             'tableCommentPhpDoc' => $this->phpDocComment($tableComment),
+            'tableCommentHtml'   => $this->htmlComment($tableComment),
             'tableCommentJs'     => $this->jsComment($tableComment),
             'tableCommentSql'    => $this->sqlComment($tableComment),
             'table'         => $this->table,
@@ -127,6 +128,23 @@ final class ModuleBlueprint
     private function phpDocComment(string $comment): string
     {
         return str_replace(['*/', "\r", "\n"], '', $comment);
+    }
+
+    /**
+     * HTML 文本节点与 HTML 属性值里的表说明：htmlspecialchars。
+     *
+     * 这个落点真正危险的是 `<` 与 `>`（能开出一个新标签），而不是引号——`tableCommentJs`
+     * 在这里帮不上忙：它不碰尖括号，反倒会把撇号转成 `\'` 直接显示在页面标题上。
+     * 反过来 `tableCommentHtml` 用在 `:title="..."` 那种 Vue 表达式里也不对：那里要的是
+     * JS 字符串字面量的转义，实体化只会让标题显示成 `&#039;`。两者不可互换。
+     *
+     * ENT_QUOTES：单双引号一并实体化，这样同一个变量也能安全地放进 HTML 属性值。
+     * ENT_SUBSTITUTE：非法 UTF-8 字节替换成 U+FFFD，而不是让整个函数返回空串——
+     * 表说明可能来自 SHOW TABLE STATUS，编码不干净时宁可显示成问号也不能整段消失。
+     */
+    private function htmlComment(string $comment): string
+    {
+        return htmlspecialchars($comment, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /**

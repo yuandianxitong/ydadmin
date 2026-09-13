@@ -73,6 +73,7 @@ trait GenArticleFixtureColumns
             'bareTableName' => 'gen_articles',
             'tableComment' => '生成器夹具表',
             'tableCommentPhpDoc' => '生成器夹具表',
+            'tableCommentHtml' => '生成器夹具表',
             'tableCommentJs' => '生成器夹具表',
             'tableCommentSql' => '生成器夹具表',
             'table' => self::genArticleTable(),

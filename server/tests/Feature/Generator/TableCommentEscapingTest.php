@@ -34,11 +34,18 @@ final class TableCommentEscapingTest extends TestCase
     use ConfigOverride;
     use GeneratorFixture;
 
-    /** 评审报告里实测可注入/可打断的三个输入，逐字照搬。 */
+    /**
+     * 评审报告里实测可注入/可打断的三个输入，逐字照搬；第四个是 HTML 文本节点那个落点的样本。
+     *
+     * 这四个输入都不含换行或尖括号以外的字符，走 GeneratorRequest 直接构造——刻意绕过
+     * GeneratorController 的入口校验，模拟「表说明来自 SHOW TABLE STATUS 而不经过请求校验」
+     * 这条真实路径。模板侧的转义是这条路径上唯一的防线。
+     */
     private const HOSTILE_COMMENTS = [
         'php 文档注释逃逸' => "*/ echo shell_exec('id'); /*",
         '中文注释里的撇号' => "文章'列表",
         '反斜杠结尾'       => 'x\\',
+        'HTML 标签注入'    => '<img src=x onerror=alert(1)>',
     ];
 
     /** 四个会把表说明写进 PHP 文档注释的后端产物。 */
@@ -243,6 +250,47 @@ final class TableCommentEscapingTest extends TestCase
                 }
             }
         }
+    }
+
+    /**
+     * 列表页的 `<div class="table-title">` 是 HTML **文本节点**：尖括号必须实体化，否则表说明
+     * 能直接开出一个新标签，而这份 .vue 是要被编译进后台的。这个落点用 tableCommentJs 毫无用处
+     * （它根本不碰尖括号），必须用 tableCommentHtml。
+     *
+     * 仍按语义断言而不是字面包含：取出文本节点的内容，(1) 里面不得再出现任何 `<` 或 `>`；
+     * (2) 反实体化之后必须逐字等于原始表说明——既证明转义到位，也证明没有把值改坏。
+     */
+    public function test_list_page_title_is_an_escaped_html_text_node(): void
+    {
+        foreach (self::HOSTILE_COMMENTS as $label => $comment) {
+            $page = (string) $this->previewWithComment($comment)['page']['content'];
+
+            $matches = [];
+            $this->assertSame(
+                1,
+                preg_match('#<div class="table-title">(.*)</div>#u', $page, $matches),
+                "{$label}：列表页里没找到 table-title 文本节点"
+            );
+            $inner = $matches[1];
+
+            $this->assertStringNotContainsString('<', $inner, "{$label}：表说明在 HTML 文本节点里开出了新标签");
+            $this->assertStringNotContainsString('>', $inner, "{$label}：表说明在 HTML 文本节点里开出了新标签");
+            $this->assertSame(
+                $comment,
+                html_entity_decode($inner, ENT_QUOTES, 'UTF-8'),
+                "{$label}：反实体化后必须逐字等于原始表说明（转义不能改变值）"
+            );
+        }
+    }
+
+    /** HTML 标签注入那个输入的定点断言：`<img` 不得原样出现，必须实体化成 `&lt;img`。 */
+    public function test_html_tag_injection_is_entity_encoded_in_the_list_page(): void
+    {
+        $comment = self::HOSTILE_COMMENTS['HTML 标签注入'];
+        $page = (string) $this->previewWithComment($comment)['page']['content'];
+
+        $this->assertStringNotContainsString('<img', $page, '注入的标签不得原样出现在列表页产物里');
+        $this->assertStringContainsString('&lt;img', $page, '尖括号必须实体化');
     }
 
     /** 合法的中文说明不该被转义改样子：转义只在必要时发生，不是无条件改写产物。 */
