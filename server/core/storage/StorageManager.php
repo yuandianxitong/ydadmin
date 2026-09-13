@@ -6,7 +6,10 @@ namespace core\storage;
 
 use app\repository\system\SystemConfigRepository;
 use core\exception\BusinessException;
+use core\storage\driver\AliyunOssDriver;
 use core\storage\driver\LocalDriver;
+use core\storage\driver\QiniuDriver;
+use core\storage\driver\TencentCosDriver;
 
 /**
  * 存储驱动管理器：按系统配置 `storage_driver` 分派驱动（spec §6.5、契约 §2.9.3）。
@@ -44,9 +47,9 @@ final class StorageManager
     {
         return match ($driver) {
             'local'   => new LocalDriver(),
-            'aliyun'  => $this->cloudDriverNotIntegrated($this->getAliyunConfig()),
-            'tencent' => $this->cloudDriverNotIntegrated($this->getTencentConfig()),
-            'qiniu'   => $this->cloudDriverNotIntegrated($this->getQiniuConfig()),
+            'aliyun'  => new AliyunOssDriver($this->getAliyunConfig()),
+            'tencent' => new TencentCosDriver($this->getTencentConfig()),
+            'qiniu'   => new QiniuDriver($this->getQiniuConfig()),
             default   => throw new BusinessException(lang('business.storage_driver_unsupported', ['driver' => $driver])),
         };
     }
@@ -107,22 +110,5 @@ final class StorageManager
             'bucket'     => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_bucket', ''),
             'domain'     => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_domain', ''),
         ];
-    }
-
-    /**
-     * 云驱动占位：Task 4 接入三个厂商 SDK 后，这三个 match 分支会换成
-     * `new AliyunOssDriver($config)` / `new TencentCosDriver($config)` / `new QiniuDriver($config)`，
-     * 本方法与 `business.storage_sdk_not_integrated` 一并删除。
-     *
-     * 故意不使用、不记录 `$config`：凭据不进日志、不进异常消息；也绝不返回 `LocalDriver`
-     * 冒充切换成功。
-     *
-     * @param array<string, string> $config
-     */
-    private function cloudDriverNotIntegrated(array $config): never
-    {
-        unset($config);
-
-        throw new BusinessException(lang('business.storage_sdk_not_integrated'), 501);
     }
 }

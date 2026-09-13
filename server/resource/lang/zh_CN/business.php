@@ -62,5 +62,8 @@ return [
 
     // 存储
     'storage_driver_unsupported' => '不支持的存储驱动：:driver',
-    'storage_sdk_not_integrated' => '该存储方式依赖云厂商 SDK，尚未接入',
+    'storage_config_incomplete'  => '云存储配置不完整，请在「系统配置 - 存储配置」里填写完整后再上传',
+    'storage_oss_region_required' => '请先配置 OSS Region（或使用标准 Endpoint 以便自动推导）',
+    'storage_upload_failed'      => '文件上传到 :driver 失败：:error',
+    'storage_delete_failed'      => ':driver 上的文件删除失败：:error',
 ];

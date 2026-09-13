@@ -61,6 +61,9 @@ return [
     'config_value_invalid'      => 'Invalid value for configuration :key',
 
     // Storage
-    'storage_driver_unsupported' => 'Unsupported storage driver: :driver',
-    'storage_sdk_not_integrated' => 'This storage driver depends on a cloud vendor SDK that has not been integrated yet',
+    'storage_driver_unsupported'  => 'Unsupported storage driver: :driver',
+    'storage_config_incomplete'   => 'Cloud storage is not fully configured. Complete the storage settings before uploading',
+    'storage_oss_region_required' => 'Please configure the OSS region, or use a standard endpoint so it can be derived',
+    'storage_upload_failed'       => 'Failed to upload the file to :driver: :error',
+    'storage_delete_failed'       => 'Failed to delete the file on :driver: :error',
 ];
