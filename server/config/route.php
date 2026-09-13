@@ -7,6 +7,7 @@ use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
 use app\adminapi\controller\system\FileController;
+use app\adminapi\controller\system\GeneratorController;
 use app\adminapi\controller\system\LogController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\NotificationController;
@@ -154,6 +155,11 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('/batch-delete', [FileController::class, 'batchDelete']);
         Route::put('/{id:\d+}/rename', [FileController::class, 'rename']);
         Route::delete('/{id:\d+}', [FileController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/generator', function () {
+        Route::get('/tables', [GeneratorController::class, 'tables']);
+        Route::get('/columns', [GeneratorController::class, 'columns']);
     })->middleware($adminAuth);
 
     Route::group('/upload', function () {

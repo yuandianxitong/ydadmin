@@ -149,3 +149,12 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('storage_qiniu_secret_key', '', 'storage', 'string', '七牛 SecretKey', '七牛云 SecretKey', NULL, '{"field":"storage_driver","value":"qiniu"}', 31, 1, 0, NOW(), NOW()),
   ('storage_qiniu_bucket', '', 'storage', 'string', '七牛 Bucket', '七牛云存储空间名称', NULL, '{"field":"storage_driver","value":"qiniu"}', 32, 1, 0, NOW(), NOW()),
   ('storage_qiniu_domain', '', 'storage', 'string', '七牛访问域名', '七牛云存储空间绑定的域名（含协议，如 https://cdn.example.com）', NULL, '{"field":"storage_driver","value":"qiniu"}', 33, 1, 1, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M2a：开发工具 / 代码生成器
+
+-- 菜单：3 开发工具（顶级目录），200 代码生成器，201 生成按钮。
+-- 菜单 210（API 文档）属于 M2b，此处不种。
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (3, 0, 1, '开发工具', 'DevTools', '/dev-tools', 'LAYOUT', NULL, 'i-svg:cpu', NULL, 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 950, NOW(), NOW()),
+  (200, 3, 2, '代码生成器', 'DevGenerator', '/dev-tools/generator', 'system/generator/index', NULL, 'i-svg:file-sliders', 'system.generator.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (201, 200, 3, '生成', NULL, NULL, NULL, NULL, NULL, 'system.generator.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
