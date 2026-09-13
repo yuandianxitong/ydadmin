@@ -178,7 +178,13 @@ class GeneratorService extends Service
     {
         $this->assertNames($request);
 
-        $blueprint = new ModuleBlueprint($this->describeTable($request), $request);
+        // 表前缀由这一层读配置传进去：core\generator 保持纯逻辑、不碰 config()，配置读取是编排层的职责。
+        // 生成的 Model::$table 必须是裸表名——Eloquent 的连接层会再套一次前缀，写物理表名会被加两次。
+        $blueprint = new ModuleBlueprint(
+            $this->describeTable($request),
+            $request,
+            (string) config('database.connections.mysql.prefix', ''),
+        );
         // stub 目录跟着代码走，不跟着可被测试覆写的落盘基准走
         $renderer = new TemplateRenderer(base_path('core/generator/stubs'));
 

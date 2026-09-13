@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\Generator;
 
+use core\exception\BusinessException;
 use core\generator\GeneratorRequest;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
@@ -214,6 +215,48 @@ final class GeneratedCodeRunnableTest extends TestCase
 
         $this->assertSame(200, $body['code'], (string) $response->rawBody());
         $this->assertSame(0, (int) Db::table('gen_articles')->where('id', $id)->value('status'));
+    }
+
+    /**
+     * 唯一列的查重必须看得见软删行（spec 决策 12 + 评审 I2）。
+     *
+     * 唯一索引对软删行同样生效，所以一个被软删的 slug 仍然占着这个值。生成的 Service 调的是
+     * Repository::existsBy{Column}()——那个方法经 DataScope::bypass() 看全表、并摘掉软删作用域，
+     * 正是为这个场景生成的（在此之前 Service 调的是基类 exists()，两者在数据权限、软删、排除自身
+     * 三处语义都不同，那个 existsBy* 则是全仓库零调用点的死代码）。
+     *
+     * 断言拿到的是 BusinessException 的业务文案而不是一个未捕获异常：不论预检查命中，还是漏过
+     * 预检查后被唯一索引打回来由 UniqueConstraintViolationException 兜住，对调用方都必须是同一条
+     * 业务错误、HTTP 200 + 业务 code，而不是 500。
+     */
+    public function test_store_rejects_a_slug_still_held_by_a_soft_deleted_row(): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $slug = 'soft-deleted-' . uniqid();
+        Db::table('gen_articles')->insert([
+            'title'      => '已软删的文章',
+            'slug'       => $slug,
+            'status'     => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'deleted_at' => $now,
+        ]);
+
+        $controller = Container::get($this->controllerClass());
+        $payload = (string) json_encode(['title' => '同名别名的新文章', 'slug' => $slug], JSON_UNESCAPED_UNICODE);
+
+        try {
+            $controller->store($this->request('POST', '/adminapi/demo/gen-article', $payload));
+            $this->fail('被软删行占着的 slug 必须给出业务提示，不能当成可用值放行');
+        } catch (BusinessException $e) {
+            $this->assertSame(lang('demo.gen_article_slug_exists'), $e->getMessage());
+        }
+
+        $this->assertSame(
+            1,
+            (int) Db::table('gen_articles')->where('slug', $slug)->count(),
+            '被拒绝的创建不得留下第二行'
+        );
     }
 
     /**

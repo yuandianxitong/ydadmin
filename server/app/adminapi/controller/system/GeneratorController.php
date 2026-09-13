@@ -97,7 +97,7 @@ class GeneratorController extends Controller
             'table_name'           => 'required|string|max:64',
             'module_name'          => 'required|string|regex:/^[a-z][a-z0-9_]{0,30}$/|not_in:admin_log,auth,business,messages,validation,generator',
             'model_name'           => 'required|string|regex:/^[A-Z][A-Za-z0-9]{0,40}$/',
-            'table_comment'        => 'nullable|string|max:100',
+            'table_comment'        => 'nullable|string|max:100|regex:/^[^\r\n<>]*$/u',
             'columns'              => 'nullable|array',
             'columns.*.name'       => 'required|string|max:64',
             'columns.*.form_type'  => 'required|string|in:input,textarea,number,switch,select,datepicker,image',
@@ -117,6 +117,8 @@ class GeneratorController extends Controller
             'module_name.not_in'   => 'generator.module_name_reserved',
             'model_name.required'  => 'generator.invalid_model_name',
             'model_name.regex'     => 'generator.invalid_model_name',
+            'table_comment.regex'  => 'generator.invalid_table_comment',
+            'table_comment.max'    => 'generator.invalid_table_comment',
         ];
     }
 

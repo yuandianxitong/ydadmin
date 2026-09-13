@@ -132,24 +132,49 @@ final class MakeCrudCommandTest extends TestCase
         }
     }
 
-    public function test_force_overwrites_existing_files_except_page(): void
+    /**
+     * --force 会 unlink 已有产物再重新生成，唯独两个前端页面文件不动：
+     * page（列表页 index.vue）与 form（表单组件 {Model}Form.vue）。
+     *
+     * form 以前不在豁免清单里：开发者手改了表单组件（加联动字段、改校验触发时机），之后为了同步
+     * 后端改动跑一次 --force，手改内容就被永久删掉，没有备份也没有二次确认。两个文件在产物清单里
+     * 是并列的前端页面（spec §6），README 写的也是「页面文件永远不会被覆盖」，读者会合理地以为
+     * 两个 .vue 都受保护——所以两个都断言，且断言的是内容逐字不变，不只是文件还在。
+     */
+    public function test_force_overwrites_existing_files_except_the_two_front_end_pages(): void
     {
         $model = 'CrudCmdForce';
         $artifacts = $this->previewArtifacts($model);
         $this->runCommand(['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model]);
 
-        $pagePath = $this->absolutePathOf($artifacts['page']['path']);
-        file_put_contents($pagePath, "<!-- 手工改过，不应被覆盖 -->\n" . (string) file_get_contents($pagePath));
-        $handEditedPage = (string) file_get_contents($pagePath);
+        $marker = '手工改过，不应被覆盖';
+
+        $protected = [];
+        foreach (['page', 'form'] as $key) {
+            $path = $this->absolutePathOf($artifacts[$key]['path']);
+            file_put_contents($path, "<!-- {$marker} -->\n" . (string) file_get_contents($path));
+            $protected[$key] = ['path' => $path, 'content' => (string) file_get_contents($path)];
+        }
+
+        // 对照组：后端产物也手改一份。它必须被 --force 抹掉——否则上面两条断言可能只是因为
+        // 整个 --force 压根没生效，而不是因为前端页面真的受保护。注释追加在文件末尾，保持合法 PHP。
+        $modelPath = $this->absolutePathOf($artifacts['model']['path']);
+        file_put_contents($modelPath, (string) file_get_contents($modelPath) . "\n// {$marker}\n");
 
         $withoutForce = $this->runCommand(['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model]);
         $this->assertStringContainsString('skipped', $withoutForce->getDisplay());
-        $this->assertSame($handEditedPage, file_get_contents($pagePath), '不加 --force 时手改的页面不受影响');
+        foreach ($protected as $key => $file) {
+            $this->assertSame($file['content'], file_get_contents($file['path']), "不加 --force 时手改的 {$key} 不受影响");
+        }
+        $this->assertStringContainsString($marker, (string) file_get_contents($modelPath), '不加 --force 时后端产物也不受影响');
 
         $withForce = $this->runCommand(['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model, '--force' => true]);
         $this->assertSame(Command::SUCCESS, $withForce->getStatusCode(), $withForce->getDisplay());
         $this->assertStringContainsString('created', $withForce->getDisplay());
-        $this->assertSame($handEditedPage, file_get_contents($pagePath), '--force 也不能覆盖页面路径');
+        foreach ($protected as $key => $file) {
+            $this->assertSame($file['content'], file_get_contents($file['path']), "--force 也不能覆盖前端页面文件：{$key}");
+        }
+        $this->assertStringNotContainsString($marker, (string) file_get_contents($modelPath), '--force 应当重新生成后端产物');
     }
 
     public function test_rejects_unknown_table(): void

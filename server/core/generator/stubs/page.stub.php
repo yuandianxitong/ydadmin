@@ -315,7 +315,7 @@ $optionLinesBlock = implode(",\n", $optionLines);
 
 $replacements = [
     '__MODEL_KEBAB__' => $modelKebab,
-    '__TABLE_COMMENT__' => $tableComment,
+    '__TABLE_COMMENT__' => $tableCommentJs,
     '__PERM_CREATE__' => $permBase . 'create',
     '__PERM_UPDATE__' => $permBase . 'update',
     '__PERM_DELETE__' => $permBase . 'delete',

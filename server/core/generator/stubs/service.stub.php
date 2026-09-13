@@ -8,10 +8,23 @@
 //   1. 只调 Repository，正文里不出现 Db::（check:context 规则二扫 app/service）；
 //   2. 写操作一律包 runInTransaction()，缓存失效等副作用用 afterCommit()；
 //   3. update 取白名单交集 array_filter(array_intersect_key(...), fn ($v) => $v !== null)；
-//   4. 唯一列不做成校验规则（spec 决策 12），改为「未删除行预检查 + 唯一索引异常兜底」。
+//   4. 唯一列不做成校验规则（spec 决策 12），改为「Repository::existsBy{Column}() 预检查 + 唯一索引异常兜底」。
+//      预检查刻意走 Repository 那个方法而不是基类 exists()：查重必须看得见数据范围外的行与软删行
+//      （唯一索引对两者同样生效），否则受限管理员只会撞到索引、拿不到有用的业务提示。
 //
 // 生成物里要输出 PHP 开标签时，一律用短输出标签回显字符串，不要在模板里直接写标签本身。
 $repository = lcfirst($model) . 'Repository';
+// 与 repository.stub.php 产出的 existsBy{Studly} 同一套命名——两边不一致 Service 就调不到那个方法
+$studly = static fn (string $name): string => str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+// 预检查的真实语义，逐条取自 repository.stub.php 里 existsBy* 实际生成的代码，不是想当然的描述
+$precheckScope = [];
+if ($dataScoped) {
+    $precheckScope[] = '经 DataScope::bypass() 看全表';
+}
+if ($softDeletes) {
+    $precheckScope[] = '含软删行';
+}
+$precheckNote = $precheckScope === [] ? '' : '（' . implode('、', $precheckScope) . '）';
 $writable = implode(', ', array_map(
     static fn (\core\generator\ColumnDescriptor $column): string => "'" . $column->name . "'",
     $formColumns
@@ -37,15 +50,15 @@ use Illuminate\Database\UniqueConstraintViolationException;
 <?php } ?>
 
 /**
- * <?= $tableComment ?>（由代码生成器生成）。
+ * <?= $tableCommentPhpDoc ?>（由代码生成器生成）。
  *
  * 只调 Repository：查询条件与数据权限都在 <?= $model ?>Repository 里，这一层不直接调用数据库门面。
  * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
 <?php if ($uniqueColumns !== []) { ?>
  *
- * 唯一性（<?= implode('、', $uniqueColumns) ?>）：先按未删除行预检查，给出业务提示；与软删行冲突
- * （唯一索引对软删行同样生效）或并发写入撞上唯一索引时，捕获 UniqueConstraintViolationException
- * 转成同一条业务错误，不返回 500。预检查走的是受数据权限约束的查询，范围外的重复值只能由索引兜底。
+ * 唯一性（<?= implode('、', $uniqueColumns) ?>）：写入前调 <?= $model ?>Repository 的 existsBy* 预检查<?= $precheckNote ?>，
+ * 命中就抛业务提示；更新时把自己这一行用 $excludeId 排除掉。并发写入撞上唯一索引时捕获
+ * UniqueConstraintViolationException 转成同一条业务错误，不返回 500。
 <?php } ?>
  */
 class <?= $model ?>Service extends Service
@@ -78,7 +91,7 @@ class <?= $model ?>Service extends Service
     {
         $row = array_intersect_key($data, array_flip([<?= $writable ?>]));
 <?php foreach ($uniqueColumns as $unique) { ?>
-        if (isset($row['<?= $unique ?>']) && $this-><?= $repository ?>->exists(['<?= $unique ?>' => $row['<?= $unique ?>']])) {
+        if (isset($row['<?= $unique ?>']) && $this-><?= $repository ?>->existsBy<?= $studly($unique) ?>((string) $row['<?= $unique ?>'])) {
             throw new BusinessException(lang('<?= $module ?>.<?= $modelSnake ?>_<?= $unique ?>_exists'));
         }
 <?php } ?>
@@ -102,11 +115,7 @@ class <?= $model ?>Service extends Service
      */
     public function update<?= $model ?>(int $id, array $data): void
     {
-<?php if ($uniqueColumns === []) { ?>
         $this->find<?= $model ?>OrFail($id);
-<?php } else { ?>
-        $current = $this->find<?= $model ?>OrFail($id);
-<?php } ?>
         $update = array_filter(
             array_intersect_key($data, array_flip([<?= $writable ?>])),
             static fn ($value) => $value !== null
@@ -115,9 +124,9 @@ class <?= $model ?>Service extends Service
             return;
         }
 <?php foreach ($uniqueColumns as $unique) { ?>
-        // 值没改动时命中的就是自己这一行，所以只在真的改了的时候预检查
-        if (isset($update['<?= $unique ?>']) && (string) $update['<?= $unique ?>'] !== (string) ($current['<?= $unique ?>'] ?? '')
-            && $this-><?= $repository ?>->exists(['<?= $unique ?>' => $update['<?= $unique ?>']])) {
+        // 自己这一行由 $excludeId 排除，不必先比较值有没有改动：那次字符串比较依赖 find() 的返回值，
+        // 而 find() 受数据权限约束，取不到该列时 ?? '' 会把「没改」误判成「改了」，白跑一次查重。
+        if (isset($update['<?= $unique ?>']) && $this-><?= $repository ?>->existsBy<?= $studly($unique) ?>((string) $update['<?= $unique ?>'], $id)) {
             throw new BusinessException(lang('<?= $module ?>.<?= $modelSnake ?>_<?= $unique ?>_exists'));
         }
 <?php } ?>

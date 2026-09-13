@@ -254,7 +254,13 @@ final class TypeInferenceTest extends TestCase
         $this->assertSame('nullable|string|max:100|email', $this->inference->validationRule($column));
     }
 
-    /** tinyint(1) 是唯一映射到 boolean 的原始类型；夹具表里没有这一列，单独构造覆盖分支。 */
+    /**
+     * tinyint(1) 是唯一映射到 boolean 的原始类型；夹具表里没有这一列，单独构造覆盖分支。
+     *
+     * validationRule()/ruleTokens() 两条断言是补上的：这条用例原先只断言 type/formType/cast，
+     * 而 validationRule() 的 switch 当时根本没有 boolean 这个 case——规则是空串、生成的控制器
+     * 写成 'is_top' => "{$required}"（零类型约束），缺口正是从这条用例眼皮底下过去的。
+     */
     public function test_tinyint_one_is_boolean_type_and_boolean_cast(): void
     {
         $column = $this->inference->describe([
@@ -265,6 +271,43 @@ final class TypeInferenceTest extends TestCase
         $this->assertSame('boolean', $column->type);
         $this->assertSame('switch', $column->formType);
         $this->assertSame('boolean', $this->inference->cast($column));
+        // NOT NULL 且有默认值 '0' → sometimes|required 前缀，再加 boolean 类型规则
+        $this->assertSame('sometimes|required|boolean', $this->inference->validationRule($column));
+        $this->assertSame(['require', 'boolean'], $this->inference->ruleTokens($column));
+    }
+
+    /**
+     * boolean / json 两个归一化类型的校验规则（延后项 #1 / 评审 I3）。
+     *
+     * 这两列以前在 validationRule() 与 ruleTokens() 的类型 switch 里都没有 case，规则片段是空串：
+     * 生成的控制器只写 'is_hot' => "{$required}"，一条类型约束都没有，传任意字符串都能过校验，
+     * 一路走到 MySQL 严格模式报 1366 → HTTP 500，而契约要求的是 422。这里钉死 NOT NULL 无默认值
+     * （规则里不该出现 sometimes/nullable 前缀）与可空两种写法。
+     */
+    public function test_boolean_and_json_columns_get_type_validation_rules(): void
+    {
+        $isHot = $this->inference->describe([
+            'Field' => 'is_hot', 'Type' => 'tinyint(1)', 'Null' => 'NO',
+            'Key' => '', 'Default' => null, 'Extra' => '', 'Comment' => '是否热门',
+        ]);
+        $this->assertSame('boolean', $isHot->type);
+        $this->assertSame('boolean', $this->inference->validationRule($isHot));
+        $this->assertSame(['require', 'boolean'], $this->inference->ruleTokens($isHot));
+
+        $meta = $this->inference->describe([
+            'Field' => 'meta', 'Type' => 'json', 'Null' => 'NO',
+            'Key' => '', 'Default' => null, 'Extra' => '', 'Comment' => '扩展信息',
+        ]);
+        $this->assertSame('json', $meta->type);
+        $this->assertSame('array', $this->inference->validationRule($meta));
+        $this->assertSame(['require', 'array'], $this->inference->ruleTokens($meta));
+
+        $tags = $this->inference->describe([
+            'Field' => 'tags', 'Type' => 'json', 'Null' => 'YES',
+            'Key' => '', 'Default' => null, 'Extra' => '', 'Comment' => '标签',
+        ]);
+        $this->assertSame('nullable|array', $this->inference->validationRule($tags));
+        $this->assertSame(['array'], $this->inference->ruleTokens($tags));
     }
 
     /** 列名以 is_ 开头也走 switch，即便底层不是 tinyint(1)。 */
@@ -288,6 +331,7 @@ final class TypeInferenceTest extends TestCase
 
         $this->assertSame('json', $column->type);
         $this->assertSame('array', $this->inference->cast($column));
+        $this->assertSame('nullable|array', $this->inference->validationRule($column));
     }
 
     /**

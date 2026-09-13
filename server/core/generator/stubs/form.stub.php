@@ -313,7 +313,8 @@ __RULES_BLOCK__
 VUE;
 
 $replacements = [
-    '__TABLE_COMMENT__' => $tableComment,
+    // 落点是 Vue 单引号字符串字面量（:title="form.id ? '编辑X' : '新增X'"），必须用 JS 转义过的那个变量
+    '__TABLE_COMMENT__' => $tableCommentJs,
     '__ITEMS_BLOCK__' => $itemsBlock,
     '__IMAGE_IMPORT__' => $imageImports,
     '__EL_MESSAGE_IMPORT__' => $elMessageImport,

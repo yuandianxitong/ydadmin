@@ -85,7 +85,7 @@ use support\Response;
 use Webman\Http\Request;
 
 /**
- * <?= $tableComment ?>（由代码生成器生成）。
+ * <?= $tableCommentPhpDoc ?>（由代码生成器生成）。
  *
  * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/<?= $module ?>.php）：
 <?php foreach ($endpoints as $endpoint) { ?>

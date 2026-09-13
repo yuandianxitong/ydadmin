@@ -121,7 +121,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
   cd server
   php webman make:crud gen_articles --module=article --model=GenArticle --comment="文章" --preview   # 先看会生成哪些文件
   php webman make:crud gen_articles --module=article --model=GenArticle --comment="文章"              # 落盘
-  php webman make:crud gen_articles --module=article --model=GenArticle --force                        # 覆盖已生成的文件（页面文件永远不覆盖）
+  php webman make:crud gen_articles --module=article --model=GenArticle --force                        # 覆盖已生成的文件（两个前端页面文件永远不覆盖）
   php webman make:crud gen_articles --module=article --model=GenArticle --reload                       # 生成后自动执行一次 reload
   ```
 
@@ -129,7 +129,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 
 **生成后必须执行一次 `php start.php reload`（或加 `--reload`），新路由才会生效**——webman 是常驻内存进程，`config/route.php` 只在 worker 启动时读一次；生成器只是写文件，不会重启或通知任何进程，写盘完成不等于接口已经可以访问。
 
-生成器只创建新文件，从不修改已有文件：路由是每模块一个 `server/config/route/{module}.php`（`server/config/route.php` 会自动 `require` 这个目录下的所有文件，不用手动挂载）；语言包每模块一份；菜单与按钮权限只生成 SQL（`server/database/generated/{module}-menu.sql`），需要手工执行才会出现在菜单里。目标文件已存在时状态记为「已跳过」，后台页面与 `make:crud` 默认都不会覆盖，除非命令行加 `--force`——页面文件是唯一的例外，永远不会被覆盖，避免冲掉已经手改过的前端页面。
+生成器只创建新文件，从不修改已有文件：路由是每模块一个 `server/config/route/{module}.php`（`server/config/route.php` 会自动 `require` 这个目录下的所有文件，不用手动挂载）；语言包每模块一份；菜单与按钮权限只生成 SQL（`server/database/generated/{module}-menu.sql`），需要手工执行才会出现在菜单里。目标文件已存在时状态记为「已跳过」，后台页面与 `make:crud` 默认都不会覆盖，除非命令行加 `--force`——两个前端页面文件（列表页 `index.vue` 与表单组件 `{Model}Form.vue`）是例外，永远不会被覆盖，避免冲掉已经手改过的前端代码。
 
 数据权限按表结构自动判定：表里有 `created_by` 列就会生成受数据权限约束的 Repository，同时有 `dept_id` 列则一并启用部门范围；两列都没有则显式声明不受控。
 

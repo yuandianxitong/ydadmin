@@ -13,7 +13,8 @@ $castWidth = 0;
 foreach (array_keys($casts) as $castName) {
     $castWidth = max($castWidth, strlen($castName) + 2);
 }
-$displayName = $tableComment !== '' ? $tableComment : $tableName;
+// 表说明只能用按落点转义过的那个变量，不得直接输出 $tableComment（自由文本，见 ModuleBlueprint::vars()）
+$displayName = $tableCommentPhpDoc !== '' ? $tableCommentPhpDoc : $tableName;
 ?>
 <?= '<?php' ?>
 
@@ -34,7 +35,7 @@ class <?= $model ?> extends Model
     use SoftDeletes;
 
 <?php endif; ?>
-    protected $table = '<?= $tableName ?>';
+    protected $table = '<?= $bareTableName ?>';
 <?php if ($primaryKey !== 'id'): ?>
 
     protected $primaryKey = '<?= $primaryKey ?>';

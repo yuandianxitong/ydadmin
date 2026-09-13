@@ -26,6 +26,8 @@ $phrases = $locale === 'en' ? [
     'invalid' => '%s is invalid',
     'date'    => '%s format is invalid',
     'email'   => '%s format is invalid',
+    'boolean' => '%s must be 0 or 1',
+    'array'   => '%s must be an array',
     'exists'  => '%s already exists',
 ] : [
     'require' => '%s不能为空',
@@ -36,6 +38,8 @@ $phrases = $locale === 'en' ? [
     'invalid' => '%s的值无效',
     'date'    => '%s格式不正确',
     'email'   => '%s格式不正确',
+    'boolean' => '%s只能是 0 或 1',
+    'array'   => '%s必须是数组',
     'exists'  => '%s已存在',
 ];
 $phrase = static function (string $kind, string $label, string $extra = '') use ($phrases): string {
@@ -52,7 +56,9 @@ $extraFor = static fn (string $token, \core\generator\ColumnDescriptor $c): stri
 };
 
 $lines = [];
-$lines[$key('not_found')] = $locale === 'en' ? "{$model} not found" : "{$tableComment}不存在";
+// 表说明用剥过换行的那个变量：这一行最终会被 addslashes() 塞进单引号字面量，换行虽然合法但会
+// 把语言包排版打散；$tableComment 的原值一律不直接进产物（见 ModuleBlueprint::vars()）。
+$lines[$key('not_found')] = $locale === 'en' ? "{$model} not found" : "{$tableCommentPhpDoc}不存在";
 
 foreach ($uniqueColumns as $uniqueColumn) {
     $col = $table->column($uniqueColumn);

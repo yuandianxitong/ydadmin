@@ -68,7 +68,13 @@ trait GenArticleFixtureColumns
             'modelSnake' => 'gen_article',
             'modelKebab' => 'gen-article',
             'tableName' => 'gen_articles',
+            // 裸表名（DB_PREFIX 为空时与物理名相同）与按落点转义过的三个表说明变量：
+            // 与 ModuleBlueprint::vars() 产出的那一套保持一致，模板取的就是这些键。
+            'bareTableName' => 'gen_articles',
             'tableComment' => '生成器夹具表',
+            'tableCommentPhpDoc' => '生成器夹具表',
+            'tableCommentJs' => '生成器夹具表',
+            'tableCommentSql' => '生成器夹具表',
             'table' => self::genArticleTable(),
             'columns' => $columns,
             'formColumns' => self::genArticleFormColumns(),

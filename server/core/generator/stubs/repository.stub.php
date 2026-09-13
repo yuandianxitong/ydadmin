@@ -21,7 +21,8 @@ foreach ($searchColumns as $column) {
     $needsLike = $needsLike || $strategy === 'like';
 }
 $searchText = $summary === [] ? '无' : implode('、', $summary);
-$displayName = $tableComment !== '' ? $tableComment : $tableName;
+// 表说明只能用按落点转义过的那个变量，不得直接输出 $tableComment（自由文本，见 ModuleBlueprint::vars()）
+$displayName = $tableCommentPhpDoc !== '' ? $tableCommentPhpDoc : $tableName;
 // 查重方法体的缩进：受控表多包一层 DataScope::bypass() 闭包，比不受控时多四格。
 $indent = $dataScoped ? '            ' : '        ';
 ?>

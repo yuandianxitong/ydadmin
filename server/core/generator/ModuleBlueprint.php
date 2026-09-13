@@ -28,9 +28,16 @@ namespace core\generator;
  */
 final class ModuleBlueprint
 {
+    /**
+     * @param string $tablePrefix 数据库连接的表前缀（DB_PREFIX）。由 GeneratorService 从
+     *                            config('database.connections.mysql.prefix') 读出来传进来：
+     *                            core/ 保持纯逻辑可测，读配置是 app/ 的编排职责。默认 ''
+     *                            让既有调用点与测试不受影响（当前开发库前缀为空）。
+     */
     public function __construct(
         public readonly TableDefinition $table,
         public readonly GeneratorRequest $request,
+        public readonly string $tablePrefix = '',
     ) {
     }
 
@@ -67,6 +74,8 @@ final class ModuleBlueprint
     private function vars(string $modelSnake, string $modelKebab): array
     {
         $columns = $this->table->columns;
+        // 请求里没填中文说明时退回表注释（与 make:crud 的 --comment 缺省行为一致，spec §5.5）
+        $tableComment = $this->request->tableComment !== '' ? $this->request->tableComment : $this->table->comment;
 
         return [
             'module'        => $this->request->moduleName,
@@ -74,8 +83,17 @@ final class ModuleBlueprint
             'modelSnake'    => $modelSnake,
             'modelKebab'    => $modelKebab,
             'tableName'     => $this->table->name,
-            // 请求里没填中文说明时退回表注释（与 make:crud 的 --comment 缺省行为一致，spec §5.5）
-            'tableComment'  => $this->request->tableComment !== '' ? $this->request->tableComment : $this->table->comment,
+            // Eloquent 的连接层会给 Model::$table 再套一次 DB_PREFIX，所以模型模板只能写裸表名，
+            // 写物理表名会被双重加前缀（查询 yd_yd_articles）。别处（注释、Repository 的说明）仍用
+            // 物理名 $tableName，那是对的：那些地方描述的就是磁盘上那张表。
+            'bareTableName' => (new NameConvention($this->tablePrefix))->bareTableName($this->table->name),
+            'tableComment'  => $tableComment,
+            // table_comment 是自由文本（前端表单，或 SHOW TABLE STATUS 的表注释），会落进
+            // 三种完全不同的字面量上下文，转义规则各不相同。统一在这里按落点派生，模板只许
+            // 取对应的那个变量——模板里再也不得直接输出 $tableComment（见各 stub 的注释）。
+            'tableCommentPhpDoc' => $this->phpDocComment($tableComment),
+            'tableCommentJs'     => $this->jsComment($tableComment),
+            'tableCommentSql'    => $this->sqlComment($tableComment),
             'table'         => $this->table,
             'columns'       => $columns,
             'formColumns'   => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->inForm)),
@@ -96,6 +114,46 @@ final class ModuleBlueprint
             'primaryKey'    => $this->table->primaryKey(),
             'inference'     => new TypeInference(),
         ];
+    }
+
+    /**
+     * PHP 文档注释里的表说明：剥掉「星号加斜杠」（唯一能提前闭合文档注释的序列）与全部换行/回车。
+     *
+     * 不转义、直接剥掉：这个序列在中文说明里没有任何合法用途，而一旦漏出去，注入点就落在
+     * `class` 之前的顶层作用域——那是合法 PHP，`php -l`、phpstan、cs-fixer 四道静态门禁
+     * 全都拦不住，文件一被 autoload 就执行。换行同理：文档注释是逐行 ` * ` 前缀的，
+     * 一个换行就能让后半段脱离注释。
+     */
+    private function phpDocComment(string $comment): string
+    {
+        return str_replace(['*/', "\r", "\n"], '', $comment);
+    }
+
+    /**
+     * Vue 模板里单引号字符串字面量内的表说明：先转义 `\` 再转义 `'`，并剥掉换行。
+     *
+     * 顺序不能反：先处理 `'` 的话，后一步会把刚加上的那个反斜杠又转义一遍，等于没转义。
+     * 一个普通的中文注释写成「用户's 列表」就会打断 `:title="... '编辑X' ..."` 这个表达式，
+     * 不需要恶意输入。
+     */
+    private function jsComment(string $comment): string
+    {
+        $escaped = str_replace(["\r", "\n"], '', $comment);
+        $escaped = str_replace('\\', '\\\\', $escaped);
+
+        return str_replace("'", "\\'", $escaped);
+    }
+
+    /**
+     * SQL 字符串字面量里的表说明：先转义 `\` 再转义 `'`（同样不能反过来）。
+     *
+     * MySQL 默认不开 NO_BACKSLASH_ESCAPES，`\` 是转义符，所以只把 `'` 翻倍是不够的：
+     * 一个以 `\` 结尾的说明会产出 `'x\'`，把后面的字段一路吃进字符串里，整条 INSERT 错位。
+     * 这份 SQL 是设计上要人手工执行的（spec §12），错位不会有任何人替它兜底。
+     */
+    private function sqlComment(string $comment): string
+    {
+        return str_replace(['\\', "'"], ['\\\\', "''"], $comment);
     }
 
     /**

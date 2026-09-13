@@ -16,9 +16,9 @@ use Illuminate\Database\UniqueConstraintViolationException;
  * 只调 Repository：查询条件与数据权限都在 GenArticleRepository 里，这一层不直接调用数据库门面。
  * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
  *
- * 唯一性（slug）：先按未删除行预检查，给出业务提示；与软删行冲突
- * （唯一索引对软删行同样生效）或并发写入撞上唯一索引时，捕获 UniqueConstraintViolationException
- * 转成同一条业务错误，不返回 500。预检查走的是受数据权限约束的查询，范围外的重复值只能由索引兜底。
+ * 唯一性（slug）：写入前调 GenArticleRepository 的 existsBy* 预检查（经 DataScope::bypass() 看全表、含软删行），
+ * 命中就抛业务提示；更新时把自己这一行用 $excludeId 排除掉。并发写入撞上唯一索引时捕获
+ * UniqueConstraintViolationException 转成同一条业务错误，不返回 500。
  */
 class GenArticleService extends Service
 {
@@ -49,7 +49,7 @@ class GenArticleService extends Service
     public function createGenArticle(array $data): array
     {
         $row = array_intersect_key($data, array_flip(['title', 'summary', 'content', 'cover_image', 'category', 'price', 'view_count', 'slug', 'published_at', 'status', 'sort']));
-        if (isset($row['slug']) && $this->genArticleRepository->exists(['slug' => $row['slug']])) {
+        if (isset($row['slug']) && $this->genArticleRepository->existsBySlug((string) $row['slug'])) {
             throw new BusinessException(lang('demo.gen_article_slug_exists'));
         }
 
@@ -67,7 +67,7 @@ class GenArticleService extends Service
      */
     public function updateGenArticle(int $id, array $data): void
     {
-        $current = $this->findGenArticleOrFail($id);
+        $this->findGenArticleOrFail($id);
         $update = array_filter(
             array_intersect_key($data, array_flip(['title', 'summary', 'content', 'cover_image', 'category', 'price', 'view_count', 'slug', 'published_at', 'status', 'sort'])),
             static fn ($value) => $value !== null
@@ -75,9 +75,9 @@ class GenArticleService extends Service
         if ($update === []) {
             return;
         }
-        // 值没改动时命中的就是自己这一行，所以只在真的改了的时候预检查
-        if (isset($update['slug']) && (string) $update['slug'] !== (string) ($current['slug'] ?? '')
-            && $this->genArticleRepository->exists(['slug' => $update['slug']])) {
+        // 自己这一行由 $excludeId 排除，不必先比较值有没有改动：那次字符串比较依赖 find() 的返回值，
+        // 而 find() 受数据权限约束，取不到该列时 ?? '' 会把「没改」误判成「改了」，白跑一次查重。
+        if (isset($update['slug']) && $this->genArticleRepository->existsBySlug((string) $update['slug'], $id)) {
             throw new BusinessException(lang('demo.gen_article_slug_exists'));
         }
 

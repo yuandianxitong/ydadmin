@@ -12,5 +12,7 @@ return [
     'invalid_module_name'     => '模块名只能以小写字母开头，由小写字母、数字、下划线组成，最长 31 个字符',
     'invalid_model_name'      => '模型名只能以大写字母开头，由字母和数字组成，最长 41 个字符',
     'module_name_reserved'    => '模块名与既有语言分组冲突（admin_log/auth/business/messages/validation/generator），请换一个模块名',
+    'invalid_table_comment'   => '模块中文说明不能包含换行、回车或尖括号，最长 100 个字符',
+    'unknown_error'           => '未知错误',
     'reload_hint'             => '由代码生成器生成。执行 php start.php reload 后生效。',
 ];

@@ -108,6 +108,16 @@ final class TypeInference
             case 'decimal':
                 $parts[] = 'numeric';
                 break;
+            case 'boolean':
+                // tinyint(1) 与 json 两个归一化类型以前在这里没有 case，规则片段因此是空串，
+                // 生成的控制器只写 'is_hot' => "{$required}"——零类型约束，脏值直达 MySQL，
+                // 严格模式下抛 1366 变成 HTTP 500，而契约要求的是 422。tinyint(1) 是这套后台
+                // 最常见的列型（is_* 开关），normalizeType()/cast() 早就认得它们，只有这里漏了。
+                $parts[] = 'boolean';
+                break;
+            case 'json':
+                $parts[] = 'array';
+                break;
             case 'enum':
                 $parts[] = 'in:' . implode(',', $column->enumValues);
                 break;
@@ -166,6 +176,14 @@ final class TypeInference
                 break;
             case 'decimal':
                 $tokens[] = 'numeric';
+                break;
+            case 'boolean':
+                // 与 validationRule() 的 boolean/json 两个 case 一一对应：那边产出 boolean / array
+                // 两条规则，这边就必须产出同名的消息键后缀，否则校验失败时界面回显的是原始 key。
+                $tokens[] = 'boolean';
+                break;
+            case 'json':
+                $tokens[] = 'array';
                 break;
             case 'enum':
                 $tokens[] = 'invalid';
