@@ -35,6 +35,9 @@ abstract class ApiTestCase extends TestCase
     /** @var array<string, string> 被本用例改过的配置的原值 */
     private array $originalConfigs = [];
 
+    /** @var list<string> 本用例落到 public/storage 下的相对路径，tearDown 时删除 */
+    private array $createdStoragePaths = [];
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -131,6 +134,66 @@ abstract class ApiTestCase extends TestCase
         return $id;
     }
 
+    /**
+     * 以真实的 multipart/form-data 请求体上传文件：请求同样经 App::onMessage()，
+     * 由 Workerman 的 multipart 解析器落出临时文件，与线上是同一条代码路径
+     * （$content 原样写进临时文件，二进制内容也可以）。
+     *
+     * @param array<string, string> $fields 一并提交的普通表单字段
+     */
+    protected function postFile(
+        string $uri,
+        string $field,
+        string $filename,
+        string $content,
+        string $mimeType,
+        ?string $token = null,
+        array $fields = []
+    ): TestResponse {
+        $boundary = '----YdAdmin' . bin2hex(random_bytes(8));
+        $body = '';
+        foreach ($fields as $name => $value) {
+            $body .= "--{$boundary}\r\nContent-Disposition: form-data; name=\"{$name}\"\r\n\r\n{$value}\r\n";
+        }
+        $body .= "--{$boundary}\r\n";
+        $body .= "Content-Disposition: form-data; name=\"{$field}\"; filename=\"{$filename}\"\r\n";
+        $body .= "Content-Type: {$mimeType}\r\n\r\n";
+        $body .= $content . "\r\n";
+        $body .= "--{$boundary}--\r\n";
+
+        $headers = [
+            'Host'           => 'localhost',
+            'Accept'         => 'application/json',
+            'Content-Type'   => "multipart/form-data; boundary={$boundary}",
+            'Content-Length' => (string) strlen($body),
+        ];
+        if ($token !== null) {
+            $headers['Authorization'] = 'Bearer ' . $token;
+        }
+
+        $raw = "POST {$uri} HTTP/1.1\r\n";
+        foreach ($headers as $name => $value) {
+            $raw .= "{$name}: {$value}\r\n";
+        }
+        $raw .= "\r\n" . $body;
+
+        $connection = new FakeConnection();
+        $request = new Request($raw);
+        $request->connection = $connection;
+
+        /** @var App $app */
+        $app = self::$app;
+        $app->onMessage($connection, $request);
+
+        return new TestResponse($connection->response);
+    }
+
+    /** 登记一个落在 public/storage 下的相对路径（如 uploads/images/20260913/xxx.png），tearDown 时删除。 */
+    protected function trackStorageFile(string $relativePath): void
+    {
+        $this->createdStoragePaths[] = ltrim($relativePath, '/');
+    }
+
     /** 登记需要在 tearDown 删除的行（经接口创建的记录也要登记）。 */
     protected function track(string $table, int $id): void
     {
@@ -199,6 +262,18 @@ abstract class ApiTestCase extends TestCase
             (new SystemConfigRepository())->forgetCache();
         }
         $this->originalConfigs = [];
+
+        // 落盘的上传文件：先删文件，再把因此变空的日期目录逐级删掉，
+        // 不给 Task 7 的「public/storage 下无残留」验收留垃圾
+        foreach ($this->createdStoragePaths as $relativePath) {
+            @unlink(public_path('storage/' . $relativePath));
+            $dir = dirname(public_path('storage/' . $relativePath));
+            $root = rtrim(public_path('storage'), '/\\');
+            while (str_starts_with($dir, $root) && $dir !== $root && @rmdir($dir)) {
+                $dir = dirname($dir);
+            }
+        }
+        $this->createdStoragePaths = [];
 
         $adminIds = $this->createdAdminIds;
         $roleIds = $this->created['roles'] ?? [];

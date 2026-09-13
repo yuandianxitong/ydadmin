@@ -13,8 +13,8 @@ use Webman\Route\Route as RouteObject;
 
 final class AdminLogMiddlewareTest extends ApiTestCase
 {
-    /** 预登记给 M1c 的控制器：路由尚未注册，反向核对时跳过。 */
-    private const PRE_REGISTERED = ['FileController', 'UploadController'];
+    /** 预登记给 M1c Task 6 的控制器：文件管理路由尚未注册，反向核对时跳过（Task 6 落地后整条删除）。 */
+    private const PRE_REGISTERED = ['FileController'];
 
     /** @return list<object> 该管理员的操作日志，新的在前 */
     private function logsOf(int $adminId): array

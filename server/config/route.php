@@ -11,6 +11,7 @@ use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\NotificationController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
+use app\adminapi\controller\upload\UploadController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
@@ -143,6 +144,11 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/recent-logs', [DashboardController::class, 'recentLogs']);
         Route::get('/recent-activities', [DashboardController::class, 'recentActivities']);
         Route::get('/active-ranking', [DashboardController::class, 'activeRanking']);
+    })->middleware($adminAuth);
+
+    Route::group('/upload', function () {
+        Route::post('/image', [UploadController::class, 'image']);
+        Route::post('/file', [UploadController::class, 'file']);
     })->middleware($adminAuth);
 })->middleware($apiOuter);
 

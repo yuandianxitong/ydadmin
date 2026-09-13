@@ -60,6 +60,13 @@ return [
     'config_key_not_found'      => 'Configuration key not found: :key',
     'config_value_invalid'      => 'Invalid value for configuration :key',
 
+    // File & upload
+    'please_select_upload'      => 'Please select a file to upload',
+    'upload_image_only'         => 'Only image files can be uploaded',
+    'file_type_not_allowed'     => 'This file type is not allowed',
+    'image_size_exceeded'       => 'Image size may not exceed :size MB',
+    'file_size_exceeded'        => 'File size may not exceed :size MB',
+
     // Storage
     'storage_driver_unsupported'  => 'Unsupported storage driver: :driver',
     'storage_config_incomplete'   => 'Cloud storage is not fully configured. Complete the storage settings before uploading',

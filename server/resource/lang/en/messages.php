@@ -46,4 +46,5 @@ return [
     'time_days_ago'           => ':count days ago',
     'time_months_ago'         => ':count months ago',
     'time_long_ago'           => 'long ago',
+    'upload_success'          => 'Uploaded successfully',
 ];

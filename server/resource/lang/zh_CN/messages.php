@@ -46,4 +46,5 @@ return [
     'time_days_ago'           => ':count天前',
     'time_months_ago'         => ':count个月前',
     'time_long_ago'           => '更早',
+    'upload_success'          => '上传成功',
 ];

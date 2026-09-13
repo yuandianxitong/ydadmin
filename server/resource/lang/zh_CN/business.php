@@ -60,6 +60,13 @@ return [
     'config_key_not_found'      => '配置项不存在：:key',
     'config_value_invalid'      => '配置项 :key 的值格式不正确',
 
+    // 素材与上传
+    'please_select_upload'      => '请选择要上传的文件',
+    'upload_image_only'         => '只能上传图片文件',
+    'file_type_not_allowed'     => '不允许上传该类型的文件',
+    'image_size_exceeded'       => '图片大小不能超过 :size MB',
+    'file_size_exceeded'        => '文件大小不能超过 :size MB',
+
     // 存储
     'storage_driver_unsupported' => '不支持的存储驱动：:driver',
     'storage_config_incomplete'  => '云存储配置不完整，请在「系统配置 - 存储配置」里填写完整后再上传',
