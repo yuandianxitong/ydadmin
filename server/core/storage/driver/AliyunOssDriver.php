@@ -11,6 +11,7 @@ use AlibabaCloud\Oss\V2\Models\DeleteObjectRequest;
 use AlibabaCloud\Oss\V2\Models\PutObjectRequest;
 use core\exception\BusinessException;
 use core\storage\StorageInterface;
+use GuzzleHttp\HandlerStack;
 use RuntimeException;
 
 /**
@@ -44,11 +45,13 @@ final class AliyunOssDriver implements StorageInterface
 
     /**
      * @param array{access_key: string, access_secret: string, bucket: string, endpoint: string, region: string, domain: string} $config
+     * @param HandlerStack|null $handlerStack 仅供测试注入假传输层（配 MockHandler）；业务代码不要传
      */
-    public function __construct(array $config)
+    public function __construct(array $config, ?HandlerStack $handlerStack = null)
     {
         foreach (['access_key', 'access_secret', 'bucket', 'endpoint'] as $required) {
-            if (($config[$required] ?? '') === '') {
+            // trim 之后再判断：管理端是文本输入框，纯空格必须当「没填」处理
+            if (trim((string) ($config[$required] ?? '')) === '') {
                 throw new BusinessException(lang('business.storage_config_incomplete'));
             }
         }
@@ -63,7 +66,7 @@ final class AliyunOssDriver implements StorageInterface
         $cfg->setEndpoint($this->endpointHost);
         $cfg->setRegion($this->region);
 
-        $this->client = new Client($cfg);
+        $this->client = new Client($cfg, $handlerStack !== null ? ['handler' => $handlerStack] : []);
     }
 
     public function put(string $localTmpPath, string $targetRelativePath): void
@@ -93,11 +96,23 @@ final class AliyunOssDriver implements StorageInterface
         return "https://{$this->bucket}.{$this->endpointHost}/{$key}";
     }
 
+    /**
+     * 🔴 delete() 不能借道 exists() 的布尔返回值——`exists()` 把「真的不存在」与
+     * 「查不了（凭据错/权限不足/网络问题）」压成了同一个 false，密钥配错时 delete() 就会
+     * 表现成「悄悄删了个不存在的文件」而不是报错。这里直接调用 `isObjectExist()` 并且不吞
+     * 异常：该方法本身已经把 `NoSuchKey`/404 这个「真的不存在」信号转成 `false` 返回，
+     * 其余任何异常（鉴权失败、网络故障等）都会原样冒出来，在这里转成 `storage_delete_failed`。
+     */
     public function delete(string $relativePath): bool
     {
         $key = self::normalize($relativePath);
-        // OSS 删不存在的对象也返回成功，先查一次才能满足接口「不存在返回 false」的约定
-        if (!$this->exists($key)) {
+        try {
+            $exists = $this->client->isObjectExist($this->bucket, $key);
+        } catch (\Throwable $e) {
+            throw new BusinessException(lang('business.storage_delete_failed', ['driver' => 'aliyun', 'error' => $e->getMessage()]));
+        }
+        if (!$exists) {
+            // OSS 删不存在的对象也返回成功，先查一次才能满足接口「不存在返回 false」的约定
             return false;
         }
 

@@ -174,6 +174,115 @@ final class CloudDriverConfigTest extends TestCase
         );
     }
 
+    /**
+     * 三个驱动的必填键在 trim() 之后再判断——管理端是文本输入框，纯空格必须当「没填」处理，
+     * 否则 qiniu 的 domain=" " 这类值会原样拼进 getUrl()，产出 " /a.png" 这种坏链接。
+     */
+    public function test_whitespace_only_required_value_is_treated_as_incomplete(): void
+    {
+        $this->assertIncomplete(fn () => new AliyunOssDriver($this->ossConfig(['access_key' => '   '])), 'access_key (aliyun)');
+        $this->assertIncomplete(fn () => new TencentCosDriver($this->cosConfig(['secret_id' => "\t"])), 'secret_id (tencent)');
+        $this->assertIncomplete(fn () => new QiniuDriver($this->qiniuConfig(['domain' => ' '])), 'domain (qiniu)');
+    }
+
+    // ------------------------------------------------------------------
+    // delete() 不能借道 exists() 的布尔返回值：exists() 把「真的不存在」与「查不了（凭据错/
+    // 权限不足/网络问题）」压成了同一个 false，密钥配错时 delete() 就会表现成「悄悄删了个
+    // 不存在的文件」而不是报错。下面这组测试用注入的假传输层区分这两种情况，全程离线：
+    // OSS/COS 的 mock 只换最底层传输，SDK 自己的签名/重试/错误映射中间件原样保留，所以
+    // 「404/NoSuchKey = 不存在，其它状态码 = 真失败」这条判断走的是与生产环境相同的异常
+    // 分类逻辑，不是靠猜响应格式拼出来的。
+    // ------------------------------------------------------------------
+
+    public function test_aliyun_delete_returns_false_without_deleting_when_object_absent(): void
+    {
+        $driver = $this->mockedAliyun([
+            new Response(404, [], '<Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message></Error>'),
+        ]);
+
+        // 只塞了一个响应：如果实现仍然接着发 deleteObject 请求，MockHandler 队列耗尽会抛异常，
+        // 这里断言不到 false，测试本身就会失败——不需要额外的请求计数
+        $this->assertFalse($driver->delete('uploads/images/gone.png'), '本来就不存在时返回 false，不抛');
+    }
+
+    public function test_aliyun_delete_raises_business_exception_on_a_real_failure(): void
+    {
+        $driver = $this->mockedAliyun([
+            new Response(403, [], '<Error><Code>AccessDenied</Code><Message>Access denied by bucket policy.</Message></Error>'),
+        ]);
+
+        try {
+            $driver->delete('uploads/images/a.png');
+            $this->fail('鉴权失败之类的真失败必须抛业务异常，不能悄悄当成"文件不存在"');
+        } catch (BusinessException $e) {
+            $this->assertStringContainsString('AccessDenied', $e->getMessage(), '错误文本要带上 SDK 报的原因，方便运维定位');
+            $this->assertStringNotContainsString('dummy-sk', $e->getMessage());
+        }
+    }
+
+    /**
+     * 造一个注入了假传输层的阿里云驱动。OSS v2 的 Client 支持在构造时传入自定义 Guzzle
+     * handler（`Client($config, ['handler' => $stack])`），所以不需要反射：直接把 MockHandler
+     * 当 handler stack 的基座传进去，SDK 自己的重试/签名/错误映射中间件原样叠在上面。
+     */
+    private function mockedAliyun(array $responses): AliyunOssDriver
+    {
+        // 用 HandlerStack 的裸构造函数，不用 HandlerStack::create()：后者会自带一份 Guzzle 原生
+        // 的 httpErrors/redirect/cookies 中间件，其中 httpErrors 会把非 2xx 转成 Guzzle 自己的
+        // RequestException，OSS SDK 的重试器认得这个类型、会当成可重试错误反复重发，
+        // 把只准备了 1 条的 MockHandler 队列耗尽（实测过，会报 "Mock queue is empty"）。
+        // 裸构造只放一个 MockHandler 当基座，OSS 自己的重试/签名/错误映射中间件原样叠上去。
+        $stack = new HandlerStack(new MockHandler($responses));
+
+        return new AliyunOssDriver($this->ossConfig(), $stack);
+    }
+
+    public function test_tencent_delete_returns_false_without_deleting_when_object_absent(): void
+    {
+        $driver = $this->mockedTencent([new Response(404, ['x-cos-request-id' => 'req-404'], '')]);
+
+        $this->assertFalse($driver->delete('a/gone.png'), '本来就不存在时返回 false，不抛');
+    }
+
+    public function test_tencent_delete_raises_business_exception_on_a_real_failure(): void
+    {
+        $driver = $this->mockedTencent([new Response(403, ['x-cos-request-id' => 'req-403'], '')]);
+
+        try {
+            $driver->delete('a/b.png');
+            $this->fail('鉴权失败之类的真失败必须抛业务异常，不能悄悄当成"文件不存在"');
+        } catch (BusinessException $e) {
+            $this->assertSame(
+                lang('business.storage_delete_failed', [
+                    'driver' => 'tencent',
+                    'error'  => '403 Forbidden (Request-ID: req-403)',
+                ]),
+                $e->getMessage()
+            );
+        }
+    }
+
+    /**
+     * 造一个注入了假传输层的腾讯云驱动。`Qcloud\Cos\Client` 不像 OSS v2 / 七牛那样在构造时
+     * 提供注入测试传输层的入口——它的 Guzzle handler stack 完全在构造函数内部组装，没有暴露
+     * 的配置项。这里用一次性反射拿到已构造好的 `Client`，再借它公开的 `httpClient` 属性
+     * （`Qcloud\Cos\Client::$httpClient` 本身就是 public）把最底层的 handler 换成
+     * MockHandler——SDK 自己的签名/重试/错误映射中间件原样保留，所以驱动对
+     * 「404 = 不存在，其它状态码 = 真失败」的判断走的是与生产环境相同的异常分类逻辑。
+     */
+    private function mockedTencent(array $responses): TencentCosDriver
+    {
+        $driver = new TencentCosDriver($this->cosConfig());
+
+        /** @var \Qcloud\Cos\Client $client */
+        $client = (new \ReflectionProperty($driver, 'client'))->getValue($driver);
+        /** @var HandlerStack $stack */
+        $stack = $client->httpClient->getConfig('handler');
+        $stack->setHandler(new MockHandler($responses));
+
+        return $driver;
+    }
+
     // ------------------------------------------------------------------
     // 七牛是手写的签名实现（Task 1 决策：不引入 qiniu/php-sdk），所以签名本身要离线钉死。
     // 下面的期望值不是从实现里抄的，是照 qiniu/php-sdk v7.14.0 的 Auth.php 算法离线算出来的。
@@ -290,6 +399,29 @@ final class CloudDriverConfigTest extends TestCase
                 $e->getMessage()
             );
         }
+    }
+
+    /**
+     * `exists()` 把「查不了」也当 false 返回，但 `delete()` 不能借道这个布尔值——密钥配错时
+     * stat 本身就会失败（这里用 401 模拟），必须直接抛业务异常，而不是先误判成「不存在」
+     * 再返回 false（那样会表现成「悄悄删了个不存在的文件」，Task 6 记的「删除了 0 个」是假象）。
+     */
+    public function test_qiniu_delete_raises_business_exception_when_the_existence_check_itself_fails(): void
+    {
+        $history = [];
+        $driver = $this->mockedQiniu([new Response(401, [], '{"error":"bad token"}')], $history);
+
+        try {
+            $driver->delete('a.txt');
+            $this->fail('stat 本身失败（非 612）时必须抛业务异常，不能当成"不存在"返回 false');
+        } catch (BusinessException $e) {
+            $this->assertSame(
+                lang('business.storage_delete_failed', ['driver' => 'qiniu', 'error' => 'HTTP 401 bad token']),
+                $e->getMessage()
+            );
+        }
+
+        $this->assertCount(1, $history, 'stat 已经确认是真失败，不该再发 delete 请求');
     }
 
     /**
