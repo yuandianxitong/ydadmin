@@ -32,7 +32,7 @@ final class SchemaTest extends TestCase
     {
         // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间
         $ids = array_map('intval', Db::table('menus')->where('id', '<=', 53)->orderBy('id')->pluck('id')->all());
-        $this->assertSame([1, 2, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
+        $this->assertSame([1, 2, 3, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
         $this->assertSame('system.role.permission', Db::table('menus')->where('id', 24)->value('permission'));
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }

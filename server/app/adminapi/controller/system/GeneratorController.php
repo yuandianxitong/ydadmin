@@ -23,7 +23,7 @@ class GeneratorController extends Controller
     protected GeneratorService $generatorService;
 
     #[Permission('system.generator.list')]
-    public function tables(Request $request): Response
+    public function tables(): Response
     {
         return $this->success($this->generatorService->getTables(), lang('messages.get_success'));
     }
