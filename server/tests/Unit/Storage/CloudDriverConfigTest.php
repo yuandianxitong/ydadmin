@@ -27,6 +27,30 @@ use tests\TestCase;
  */
 final class CloudDriverConfigTest extends TestCase
 {
+    /** @var list<string> 本用例建的临时源文件（put() 成功后会被驱动消费掉，这里只兜底清理） */
+    private array $sourceFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->sourceFiles as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+        $this->sourceFiles = [];
+        parent::tearDown();
+    }
+
+    /** put() 的成功路径需要一个真实存在的源文件（三个驱动都先 is_file() 再发请求）。 */
+    private function makeSourceFile(string $content = 'upload-body'): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'cloud_put_');
+        file_put_contents($path, $content);
+        $this->sourceFiles[] = $path;
+
+        return $path;
+    }
+
     /** @return array{access_key: string, access_secret: string, bucket: string, endpoint: string, region: string, domain: string} */
     private function ossConfig(array $overrides = []): array
     {
@@ -269,6 +293,13 @@ final class CloudDriverConfigTest extends TestCase
      * （`Qcloud\Cos\Client::$httpClient` 本身就是 public）把最底层的 handler 换成
      * MockHandler——SDK 自己的签名/重试/错误映射中间件原样保留，所以驱动对
      * 「404 = 不存在，其它状态码 = 真失败」的判断走的是与生产环境相同的异常分类逻辑。
+     *
+     * ⚠️ 这个注入方式耦合了两个实现细节：`Qcloud\Cos\Client::$httpClient`（public 属性）与 Guzzle 的
+     * `getConfig()`。`getConfig()` 在 Guzzle 8 已经移除，而 `composer.json` 的约束是
+     * `^7.9 || ^8.0`——今天实际解析到 7.x 只是因为 OSS/COS 两个 SDK 自己把版本压在那里。
+     * 等 SDK 支持 Guzzle 8、依赖解析上去的那天，**本测试会第一个炸，而且报的是
+     * 「Call to undefined method getConfig()」这种和 COS 毫无关系的错**。写在这里是为了省掉
+     * 下一个人 bisect 的时间：那时只需要换一种拿 handler stack 的方式，被测的驱动代码没有问题。
      */
     private function mockedTencent(array $responses): TencentCosDriver
     {
@@ -459,6 +490,56 @@ final class CloudDriverConfigTest extends TestCase
                 $this->assertStringContainsString('源文件不存在', $e->getMessage());
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // put() 的成功路径。上面的用例覆盖了 delete / exists / getUrl / 签名，唯独「写入」一次都没被
+    // 执行过——而写入恰恰是运维没有真实密钥就测不到的那条路径：参数顺序或形状写错（SDK 换了签名、
+    // 少传一个参数、传错类型），线上第一次上传就是 TypeError，不是能看懂的业务错误。
+    //
+    // 所以这三条的目的不是断言返回值（put() 返回 void），而是让**真实的 SDK 调用形状**被执行到：
+    // 阿里云的 `putObjectFromFile(new PutObjectRequest($bucket, $key), $path)`、腾讯云的
+    // `upload($bucket, $key, $handle)`、七牛的 multipart 字段集，一个都不绕开——mock 仍然只换
+    // 最底层传输，SDK 自己的签名/重试/序列化中间件原样保留。
+    // 断言用「源临时文件已被消费」而不是 assertTrue(true)：那一行 @unlink 在 put() 的最末尾，
+    // 只有整条调用真的走通了才会执行到。
+    // ------------------------------------------------------------------
+
+    public function test_aliyun_put_uploads_the_object_through_the_sdk(): void
+    {
+        $driver = $this->mockedAliyun([new Response(200, ['ETag' => '"9a0364b9e99bb480dd25e1f0284c8555"', 'x-oss-request-id' => 'req-put'])]);
+        $source = $this->makeSourceFile();
+
+        $driver->put($source, 'uploads/files/20260913/a.txt');
+
+        $this->assertFileDoesNotExist($source, 'put() 成功后源临时文件被消费掉（与 LocalDriver 语义一致）');
+    }
+
+    public function test_tencent_put_uploads_the_object_through_the_sdk(): void
+    {
+        $driver = $this->mockedTencent([new Response(200, ['ETag' => '"9a0364b9e99bb480dd25e1f0284c8555"', 'x-cos-request-id' => 'req-put'])]);
+        $source = $this->makeSourceFile();
+
+        $driver->put($source, 'uploads/files/20260913/a.txt');
+
+        $this->assertFileDoesNotExist($source, 'put() 成功后源临时文件被消费掉');
+    }
+
+    public function test_qiniu_put_posts_the_multipart_form_to_the_upload_host(): void
+    {
+        $history = [];
+        $driver = $this->mockedQiniu([new Response(200, [], '{"key":"uploads/files/20260913/a.txt","hash":"FgAA"}')], $history);
+        $source = $this->makeSourceFile();
+
+        $driver->put($source, 'uploads/files/20260913/a.txt');
+
+        $this->assertCount(1, $history);
+        /** @var RequestInterface $request */
+        $request = $history[0]['request'];
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertSame('https://up.qiniup.com', (string) $request->getUri(), '直传入口，不经 rs 管理域名');
+        $this->assertStringStartsWith('multipart/form-data; boundary=', $request->getHeaderLine('Content-Type'));
+        $this->assertFileDoesNotExist($source, 'put() 成功后源临时文件被消费掉');
     }
 }
 
