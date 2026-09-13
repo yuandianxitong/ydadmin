@@ -4,6 +4,11 @@ parameters:
         - app
         - core
         - scripts
+    # 代码生成器的模板文件（core/generator/stubs/*.stub.php）不是真正的 PHP 文件，
+    # 是被 TemplateRenderer::render() require 执行的模板：里面天然会出现
+    # use app\...、未闭合的类片段等在真正 PHP 文件里不合法的写法，phpstan 不该扫它们。
+    excludePaths:
+        - core/generator/stubs/*
     treatPhpDocTypesAsCertain: false
     # 中间件按 webman 惯例在 Request 上挂 userId / username 等动态属性
     universalObjectCratesClasses:

@@ -116,7 +116,7 @@ fi
 # 仓储，等于把仓库其他地方机械强制的分层（Controller → Service → Repository）反过来接一条线。
 # 只匹配行首的 use 语句：注释与文档里提到 app\middleware\StaticFile 这类类名是正常的，不该被拦。
 core_fail=0
-core_hits=$(grep -rnE --include='*.php' '^use +app\\' core || true)
+core_hits=$(grep -rnE --include='*.php' --exclude-dir=stubs '^use +app\\' core || true)
 if [ -n "$core_hits" ]; then
   echo "❌ core/ 依赖了应用层（core 不得 use app\\；改为 core\\contract 下的接口 + config/container.php 绑定）："
   echo "$core_hits"
