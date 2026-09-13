@@ -166,6 +166,13 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('/image', [UploadController::class, 'image']);
         Route::post('/file', [UploadController::class, 'file']);
     })->middleware($adminAuth);
+
+    // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。
+    // 被 require 的文件在本闭包体内执行（require 不新开作用域），因此文件里能直接用外层 use
+    // 进来的 $adminAuth——这也是它必须被 require 进这个闭包、而不是在别处独立注册的原因。
+    foreach (glob(config_path() . '/route/*.php') ?: [] as $moduleRoute) {
+        require $moduleRoute;
+    }
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径
