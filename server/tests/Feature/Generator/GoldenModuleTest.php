@@ -78,4 +78,20 @@ final class GoldenModuleTest extends TestCase
 
         $this->assertGoldenFile($path, $content, 'generated-override');
     }
+
+    public function test_service_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('service');
+
+        $this->assertSame('app/service/demo/GenArticleService.php', $path);
+        $this->assertGoldenFile($path, $content);
+    }
+
+    public function test_controller_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('controller');
+
+        $this->assertSame('app/adminapi/controller/demo/GenArticleController.php', $path);
+        $this->assertGoldenFile($path, $content);
+    }
 }
