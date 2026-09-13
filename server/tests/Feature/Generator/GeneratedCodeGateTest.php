@@ -201,4 +201,221 @@ final class GeneratedCodeGateTest extends TestCase
 
         $this->assertSame(0, $exitCode, implode("\n", $output));
     }
+
+    // -------------------------------------------------------------------
+    // 反向用例（评审要求）：以上四条只证明「干净的产物能过」，不证明门禁真的在看内容——如果
+    // check-context-discipline.sh 的路径解析或目录过滤将来被改坏成「悄悄扫了个空目录」，
+    // 四条 ✅ 会照样打印，只有这里的「注入已知违规、断言必须变红」能发现。断言不能只看退出码
+    // 非零：还要确认报出的确实是注入的那一处（文件名 + 规则文案），否则一个因为别的原因失败的
+    // 门禁也会让用例通过。每条用例都在 try/finally 里原地改、原地还原，不依赖其它用例的执行
+    // 顺序，也不污染后续用例或真实仓库。
+
+    /**
+     * check:check 规则二（本任务新增的可选路径参数最需要被钉住）：往生成的 Service 里注入一句
+     * 真实的 Db:: 调用，断言 check-context-discipline.sh 传自定义路径时必须变红，且报错文本
+     * 点名了被注入的那个文件——不是随便什么原因导致的非零退出码。
+     */
+    public function test_check_context_discipline_catches_an_injected_db_call_in_service(): void
+    {
+        $serviceFile = $this->findGeneratedFile('/app/service/demo/GenArticleService.php');
+        $original = (string) file_get_contents($serviceFile);
+        $mutated = $this->insertStatementBeforeFinalBrace(
+            $original,
+            "\n    public function ctxCheckInjectedViolation(): int\n    {\n        return (int) \\support\\Db::table('gen_articles')->count();\n    }\n"
+        );
+        file_put_contents($serviceFile, $mutated);
+
+        try {
+            exec(sprintf(
+                'bash %s %s 2>&1',
+                escapeshellarg(base_path() . '/scripts/check-context-discipline.sh'),
+                escapeshellarg(self::$tmpRoot . '/server')
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入了真实的 Db:: 调用之后，check:context 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString(
+                '直接调用了 Db::',
+                $text,
+                "退出码非零，但报错文本里没有规则二的文案，可能是别的原因导致的失败：\n{$text}"
+            );
+            $this->assertStringContainsString(
+                'app/service/demo/GenArticleService.php',
+                $text,
+                "报错文本没有点名被注入违规的那个文件：\n{$text}"
+            );
+        } finally {
+            file_put_contents($serviceFile, $original);
+            $this->assertSame($original, (string) file_get_contents($serviceFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /**
+     * check:context 规则四：往生成的 Repository 里注入 `$this->model->`（绕开 `$this->query()`
+     * 注入的数据权限），同样断言必须变红且点名具体文件——覆盖与规则二不同的 grep 目标/消息文案，
+     * 进一步确认自定义路径参数底下各条规则都真的在扫内容，不是只有第一条凑巧还生效。
+     */
+    public function test_check_context_discipline_catches_an_injected_model_property_access_in_repository(): void
+    {
+        $repositoryFile = $this->findGeneratedFile('/app/repository/demo/GenArticleRepository.php');
+        $original = (string) file_get_contents($repositoryFile);
+        $mutated = $this->insertStatementBeforeFinalBrace(
+            $original,
+            "\n    public function ctxCheckInjectedViolation(): int\n    {\n        return \$this->model->where('id', 1)->count();\n    }\n"
+        );
+        file_put_contents($repositoryFile, $mutated);
+
+        try {
+            exec(sprintf(
+                'bash %s %s 2>&1',
+                escapeshellarg(base_path() . '/scripts/check-context-discipline.sh'),
+                escapeshellarg(self::$tmpRoot . '/server')
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入了 \$this->model-> 之后，check:context 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString(
+                '直接使用了 $this->model->',
+                $text,
+                "退出码非零，但报错文本里没有规则四的文案，可能是别的原因导致的失败：\n{$text}"
+            );
+            $this->assertStringContainsString(
+                'app/repository/demo/GenArticleRepository.php',
+                $text,
+                "报错文本没有点名被注入违规的那个文件：\n{$text}"
+            );
+        } finally {
+            file_put_contents($repositoryFile, $original);
+            $this->assertSame($original, (string) file_get_contents($repositoryFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /** php -l：往生成的 Model 追加一段语法错误，断言必须变红并点名文件。 */
+    public function test_php_lint_catches_an_injected_syntax_error(): void
+    {
+        $modelFile = $this->findGeneratedFile('/app/model/demo/GenArticle.php');
+        $original = (string) file_get_contents($modelFile);
+        file_put_contents($modelFile, $original . "\nif (true) {\n    echo 'missing closing brace';\n");
+
+        try {
+            exec('php -l ' . escapeshellarg($modelFile) . ' 2>&1', $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入语法错误之后 php -l 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString('GenArticle.php', $text, "报错文本没有点名被注入违规的那个文件：\n{$text}");
+            $this->assertStringContainsStringIgnoringCase('error', $text, "报错文本看不出是语法错误：\n{$text}");
+        } finally {
+            file_put_contents($modelFile, $original);
+            $this->assertSame($original, (string) file_get_contents($modelFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /** cs-fixer：往生成的 Repository 追加一段长数组语法（违反 array_syntax=short），断言必须变红并点名文件。 */
+    public function test_cs_fixer_catches_an_injected_style_violation(): void
+    {
+        $repositoryFile = $this->findGeneratedFile('/app/repository/demo/GenArticleRepository.php');
+        $original = (string) file_get_contents($repositoryFile);
+        $mutated = $this->insertStatementBeforeFinalBrace(
+            $original,
+            "\n    public function ctxCheckInjectedViolation(): array\n    {\n        return array(1, 2, 3);\n    }\n"
+        );
+        file_put_contents($repositoryFile, $mutated);
+
+        $configPath = self::$tmpRoot . '/.php-cs-fixer.negative.php';
+        $finderTarget = var_export(self::$tmpRoot . '/server/app', true);
+        file_put_contents($configPath, <<<PHP
+            <?php
+
+            \$finder = PhpCsFixer\\Finder::create()->in({$finderTarget});
+
+            return (new PhpCsFixer\\Config())
+                ->setRules([
+                    '@PSR12' => true,
+                    'array_syntax' => ['syntax' => 'short'],
+                    'declare_strict_types' => true,
+                    'no_unused_imports' => true,
+                    'ordered_imports' => ['sort_algorithm' => 'alpha'],
+                ])
+                ->setRiskyAllowed(true)
+                ->setFinder(\$finder);
+            PHP);
+
+        try {
+            exec(sprintf(
+                'cd %s && vendor/bin/php-cs-fixer fix --config=%s --dry-run --diff --path-mode=intersection -- %s 2>&1',
+                escapeshellarg(base_path()),
+                escapeshellarg($configPath),
+                escapeshellarg($repositoryFile)
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入长数组语法之后 cs-fixer 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString('GenArticleRepository.php', $text, "报错文本没有点名被注入违规的那个文件：\n{$text}");
+            $this->assertStringContainsString('array(1, 2, 3)', $text, "diff 里看不到被注入的长数组语法，可能是别的原因导致的失败：\n{$text}");
+        } finally {
+            file_put_contents($repositoryFile, $original);
+            $this->assertSame($original, (string) file_get_contents($repositoryFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /** phpstan level 6：往生成的 Model 追加一个明确的返回类型错误，断言必须变红并点名文件与方法名。 */
+    public function test_phpstan_catches_an_injected_type_error(): void
+    {
+        $modelFile = $this->findGeneratedFile('/app/model/demo/GenArticle.php');
+        $original = (string) file_get_contents($modelFile);
+        $mutated = $this->insertStatementBeforeFinalBrace(
+            $original,
+            "\n    public function ctxCheckInjectedViolation(): int\n    {\n        return 'not-an-int';\n    }\n"
+        );
+        file_put_contents($modelFile, $mutated);
+
+        $neonPath = self::$tmpRoot . '/phpstan-negative.neon';
+        $neon = "parameters:\n"
+            . "    level: 6\n"
+            . "    paths:\n"
+            . '        - "' . addslashes(self::$tmpRoot . '/server/app') . "\"\n"
+            . "    bootstrapFiles:\n"
+            . '        - "' . addslashes(base_path() . '/vendor/autoload.php') . "\"\n"
+            . "    treatPhpDocTypesAsCertain: false\n"
+            . "    universalObjectCratesClasses:\n"
+            . "        - Webman\\Http\\Request\n";
+        file_put_contents($neonPath, $neon);
+
+        try {
+            exec(sprintf(
+                'cd %s && vendor/bin/phpstan analyse -c %s --memory-limit=1G --no-progress 2>&1',
+                escapeshellarg(base_path()),
+                escapeshellarg($neonPath)
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入返回类型错误之后 phpstan 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString('GenArticle.php', $text, "报错文本没有点名被注入违规的那个文件：\n{$text}");
+            $this->assertStringContainsString('ctxCheckInjectedViolation', $text, "报错文本没有点名被注入违规的那个方法，可能是别的原因导致的失败：\n{$text}");
+        } finally {
+            file_put_contents($modelFile, $original);
+            $this->assertSame($original, (string) file_get_contents($modelFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /** 在 self::$phpFiles（已落盘的绝对路径）里找一个按后缀匹配的文件，找不到就让用例直接失败。 */
+    private function findGeneratedFile(string $suffix): string
+    {
+        foreach (self::$phpFiles as $file) {
+            if (str_ends_with($file, $suffix)) {
+                return $file;
+            }
+        }
+        $this->fail("生成产物里没有找到后缀为 {$suffix} 的文件，先检查生成器是否还产出这个文件");
+    }
+
+    /** 把一段语句插进类文件最后一个右花括号之前——用于往合法的生成产物里注入一个新方法当作违规样本。 */
+    private function insertStatementBeforeFinalBrace(string $content, string $statement): string
+    {
+        $trimmed = rtrim($content);
+        $lastBrace = strrpos($trimmed, '}');
+        $this->assertNotFalse($lastBrace, '生成产物里找不到类的收尾右花括号，注入点选取失败');
+
+        return substr($trimmed, 0, $lastBrace) . $statement . "}\n";
+    }
 }
