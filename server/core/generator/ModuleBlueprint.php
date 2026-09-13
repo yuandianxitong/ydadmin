@@ -83,8 +83,13 @@ final class ModuleBlueprint
             'searchColumns' => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->searchable)),
             'hasStatus'     => $this->table->hasStatus(),
             'softDeletes'   => $this->table->hasSoftDeletes(),
-            // spec §7.3：created_by 或 dept_id 任一存在即受控；两列都没有则 false 且显式 creatorColumn = null
-            'dataScoped'    => $this->table->creatorColumn() !== null || $this->table->deptColumn() !== null,
+            // 裁定（推翻计划原公式 creatorColumn||deptColumn）：dataScoped 只认「有创建人列」。
+            // core\base\Repository::$ownerColumn 默认非空的 'created_by'，DataScopeScope 在
+            // self 快照下无条件 orWhere($owner, ...)；只有 dept_id、没有 created_by 的表若判成
+            // 受控，生成的 Repository 会对一个不存在的列拼 SQL，直接报错。要支持「仅部门」的
+            // 数据权限得先改基类语义，超出生成器模板的范围，所以这类表宁可默认不受控（模板里
+            // 会写明原因），也不生成一跑就错的代码。
+            'dataScoped'    => $this->table->creatorColumn() !== null,
             'creatorColumn' => $this->table->creatorColumn(),
             'deptColumn'    => $this->table->deptColumn(),
             'uniqueColumns' => $this->table->uniqueColumns(),

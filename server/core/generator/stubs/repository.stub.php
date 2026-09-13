@@ -50,6 +50,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
  *
 <?php if ($dataScoped): ?>
  * 受数据权限约束：表里有 <?= $creatorColumn ?? 'created_by' ?><?php if ($deptColumn !== null): ?> 与 <?= $deptColumn ?><?php endif; ?>，按 spec §5.2 自动接入；不想受控就把 $dataScoped 改成 false。
+<?php elseif ($deptColumn !== null): ?>
+ * 不受数据权限约束：表只有 <?= $deptColumn ?>、没有 created_by。core\base\Repository 的 $ownerColumn
+ * 默认非空（'created_by'），DataScopeScope 在“仅本人”快照下无条件按它 orWhere；仅有部门列撑不住
+ * 这个语义，判成受控会对一个不存在的列拼 SQL、直接报错。要支持「仅部门」的数据权限，先改基类
+ * 语义，再把下面的 $dataScoped 手改成 true 并显式设置 $deptColumn。
 <?php else: ?>
  * 不受数据权限约束：表里既没有 created_by 也没有 dept_id——照 FileRepository 的先例显式写出来，免得后来的人以为漏配。
 <?php endif; ?>
