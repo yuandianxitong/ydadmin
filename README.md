@@ -110,6 +110,31 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 
 **这道检查要跟着 schema 一起维护**：它靠 `DevDatabaseGuard` 里的 `REQUIRED` 清单逐项核对表与列，**后续里程碑每加一张表或一个列，都要往那份清单里补一行**，否则库过期时它会一声不吭地放行。
 
+## 代码生成器
+
+选一张已存在的数据表，配置字段（控件类型 / 是否列表展示 / 是否表单 / 是否可搜索），一键生成一套 CRUD 模块：Model / Repository / Service / Controller / 路由 / 中英语言包，加前端 API / 列表页 / 表单三个文件，再加一份菜单 SQL。
+
+- **后台页面**：登录后台 → 「开发工具 → 代码生成器」，走完选表 → 配置字段 → 预览 → 生成四步。
+- **命令行**：
+
+  ```bash
+  cd server
+  php webman make:crud gen_articles --module=article --model=GenArticle --comment="文章" --preview   # 先看会生成哪些文件
+  php webman make:crud gen_articles --module=article --model=GenArticle --comment="文章"              # 落盘
+  php webman make:crud gen_articles --module=article --model=GenArticle --force                        # 覆盖已生成的文件（页面文件永远不覆盖）
+  php webman make:crud gen_articles --module=article --model=GenArticle --reload                       # 生成后自动执行一次 reload
+  ```
+
+  `--module` 必填，没有默认值——生成器不替你猜一个会变成文件路径与 PHP 命名空间的名字，且不能用系统保留的模块名（`admin_log`/`auth`/`business`/`messages`/`validation`/`generator`；比如 `business`：它会撞上已有的 `resource/lang/{zh_CN,en}/business.php`）。`--model` 缺省按表名推断（去表前缀、去复数 `s`、下划线转大驼峰）；`--comment` 缺省取表注释。
+
+**生成后必须执行一次 `php start.php reload`（或加 `--reload`），新路由才会生效**——webman 是常驻内存进程，`config/route.php` 只在 worker 启动时读一次；生成器只是写文件，不会重启或通知任何进程，写盘完成不等于接口已经可以访问。
+
+生成器只创建新文件，从不修改已有文件：路由是每模块一个 `server/config/route/{module}.php`（`server/config/route.php` 会自动 `require` 这个目录下的所有文件，不用手动挂载）；语言包每模块一份；菜单与按钮权限只生成 SQL（`server/database/generated/{module}-menu.sql`），需要手工执行才会出现在菜单里。目标文件已存在时状态记为「已跳过」，后台页面与 `make:crud` 默认都不会覆盖，除非命令行加 `--force`——页面文件是唯一的例外，永远不会被覆盖，避免冲掉已经手改过的前端页面。
+
+数据权限按表结构自动判定：表里有 `created_by` 列就会生成受数据权限约束的 Repository，同时有 `dept_id` 列则一并启用部门范围；两列都没有则显式声明不受控。
+
+生成器跟随 `APP_DEBUG`：生产环境（`APP_DEBUG=false`）下「选表」「查看字段」两个只读接口仍可用，预览与生成会被拒绝——持有生成权限等于拥有向服务器写 PHP 文件的能力，这条限制避免生产环境暴露这个能力。
+
 ## 质量门禁
 
 在 `server/` 下执行，每个里程碑收尾必须全部通过：
