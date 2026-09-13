@@ -66,6 +66,7 @@ return [
     'file_type_not_allowed'     => '不允许上传该类型的文件',
     'image_size_exceeded'       => '图片大小不能超过 :size MB',
     'file_size_exceeded'        => '文件大小不能超过 :size MB',
+    'file_not_found'            => '文件不存在',
 
     // 存储
     'storage_driver_unsupported' => '不支持的存储驱动：:driver',

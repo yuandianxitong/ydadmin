@@ -45,7 +45,7 @@ final class Test6_RouteMountTest extends TestCase
             }
         }
 
-        $this->assertGreaterThanOrEqual(75, $checked, 'M1a 41 条（auth 3、admin 10、role 12、menu 9、department 7）+ M1b 34 条（config 7、dictionary 12、log 6、notification 9）');
+        $this->assertGreaterThanOrEqual(83, $checked, 'M1a 41 条（auth 3、admin 10、role 12、menu 9、department 7）+ M1b 34 条（config 7、dictionary 12、log 6、notification 9）+ M1c 8 条（file 6、upload 2）');
         $this->assertSame([], $offenders, "以下路由没有挂完整的认证组：\n" . implode("\n", $offenders));
     }
 

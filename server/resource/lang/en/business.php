@@ -66,6 +66,7 @@ return [
     'file_type_not_allowed'     => 'This file type is not allowed',
     'image_size_exceeded'       => 'Image size may not exceed :size MB',
     'file_size_exceeded'        => 'File size may not exceed :size MB',
+    'file_not_found'            => 'File not found',
 
     // Storage
     'storage_driver_unsupported'  => 'Unsupported storage driver: :driver',

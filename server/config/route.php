@@ -6,6 +6,7 @@ use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
+use app\adminapi\controller\system\FileController;
 use app\adminapi\controller\system\LogController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\NotificationController;
@@ -144,6 +145,15 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/recent-logs', [DashboardController::class, 'recentLogs']);
         Route::get('/recent-activities', [DashboardController::class, 'recentActivities']);
         Route::get('/active-ranking', [DashboardController::class, 'activeRanking']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/file', function () {
+        Route::get('', [FileController::class, 'index']);
+        Route::get('/groups', [FileController::class, 'groups']);
+        Route::post('/move-group', [FileController::class, 'moveGroup']);
+        Route::post('/batch-delete', [FileController::class, 'batchDelete']);
+        Route::put('/{id:\d+}/rename', [FileController::class, 'rename']);
+        Route::delete('/{id:\d+}', [FileController::class, 'delete']);
     })->middleware($adminAuth);
 
     Route::group('/upload', function () {

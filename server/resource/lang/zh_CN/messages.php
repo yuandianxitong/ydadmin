@@ -47,4 +47,7 @@ return [
     'time_months_ago'         => ':count个月前',
     'time_long_ago'           => '更早',
     'upload_success'          => '上传成功',
+    'move_success'            => '移动成功',
+    'rename_success'          => '重命名成功',
+    'file_delete_count'       => '成功删除 %d 个文件',
 ];

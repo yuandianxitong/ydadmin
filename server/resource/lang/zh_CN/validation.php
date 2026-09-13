@@ -204,6 +204,16 @@ return [
     'url'                  => ':attribute 必须是有效的 URL',
     'uuid'                 => ':attribute 必须是有效的 UUID',
 
+    // 文件管理
+    'file_ids_require'       => '请选择要操作的文件',
+    'file_ids_integer'       => '文件ID必须是整数',
+    'file_group_require'     => '请输入分组名称',
+    'file_group_max'         => '分组名称最多100个字符',
+    'file_name_require'      => '请输入文件名称',
+    'file_name_max'          => '文件名称最多255个字符',
+    'file_keyword_max'       => '搜索关键词最多100个字符',
+    'file_mime_type_invalid' => '文件类型筛选值无效',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

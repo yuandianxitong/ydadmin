@@ -47,4 +47,7 @@ return [
     'time_months_ago'         => ':count months ago',
     'time_long_ago'           => 'long ago',
     'upload_success'          => 'Uploaded successfully',
+    'move_success'            => 'Moved successfully',
+    'rename_success'          => 'Renamed successfully',
+    'file_delete_count'       => 'Deleted %d files successfully',
 ];

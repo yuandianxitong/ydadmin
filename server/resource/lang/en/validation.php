@@ -298,6 +298,16 @@ return [
     |
     */
 
+    // File management
+    'file_ids_require'       => 'Please select files to operate on',
+    'file_ids_integer'       => 'File ID must be an integer',
+    'file_group_require'     => 'Please enter a group name',
+    'file_group_max'         => 'Group name may not exceed 100 characters',
+    'file_name_require'      => 'Please enter a file name',
+    'file_name_max'          => 'File name may not exceed 255 characters',
+    'file_keyword_max'       => 'Keyword may not exceed 100 characters',
+    'file_mime_type_invalid' => 'Invalid file type filter',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

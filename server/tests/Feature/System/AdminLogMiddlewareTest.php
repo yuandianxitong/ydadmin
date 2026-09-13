@@ -13,9 +13,6 @@ use Webman\Route\Route as RouteObject;
 
 final class AdminLogMiddlewareTest extends ApiTestCase
 {
-    /** 预登记给 M1c Task 6 的控制器：文件管理路由尚未注册，反向核对时跳过（Task 6 落地后整条删除）。 */
-    private const PRE_REGISTERED = ['FileController'];
-
     /** @return list<object> 该管理员的操作日志，新的在前 */
     private function logsOf(int $adminId): array
     {
@@ -133,12 +130,12 @@ final class AdminLogMiddlewareTest extends ApiTestCase
             }
         }
 
-        $this->assertGreaterThanOrEqual(44, count($routed), 'M1a 25 条（auth 2、admin 7、role 6、menu 6、department 4）+ M1b 19 条（config 3、dictionary 7、log 4、notification 5）');
+        $this->assertGreaterThanOrEqual(50, count($routed), 'M1a 25 条（auth 2、admin 7、role 6、menu 6、department 4）+ M1b 19 条（config 3、dictionary 7、log 4、notification 5）+ M1c 6 条（file 4、upload 2）');
         $this->assertSame([], $missing, "以下写路由没有在 config/admin_log.php 登记动作文案：\n" . implode("\n", $missing));
 
         $stale = array_values(array_filter(
             array_keys($actions),
-            static fn (string $key): bool => !in_array($key, $routed, true) && !in_array(strstr($key, '@', true), self::PRE_REGISTERED, true)
+            static fn (string $key): bool => !in_array($key, $routed, true)
         ));
         $this->assertSame([], $stale, "映射表里这些键对不上任何写路由（拼错或路由已删）：\n" . implode("\n", $stale));
     }
