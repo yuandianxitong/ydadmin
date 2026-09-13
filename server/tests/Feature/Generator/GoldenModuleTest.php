@@ -94,4 +94,28 @@ final class GoldenModuleTest extends TestCase
         $this->assertSame('app/adminapi/controller/demo/GenArticleController.php', $path);
         $this->assertGoldenFile($path, $content);
     }
+
+    public function test_api_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('api');
+
+        $this->assertSame('admin/src/api/gen-article.ts', $path);
+        $this->assertGoldenFile($path, $content);
+    }
+
+    public function test_page_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('page');
+
+        $this->assertSame('admin/src/views/demo/gen-article/index.vue', $path);
+        $this->assertGoldenFile($path, $content);
+    }
+
+    public function test_form_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('form');
+
+        $this->assertSame('admin/src/views/demo/gen-article/components/GenArticleForm.vue', $path);
+        $this->assertGoldenFile($path, $content);
+    }
 }
