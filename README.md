@@ -70,6 +70,7 @@ location / {
     proxy_pass http://127.0.0.1:8000;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    client_max_body_size 100m;
 }
 ```
 
@@ -82,6 +83,7 @@ location / {
 **本地存储（默认）**：文件写到 `server/public/storage/uploads/{images|files}/{Ymd}/`，接口返回**相对** URL `/storage/…`，`files.url` 存的就是它——这样换域名不用改库。目录按需创建，`server/public/storage/` 在 `.gitignore` 里不进 git。部署要点：
 
 - 运行 webman 的用户要对 `server/public/` 有写权限；
+- **放在 nginx 后面时必须调高 `client_max_body_size`**（上面的反向代理片段里已经是 `100m`）。nginx 默认只有 1 MB，而 `server/config/server.php` 的 `max_package_size` 是 100 MiB、后台还能把单文件上限配到 80 MB；不改这一项的话，超过 1 MB 的上传会被 nginx 直接挡掉并返回它自己的 HTML 413 页面——请求根本到不了 PHP，没有本地化提示，也不会进任何日志，管理员无从诊断；
 - **这个目录要和数据库一起备份**，`files` 表只存路径，不存内容；
 - 放在 nginx 后面时可以让 nginx 直接吐静态文件，少过一次 PHP（不加也能用，webman 会返回 `public/` 下的文件，并带 `X-Content-Type-Options: nosniff`）：
 
@@ -93,6 +95,8 @@ location /storage/ {
 ```
 
 **云存储**：在「系统管理 → 系统配置 → 存储配置」里把 `storage_driver` 切成 `aliyun`（阿里云 OSS）、`tencent`（腾讯云 COS）或 `qiniu`（七牛），并填好对应的凭据与访问域名。每次上传都现读配置、现建驱动，改完立即生效；凭据填不全时上传直接报业务错误，**不会静默退回本地**。云驱动返回的是完整 URL，已有文件的 `url` 不受切换影响。云凭据不会出现在 `GET /system/config/global` 里（`is_public=0` 加凭据键黑名单两道过滤），只有 `storage_oss_domain` 这类前端拼图片地址要用的键是公开的。
+
+**bucket 的读权限必须设为公共读**（阿里云 OSS 为例：bucket 读写权限选「公共读」；腾讯云 COS、七牛同理，或者绑一个允许匿名读的加速域名）。`files.url` 存的是**持久化的公开地址**（自定义域名，或虚拟主机风格的 `https://{bucket}.{endpoint}/{key}`），不是有效期一小时的签名 URL——这是「不把会过期的签名 URL 写进库」那条决定的直接后果。私有 bucket 下上传会**成功**，当时没有任何报错，但存进 `files.url` 的地址会永久返回 403。
 
 三个云驱动的实现方式不完全一样：阿里云 OSS 与腾讯云 COS 用各自的官方 SDK；**七牛没有用官方的 `qiniu/php-sdk`——它在 autoload 阶段就抛 PHP 8.4 弃用警告**，所以七牛驱动是用 Guzzle 按七牛的签名规则直接发 HTTP 请求实现的，行为与官方 SDK 一致。另外，**阿里云 OSS 与腾讯云 COS 的 SDK 目前都不支持 Guzzle 8，因此依赖实际解析到 Guzzle 7.x**；**仓库自身的约束特意保持 `^7.9 || ^8.0` 不变**——把版本压到 7.x 的是这两个 SDK 各自的约束，`composer.lock` 记录实际解析到的版本，等 SDK 支持 Guzzle 8 时我们的声明不用改。所以不要「顺手」把它收窄成 `^7.9`：那等于把 SDK 当下的限制写成本仓库的政策。
 
