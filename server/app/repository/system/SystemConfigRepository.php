@@ -7,6 +7,7 @@ namespace app\repository\system;
 use app\model\system\SystemConfig;
 use core\base\Model;
 use core\base\Repository;
+use core\contract\ConfigValueReader;
 use Illuminate\Database\Eloquent\Builder;
 use support\Cache;
 
@@ -17,7 +18,7 @@ use support\Cache;
  *   - system_config.raw：全部启用配置的原始字符串，供需要分辨「明确关闭」与「值写坏了」的开关用。
  * 写配置的路径必须经 forgetCache()，它同时清三份；clear-cache 也只清这三份。
  */
-class SystemConfigRepository extends Repository
+class SystemConfigRepository extends Repository implements ConfigValueReader
 {
     private const CACHE_KEY = 'system_config.all';
 

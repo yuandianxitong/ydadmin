@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace core\storage;
 
-use app\repository\system\SystemConfigRepository;
+use core\contract\ConfigValueReader;
 use core\exception\BusinessException;
 use core\storage\driver\AliyunOssDriver;
 use core\storage\driver\LocalDriver;
@@ -18,7 +18,7 @@ use core\storage\driver\TencentCosDriver;
  * FileService，Webman 常驻内存下一旦缓存，管理员在系统配置页切了存储方式也不会生效——
  * 文件继续落在旧驱动上，接口却一路返回成功，属于最难排查的静默失败。TP8 用
  * `static $instance` + 配置变更时 `reset()` 打补丁，本项目直接不缓存：`getConfigDriver()`
- * 每次现读（`SystemConfigRepository` 自己有 1 小时缓存，写配置路径会 `forgetCache()`），
+ * 每次现读（缓存归 `ConfigValueReader` 的实现管，见该接口的注释），
  * `disk()` 每次现 new，用完即弃。本类不得新增任何 static 属性，也不得新增非 readonly
  * 实例属性（`composer check:context` 规则一用反射扫 app/、core/，会拦前者）。
  *
@@ -28,7 +28,7 @@ use core\storage\driver\TencentCosDriver;
  */
 final class StorageManager
 {
-    public function __construct(private readonly SystemConfigRepository $systemConfigRepository)
+    public function __construct(private readonly ConfigValueReader $configReader)
     {
     }
 
@@ -60,7 +60,7 @@ final class StorageManager
      */
     public function driverName(): string
     {
-        return (string) $this->systemConfigRepository->getConfigValue('storage_driver', 'local');
+        return (string) $this->configReader->getConfigValue('storage_driver', 'local');
     }
 
     /**
@@ -72,12 +72,12 @@ final class StorageManager
     private function getAliyunConfig(): array
     {
         return [
-            'access_key'    => (string) $this->systemConfigRepository->getConfigValue('storage_oss_access_key', ''),
-            'access_secret' => (string) $this->systemConfigRepository->getConfigValue('storage_oss_access_secret', ''),
-            'bucket'        => (string) $this->systemConfigRepository->getConfigValue('storage_oss_bucket', ''),
-            'endpoint'      => (string) $this->systemConfigRepository->getConfigValue('storage_oss_endpoint', ''),
-            'region'        => (string) $this->systemConfigRepository->getConfigValue('storage_oss_region', ''),
-            'domain'        => (string) $this->systemConfigRepository->getConfigValue('storage_oss_domain', ''),
+            'access_key'    => (string) $this->configReader->getConfigValue('storage_oss_access_key', ''),
+            'access_secret' => (string) $this->configReader->getConfigValue('storage_oss_access_secret', ''),
+            'bucket'        => (string) $this->configReader->getConfigValue('storage_oss_bucket', ''),
+            'endpoint'      => (string) $this->configReader->getConfigValue('storage_oss_endpoint', ''),
+            'region'        => (string) $this->configReader->getConfigValue('storage_oss_region', ''),
+            'domain'        => (string) $this->configReader->getConfigValue('storage_oss_domain', ''),
         ];
     }
 
@@ -89,11 +89,11 @@ final class StorageManager
     private function getTencentConfig(): array
     {
         return [
-            'secret_id'  => (string) $this->systemConfigRepository->getConfigValue('storage_cos_secret_id', ''),
-            'secret_key' => (string) $this->systemConfigRepository->getConfigValue('storage_cos_secret_key', ''),
-            'bucket'     => (string) $this->systemConfigRepository->getConfigValue('storage_cos_bucket', ''),
-            'region'     => (string) $this->systemConfigRepository->getConfigValue('storage_cos_region', ''),
-            'domain'     => (string) $this->systemConfigRepository->getConfigValue('storage_cos_domain', ''),
+            'secret_id'  => (string) $this->configReader->getConfigValue('storage_cos_secret_id', ''),
+            'secret_key' => (string) $this->configReader->getConfigValue('storage_cos_secret_key', ''),
+            'bucket'     => (string) $this->configReader->getConfigValue('storage_cos_bucket', ''),
+            'region'     => (string) $this->configReader->getConfigValue('storage_cos_region', ''),
+            'domain'     => (string) $this->configReader->getConfigValue('storage_cos_domain', ''),
         ];
     }
 
@@ -105,10 +105,10 @@ final class StorageManager
     private function getQiniuConfig(): array
     {
         return [
-            'access_key' => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_access_key', ''),
-            'secret_key' => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_secret_key', ''),
-            'bucket'     => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_bucket', ''),
-            'domain'     => (string) $this->systemConfigRepository->getConfigValue('storage_qiniu_domain', ''),
+            'access_key' => (string) $this->configReader->getConfigValue('storage_qiniu_access_key', ''),
+            'secret_key' => (string) $this->configReader->getConfigValue('storage_qiniu_secret_key', ''),
+            'bucket'     => (string) $this->configReader->getConfigValue('storage_qiniu_bucket', ''),
+            'domain'     => (string) $this->configReader->getConfigValue('storage_qiniu_domain', ''),
         ];
     }
 }
