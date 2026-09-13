@@ -60,12 +60,20 @@ if (!$exists || getenv('YDADMIN_TEST_DB_RESET') === '1' || $recorded !== $finger
     file_put_contents($fingerprintFile, $fingerprint);
 }
 
-// 4.5 开发库过期检查：测试库上一步已按指纹自动重建，开发库不会自己更新。结构落后时在这里
-//     直接说清楚该做什么，而不是让开发者在业务代码里撞一个 Table doesn't exist。
-$staleParts = core\database\DevDatabaseGuard::missing($pdo, $devDatabase);
-if ($staleParts !== []) {
-    fwrite(STDERR, "开发库 {$devDatabase} 的结构已过期（" . implode('；', $staleParts) . "）。请执行 php webman db:reset\n");
+// 4.5 测试库结构自检：上一步已按指纹重建，这里是兜底——指纹算法本身有 bug 或安装脚本本身漏表时，
+//     测试实际连接的就是这个库，在这里报错比让某条业务测试撞一个看不懂的 Table doesn't exist 更清楚。
+$testStale = core\database\DevDatabaseGuard::missing($pdo, $testDb);
+if ($testStale !== []) {
+    fwrite(STDERR, "测试库 {$testDb} 结构不完整（" . implode('；', $testStale) . "），安装脚本或指纹逻辑有问题，无法继续测试\n");
     exit(1);
+}
+
+// 4.6 开发库过期提醒：只提醒、不阻断。测试连的是上面的 $testDb，从不触碰这个库，卡住整条测试流水线
+//     换不来任何保护，而唯一能解除阻断的手段是对开发者本地库做破坏性 db:reset——谁都没有权限替开发者
+//     做这个决定，所以这里只打一行清楚的警告，把决定权交还给开发者。
+$devStale = core\database\DevDatabaseGuard::missing($pdo, $devDatabase);
+if ($devStale !== []) {
+    fwrite(STDERR, "警告：开发库 {$devDatabase} 结构已过期（" . implode('；', $devStale) . "），下次要跑本地业务前请执行 php webman db:reset\n");
 }
 
 // 5. 执行 config/bootstrap.php 注册的引导类（Eloquent 等）
