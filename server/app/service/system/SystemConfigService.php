@@ -32,6 +32,17 @@ class SystemConfigService extends Service
     private const SWITCH_OFF_VALUES = ['0', 'false', 'no', 'off'];
 
     /**
+     * 这两项是「按 MB 数配置的上传大小上限」，最终都要与 Workerman 的 `max_package_size`
+     * （config/server.php）比较（Task 7 ruling 1）：包体（含 multipart 头）超过这个值时，
+     * Workerman 在应用代码跑之前就把连接断开，前端看到的是连接重置而不是本地化的错误文案。
+     * 管理员能填的上限因此不能顶格等于 max_package_size，必须留出协议开销的余量。
+     */
+    private const UPLOAD_SIZE_CONFIG_KEYS = ['storage_upload_max_size', 'storage_image_max_size'];
+
+    /** 协议开销余量：multipart 头、boundary 等；留得比实际开销宽裕得多，不是精确计算。 */
+    private const UPLOAD_SIZE_PACKAGE_BUFFER_BYTES = 20 * 1024 * 1024;
+
+    /**
      * 配置分组：契约 §2.7 硬编码的 5 组，是前端配置页 tab 的来源。形式为 group => lang key。
      *
      * @var array<string, string>
@@ -163,6 +174,8 @@ class SystemConfigService extends Service
      */
     private function serializeValue(array $config, mixed $value): string
     {
+        $this->assertUploadSizeWithinPackageLimit($config, $value);
+
         if ((string) $config['config_type'] === 'json') {
             if (is_string($value) && trim($value) !== '' && json_validate($value)) {
                 return $value;
@@ -184,5 +197,37 @@ class SystemConfigService extends Service
     private function invalidValue(array $config): BusinessException
     {
         return new BusinessException(lang('business.config_value_invalid', ['key' => (string) $config['config_key']]));
+    }
+
+    /**
+     * 上传大小上限（Task 7 ruling 1）：`storage_upload_max_size` / `storage_image_max_size`
+     * 不能被改到 Workerman 的 `max_package_size` 都装不下的值，否则请求在应用代码跑之前就
+     * 被断开连接，管理员改完配置后看到的是一片「上传全部失败、没有任何错误提示」。
+     * 非数字值不在这里挡（交给后面的类型序列化处理），只挡「数字但太大」这一种情形。
+     *
+     * @param array<string, mixed> $config
+     */
+    private function assertUploadSizeWithinPackageLimit(array $config, mixed $value): void
+    {
+        $key = (string) $config['config_key'];
+        if (!in_array($key, self::UPLOAD_SIZE_CONFIG_KEYS, true) || !is_numeric($value)) {
+            return;
+        }
+
+        $maxMb = $this->maxUploadSizeMb();
+        if ((int) $value > $maxMb) {
+            throw new BusinessException(lang('business.upload_size_exceeds_package_limit', ['key' => $key, 'max' => $maxMb]));
+        }
+    }
+
+    /**
+     * 管理员能填的上传大小上限（MB）：由 `config('server.max_package_size')` 减去协议开销余量
+     * 换算得到，两处数字不需要分别维护，`max_package_size` 一旦调整，这里跟着变。
+     */
+    private function maxUploadSizeMb(): int
+    {
+        $packageBytes = (int) config('server.max_package_size', 10 * 1024 * 1024);
+
+        return max(1, intdiv($packageBytes - self::UPLOAD_SIZE_PACKAGE_BUFFER_BYTES, 1024 * 1024));
     }
 }

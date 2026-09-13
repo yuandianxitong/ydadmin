@@ -131,6 +131,48 @@ final class SystemConfigApiTest extends ApiTestCase
         $this->assertSame(lang('business.config_not_found'), $this->put(self::BASE . '/999999', ['config_value' => 'x'], $admin->token)->assertCode(400)->message());
     }
 
+    /**
+     * Task 7 ruling 1：storage_upload_max_size / storage_image_max_size 是管理员能改的上传大小上限（MB），
+     * 不能被改到 Workerman 的 max_package_size（config/server.php）都装不下的值——否则请求在应用代码
+     * 跑之前就被断开连接，管理员看到的是一片诊断不出原因的上传失败。
+     */
+    public function test_upload_size_configs_reject_values_the_server_wont_accept(): void
+    {
+        $admin = $this->actingAsAdmin(['system.config.update']);
+
+        foreach (['storage_upload_max_size', 'storage_image_max_size'] as $key) {
+            $this->rememberConfig($key);
+            $id = $this->idOf($key);
+
+            // ruling 1 举的例子：把上限调到 50MB。max_package_size 已经放宽到 100MiB，
+            // 这个值必须能正常写入——旧的 10MiB 包体上限会让它连库都写不进去合理生效。
+            $this->put(self::BASE . "/{$id}", ['config_value' => '50'], $admin->token)->assertOk();
+            $this->assertSame('50', $this->storedValue($id));
+
+            // 大到无论怎么留余量都会超过 max_package_size 的值，必须被业务校验挡住，不能覆盖掉上一次成功写入的值
+            $response = $this->put(self::BASE . "/{$id}", ['config_value' => '99999'], $admin->token)->assertCode(400);
+            $this->assertSame(lang('business.upload_size_exceeds_package_limit', ['key' => $key, 'max' => $this->maxUploadSizeMb()]), $response->message());
+            $this->assertSame('50', $this->storedValue($id), '超限的值不能写进库');
+
+            $this->put(self::BASE . "/{$id}", ['config_value' => $this->maxUploadSizeMb()], $admin->token)->assertOk();
+            $this->put(self::BASE . "/{$id}", ['config_value' => (string) ($this->maxUploadSizeMb() + 1)], $admin->token)->assertCode(400);
+        }
+    }
+
+    /** 服务器的 max_package_size 要在种子默认的上传上限（10MB）之上留出足够大的余量，否则默认配置本身就是坏的。 */
+    public function test_server_package_size_leaves_comfortable_headroom_over_the_seeded_upload_limits(): void
+    {
+        $packageMb = intdiv((int) config('server.max_package_size'), 1024 * 1024);
+        $this->assertGreaterThanOrEqual(60, $packageMb, 'max_package_size 至少要能装下 50MB 的上传上限再加上协议开销余量');
+        $this->assertGreaterThan(10, $this->maxUploadSizeMb(), '管理员能填的上限要明显大于种子默认值 10MB，否则等于没改');
+    }
+
+    /** 与 SystemConfigService::maxUploadSizeMb() 相同的换算，只在测试里重复一次算法，不反射私有方法。 */
+    private function maxUploadSizeMb(): int
+    {
+        return max(1, intdiv((int) config('server.max_package_size') - 20 * 1024 * 1024, 1024 * 1024));
+    }
+
     public function test_batch_update_is_all_or_nothing(): void
     {
         $admin = $this->actingAsAdmin(['system.config.update']);
@@ -152,6 +194,16 @@ final class SystemConfigApiTest extends ApiTestCase
         $this->assertSame('批量站名', $this->storedValue($this->idOf('site_name')));
         $this->assertSame('京ICP备00000000号', $this->storedValue($this->idOf('site_icp')));
         $this->assertSame('批量站名', $this->get(self::BASE . '/global', [], $admin->token)->assertOk()->data()['site_name'], '提交后清了配置缓存');
+
+        // 上传大小上限的校验对批量更新同样生效（两条路径共用 serializeValue()）
+        $this->rememberConfig('storage_upload_max_size');
+        $overLimit = $this->post(self::BASE . '/batch-update', ['configs' => [
+            ['config_key' => 'storage_upload_max_size', 'config_value' => '99999'],
+        ]], $admin->token)->assertCode(400);
+        $this->assertSame(
+            lang('business.upload_size_exceeds_package_limit', ['key' => 'storage_upload_max_size', 'max' => $this->maxUploadSizeMb()]),
+            $overLimit->message()
+        );
 
         $this->post(self::BASE . '/batch-update', ['configs' => []], $admin->token)->assertCode(422);
         $errors = $this->post(self::BASE . '/batch-update', ['configs' => [['config_value' => 'x']]], $admin->token)->assertCode(422)->data()['errors'];

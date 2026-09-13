@@ -59,6 +59,7 @@ return [
     'config_not_found'          => '配置不存在',
     'config_key_not_found'      => '配置项不存在：:key',
     'config_value_invalid'      => '配置项 :key 的值格式不正确',
+    'upload_size_exceeds_package_limit' => ':key 不能超过 :max MB（受服务器请求体大小上限约束）',
 
     // 素材与上传
     'please_select_upload'      => '请选择要上传的文件',

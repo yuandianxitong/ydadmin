@@ -152,8 +152,12 @@ class UploadService extends Service
         $filename = date('Ymd') . '/' . bin2hex(random_bytes(16)) . '.' . $extension;
         $relativePath = 'uploads/' . $group . '/' . $filename;
 
+        // diskFor($driver) 而不是 disk()：disk() 会自己再读一次 storage_driver，
+        // 常驻内存下配置随时可能被另一个请求改掉，两次读之间不保证一致（Task 7 ruling 2）。
+        // 落库的 storage 列与实际存字节的驱动必须来自同一次读取，否则 FileService::deleteFile()
+        // 按这一列回删物理文件时就可能找错驱动。
         $driver = $this->currentDriver();
-        $disk = $this->storageManager->disk();
+        $disk = $this->storageManager->diskFor($driver);
         $disk->put($localTmpPath, $relativePath);
         $url = $disk->getUrl($relativePath);
 

@@ -59,6 +59,7 @@ return [
     'config_not_found'          => 'Configuration not found',
     'config_key_not_found'      => 'Configuration key not found: :key',
     'config_value_invalid'      => 'Invalid value for configuration :key',
+    'upload_size_exceeds_package_limit' => ':key cannot exceed :max MB (bounded by the server request size limit)',
 
     // File & upload
     'please_select_upload'      => 'Please select a file to upload',
