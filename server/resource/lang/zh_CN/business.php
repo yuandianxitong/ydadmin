@@ -59,4 +59,8 @@ return [
     'config_not_found'          => '配置不存在',
     'config_key_not_found'      => '配置项不存在：:key',
     'config_value_invalid'      => '配置项 :key 的值格式不正确',
+
+    // 存储
+    'storage_driver_unsupported' => '不支持的存储驱动：:driver',
+    'storage_sdk_not_integrated' => '该存储方式依赖云厂商 SDK，尚未接入',
 ];

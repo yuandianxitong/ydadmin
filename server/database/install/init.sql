@@ -116,3 +116,34 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (70, 2, 2, '文件管理', 'SystemFile', '/system/file', '/system/file/index', NULL, 'i-svg:folder-open', 'system.file.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 7, NOW(), NOW()),
   (72, 70, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.file.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (71, 70, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.file.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M1c：存储配置
+
+-- storage 分组 19 项：TP8 的 18 项（键名、值、说明、config_options、config_depends、sort_order 逐字照抄）
+-- 加上本项目显式新增的 storage_oss_region（sort_order 15，排在 storage_oss_domain 之后，不打乱 TP8 的编号）。
+-- is_public：只有前端真的要读的 7 个键公开——admin 的 app.store.ts 用 storage_oss_domain 拼图片前缀，
+-- 上传大小与扩展名限制在前端做预校验；bucket / endpoint / region 与全部凭据一律不公开（凭据另有
+-- SystemConfigService::isSensitiveKey() 黑名单兜底，红线 Test13 在守）。
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
+  ('storage_driver', 'local', 'storage', 'select', '存储方式', '选择文件存储方式', '{"local":"本地存储","aliyun":"阿里云OSS","tencent":"腾讯云COS","qiniu":"七牛云"}', NULL, 1, 1, 1, NOW(), NOW()),
+  ('storage_upload_max_size', '10', 'storage', 'number', '最大上传(MB)', '单个文件最大上传大小，单位MB', NULL, NULL, 2, 1, 1, NOW(), NOW()),
+  ('storage_upload_allowed_ext', 'jpg,jpeg,png,gif,svg,webp,bmp,doc,docx,xls,xlsx,ppt,pptx,pdf,zip,rar,txt,csv', 'storage', 'string', '允许的文件类型', '允许上传的文件扩展名，英文逗号分隔', NULL, NULL, 3, 1, 1, NOW(), NOW()),
+  ('storage_image_max_size', '5', 'storage', 'number', '图片最大(MB)', '单张图片最大上传大小，单位MB', NULL, NULL, 4, 1, 1, NOW(), NOW()),
+  -- 阿里云 OSS
+  ('storage_oss_access_key', '', 'storage', 'string', 'OSS AccessKey', '阿里云OSS AccessKey ID', NULL, '{"field":"storage_driver","value":"aliyun"}', 10, 1, 0, NOW(), NOW()),
+  ('storage_oss_access_secret', '', 'storage', 'string', 'OSS AccessSecret', '阿里云OSS AccessKey Secret', NULL, '{"field":"storage_driver","value":"aliyun"}', 11, 1, 0, NOW(), NOW()),
+  ('storage_oss_bucket', '', 'storage', 'string', 'OSS Bucket', '阿里云OSS Bucket名称', NULL, '{"field":"storage_driver","value":"aliyun"}', 12, 1, 0, NOW(), NOW()),
+  ('storage_oss_endpoint', '', 'storage', 'string', 'OSS Endpoint', '阿里云OSS 访问域名，如 oss-cn-hangzhou.aliyuncs.com', NULL, '{"field":"storage_driver","value":"aliyun"}', 13, 1, 0, NOW(), NOW()),
+  ('storage_oss_domain', '', 'storage', 'string', 'OSS 自定义域名', '绑定的自定义域名，用于生成访问URL', NULL, '{"field":"storage_driver","value":"aliyun"}', 14, 1, 1, NOW(), NOW()),
+  ('storage_oss_region', '', 'storage', 'string', 'OSS Region', '阿里云OSS 地域，如 cn-hangzhou；留空则尝试从 Endpoint 推导', NULL, '{"field":"storage_driver","value":"aliyun"}', 15, 1, 0, NOW(), NOW()),
+  -- 腾讯云 COS
+  ('storage_cos_secret_id', '', 'storage', 'string', 'COS SecretId', '腾讯云COS SecretId', NULL, '{"field":"storage_driver","value":"tencent"}', 20, 1, 0, NOW(), NOW()),
+  ('storage_cos_secret_key', '', 'storage', 'string', 'COS SecretKey', '腾讯云COS SecretKey', NULL, '{"field":"storage_driver","value":"tencent"}', 21, 1, 0, NOW(), NOW()),
+  ('storage_cos_bucket', '', 'storage', 'string', 'COS Bucket', '腾讯云COS Bucket名称（含AppId后缀，如 bucket-1250000000）', NULL, '{"field":"storage_driver","value":"tencent"}', 22, 1, 0, NOW(), NOW()),
+  ('storage_cos_region', '', 'storage', 'string', 'COS Region', '腾讯云COS 地域，如 ap-guangzhou', NULL, '{"field":"storage_driver","value":"tencent"}', 23, 1, 0, NOW(), NOW()),
+  ('storage_cos_domain', '', 'storage', 'string', 'COS 自定义域名', '绑定的自定义域名，用于生成访问URL', NULL, '{"field":"storage_driver","value":"tencent"}', 24, 1, 1, NOW(), NOW()),
+  -- 七牛云
+  ('storage_qiniu_access_key', '', 'storage', 'string', '七牛 AccessKey', '七牛云 AccessKey', NULL, '{"field":"storage_driver","value":"qiniu"}', 30, 1, 0, NOW(), NOW()),
+  ('storage_qiniu_secret_key', '', 'storage', 'string', '七牛 SecretKey', '七牛云 SecretKey', NULL, '{"field":"storage_driver","value":"qiniu"}', 31, 1, 0, NOW(), NOW()),
+  ('storage_qiniu_bucket', '', 'storage', 'string', '七牛 Bucket', '七牛云存储空间名称', NULL, '{"field":"storage_driver","value":"qiniu"}', 32, 1, 0, NOW(), NOW()),
+  ('storage_qiniu_domain', '', 'storage', 'string', '七牛访问域名', '七牛云存储空间绑定的域名（含协议，如 https://cdn.example.com）', NULL, '{"field":"storage_driver","value":"qiniu"}', 33, 1, 1, NOW(), NOW());

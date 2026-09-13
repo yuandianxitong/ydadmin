@@ -59,4 +59,8 @@ return [
     'config_not_found'          => 'Configuration not found',
     'config_key_not_found'      => 'Configuration key not found: :key',
     'config_value_invalid'      => 'Invalid value for configuration :key',
+
+    // Storage
+    'storage_driver_unsupported' => 'Unsupported storage driver: :driver',
+    'storage_sdk_not_integrated' => 'This storage driver depends on a cloud vendor SDK that has not been integrated yet',
 ];

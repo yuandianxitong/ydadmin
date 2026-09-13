@@ -20,7 +20,9 @@ final class GlobalConfigTest extends ApiTestCase
     public function test_returns_flat_converted_map_without_credentials(): void
     {
         $now = date('Y-m-d H:i:s');
-        $keys = ['storage_oss_access_key', 'storage_oss_access_secret', 'smtp_pass', 'pay_wechat_api_v3_key', 'wechat_official_aes_key', 'third_party_token', 'pay_alipay_private_key', 'pay_wechat_mch_key'];
+        // storage_oss_access_key / storage_oss_access_secret 已是 M1c 种子的真实配置键（唯一索引），
+        // 这里换成不会与种子冲突的 fixture 键名，规则命中的子串（access_key / secret）不变
+        $keys = ['storage_fixture_access_key', 'storage_fixture_access_secret', 'smtp_pass', 'pay_wechat_api_v3_key', 'wechat_official_aes_key', 'third_party_token', 'pay_alipay_private_key', 'pay_wechat_mch_key'];
         foreach ($keys as $i => $key) {
             // 故意标成公开：白名单放行后，必须由键名黑名单拦下
             $this->track('system_configs', (int) Db::table('system_configs')->insertGetId([

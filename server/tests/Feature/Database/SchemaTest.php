@@ -86,6 +86,48 @@ final class SchemaTest extends TestCase
         $this->assertSame('/system/file/index', $menus[0]->component);
     }
 
+    public function test_storage_config_seeds(): void
+    {
+        $rows = Db::table('system_configs')->where('config_group', 'storage')->orderBy('sort_order')->get()->all();
+        $this->assertCount(19, $rows, 'TP8 的 18 项 + 本项目新增的 storage_oss_region');
+
+        $byKey = [];
+        foreach ($rows as $row) {
+            $byKey[(string) $row->config_key] = $row;
+        }
+        $this->assertSame('local', $byKey['storage_driver']->config_value);
+        $this->assertSame('10', $byKey['storage_upload_max_size']->config_value);
+        $this->assertSame('5', $byKey['storage_image_max_size']->config_value);
+        $this->assertStringContainsString('svg', $byKey['storage_upload_allowed_ext']->config_value, '种子放行 svg，危险扩展名由 denylist 拦（红线 Test15）');
+        // assertEquals（非 assertSame）：MySQL 的 JSON 列在读出时按（长度,字典序）归一化成员顺序，
+        // 不保留写入顺序，四个驱动名长度不同会被重排；这里只关心键值内容，顺序不是契约的一部分。
+        $this->assertEquals(
+            ['local' => '本地存储', 'aliyun' => '阿里云OSS', 'tencent' => '腾讯云COS', 'qiniu' => '七牛云'],
+            json_decode((string) $byKey['storage_driver']->config_options, true)
+        );
+        $this->assertSame(
+            ['field' => 'storage_driver', 'value' => 'aliyun'],
+            json_decode((string) $byKey['storage_oss_bucket']->config_depends, true),
+            'config_depends 驱动前端的联动显示'
+        );
+
+        // storage_oss_region：契约 §2.9.3 键集之外、本项目显式新增的一项（默认空，留空时由驱动从 endpoint 推导）
+        $this->assertArrayHasKey('storage_oss_region', $byKey);
+        $this->assertSame('', $byKey['storage_oss_region']->config_value);
+        $this->assertSame(15, (int) $byKey['storage_oss_region']->sort_order, '排在 storage_oss_domain(14) 之后，不打乱 TP8 的编号');
+        $this->assertSame(
+            ['field' => 'storage_driver', 'value' => 'aliyun'],
+            json_decode((string) $byKey['storage_oss_region']->config_depends, true)
+        );
+
+        // is_public：前端要读的 7 个键才公开，凭据与 bucket/endpoint/region 一律不公开
+        $public = ['storage_driver', 'storage_upload_max_size', 'storage_upload_allowed_ext', 'storage_image_max_size', 'storage_oss_domain', 'storage_cos_domain', 'storage_qiniu_domain'];
+        foreach ($byKey as $key => $row) {
+            $this->assertSame(in_array($key, $public, true) ? 1 : 0, (int) $row->is_public, "{$key} 的 is_public 不对");
+            $this->assertSame(1, (int) $row->status, "{$key} 应当启用");
+        }
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');
