@@ -4,8 +4,8 @@
  * 操作日志动作文案（spec §6.2）。
  *
  * actions：键为「短类名@方法」，值为 [action 的 lang 键, description 的 lang 键]，
- *   AdminLogMiddleware 写日志时按当次请求的 locale 用 lang() 解析。覆盖 M1a、M1b 全部写接口，
- *   并预登记 M1c 的 FileController、UploadController。未收录的落到 messages.operation / messages.execute_operation。
+ *   AdminLogMiddleware 写日志时按当次请求的 locale 用 lang() 解析。覆盖 M1a、M1b、M1c 全部写接口
+ *   （含 FileController 与 UploadController）。未收录的落到 messages.operation / messages.execute_operation。
  *   新增写接口必须同时登记——tests/Feature/System/AdminLogMiddlewareTest 会逐条核对路由表（也会找出对不上路由的键）。
  * masked_params：键名看不出敏感、但值可能是凭据的参数，按动作整字段脱敏。
  */
@@ -73,7 +73,7 @@ return [
         'NotificationController@read'    => ['admin_log.notification_read', 'admin_log.notification_read_desc'],
         'NotificationController@readAll' => ['admin_log.notification_read_all', 'admin_log.notification_read_all_desc'],
 
-        // M1c 预登记：素材与上传
+        // 素材与上传（M1c）
         'FileController@moveGroup'   => ['admin_log.file_move_group', 'admin_log.file_move_group_desc'],
         'FileController@rename'      => ['admin_log.file_rename', 'admin_log.file_rename_desc'],
         'FileController@delete'      => ['admin_log.file_delete', 'admin_log.file_delete_desc'],

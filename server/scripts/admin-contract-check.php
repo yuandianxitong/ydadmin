@@ -3,7 +3,8 @@
 /**
  * 契约检查（spec §7.1）：对运行中的服务逐条断言响应格式与关键字段，随里程碑扩充。
  *
- * 用法：php webman db:reset --force（开发库首次或表结构变化后）→ php start.php start -d → php scripts/admin-contract-check.php
+ * 用法：php webman db:reset（开发库首次或表结构变化后；它会删库重建，销毁开发库里的全部数据，
+ *   请先确认 .env 指向的确实是可以丢的开发库）→ php start.php start -d → php scripts/admin-contract-check.php
  * M1a 起：用 .env 配置的库临时建一个超管账号（contract_ 前缀），跑完删除；验证码从服务同一个 Redis 读取，校验照常执行。
  * M1b 起：覆盖配置、字典、日志、通知、仪表盘。改过的配置在退出时写回原值；日志的删除与清空只用一个
  *   「本部门」数据范围的临时账号执行，只会动到本次运行自己产生的日志；操作日志中间件为临时账号记下的日志随账号一起删除。

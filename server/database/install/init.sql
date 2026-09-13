@@ -121,8 +121,10 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 
 -- storage 分组 19 项：TP8 的 18 项（键名、值、说明、config_options、config_depends、sort_order 逐字照抄）
 -- 加上本项目显式新增的 storage_oss_region（sort_order 15，排在 storage_oss_domain 之后，不打乱 TP8 的编号）。
--- is_public：只有前端真的要读的 7 个键公开——admin 的 app.store.ts 用 storage_oss_domain 拼图片前缀，
--- 上传大小与扩展名限制在前端做预校验；bucket / endpoint / region 与全部凭据一律不公开（凭据另有
+-- is_public：只有前端真的要读的 7 个键公开——admin 的 app.store.ts 用 storage_oss_domain 拼图片前缀；
+-- storage_upload_max_size / storage_image_max_size / storage_upload_allowed_ext 这三个上传限制键公开，
+-- 是为了将来前端能做上传前的预校验，**目前 admin/src 里还没有任何地方读它们**（真正生效的校验在服务端
+-- UploadService，前端不读也不影响正确性）。bucket / endpoint / region 与全部凭据一律不公开（凭据另有
 -- SystemConfigService::isSensitiveKey() 黑名单兜底，红线 Test13 在守）。
 INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
   ('storage_driver', 'local', 'storage', 'select', '存储方式', '选择文件存储方式', '{"local":"本地存储","aliyun":"阿里云OSS","tencent":"腾讯云COS","qiniu":"七牛云"}', NULL, 1, 1, 1, NOW(), NOW()),
