@@ -132,6 +132,28 @@ class GeneratorService extends Service
     }
 
     /**
+     * 产物的磁盘绝对路径（make:crud 的 --force 专用）。preview() 返回的 path 是给前端展示用的
+     * 相对路径（displayPath()，相对仓库根，见该方法注释），不能直接拿去 is_file()/unlink()——
+     * CLI 的工作目录是 server/，"server/app/..." 这种相对路径会被解析成 "server/server/app/..."，
+     * 悄悄找不到任何已存在的文件，--force 就变成了一个不起作用的开关。这里复用 buildArtifacts()
+     * 与 absolutePath()（跟 generate() 落盘用的是同一份），只是换一种形态返回，preview()/generate()
+     * 的返回值签名不受影响。
+     *
+     * @return array<string, string> key => 绝对路径
+     */
+    public function targetPaths(GeneratorRequest $request): array
+    {
+        $this->assertWritesEnabled();
+
+        $result = [];
+        foreach ($this->buildArtifacts($request) as $key => $artifact) {
+            $result[$key] = $this->absolutePath($artifact['base'], $artifact['path']);
+        }
+
+        return $result;
+    }
+
+    /**
      * 产物落盘的基准：后端在 server/，前端在仓库根。做成 protected 方法而不是常量或属性，
      * 是为了让测试用子类把产物打到 runtime 下的临时目录（spec §11.2「产物写在测试临时目录里」）——
      * Service 是容器单例，不允许为此加可变属性。
