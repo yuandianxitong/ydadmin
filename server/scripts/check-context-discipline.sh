@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 # 常驻内存纪律检查（spec §3.4）。
 #
+# 用法：scripts/check-context-discipline.sh [target_root]
+#   不传参数：检查本仓库的 app/ 与 core/（与之前完全一致）。
+#   传参数：检查 <target_root>/app 与 <target_root>/core——M2a 代码生成器的门禁测试用它把同一套
+#   规则跑在生成产物的临时目录上，而不是真实仓库。
+#
+#   例外：规则一（可变静态属性）委托给 scripts/check-static-properties.php，那个脚本内部硬编码
+#   扫描本仓库真实的 app/、core/（`dirname(__DIR__)` 取的是它自己的真实安装路径，不接受任何参数）。
+#   它不在本次改动范围内——本脚本这里加的可选路径参数只覆盖规则二～六——所以规则一无法跟着这个
+#   路径参数走：传参数运行时，规则一检查的仍然是本仓库真实代码，不会覆盖临时目录里的生成产物。
+#   这是已知限制，不是遗漏：生成产物的静态属性检查因此只能靠 phpstan/cs-fixer 的常规规则间接兜底，
+#   门禁测试里会写清楚这一点。
+#
 # 规则一：app/、core/ 禁止可变静态属性——请求态必须放 support\Context。
 #   白名单按「文件:属性名」登记（不按行号，改代码不会让白名单失效），每条都要写明为什么安全。
 #   用反射（scripts/check-static-properties.php）而不是正则匹配源码：修饰符顺序
@@ -8,7 +20,23 @@
 #   变化都不会绕过反射得到的属性元数据。
 # 规则二：Service 与 Controller 禁止直接调用 Db::（不区分大小写，PHP 类名不区分大小写）——查询一律封装在 Repository。
 set -eo pipefail
-cd "$(dirname "$0")/.."
+
+# 脚本自身的绝对路径：下面要 cd 到检查目标（可能是仓库外的临时目录），之后仍要能找到
+# 同目录下的 check-static-properties.php，不能再用相对路径 "scripts/check-static-properties.php"。
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TARGET_ROOT="${1:-$REPO_ROOT}"
+if [ ! -d "$TARGET_ROOT" ]; then
+  echo "❌ 目标目录不存在：$TARGET_ROOT"
+  exit 1
+fi
+TARGET_ROOT="$(cd "$TARGET_ROOT" && pwd)"
+cd "$TARGET_ROOT"
+if [ "$TARGET_ROOT" != "$REPO_ROOT" ]; then
+  # 用 printf 而不是 echo "...$TARGET_ROOT（..."：同一个 bash 3.2 / zh_CN.UTF-8 的「变量名后面
+  # 紧跟多字节字符」解析 bug（规则三那条注释描述的那个），实测会把 $TARGET_ROOT 的内容吃掉。
+  printf 'ℹ️  按自定义路径检查：%s（规则一仍检查本仓库真实的 app/、core/，见脚本头部说明）\n' "$TARGET_ROOT"
+fi
 
 STATIC_WHITELIST=(
   'core/auth/TokenManager.php:$instances'                          # scope → 实例：由部署期配置构造，构造后只读
@@ -19,7 +47,7 @@ STATIC_WHITELIST=(
 
 fail=0
 
-php scripts/check-static-properties.php "${STATIC_WHITELIST[@]}" || fail=1
+php "$SCRIPT_DIR/check-static-properties.php" "${STATIC_WHITELIST[@]}" || fail=1
 
 # 新增例外时在这里登记，格式 "文件路径"，并写明理由；目前没有例外。
 DB_WHITELIST=""
@@ -91,10 +119,22 @@ fi
 # 还没套用作用域，->forceDelete() 直接对底层查询发 delete，->getModels() 直接对底层查询发 get，全都
 # 会绕开数据权限。（对已在范围内取到的模型实例调用 forceDelete() 是安全的，但 Repository 不得对
 # query() 链式调用它；受控表的硬删一律走 query()->delete()。）
+#
+# 两个 grep 目标目录先按存在性过滤：传自定义路径时可能只有 app/ 没有 core/（生成器的产物本来就
+# 不含 core 文件），直接 grep 一个不存在的目录会在 stderr 打一行噪音，不影响退出码（末尾有
+# || true 兜底），但过滤掉更干净。
 scope_fail=0
-scope_hits=$(grep -rnE --include='*.php' 'withoutGlobalScope' app core \
-  | sed -E 's/withoutGlobalScope\(SoftDeletingScope::class\)//g' \
-  | grep -E 'withoutGlobalScope' || true)
+scope_dirs=""
+for d in app core; do
+  [ -d "$d" ] && scope_dirs="$scope_dirs $d"
+done
+scope_hits=""
+if [ -n "$scope_dirs" ]; then
+  # shellcheck disable=SC2086
+  scope_hits=$(grep -rnE --include='*.php' 'withoutGlobalScope' $scope_dirs \
+    | sed -E 's/withoutGlobalScope\(SoftDeletingScope::class\)//g' \
+    | grep -E 'withoutGlobalScope' || true)
+fi
 if [ -n "$scope_hits" ]; then
   echo "❌ 移除了全局作用域（会连数据权限一起摘掉；输出行已去掉放行的软删写法）："
   echo "$scope_hits"
@@ -115,8 +155,18 @@ fi
 # 下声明接口（如 ConfigValueReader），由 config/container.php 绑到 app 层的实现上；直接 use 应用层的
 # 仓储，等于把仓库其他地方机械强制的分层（Controller → Service → Repository）反过来接一条线。
 # 只匹配行首的 use 语句：注释与文档里提到 app\middleware\StaticFile 这类类名是正常的，不该被拦。
+#
+# --exclude-dir='core/generator/stubs'：core/generator/stubs/*.stub.php 是代码生成器的模板
+# （Task 1 加的排除）——模板里为了原样拼出生成代码的 `use app\model\...` 之类语句，行首字面就会
+# 出现 `use app\`，那是要落进被生成模块里的文本，不是这份模板本身依赖了应用层，排除掉避免误报。
+#
+# 先判存在性：传自定义路径时生成产物的临时 server 根下没有 core/ 目录，直接 grep 会在 stderr
+# 打一行噪音（不影响退出码，但过滤掉更干净，与规则五同理）。
 core_fail=0
-core_hits=$(grep -rnE --include='*.php' --exclude-dir='core/generator/stubs' '^use +app\\' core || true)
+core_hits=""
+if [ -d core ]; then
+  core_hits=$(grep -rnE --include='*.php' --exclude-dir='core/generator/stubs' '^use +app\\' core || true)
+fi
 if [ -n "$core_hits" ]; then
   echo "❌ core/ 依赖了应用层（core 不得 use app\\；改为 core\\contract 下的接口 + config/container.php 绑定）："
   echo "$core_hits"

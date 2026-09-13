@@ -39,7 +39,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * <?= $tableComment ?>（由代码生成器生成）。
  *
- * 只调 Repository：查询条件与数据权限都在 <?= $model ?>Repository 里，这一层不出现 Db::。
+ * 只调 Repository：查询条件与数据权限都在 <?= $model ?>Repository 里，这一层不直接调用数据库门面。
  * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
 <?php if ($uniqueColumns !== []) { ?>
  *

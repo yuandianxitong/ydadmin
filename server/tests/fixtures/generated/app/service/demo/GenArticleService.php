@@ -13,7 +13,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * 生成器夹具表（由代码生成器生成）。
  *
- * 只调 Repository：查询条件与数据权限都在 GenArticleRepository 里，这一层不出现 Db::。
+ * 只调 Repository：查询条件与数据权限都在 GenArticleRepository 里，这一层不直接调用数据库门面。
  * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
  *
  * 唯一性（slug）：先按未删除行预检查，给出业务提示；与软删行冲突
