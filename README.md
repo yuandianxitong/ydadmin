@@ -75,11 +75,36 @@ location / {
 
 同时把 `TRUSTED_PROXIES` 设为 nginx 的地址（同机部署即 `127.0.0.1`）。只有来自这些地址的请求才读取 `X-Forwarded-For`（取最右侧的非代理地址），登录限流与登录日志按它记录客户端 IP；在代理后面却不配置时，所有请求都会被当成来自代理地址，登录限流会按同一个 IP 计数。
 
+### 上传与存储
+
+后台的上传接口是 `POST /adminapi/upload/image` 与 `POST /adminapi/upload/file`（multipart 字段名 `file`），任何已登录管理员都能调用，不受角色权限限制；上传成功的文件会收录进「系统管理 → 文件管理」。
+
+**本地存储（默认）**：文件写到 `server/public/storage/uploads/{images|files}/{Ymd}/`，接口返回**相对** URL `/storage/…`，`files.url` 存的就是它——这样换域名不用改库。目录按需创建，`server/public/storage/` 在 `.gitignore` 里不进 git。部署要点：
+
+- 运行 webman 的用户要对 `server/public/` 有写权限；
+- **这个目录要和数据库一起备份**，`files` 表只存路径，不存内容；
+- 放在 nginx 后面时可以让 nginx 直接吐静态文件，少过一次 PHP（不加也能用，webman 会返回 `public/` 下的文件，并带 `X-Content-Type-Options: nosniff`）：
+
+```nginx
+location /storage/ {
+    alias /path/to/server/public/storage/;
+    add_header X-Content-Type-Options nosniff;
+}
+```
+
+**云存储**：在「系统管理 → 系统配置 → 存储配置」里把 `storage_driver` 切成 `aliyun`（阿里云 OSS）、`tencent`（腾讯云 COS）或 `qiniu`（七牛），并填好对应的凭据与访问域名。每次上传都现读配置、现建驱动，改完立即生效；凭据填不全时上传直接报业务错误，**不会静默退回本地**。云驱动返回的是完整 URL，已有文件的 `url` 不受切换影响。云凭据不会出现在 `GET /system/config/global` 里（`is_public=0` 加凭据键黑名单两道过滤），只有 `storage_oss_domain` 这类前端拼图片地址要用的键是公开的。
+
+三个云驱动的实现方式不完全一样：阿里云 OSS 与腾讯云 COS 用各自的官方 SDK；**七牛没有用官方的 `qiniu/php-sdk`——它在 autoload 阶段就抛 PHP 8.4 弃用警告**，所以七牛驱动是用 Guzzle 按七牛的签名规则直接发 HTTP 请求实现的，行为与官方 SDK 一致。另外，**阿里云 OSS 与腾讯云 COS 的 SDK 目前都不支持 Guzzle 8，因此依赖实际解析到 Guzzle 7.x**；**仓库自身的约束特意保持 `^7.9 || ^8.0` 不变**——把版本压到 7.x 的是这两个 SDK 各自的约束，`composer.lock` 记录实际解析到的版本，等 SDK 支持 Guzzle 8 时我们的声明不用改。所以不要「顺手」把它收窄成 `^7.9`：那等于把 SDK 当下的限制写成本仓库的政策。
+
+**大小与扩展名**：`storage_image_max_size`（MB，图片接口）、`storage_upload_max_size`（MB，文件接口）、`storage_upload_allowed_ext`（逗号分隔白名单）三项配置实时生效。系统配置页会拒绝把这两个大小配置改到服务器 `max_package_size`（`server/config/server.php`）都装不下的值——那样的话请求在应用代码跑之前就会被 Workerman 断开连接，管理员看到的是一片诊断不出原因的上传失败，而不是本地化的错误文案。另有一份危险扩展名黑名单（`server/core/helper/UploadExtensionGuard.php`，含可执行脚本与 `svg` 等）**优先于白名单**：种子里的 `storage_upload_allowed_ext` 含 `svg`，它同样传不上去，这是有意为之。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
-M1 开发期间各子里程碑会直接修改 `schema.sql`（M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列），不写迁移。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。
+M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
+
+**这道检查要跟着 schema 一起维护**：它靠 `DevDatabaseGuard` 里的 `REQUIRED` 清单逐项核对表与列，**后续里程碑每加一张表或一个列，都要往那份清单里补一行**，否则库过期时它会一声不吭地放行。
 
 ## 质量门禁
 
@@ -100,7 +125,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`（M1b 新增了字典
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
 | M0 | 骨架：统一响应与异常、双 scope JWT、默认拒绝的权限、测试与门禁 | ✅ |
-| M1 | 系统核心 + 数据权限 | 进行中（M1a、M1b 已完成：认证、RBAC、数据权限，管理员/角色/菜单/部门，系统配置、数据字典、登录/操作日志、站内通知、仪表盘；M1c 素材与上传待做） |
+| M1 | 系统核心 + 数据权限 | ✅（认证、RBAC、数据权限，管理员/角色/菜单/部门，系统配置、数据字典、登录/操作日志、站内通知、仪表盘，素材与上传） |
 | M2 | 代码生成器 + API 文档 | |
 | M3 | 调度器与队列 | |
 | M4 | WebSocket 实时通道 | |

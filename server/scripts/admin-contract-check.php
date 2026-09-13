@@ -7,6 +7,8 @@
  * M1a 起：用 .env 配置的库临时建一个超管账号（contract_ 前缀），跑完删除；验证码从服务同一个 Redis 读取，校验照常执行。
  * M1b 起：覆盖配置、字典、日志、通知、仪表盘。改过的配置在退出时写回原值；日志的删除与清空只用一个
  *   「本部门」数据范围的临时账号执行，只会动到本次运行自己产生的日志；操作日志中间件为临时账号记下的日志随账号一起删除。
+ * M1c 起：覆盖文件管理与两个上传接口（真实 multipart）。上传产生的 files 行、public/storage 下的文件、
+ *   脚本自己在临时目录造的源文件，以及为验证「限制读配置」临时改过的 storage_* 配置，退出时一并清理并写回原值。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -42,6 +44,39 @@ function http(string $method, string $url, array $headers = [], ?array $json = n
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_TIMEOUT        => 10,
+        CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
+            $parts = explode(':', $line, 2);
+            if (count($parts) === 2) {
+                $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+            }
+            return strlen($line);
+        },
+    ]);
+    $body = (string) curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    return ['status' => $status, 'headers' => $responseHeaders, 'body' => $body, 'json' => json_decode($body, true)];
+}
+
+/**
+ * 以 multipart/form-data 上传一个文件。表单字段名固定为 file——admin 前端 6 处上传调用点
+ * 用的都是 el-upload 的默认字段名，WangEditor 也是 formData.append('file', file)。
+ *
+ * @param list<string> $headers
+ * @return array{status: int, headers: array<string, string>, body: string, json: mixed}
+ */
+function httpUpload(string $url, array $headers, string $localPath, string $clientName, string $mime): array
+{
+    $responseHeaders = [];
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        // 不要自己写 Content-Type：curl 要自带 boundary
+        CURLOPT_POSTFIELDS     => ['file' => new CURLFile($localPath, $mime, $clientName)],
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_TIMEOUT        => 20,
         CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
             $parts = explode(':', $line, 2);
             if (count($parts) === 2) {
@@ -128,8 +163,10 @@ $contractAdminId = (int) $created['id'];
 
 // 本次运行创建的所有临时行，登记在这里；退出时（含任何异常/致命错误）统一硬删，含关联表。
 // M1b 起：操作日志中间件会为契约账号的每个写请求记一条操作日志，按 admin_id 一并删除；改过的配置写回原值。
-/** @var array{admin_ids: list<int>, role_ids: list<int>, menu_ids: list<int>, dept_ids: list<int>, dict_ids: list<int>, notification_ids: list<int>, configs: array<string, string>} $cleanup */
-$cleanup = ['admin_ids' => [$contractAdminId], 'role_ids' => [], 'menu_ids' => [], 'dept_ids' => [], 'dict_ids' => [], 'notification_ids' => [], 'configs' => []];
+// M1c 起：上传产生的 files 行（file_ids）、public/storage 下的文件（disk_paths）、脚本在系统临时目录
+//   造的源文件（temp_files），一并清理；空掉的 {Ymd} 目录也收走，跑完 public/storage 下不留任何东西。
+/** @var array{admin_ids: list<int>, role_ids: list<int>, menu_ids: list<int>, dept_ids: list<int>, dict_ids: list<int>, notification_ids: list<int>, file_ids: list<int>, disk_paths: list<string>, temp_files: list<string>, configs: array<string, string>} $cleanup */
+$cleanup = ['admin_ids' => [$contractAdminId], 'role_ids' => [], 'menu_ids' => [], 'dept_ids' => [], 'dict_ids' => [], 'notification_ids' => [], 'file_ids' => [], 'disk_paths' => [], 'temp_files' => [], 'configs' => []];
 register_shutdown_function(static function () use (&$cleanup): void {
     // 先删关联表（外键依赖方向），再删主表
     foreach ($cleanup['admin_ids'] as $id) {
@@ -168,6 +205,20 @@ register_shutdown_function(static function () use (&$cleanup): void {
     }
     foreach ($cleanup['dept_ids'] as $id) {
         support\Db::table('departments')->where('id', $id)->delete();
+    }
+    foreach ($cleanup['file_ids'] as $id) {
+        support\Db::table('files')->where('id', $id)->delete();
+    }
+    foreach ([...$cleanup['disk_paths'], ...$cleanup['temp_files']] as $path) {
+        if (is_file($path)) {
+            unlink($path);
+        }
+    }
+    foreach ($cleanup['disk_paths'] as $path) {
+        $dir = dirname($path);
+        if (is_dir($dir) && (glob($dir . '/*') ?: []) === []) {
+            rmdir($dir);
+        }
     }
     foreach ($cleanup['configs'] as $key => $value) {
         support\Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
@@ -848,6 +899,306 @@ $r = http('GET', "{$base}/adminapi/dashboard/active-ranking?period=week", $auth)
 check('dashboard/active-ranking：{period, list: [{rank, username, count}]}', (respData($r)['period'] ?? null) === 'week' && array_keys((array) (respData($r)['list'][0] ?? [])) === ['rank', 'username', 'count'], $r['body']);
 $r = http('GET', "{$base}/adminapi/dashboard/active-ranking?period=year", $auth);
 check('dashboard/active-ranking：非法 period → 422', respCode($r) === 422, $r['body']);
+
+// ---------------------------------------------------------------- M1c
+echo "\n=== M1c：上传（真实 multipart） ===\n";
+
+$storageRoot = dirname(__DIR__) . '/public/storage/';
+$tmpPng = sys_get_temp_dir() . "/contract_{$suffix}.png";
+$tmpTxt = sys_get_temp_dir() . "/contract_{$suffix}.txt";
+$tmpBig = sys_get_temp_dir() . "/contract_big_{$suffix}.txt";
+$tmpSvg = sys_get_temp_dir() . "/contract_{$suffix}.svg";
+// 1×1 的合法 PNG（70 字节），避免后端若做图片内容校验时被判成损坏文件
+file_put_contents($tmpPng, (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true));
+file_put_contents($tmpTxt, "元点Admin 契约检查\n");
+file_put_contents($tmpBig, str_repeat('y', 1200 * 1024)); // ≈1.17MB，用来触发下面临时调成 1MB 的上限
+file_put_contents($tmpSvg, '<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+$cleanup['temp_files'] = [$tmpPng, $tmpTxt, $tmpBig, $tmpSvg];
+
+/**
+ * 登记一次成功上传的产物（磁盘文件 + files 行），退出时统一清理。
+ *
+ * @param array<string, mixed> $data 上传接口返回的 data
+ */
+$trackUpload = static function (array $data) use (&$cleanup, $storageRoot): void {
+    $path = (string) ($data['path'] ?? '');
+    if ($path === '') {
+        return;
+    }
+    $cleanup['disk_paths'][] = $storageRoot . $path;
+    $fileId = (int) (support\Db::table('files')->where('path', $path)->value('id') ?? 0);
+    if ($fileId > 0) {
+        $cleanup['file_ids'][] = $fileId;
+    }
+};
+
+// 只约束键集合，不约束 JSON 里的键顺序：顺序对前端没有意义，锁死它只会把 Task 5 的一点排版差异变成红灯
+$uploadKeys = ['url', 'path', 'filename', 'size', 'storage'];
+
+$r = httpUpload("{$base}/adminapi/upload/image", $auth, $tmpPng, "contract_{$suffix}.png", 'image/png');
+$image = (array) respData($r);
+$trackUpload($image);
+check(
+    'upload/image：data 的键集合恰好为 {url, path, filename, size, storage}（五个都在，且没有多余键）',
+    respCode($r) === 200 && array_diff($uploadKeys, array_keys($image)) === [] && array_diff(array_keys($image), $uploadKeys) === [],
+    $r['body']
+);
+check(
+    'upload/image：path 为 uploads/images/{Ymd}/{uniqid}.png，storage=local，size 是真实字节数',
+    preg_match('#^uploads/images/\d{8}/[0-9a-zA-Z.]+\.png$#', (string) ($image['path'] ?? '')) === 1
+        && ($image['storage'] ?? null) === 'local'
+        && (int) ($image['size'] ?? 0) === filesize($tmpPng),
+    $r['body']
+);
+check('upload/image：本地驱动返回相对 URL（/storage/ + path）', ($image['url'] ?? null) === '/storage/' . ($image['path'] ?? ''), $r['body']);
+// images 组的 filename 是「{Ymd}/{随机名}.ext」（不对称约定，见 UploadService::store()），
+// 不是 basename($path)：basename() 会把 Ymd 目录也一起削掉，那不是这里要断言的东西
+check(
+    'upload/image：images 分组的 filename 是生成名（{Ymd}/{随机名}.ext），不是客户端原名',
+    ($image['filename'] ?? null) === substr((string) ($image['path'] ?? ''), strlen('uploads/images/')),
+    $r['body']
+);
+
+$imageAbsolute = $storageRoot . (string) ($image['path'] ?? '');
+check('upload/image：文件真的落到 public/storage 下，字节数一致', is_file($imageAbsolute) && filesize($imageAbsolute) === filesize($tmpPng), $imageAbsolute);
+$r2 = http('GET', "{$base}" . (string) ($image['url'] ?? ''));
+check(
+    'upload/image：返回的 URL 能直接访问，且带 X-Content-Type-Options: nosniff',
+    $r2['status'] === 200 && ($r2['headers']['x-content-type-options'] ?? '') === 'nosniff',
+    (string) $r2['status']
+);
+
+$imageRow = (array) (support\Db::table('files')->where('path', (string) ($image['path'] ?? ''))->first() ?? []);
+$imageFileId = (int) ($imageRow['id'] ?? 0);
+// group 不是 schema 的列默认值「默认」：UploadService::store() 显式把 group 写成
+// GROUP_IMAGES/GROUP_FILES 常量（'images'/'files'，同时也是存储子目录名），
+// Task 5 的 UploadApiTest 已经把这一行为钉死为预期行为，这里跟它保持一致
+check(
+    'upload/image：files 表落了一行，upload_by 为当前管理员，group 为 images，storage=local',
+    $imageFileId > 0
+        && (int) ($imageRow['upload_by'] ?? 0) === $contractAdminId
+        && ($imageRow['group'] ?? null) === \app\service\system\UploadService::GROUP_IMAGES
+        && ($imageRow['storage'] ?? null) === 'local',
+    (string) json_encode($imageRow, JSON_UNESCAPED_UNICODE)
+);
+
+$r = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpTxt, "contract_{$suffix}.txt", 'text/plain');
+$textData = (array) respData($r);
+$trackUpload($textData);
+check(
+    'upload/file：data 的键集合恰好为 {url, path, filename, size, storage}（五个都在，且没有多余键）',
+    respCode($r) === 200 && array_diff($uploadKeys, array_keys($textData)) === [] && array_diff(array_keys($textData), $uploadKeys) === [],
+    $r['body']
+);
+check('upload/file：path 为 uploads/files/{Ymd}/{uniqid}.txt', preg_match('#^uploads/files/\d{8}/[0-9a-zA-Z.]+\.txt$#', (string) ($textData['path'] ?? '')) === 1, $r['body']);
+check('upload/file：files 分组的 filename 是客户端原始文件名（与 images 分组不对称，照 TP8）', ($textData['filename'] ?? null) === "contract_{$suffix}.txt", $r['body']);
+$textAbsolute = $storageRoot . (string) ($textData['path'] ?? '');
+$textFileId = (int) (support\Db::table('files')->where('path', (string) ($textData['path'] ?? ''))->value('id') ?? 0);
+check('upload/file：文件落盘且 files 表有对应行', is_file($textAbsolute) && $textFileId > 0, $textAbsolute);
+
+$svgBefore = (int) support\Db::table('files')->where('extension', 'svg')->count();
+$svgDir = $storageRoot . 'uploads/files/' . date('Ymd') . '/';
+$svgDirImages = $storageRoot . 'uploads/images/' . date('Ymd') . '/';
+$rFile = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpSvg, "contract_{$suffix}.svg", 'image/svg+xml');
+$rImage = httpUpload("{$base}/adminapi/upload/image", $auth, $tmpSvg, "contract_{$suffix}.svg", 'image/svg+xml');
+check(
+    '危险扩展名：svg 在 storage_upload_allowed_ext 白名单里，两个上传端点仍一律拒绝，且没有落盘、没有 files 行',
+    respCode($rFile) !== 200
+        && respCode($rImage) !== 200
+        && (glob($svgDir . '*.svg') ?: []) === []
+        && (glob($svgDirImages . '*.svg') ?: []) === []
+        && (int) support\Db::table('files')->where('extension', 'svg')->count() === $svgBefore,
+    $rFile['body'] . ' | ' . $rImage['body']
+);
+
+echo "\n=== M1c：storage 配置与上传限制 ===\n";
+$r = http('GET', "{$base}/adminapi/system/config?group=storage", $auth);
+$storageConfigs = [];
+foreach ((array) respData($r) as $row) {
+    if (is_array($row) && is_string($row['config_key'] ?? null)) {
+        $storageConfigs[$row['config_key']] = $row;
+    }
+}
+check(
+    'config?group=storage：18 项种子齐全（驱动、大小、扩展名 + 三套云凭据）',
+    array_diff([
+        'storage_driver', 'storage_upload_max_size', 'storage_upload_allowed_ext', 'storage_image_max_size',
+        'storage_oss_access_key', 'storage_oss_access_secret', 'storage_oss_bucket', 'storage_oss_endpoint', 'storage_oss_domain',
+        'storage_cos_secret_id', 'storage_cos_secret_key', 'storage_cos_bucket', 'storage_cos_region', 'storage_cos_domain',
+        'storage_qiniu_access_key', 'storage_qiniu_secret_key', 'storage_qiniu_bucket', 'storage_qiniu_domain',
+    ], array_keys($storageConfigs)) === [],
+    $r['body']
+);
+$globalKeys = array_keys((array) respData(http('GET', "{$base}/adminapi/system/config/global", $auth)));
+check(
+    'config/global：storage_driver 与 storage_oss_domain 在（前端拼图片域名要用），云凭据不在',
+    in_array('storage_driver', $globalKeys, true)
+        && in_array('storage_oss_domain', $globalKeys, true)
+        && !in_array('storage_oss_access_secret', $globalKeys, true)
+        && !in_array('storage_cos_secret_key', $globalKeys, true)
+        && !in_array('storage_qiniu_secret_key', $globalKeys, true),
+    implode(',', $globalKeys)
+);
+
+// 扩展名白名单读配置：改配置走接口（缓存按正常路径失效），跑完写回原值
+$extId = (int) ($storageConfigs['storage_upload_allowed_ext']['id'] ?? 0);
+$extOriginal = (string) ($storageConfigs['storage_upload_allowed_ext']['config_value'] ?? '');
+$cleanup['configs']['storage_upload_allowed_ext'] = $extOriginal;
+http('PUT', "{$base}/adminapi/system/config/{$extId}", $auth, ['config_value' => 'png']);
+$r = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpTxt, "contract_ext_{$suffix}.txt", 'text/plain');
+check('扩展名白名单读配置：白名单只剩 png 时，txt 被拒（spec §1.1 #8）', respCode($r) !== 200, $r['body']);
+http('PUT', "{$base}/adminapi/system/config/{$extId}", $auth, ['config_value' => $extOriginal]);
+$r = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpTxt, "contract_ext2_{$suffix}.txt", 'text/plain');
+$trackUpload((array) respData($r));
+check('扩展名白名单写回原值后 txt 又能传（每次上传现读配置，不缓存）', respCode($r) === 200, $r['body']);
+
+// 大小上限读配置
+$maxId = (int) ($storageConfigs['storage_upload_max_size']['id'] ?? 0);
+$maxOriginal = (string) ($storageConfigs['storage_upload_max_size']['config_value'] ?? '');
+$cleanup['configs']['storage_upload_max_size'] = $maxOriginal;
+http('PUT', "{$base}/adminapi/system/config/{$maxId}", $auth, ['config_value' => '1']);
+$r = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpBig, "contract_big_{$suffix}.txt", 'text/plain');
+check('大小上限读配置：storage_upload_max_size=1（MB）时，1.17MB 的文件被拒', respCode($r) !== 200, $r['body']);
+$r = httpUpload("{$base}/adminapi/upload/file", $auth, $tmpTxt, "contract_small_{$suffix}.txt", 'text/plain');
+$trackUpload((array) respData($r));
+check('大小上限读配置：同一上限下小文件照常通过', respCode($r) === 200, $r['body']);
+http('PUT', "{$base}/adminapi/system/config/{$maxId}", $auth, ['config_value' => $maxOriginal]);
+
+echo "\n=== M1c：文件管理 ===\n";
+$imageName = (string) ($imageRow['name'] ?? '');
+$r = http('GET', "{$base}/adminapi/system/file?keyword=&group=&mime_type=&page=1&limit=40", $auth);
+check(
+    'file 列表：{list, pagination}，per_page=40（页面默认每页 40），空筛选项不过滤',
+    array_keys((array) respData($r)) === ['list', 'pagination']
+        && (int) (respData($r)['pagination']['per_page'] ?? 0) === 40
+        && (int) (respData($r)['pagination']['total'] ?? 0) >= 2,
+    $r['body']
+);
+
+$r = http('GET', "{$base}/adminapi/system/file?keyword=" . rawurlencode($imageName) . '&group=&mime_type=&page=1&limit=40', $auth);
+$listRow = [];
+foreach ((array) (respData($r)['list'] ?? []) as $row) {
+    if (is_array($row) && (int) ($row['id'] ?? 0) === $imageFileId) {
+        $listRow = $row;
+    }
+}
+check(
+    'file 列表：keyword 搜到刚上传的图片，行含页面要用的全部字段',
+    $listRow !== [] && array_diff(['id', 'name', 'path', 'url', 'mime_type', 'extension', 'size', 'group', 'storage', 'created_at'], array_keys($listRow)) === [],
+    $r['body']
+);
+check(
+    'file 列表：size 是数字，created_at 为 Y-m-d H:i:s（前端 formatSize / formatTime 依赖）',
+    is_int($listRow['size'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string) ($listRow['created_at'] ?? '')) === 1,
+    (string) json_encode($listRow, JSON_UNESCAPED_UNICODE)
+);
+
+$inBucket = static function (string $bucket) use ($base, $auth, $imageFileId): bool {
+    $r = http('GET', "{$base}/adminapi/system/file?keyword=&group=&mime_type={$bucket}&page=1&limit=100", $auth);
+
+    return in_array($imageFileId, array_map('intval', array_column((array) (respData($r)['list'] ?? []), 'id')), true);
+};
+check('file 列表：mime_type=image 命中图片，audio / archive 不命中', $inBucket('image') && !$inBucket('audio') && !$inBucket('archive'));
+
+$r = http('GET', "{$base}/adminapi/system/file/groups", $auth);
+$groups = (array) respData($r);
+$groupCounts = array_map('intval', array_column($groups, 'count'));
+$groupCountsDesc = $groupCounts;
+rsort($groupCountsDesc);
+// 到这一步为止本脚本只上传过 images/files 两个分组的文件（上传接口从不落「默认」这个
+// schema 列默认值，见上面 UploadService::GROUP_IMAGES 的注释），聚合里应当能看到这两个分组
+check(
+    'file/groups：[{group, count}]，按 count 倒序，含 images 与 files 两个分组',
+    $groups !== []
+        && array_keys((array) $groups[0]) === ['group', 'count']
+        && $groupCounts === $groupCountsDesc
+        && in_array('images', array_column($groups, 'group'), true)
+        && in_array('files', array_column($groups, 'group'), true),
+    $r['body']
+);
+
+$moveGroup = "契约分组_{$suffix}";
+$r = http('POST', "{$base}/adminapi/system/file/move-group", $auth, ['ids' => [$imageFileId, $textFileId], 'group' => $moveGroup]);
+$moved = array_map('intval', array_column((array) (respData(http('GET', "{$base}/adminapi/system/file?keyword=&group=" . rawurlencode($moveGroup) . '&mime_type=&page=1&limit=40', $auth))['list'] ?? []), 'id'));
+sort($moved);
+$expectMoved = [$imageFileId, $textFileId];
+sort($expectMoved);
+$groupsAfter = (array) respData(http('GET', "{$base}/adminapi/system/file/groups", $auth));
+check(
+    'file move-group：两条都进了新分组，按 group 能筛出来，分组聚合计数为 2',
+    respCode($r) === 200 && $moved === $expectMoved && (int) (array_column($groupsAfter, 'count', 'group')[$moveGroup] ?? 0) === 2,
+    $r['body']
+);
+
+$newName = "契约重命名_{$suffix}.png";
+$r = http('PUT', "{$base}/adminapi/system/file/{$imageFileId}/rename", $auth, ['name' => $newName]);
+$renamed = (array) (support\Db::table('files')->where('id', $imageFileId)->first() ?? []);
+check(
+    'file rename：库里 name 变了，path/url 不动，磁盘文件也不动（只改显示名）',
+    respCode($r) === 200
+        && ($renamed['name'] ?? null) === $newName
+        && ($renamed['path'] ?? null) === ($image['path'] ?? '')
+        && ($renamed['url'] ?? null) === ($image['url'] ?? '')
+        && is_file($imageAbsolute),
+    $r['body']
+);
+$r = http('PUT', "{$base}/adminapi/system/file/{$imageFileId}/rename", $auth, ['name' => '']);
+check('file rename：空名字 → 422，errors.name', respCode($r) === 422 && isset(respData($r)['errors']['name']), $r['body']);
+
+$inMovedGroup = static function (int $id) use ($base, $auth, $moveGroup): bool {
+    $r = http('GET', "{$base}/adminapi/system/file?keyword=&group=" . rawurlencode($moveGroup) . '&mime_type=&page=1&limit=100', $auth);
+
+    return in_array($id, array_map('intval', array_column((array) (respData($r)['list'] ?? []), 'id')), true);
+};
+$r = http('DELETE', "{$base}/adminapi/system/file/{$imageFileId}", $auth);
+// PHP 对同一路径的 stat 结果有进程内缓存（realpath cache）：本脚本自己此前已经 is_file() 过
+// $imageAbsolute（上面的 rename 检查），而这次物理删除是另一个 Workerman worker 进程做的，
+// 不清缓存的话这里可能读到「文件还在」的陈旧结果，与删除接口是否真的生效无关，纯属误报。
+clearstatcache();
+check('file delete：列表里没了，物理文件也被删掉', respCode($r) === 200 && !$inMovedGroup($imageFileId) && !is_file($imageAbsolute), $r['body']);
+
+if (is_file($textAbsolute)) {
+    unlink($textAbsolute); // 制造「物理文件已不在」的场景
+}
+$r = http('DELETE', "{$base}/adminapi/system/file/{$textFileId}", $auth);
+check('file delete：物理文件不存在时删除照样成功（只记 warning，不阻断）', respCode($r) === 200 && !$inMovedGroup($textFileId), $r['body']);
+
+$batchIds = [];
+$batchPaths = [];
+foreach (['b1', 'b2'] as $tag) {
+    $r = httpUpload("{$base}/adminapi/upload/image", $auth, $tmpPng, "contract_{$tag}_{$suffix}.png", 'image/png');
+    $uploaded = (array) respData($r);
+    $trackUpload($uploaded);
+    $batchPaths[] = $storageRoot . (string) ($uploaded['path'] ?? '');
+    $batchIds[] = (int) (support\Db::table('files')->where('path', (string) ($uploaded['path'] ?? ''))->value('id') ?? 0);
+}
+$batchExistedBefore = count(array_filter($batchPaths, 'is_file')) === 2 && !in_array(0, $batchIds, true);
+$r = http('POST', "{$base}/adminapi/system/file/batch-delete", $auth, ['ids' => $batchIds]);
+clearstatcache(); // 同上：这两个路径也在本进程里 is_file() 过（刚上传时的落盘核对），必须先清缓存
+check(
+    'file batch-delete：删除前两个文件都在，删除后库里和磁盘上都没了，message 带成功计数',
+    $batchExistedBefore
+        && respCode($r) === 200
+        && array_filter($batchPaths, 'is_file') === []
+        && (int) support\Db::table('files')->whereIn('id', $batchIds)->whereNull('deleted_at')->count() === 0
+        && str_contains((string) (is_array($r['json']) ? ($r['json']['message'] ?? '') : ''), '2'),
+    $r['body']
+);
+$r = http('POST', "{$base}/adminapi/system/file/batch-delete", $auth, ['ids' => []]);
+check('file batch-delete：ids 为空 → 422，errors.ids', respCode($r) === 422 && isset(respData($r)['errors']['ids']), $r['body']);
+
+echo "\n=== M1c：权限 ===\n";
+// $logAuth 是 M1b 日志段建的账号：只有日志权限，没有任何 system.file.* 权限
+$r = http('GET', "{$base}/adminapi/system/file?page=1&limit=1", $logAuth);
+check('file 列表：没有 system.file.list 的管理员 → code 403', respCode($r) === 403, $r['body']);
+$r = http('GET', "{$base}/adminapi/system/file/groups", $logAuth);
+check('file/groups：#[PermissionSkip]，任何登录管理员都能读', respCode($r) === 200, $r['body']);
+$r = httpUpload("{$base}/adminapi/upload/image", $logAuth, $tmpPng, "contract_perm_{$suffix}.png", 'image/png');
+$permUpload = (array) respData($r);
+$trackUpload($permUpload);
+check('upload/image：#[PermissionSkip]，没有任何文件权限的管理员也能上传', respCode($r) === 200 && ($permUpload['storage'] ?? null) === 'local', $r['body']);
+$r = httpUpload("{$base}/adminapi/upload/image", $api, $tmpPng, "contract_anon_{$suffix}.png", 'image/png');
+check('upload/image：未登录 → HTTP 200 + code 401', $r['status'] === 200 && respCode($r) === 401, $r['body']);
 
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);
