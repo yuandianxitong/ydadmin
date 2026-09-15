@@ -65,4 +65,30 @@ class LogService extends Service
     {
         return $this->operationLogRepository->clearVisible();
     }
+
+    /** 归档截止时间：当前时间减 $days 天（Y-m-d H:i:s）。命令输出与 archive() 用同一个算法。 */
+    public static function archiveCutoff(int $days): string
+    {
+        return (new \DateTimeImmutable())->sub(new \DateInterval("P{$days}D"))->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * 归档清理（log:archive，移植 TP8 LogArchiveCommand）：删除早于 $days 天的操作日志与登录日志。
+     * 在命令行 / 队列进程里调用，没有管理员上下文，两个受控仓储都不套数据权限（spec §5.3）。
+     *
+     * @return array{operation: int, login: int} 各自删除条数
+     * @throws \InvalidArgumentException $days < 1
+     */
+    public function archive(int $days): array
+    {
+        if ($days < 1) {
+            throw new \InvalidArgumentException('days 必须 ≥ 1');
+        }
+        $cutoff = self::archiveCutoff($days);
+
+        return [
+            'operation' => $this->operationLogRepository->deleteBefore($cutoff),
+            'login'     => $this->loginLogRepository->deleteBefore($cutoff),
+        ];
+    }
 }

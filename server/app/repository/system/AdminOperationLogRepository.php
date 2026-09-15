@@ -101,6 +101,19 @@ class AdminOperationLogRepository extends Repository
         return (int) $this->query()->delete();
     }
 
+    /**
+     * 删除 operation_time 早于 $datetime 的操作日志（硬删，一条 DELETE），log:archive 用。
+     * 仍从 query() 起手：命令行与队列进程没有管理员上下文，数据权限不过滤（spec §5.3），删的是全表过期行；
+     * 若将来从带管理员上下文的请求里调用，只会删到该管理员范围内的行，不会越权。
+     *
+     * @param string $datetime Y-m-d H:i:s
+     * @return int 删除条数
+     */
+    public function deleteBefore(string $datetime): int
+    {
+        return (int) $this->query()->where($this->qualify('operation_time'), '<', $datetime)->delete();
+    }
+
     /** 今日操作日志条数（按数据范围，仪表盘用）。 */
     public function getTodayCount(): int
     {
