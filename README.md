@@ -63,6 +63,46 @@ token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 R
 - 建议给本应用单独一个 Redis DB（`REDIS_DB`），不与其他应用共用；
 - 生产环境不要对它执行 `FLUSHDB`，也不要调用 `Cache::clear()`。
 
+### 定时任务与队列
+
+`php start.php start` 除了 HTTP 进程，还会拉起：
+
+| 进程 | 数量 | 作用 |
+|---|---|---|
+| `scheduler` | 1 | 每分钟判定哪些定时任务到点，投递到 `cron-job` 队列；自己不执行任务 |
+| `plugin.webman.redis-queue.consumer` | `QUEUE_PROCESS_COUNT`（默认 2） | 消费队列：执行定时任务、写操作日志 |
+
+**生产环境必须让它们常驻**（`php start.php start -d`，或交给 systemd / supervisor 守护）。只起 HTTP、不起队列进程时：操作日志会堆在 Redis 里不落库，定时任务不会执行，后台点「执行」永远等到超时。
+
+**操作日志**：请求内投递到 `operation-log` 队列，由队列进程写库；投递失败（如 Redis 不可用）时退回同步写库，日志不丢。写库失败最多重试 3 次（间隔 10、20、30 秒），仍失败进 `failed_jobs`。
+
+**定时任务**：在「系统管理 → 定时任务」维护。
+
+- 表达式是标准 5 段 cron（分 时 日 月 周），按 `server/config/app.php` 的 `default_timezone` 解析；不支持秒级，也不支持 `@hourly` 这类宏。
+- scheduler 停机再恢复时，只补最近 5 分钟内错过的触发（`server/config/cron.php` 的 `catchup_minutes`），更早错过的不补跑。
+- 多台服务器同时跑 scheduler 不会重复触发（Redis 触发锁）；同一个任务不会重叠执行（执行锁，TTL 为 `lock_ttl`，默认 3600 秒——单次执行可能超过一小时的任务要调大它，否则锁过期后下一次触发会与仍在跑的那次重叠）。
+- 定时任务执行失败**不自动重试**（重跑可能重复产生副作用），结果如实写进执行日志。
+
+**命令白名单**：任务的「执行命令」只能以 `server/config/cron.php` 里 `commands` 登记过的控制台命令开头（只看第一个词，后面的参数原样传给命令），在队列进程内执行、不经过 shell。新增一个可调度的命令：
+
+1. 在 `server/app/command/` 写一个带 `#[AsCommand('名字', '说明')]` 的 Symfony Console 命令；
+2. 在 `server/config/cron.php` 的 `commands` 里登记 `'名字' => 类名::class`；
+3. `php start.php reload`。
+
+**手动执行**：后台点「执行」后，HTTP 进程最多等 `manual_wait_seconds`（默认 10 秒）拿结果；超时会提示「已提交执行，结果请查看执行日志」，任务仍在队列进程里继续跑。等待期间会占住一个 HTTP worker，不要让很多人同时对耗时任务点执行。如果你给 `server/config/redis.php` 配了 `read_timeout`，它必须大于 `manual_wait_seconds`，否则等待会被 Redis 客户端提前打断。
+
+**至多一次**：队列进程先从 Redis 取出任务再执行，进程被强杀（`kill -9`、OOM）时正在执行的那一条会丢失——操作日志可能少一条，定时任务则等下一个周期照常触发。
+
+**失败任务**：重试到上限仍失败的任务写进 `failed_jobs` 表（载荷已脱敏）。已知限制：手动执行的载荷里带一个回传结果用的 `token`，脱敏后变成 `***`；这类记录被 `queue:retry` 重投后照常执行并写执行日志，只是结果不会再回到当初那次「执行」请求（它早已超时返回）。
+
+```bash
+cd server
+php webman queue:failed              # 列出最近的失败任务
+php webman queue:retry 12            # 重新投递 id=12，成功后删除该行
+php webman queue:retry all           # 重新投递全部
+php webman queue:flush --days=30     # 删除 30 天前的失败记录（不带 --days 删除全部）
+```
+
 ### nginx 反向代理
 
 ```nginx
@@ -106,7 +146,7 @@ location /storage/ {
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
-M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
+M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
 
 **这道检查要跟着 schema 一起维护**：它靠 `DevDatabaseGuard` 里的 `REQUIRED` 清单逐项核对表与列，**后续里程碑每加一张表或一个列，都要往那份清单里补一行**，否则库过期时它会一声不吭地放行。
 
@@ -155,8 +195,8 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 |---|---|---|
 | M0 | 骨架：统一响应与异常、双 scope JWT、默认拒绝的权限、测试与门禁 | ✅ |
 | M1 | 系统核心 + 数据权限 | ✅（认证、RBAC、数据权限，管理员/角色/菜单/部门，系统配置、数据字典、登录/操作日志、站内通知、仪表盘，素材与上传） |
-| M2 | 代码生成器 + API 文档 | |
-| M3 | 调度器与队列 | |
+| M2 | 代码生成器 + API 文档 | ✅（按表生成 CRUD 模块与 `make:crud`，由路由与校验规则推导的 OpenAPI 文档） |
+| M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | |
 | M5 | 会员与支付 | |
 | M6 | 消息与微信 | |

@@ -10,6 +10,8 @@
  *   「本部门」数据范围的临时账号执行，只会动到本次运行自己产生的日志；操作日志中间件为临时账号记下的日志随账号一起删除。
  * M1c 起：覆盖文件管理与两个上传接口（真实 multipart）。上传产生的 files 行、public/storage 下的文件、
  *   脚本自己在临时目录造的源文件，以及为验证「限制读配置」临时改过的 storage_* 配置，退出时一并清理并写回原值。
+ * M3 起：操作日志经队列异步落库，读日志与清理前先等 operation-log 队列排空（需要 queue 进程在运行）；定时任务段只读，
+ *   开发库还没有 cron_jobs 表（补丁 SQL 未执行）时整段跳过。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1348,6 +1350,45 @@ if (in_array($genAppDebug, ['false', '0', ''], true)) {
     echo "  （当前 APP_DEBUG=false，已覆盖生产闸门分支）\n";
 } else {
     echo "  （当前 APP_DEBUG={$genAppDebug}，跳过生产闸门分支的活体断言——已由 tests/Unit/ApiDoc/ApiDocProductionGateTest.php 覆盖）\n";
+}
+
+// ---------------------------------------------------------------- M3
+echo "\n=== M3：定时任务（只读） ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('cron_jobs')) {
+    // 开发库是用户的真实数据，不做 db:reset；M3 的三张表与菜单要等控制器经用户同意执行
+    // docs/superpowers/plans/2026-09-15-m3-dev-db-patch.sql 之后才有。在那之前本段整体跳过、不计失败。
+    echo "  （开发库还没有 cron_jobs 表：M3 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $pageKeysOk = static fn (mixed $data): bool => is_array($data)
+        && array_keys($data) === ['list', 'pagination']
+        && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys((array) $data['pagination'])) === [];
+    // 双键同值 + next_run_at：启用为 Y-m-d H:i:s，禁用为 null（spec §7）
+    $cronShapeOk = static fn (array $row): bool => array_key_exists('expression', $row)
+        && array_key_exists('cron_expression', $row)
+        && $row['expression'] === $row['cron_expression']
+        && array_key_exists('next_run_at', $row)
+        && ((int) ($row['status'] ?? 0) === 1
+            ? preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string) $row['next_run_at']) === 1
+            : $row['next_run_at'] === null);
+
+    $r = http('GET', "{$base}/adminapi/system/cron-job?page=1&limit=10", $auth);
+    check('cron-job 列表：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $pageKeysOk(respData($r)), $r['body']);
+    $cronRow = (array) (respData($r)['list'][0] ?? []);
+    if ($cronRow === []) {
+        echo "  （开发库 cron_jobs 为空，跳过行级断言）\n";
+    } else {
+        $cronId = (int) ($cronRow['id'] ?? 0);
+        check('cron-job 列表行：expression 与 cron_expression 同值，next_run_at 启用为时间、禁用为 null', $cronShapeOk($cronRow), $r['body']);
+
+        $r = http('GET', "{$base}/adminapi/system/cron-job/{$cronId}", $auth);
+        check('cron-job 详情：同样的双键与 next_run_at', respCode($r) === 200 && $cronShapeOk((array) respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/adminapi/system/cron-job/{$cronId}/logs?page=1&limit=10", $auth);
+        check('cron-job 执行日志：{list, pagination} 标准分页形状', respCode($r) === 200 && $pageKeysOk(respData($r)), $r['body']);
+    }
+
+    $r = http('GET', "{$base}/adminapi/system/cron-job/999999999", $auth);
+    check('cron-job 详情：不存在的 id → code 404', respCode($r) === 404, $r['body']);
 }
 
 echo "\n=== M1a：刷新与登出 ===\n";
