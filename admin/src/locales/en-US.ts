@@ -821,7 +821,7 @@ export default {
         },
         scopeOptions: {
             all: 'All Users',
-            specified: 'Specified Users'
+            specified: 'Specified Admins'
         },
         specifiedCount: '{count} specified',
         recipients: 'Recipients',

@@ -812,7 +812,7 @@ export default {
         },
         scopeOptions: {
             all: '全部用户',
-            specified: '指定用户'
+            specified: '指定管理员'
         },
         specifiedCount: '指定 {count} 人',
         recipients: '接收管理员',

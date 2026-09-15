@@ -169,6 +169,7 @@ import { useListPage } from '@/hooks/useListPage'
 import type { NotificationInfo } from '@/types/system'
 
 import NotificationForm from './components/NotificationForm.vue'
+import { TARGET_ADMINS } from './helpers'
 
 const { t } = useI18n()
 
@@ -225,7 +226,7 @@ const handleEdit = async (row: any) => {
     const info = row as NotificationInfo
     // 列表行不含收件人；指定管理员的通知先取详情拿 admin_ids 再打开表单
     let adminIds: number[] = []
-    if (info.target_type === 2) {
+    if (info.target_type === TARGET_ADMINS) {
         try {
             const res = await notificationApi.getDetail(info.id)
             adminIds = res.data?.admin_ids ?? []
