@@ -85,6 +85,13 @@ return [
         // preview 虽然只渲染不落盘，但它同样暴露生成内容，两条都要留下审计痕迹。
         'GeneratorController@preview'  => ['admin_log.generator_preview', 'admin_log.generator_preview_desc'],
         'GeneratorController@generate' => ['admin_log.generator_generate', 'admin_log.generator_generate_desc'],
+
+        // 定时任务（M3）
+        'CronJobController@store'     => ['admin_log.cron_job_create', 'admin_log.cron_job_create_desc'],
+        'CronJobController@update'    => ['admin_log.cron_job_update', 'admin_log.cron_job_update_desc'],
+        'CronJobController@delete'    => ['admin_log.cron_job_delete', 'admin_log.cron_job_delete_desc'],
+        'CronJobController@status'    => ['admin_log.cron_job_status', 'admin_log.cron_job_status_desc'],
+        'CronJobController@clearLogs' => ['admin_log.cron_job_clear_logs', 'admin_log.cron_job_clear_logs_desc'],
     ],
 
     'masked_params' => [

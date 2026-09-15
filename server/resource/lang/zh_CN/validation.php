@@ -214,6 +214,18 @@ return [
     'file_keyword_max'       => '搜索关键词最多100个字符',
     'file_mime_type_invalid' => '文件类型筛选值无效',
 
+    'cron_keyword_max'         => '搜索关键词最多100个字符',
+    'cron_name_require'        => '请输入任务名称',
+    'cron_name_max'            => '任务名称最多100个字符',
+    'cron_command_require'     => '请输入执行命令',
+    'cron_command_max'         => '执行命令最多255个字符',
+    'cron_expression_require'  => '请输入Cron表达式',
+    'cron_expression_max'      => 'Cron表达式最多100个字符',
+    'cron_expression_invalid'  => 'Cron表达式无效：必须是5段标准格式（分 时 日 月 周），不支持@宏与秒级',
+    'cron_description_max'     => '任务描述最多255个字符',
+    'cron_sort_max'            => '排序值不能超过9999',
+    'cron_keep_days_invalid'   => '保留天数必须是0到3650之间的整数',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

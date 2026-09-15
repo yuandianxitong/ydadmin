@@ -308,6 +308,18 @@ return [
     'file_keyword_max'       => 'Keyword may not exceed 100 characters',
     'file_mime_type_invalid' => 'Invalid file type filter',
 
+    'cron_keyword_max'         => 'Keyword may not exceed 100 characters',
+    'cron_name_require'        => 'Task name is required',
+    'cron_name_max'            => 'Task name may not exceed 100 characters',
+    'cron_command_require'     => 'Command is required',
+    'cron_command_max'         => 'Command may not exceed 255 characters',
+    'cron_expression_require'  => 'Cron expression is required',
+    'cron_expression_max'      => 'Cron expression may not exceed 100 characters',
+    'cron_expression_invalid'  => 'Invalid cron expression: use the standard 5-field format (minute hour day month weekday); @ macros and seconds are not supported',
+    'cron_description_max'     => 'Description may not exceed 255 characters',
+    'cron_sort_max'            => 'Sort may not exceed 9999',
+    'cron_keep_days_invalid'   => 'Days to keep must be an integer between 0 and 3650',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

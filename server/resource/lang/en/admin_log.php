@@ -116,4 +116,15 @@ return [
     'generator_preview_desc'       => 'Preview code generator artifacts without writing to disk',
     'generator_generate'           => 'Generate code',
     'generator_generate_desc'      => 'Generate module code and write it to disk',
+
+    'cron_job_create'              => 'Create scheduled task',
+    'cron_job_create_desc'         => 'Create a new scheduled task',
+    'cron_job_update'              => 'Update scheduled task',
+    'cron_job_update_desc'         => 'Update scheduled task settings',
+    'cron_job_delete'              => 'Delete scheduled task',
+    'cron_job_delete_desc'         => 'Delete a scheduled task (its run logs are kept)',
+    'cron_job_status'              => 'Change scheduled task status',
+    'cron_job_status_desc'         => 'Enable or disable a scheduled task',
+    'cron_job_clear_logs'          => 'Clear scheduled task logs',
+    'cron_job_clear_logs_desc'     => 'Clear run logs of a scheduled task',
 ];

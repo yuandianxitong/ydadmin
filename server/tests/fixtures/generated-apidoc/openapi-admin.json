@@ -1845,6 +1845,610 @@
                 }
             }
         },
+        "/adminapi/system/cron-job": {
+            "get": {
+                "operationId": "CronJobController::index",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::index",
+                "description": "需登录，且需权限 `system.cron_job.list`",
+                "x-permission": "system.cron_job.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "nullable": true,
+                            "enum": [
+                                "0",
+                                "1"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "CronJobController::store",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::store",
+                "description": "需登录，且需权限 `system.cron_job.create`",
+                "x-permission": "system.cron_job.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "command": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "cron_expression": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 255
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9999
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "command",
+                                    "cron_expression"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/cron-job/{id}": {
+            "delete": {
+                "operationId": "CronJobController::delete",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::delete",
+                "description": "需登录，且需权限 `system.cron_job.delete`",
+                "x-permission": "system.cron_job.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "get": {
+                "operationId": "CronJobController::show",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::show",
+                "description": "需登录，且需权限 `system.cron_job.list`",
+                "x-permission": "system.cron_job.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "CronJobController::update",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::update",
+                "description": "需登录，且需权限 `system.cron_job.update`",
+                "x-permission": "system.cron_job.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "command": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "cron_expression": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 255
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 9999
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/cron-job/{id}/clear-logs": {
+            "post": {
+                "operationId": "CronJobController::clearLogs",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::clearLogs",
+                "description": "需登录，且需权限 `system.cron_job.clear`",
+                "x-permission": "system.cron_job.clear",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "keep_days": {
+                                        "type": "integer",
+                                        "nullable": true,
+                                        "minimum": 0,
+                                        "maximum": 3650
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/cron-job/{id}/logs": {
+            "get": {
+                "operationId": "CronJobController::logs",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::logs",
+                "description": "需登录，且需权限 `system.cron_job.list`",
+                "x-permission": "system.cron_job.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/system/cron-job/{id}/status": {
+            "put": {
+                "operationId": "CronJobController::status",
+                "tags": [
+                    "system"
+                ],
+                "summary": "CronJobController::status",
+                "description": "需登录，且需权限 `system.cron_job.update`",
+                "x-permission": "system.cron_job.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/system/department": {
             "get": {
                 "operationId": "DepartmentController::index",

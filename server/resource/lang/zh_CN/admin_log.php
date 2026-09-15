@@ -116,4 +116,15 @@ return [
     'generator_preview_desc'       => '预览代码生成器的产物，不写入磁盘',
     'generator_generate'           => '生成代码',
     'generator_generate_desc'      => '生成模块代码并写入磁盘',
+
+    'cron_job_create'              => '创建定时任务',
+    'cron_job_create_desc'         => '创建新的定时任务',
+    'cron_job_update'              => '更新定时任务',
+    'cron_job_update_desc'         => '更新定时任务配置',
+    'cron_job_delete'              => '删除定时任务',
+    'cron_job_delete_desc'         => '删除定时任务（执行日志保留）',
+    'cron_job_status'              => '修改定时任务状态',
+    'cron_job_status_desc'         => '启用或禁用定时任务',
+    'cron_job_clear_logs'          => '清理定时任务日志',
+    'cron_job_clear_logs_desc'     => '清理指定定时任务的执行日志',
 ];

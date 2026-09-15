@@ -5,6 +5,7 @@ use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\ApiDocController;
+use app\adminapi\controller\system\CronJobController;
 use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
 use app\adminapi\controller\system\FileController;
@@ -173,6 +174,17 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/columns', [GeneratorController::class, 'columns']);
         Route::post('/preview', [GeneratorController::class, 'preview']);
         Route::post('/generate', [GeneratorController::class, 'generate']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/cron-job', function () {
+        Route::get('', [CronJobController::class, 'index']);
+        Route::get('/{id:\d+}/logs', [CronJobController::class, 'logs']);
+        Route::post('/{id:\d+}/clear-logs', [CronJobController::class, 'clearLogs']);
+        Route::put('/{id:\d+}/status', [CronJobController::class, 'status']);
+        Route::get('/{id:\d+}', [CronJobController::class, 'show']);
+        Route::post('', [CronJobController::class, 'store']);
+        Route::put('/{id:\d+}', [CronJobController::class, 'update']);
+        Route::delete('/{id:\d+}', [CronJobController::class, 'delete']);
     })->middleware($adminAuth);
 
     Route::group('/upload', function () {
