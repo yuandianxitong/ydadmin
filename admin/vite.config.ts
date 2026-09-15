@@ -84,6 +84,12 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                     changeOrigin: true,
                     secure: false,
                 },
+                // M4：WebSocket 实时通道，前端连同源 /ws，dev 下转给后端 websocket 进程
+                '/ws': {
+                    target: env.VITE_APP_WS_TARGET || 'ws://127.0.0.1:8001',
+                    ws: true,
+                    changeOrigin: true,
+                },
             },
         },
 

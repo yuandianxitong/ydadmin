@@ -11,6 +11,7 @@ import router from '@/router' // 路由实例（src/router/index.ts）
 import { filterAsyncRoutes, findFirstValidPath } from '@/router/index' // 从 router/index 导出
 import { INDEX_ROUTE, INDEX_ROUTE_NAME } from '@/router/routes.config' // 从 routes.config 导出
 import useTabsStore from '@/store/modules/multipleTabs.store'
+import useRealtimeStore from '@/store/modules/realtime.store'
 import useUserStore from '@/store/modules/user.store' // Pinia: 用户信息 store
 import { clearAuthInfo } from '@/utils/auth' // 清除本地登录态（比如清空 Token)
 import { translateRouteTitle } from '@/utils/i18n'
@@ -65,6 +66,8 @@ export default function createPermissionGuard(router: Router): void {
                 try {
                     // 拉取用户信息与菜单（原始菜单结构）
                     await userStore.getUserInfo()
+                    // 登录后首次导航与刷新页面都走这里：身份确认后建立实时通道（connect 幂等）
+                    useRealtimeStore().connect()
                     const rawRoutes = await userStore.fetchMenus()
 
                     // 先根据 rawRoutes 生成 RouteRecordRaw[]（包含 component 动态加载）
