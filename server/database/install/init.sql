@@ -152,9 +152,10 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
 
 -- ---------------------------------------------------------------- M2a：开发工具 / 代码生成器
 
--- 菜单：3 开发工具（顶级目录），200 代码生成器，201 生成按钮。
--- 菜单 210（API 文档）属于 M2b，此处不种。
+-- 菜单：3 开发工具（顶级目录），200 代码生成器，201 生成按钮，210 API 文档（M2b）。
 INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
   (3, 0, 1, '开发工具', 'DevTools', '/dev-tools', 'LAYOUT', NULL, 'i-svg:cpu', NULL, 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 950, NOW(), NOW()),
   (200, 3, 2, '代码生成器', 'DevGenerator', '/dev-tools/generator', 'system/generator/index', NULL, 'i-svg:file-sliders', 'system.generator.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
-  (201, 200, 3, '生成', NULL, NULL, NULL, NULL, NULL, 'system.generator.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
+  (201, 200, 3, '生成', NULL, NULL, NULL, NULL, NULL, 'system.generator.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (210, 3, 2, 'API文档', 'DevApiDoc', '/dev-tools/api-doc', 'system/api-doc/index',
+   NULL, 'i-svg:notebook-text', 'system.api_doc', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW());
