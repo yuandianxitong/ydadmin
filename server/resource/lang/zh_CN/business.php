@@ -78,4 +78,8 @@ return [
 
     // 定时任务（M3）
     'cron_command_not_allowed'   => '命令不在定时任务白名单中',
+
+    // 定时任务执行
+    'cron_job_running'           => '任务正在执行中，请稍后再试',
+    'cron_run_submitted'         => '已提交执行，结果请查看执行日志',
 ];

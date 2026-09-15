@@ -127,4 +127,6 @@ return [
     'cron_job_status_desc'         => '启用或禁用定时任务',
     'cron_job_clear_logs'          => '清理定时任务日志',
     'cron_job_clear_logs_desc'     => '清理指定定时任务的执行日志',
+    'cron_job_run'                 => '执行定时任务',
+    'cron_job_run_desc'            => '手动执行一次定时任务',
 ];

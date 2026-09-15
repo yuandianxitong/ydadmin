@@ -78,4 +78,8 @@ return [
 
     // Scheduled jobs (M3)
     'cron_command_not_allowed'    => 'The command is not in the scheduled job whitelist',
+
+    // Scheduled task execution
+    'cron_job_running'            => 'The task is already running, please try again later',
+    'cron_run_submitted'          => 'Submitted for execution; check the run logs for the result',
 ];

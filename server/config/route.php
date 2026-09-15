@@ -181,6 +181,7 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/{id:\d+}/logs', [CronJobController::class, 'logs']);
         Route::post('/{id:\d+}/clear-logs', [CronJobController::class, 'clearLogs']);
         Route::put('/{id:\d+}/status', [CronJobController::class, 'status']);
+        Route::post('/{id:\d+}/run', [CronJobController::class, 'run']);
         Route::get('/{id:\d+}', [CronJobController::class, 'show']);
         Route::post('', [CronJobController::class, 'store']);
         Route::put('/{id:\d+}', [CronJobController::class, 'update']);

@@ -92,6 +92,7 @@ return [
         'CronJobController@delete'    => ['admin_log.cron_job_delete', 'admin_log.cron_job_delete_desc'],
         'CronJobController@status'    => ['admin_log.cron_job_status', 'admin_log.cron_job_status_desc'],
         'CronJobController@clearLogs' => ['admin_log.cron_job_clear_logs', 'admin_log.cron_job_clear_logs_desc'],
+        'CronJobController@run'       => ['admin_log.cron_job_run', 'admin_log.cron_job_run_desc'],
     ],
 
     'masked_params' => [

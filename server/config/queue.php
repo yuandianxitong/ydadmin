@@ -13,5 +13,6 @@ return [
 
     'queues' => [
         'operation-log' => ['consumer' => app\queue\redis\OperationLogConsumer::class, 'max_attempts' => 3],
+        'cron-job'      => ['consumer' => app\queue\redis\CronJobConsumer::class, 'max_attempts' => 0],
     ],
 ];

@@ -127,4 +127,6 @@ return [
     'cron_job_status_desc'         => 'Enable or disable a scheduled task',
     'cron_job_clear_logs'          => 'Clear scheduled task logs',
     'cron_job_clear_logs_desc'     => 'Clear run logs of a scheduled task',
+    'cron_job_run'                 => 'Run scheduled task',
+    'cron_job_run_desc'            => 'Run a scheduled task once manually',
 ];

@@ -19,6 +19,7 @@ use Webman\Http\Request;
  *   GET    /adminapi/system/cron-job/{id}/logs          logs       system.cron_job.list
  *   POST   /adminapi/system/cron-job/{id}/clear-logs    clearLogs  system.cron_job.clear
  *   PUT    /adminapi/system/cron-job/{id}/status        status     system.cron_job.update
+ *   POST   /adminapi/system/cron-job/{id}/run           run        system.cron_job.run
  *   GET    /adminapi/system/cron-job/{id}               show       system.cron_job.list
  *   POST   /adminapi/system/cron-job                    store      system.cron_job.create
  *   PUT    /adminapi/system/cron-job/{id}               update     system.cron_job.update
@@ -96,6 +97,13 @@ class CronJobController extends Controller
         $keepDays = isset($data['keep_days']) ? (int) $data['keep_days'] : 30;
 
         return $this->success(['count' => $this->cronJobService->clearLogs((int) $id, $keepDays)], lang('messages.clear_success'));
+    }
+
+    /** 手动执行：data = {status: 0|1, output}（前端 status === 1 才提示成功）。 */
+    #[Permission('system.cron_job.run')]
+    public function run(Request $request, string $id): Response
+    {
+        return $this->success($this->cronJobService->runNow((int) $id), lang('messages.success'));
     }
 
     /** @return array<string, string> */
