@@ -35,11 +35,7 @@ class FileController extends Controller
     public function index(Request $request): Response
     {
         [$page, $limit] = $this->pageParams($request, 20);
-        $params = $this->validate((array) $request->get(), [
-            'keyword'   => 'nullable|string|max:100',
-            'group'     => 'nullable|string|max:100',
-            'mime_type' => 'nullable|in:image,video,audio,document,archive,other',
-        ], [
+        $params = $this->validate((array) $request->get(), $this->indexRules(), [
             'keyword.max'  => 'validation.file_keyword_max',
             'group.max'    => 'validation.file_group_max',
             'mime_type.in' => 'validation.file_mime_type_invalid',
@@ -57,11 +53,7 @@ class FileController extends Controller
     #[Permission('system.file.update')]
     public function moveGroup(Request $request): Response
     {
-        $data = $this->validate($this->body($request), [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-            'group' => 'required|string|max:100',
-        ], [
+        $data = $this->validate($this->body($request), $this->moveGroupRules(), [
             'ids.required'   => 'validation.file_ids_require',
             'ids.array'      => 'validation.file_ids_require',
             'ids.min'        => 'validation.file_ids_require',
@@ -78,9 +70,7 @@ class FileController extends Controller
     #[Permission('system.file.update')]
     public function rename(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), [
-            'name' => 'required|string|max:255',
-        ], [
+        $data = $this->validate($this->body($request), $this->renameRules(), [
             'name.required' => 'validation.file_name_require',
             'name.string'   => 'validation.file_name_require',
             'name.max'      => 'validation.file_name_max',
@@ -101,10 +91,7 @@ class FileController extends Controller
     #[Permission('system.file.delete')]
     public function batchDelete(Request $request): Response
     {
-        $data = $this->validate($this->body($request), [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ], [
+        $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
             'ids.required'  => 'validation.file_ids_require',
             'ids.array'     => 'validation.file_ids_require',
             'ids.min'       => 'validation.file_ids_require',
@@ -113,5 +100,40 @@ class FileController extends Controller
         $count = $this->fileService->batchDelete(array_map('intval', (array) $data['ids']));
 
         return $this->success([], sprintf(lang('messages.file_delete_count'), $count));
+    }
+
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return [
+            'keyword'   => 'nullable|string|max:100',
+            'group'     => 'nullable|string|max:100',
+            'mime_type' => 'nullable|in:image,video,audio,document,archive,other',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function moveGroupRules(): array
+    {
+        return [
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'group' => 'required|string|max:100',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function renameRules(): array
+    {
+        return ['name' => 'required|string|max:255'];
+    }
+
+    /** @return array<string, string> */
+    private function batchDeleteRules(): array
+    {
+        return [
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ];
     }
 }

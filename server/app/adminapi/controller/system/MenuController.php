@@ -53,7 +53,7 @@ class MenuController extends Controller
     #[Permission('system.menu.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->rules(), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         return $this->success($this->menuService->createMenu($data), lang('messages.create_success'));
     }
@@ -61,7 +61,7 @@ class MenuController extends Controller
     #[Permission('system.menu.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->rules(), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
         $this->menuService->updateMenu((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -92,7 +92,7 @@ class MenuController extends Controller
     #[Permission('system.menu.update')]
     public function status(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['status' => 'required|integer|in:0,1'], [
+        $data = $this->validate($this->body($request), $this->statusRules(), [
             'status.required' => 'validation.status_invalid',
             'status.integer'  => 'validation.status_invalid',
             'status.in'       => 'validation.status_invalid',
@@ -159,6 +159,32 @@ class MenuController extends Controller
             'sort'          => 'sometimes|required|integer|min:0',
             'meta'          => 'nullable|array',
         ];
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules()（store 与 update 共用同一套规则）。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->rules();
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules()。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->rules();
+    }
+
+    /** @return array<string, string> */
+    private function statusRules(): array
+    {
+        return ['status' => 'required|integer|in:0,1'];
     }
 
     /**

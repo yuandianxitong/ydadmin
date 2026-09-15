@@ -54,7 +54,7 @@ class DictionaryController extends Controller
     #[Permission('system.dictionary.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->dictionaryRules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         return $this->success($this->dictionaryService->createDictionary($data), lang('messages.create_success'));
     }
@@ -62,7 +62,7 @@ class DictionaryController extends Controller
     #[Permission('system.dictionary.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->dictionaryRules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
         $this->dictionaryService->updateDictionary((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -79,10 +79,7 @@ class DictionaryController extends Controller
     #[Permission('system.dictionary.delete')]
     public function batchDelete(Request $request): Response
     {
-        $data = $this->validate($this->body($request), [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ], [
+        $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
             'ids.required'  => 'validation.dict_ids_require',
             'ids.array'     => 'validation.dict_ids_require',
             'ids.min'       => 'validation.dict_ids_require',
@@ -96,7 +93,7 @@ class DictionaryController extends Controller
     #[PermissionSkip]
     public function options(Request $request): Response
     {
-        $data = $this->validate(['code' => $request->get('code')], ['code' => 'required|string|max:100'], [
+        $data = $this->validate(['code' => $request->get('code')], $this->optionsRules(), [
             'code.required' => 'validation.dict_code_require',
             'code.string'   => 'validation.dict_code_require',
             'code.max'      => 'validation.dict_code_length',
@@ -120,7 +117,7 @@ class DictionaryController extends Controller
                 static fn (string $code): bool => $code !== ''
             ));
         }
-        $data = $this->validate(['codes' => $codes], ['codes' => 'required|array|max:' . DictionaryService::MAX_BATCH_CODES], [
+        $data = $this->validate(['codes' => $codes], $this->batchOptionsRules(), [
             'codes.required' => 'validation.dict_codes_require',
             'codes.array'    => 'validation.dict_codes_require',
             'codes.max'      => 'validation.dict_codes_max',
@@ -138,7 +135,7 @@ class DictionaryController extends Controller
     #[Permission('system.dictionary.create')]
     public function storeItem(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->itemRules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeItemRules(), $this->messages());
 
         return $this->success($this->dictionaryService->createItem($data), lang('messages.create_success'));
     }
@@ -146,7 +143,7 @@ class DictionaryController extends Controller
     #[Permission('system.dictionary.update')]
     public function updateItem(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->itemRules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateItemRules(), $this->messages());
         $this->dictionaryService->updateItem((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -188,6 +185,72 @@ class DictionaryController extends Controller
         ];
 
         return $scene === 'create' ? ['dictionary_id' => 'required|integer|min:1'] + $rules : $rules;
+    }
+
+    /**
+     * 薄包装，委派给既有的 dictionaryRules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->dictionaryRules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 dictionaryRules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->dictionaryRules('update');
+    }
+
+    /** @return array<string, string> */
+    private function batchDeleteRules(): array
+    {
+        return [
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function optionsRules(): array
+    {
+        return ['code' => 'required|string|max:100'];
+    }
+
+    /**
+     * 常量拼接，容器实调即得真值（spec §6 特例二）。注意：本方法只出规则，
+     * options() 里对 codes 的逗号拆分/去空白/丢空项等数据整形不属于这里，留在动作方法内。
+     *
+     * @return array<string, string>
+     */
+    private function batchOptionsRules(): array
+    {
+        return ['codes' => 'required|array|max:' . DictionaryService::MAX_BATCH_CODES];
+    }
+
+    /**
+     * 薄包装，委派给既有的 itemRules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeItemRules(): array
+    {
+        return $this->itemRules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 itemRules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateItemRules(): array
+    {
+        return $this->itemRules('update');
     }
 
     /**

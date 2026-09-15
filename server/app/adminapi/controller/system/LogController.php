@@ -24,13 +24,7 @@ class LogController extends Controller
     public function loginLog(Request $request): Response
     {
         [$page, $limit] = $this->pageParams($request);
-        $params = $this->validate((array) $request->get(), [
-            'keyword'      => 'nullable|string|max:50',
-            'ip'           => 'nullable|string|max:45',
-            'login_result' => 'nullable|in:0,1',
-            'start_date'   => 'nullable|date_format:Y-m-d',
-            'end_date'     => 'nullable|date_format:Y-m-d',
-        ], $this->filterMessages());
+        $params = $this->validate((array) $request->get(), $this->loginLogRules(), $this->filterMessages());
 
         return $this->paginate($this->logService->getLoginLogList($params, $page, $limit));
     }
@@ -39,13 +33,7 @@ class LogController extends Controller
     public function operationLog(Request $request): Response
     {
         [$page, $limit] = $this->pageParams($request);
-        $params = $this->validate((array) $request->get(), [
-            'keyword'    => 'nullable|string|max:50',
-            'method'     => 'nullable|string|max:10',
-            'path'       => 'nullable|string|max:255',
-            'start_date' => 'nullable|date_format:Y-m-d',
-            'end_date'   => 'nullable|date_format:Y-m-d',
-        ], $this->filterMessages());
+        $params = $this->validate((array) $request->get(), $this->operationLogRules(), $this->filterMessages());
 
         return $this->paginate($this->logService->getOperationLogList($params, $page, $limit));
     }
@@ -76,6 +64,30 @@ class LogController extends Controller
     public function clearOperationLog(): Response
     {
         return $this->success(['count' => $this->logService->clearOperationLogs()], lang('messages.clear_success'));
+    }
+
+    /** @return array<string, string> */
+    private function loginLogRules(): array
+    {
+        return [
+            'keyword'      => 'nullable|string|max:50',
+            'ip'           => 'nullable|string|max:45',
+            'login_result' => 'nullable|in:0,1',
+            'start_date'   => 'nullable|date_format:Y-m-d',
+            'end_date'     => 'nullable|date_format:Y-m-d',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function operationLogRules(): array
+    {
+        return [
+            'keyword'    => 'nullable|string|max:50',
+            'method'     => 'nullable|string|max:10',
+            'path'       => 'nullable|string|max:255',
+            'start_date' => 'nullable|date_format:Y-m-d',
+            'end_date'   => 'nullable|date_format:Y-m-d',
+        ];
     }
 
     /** @return array<string, string> 值即 lang key */
