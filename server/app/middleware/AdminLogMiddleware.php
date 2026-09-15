@@ -18,6 +18,7 @@ use Webman\MiddlewareInterface;
  * 操作日志（spec §6.2，移植 Saas，去租户；M3 起经队列异步落库，spec §8.4）。挂在认证组最内层：AdminAuth → AdminPermission → AdminLog。
  *
  * - 只记 POST/PUT/DELETE，且有管理员身份（只认 RequestContext::actingUser()，与权限中间件一致）。
+ * - config/admin_log.php 的 skip 列出的动作（如 WS 握手票据）不记日志。
  * - 载荷在请求内算好再投递到 operation-log 队列：动作文案依赖当次请求的 locale，参数脱敏依赖当次请求的数据，
  *   都不能留到队列进程里算。operation_time 取请求开始时刻（队列落库有延迟）。
  * - 投递失败（如 Redis 不可用）退回同步写库并记 Log::warning，日志不丢；同步写也失败只记 warning，绝不影响响应。
@@ -47,6 +48,13 @@ class AdminLogMiddleware implements MiddlewareInterface
         $method = strtoupper($request->method());
         $adminId = RequestContext::actingUser();
         if ($adminId <= 0 || !in_array($method, self::WRITE_METHODS, true)) {
+            return $response;
+        }
+        $key = self::shortKey(
+            is_string($request->controller) ? $request->controller : '',
+            is_string($request->action) ? $request->action : ''
+        );
+        if (in_array($key, (array) config('admin_log.skip', []), true)) {
             return $response;
         }
 

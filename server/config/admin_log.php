@@ -95,6 +95,12 @@ return [
         'CronJobController@run'       => ['admin_log.cron_job_run', 'admin_log.cron_job_run_desc'],
     ],
 
+    // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。
+    // 与 actions 互斥；tests/Feature/System/AdminLogMiddlewareTest 会核对它们都对得上写路由。
+    'skip' => [
+        'WsTicketController@store',
+    ],
+
     'masked_params' => [
         // PUT /system/config/{id} 只提交 config_value，看不出是哪个键，一律脱敏（云存储、支付密钥都走这里）
         'SystemConfigController@update' => ['config_value'],

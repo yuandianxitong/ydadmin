@@ -83,4 +83,7 @@ return [
     'cron_job_running'           => '任务正在执行中，请稍后再试',
     'cron_run_submitted'         => '已提交执行，结果请查看执行日志',
     'cron_run_dispatch_failed'   => '提交执行失败，请检查队列服务（Redis）是否可用',
+
+    // WebSocket 实时通道
+    'ws_ticket_rate_limited'     => '获取实时连接凭证过于频繁，请稍后再试',
 ];

@@ -136,7 +136,9 @@ final class AdminLogMiddlewareTest extends ApiTestCase
     public function test_every_logged_write_route_has_action_text(): void
     {
         $actions = (array) config('admin_log.actions', []);
+        $skip = array_values(array_map('strval', (array) config('admin_log.skip', [])));
         $routed = [];
+        $skipped = [];
         $missing = [];
         /** @var RouteObject $route */
         foreach (Route::getRoutes() as $route) {
@@ -150,6 +152,11 @@ final class AdminLogMiddlewareTest extends ApiTestCase
                 continue;
             }
             $key = AdminLogMiddleware::shortKey((string) $callback[0], (string) $callback[1]);
+            if (in_array($key, $skip, true)) {
+                $skipped[] = $key;
+
+                continue;
+            }
             $routed[] = $key;
             if (!isset($actions[$key])) {
                 $missing[] = implode('|', $route->getMethods()) . ' ' . $route->getPath() . " → {$key}";
@@ -164,6 +171,9 @@ final class AdminLogMiddlewareTest extends ApiTestCase
             static fn (string $key): bool => !in_array($key, $routed, true)
         ));
         $this->assertSame([], $stale, "映射表里这些键对不上任何写路由（拼错或路由已删）：\n" . implode("\n", $stale));
+
+        $this->assertSame([], array_values(array_diff($skip, $skipped)), 'admin_log.skip 里这些键对不上任何写路由（拼错或路由已删）');
+        $this->assertSame([], array_values(array_intersect($skip, array_keys($actions))), '同一动作不能既登记文案又列入 skip');
     }
 
     public function test_every_mapped_lang_key_exists_in_both_locales(): void

@@ -15,6 +15,7 @@ use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\NotificationController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
+use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
@@ -187,6 +188,9 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::put('/{id:\d+}', [CronJobController::class, 'update']);
         Route::delete('/{id:\d+}', [CronJobController::class, 'delete']);
     })->middleware($adminAuth);
+
+    // ---- M4：WebSocket 握手票据（登录即可；按管理员限流）
+    Route::post('/ws/ticket', [WsTicketController::class, 'store'])->middleware($adminAuth);
 
     Route::group('/upload', function () {
         Route::post('/image', [UploadController::class, 'image']);

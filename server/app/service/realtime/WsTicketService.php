@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\service\realtime;
 
 use core\base\Service;
+use core\exception\BusinessException;
 use support\Redis;
 
 /**
@@ -20,11 +21,35 @@ class WsTicketService extends Service
 {
     public const TTL = 30;
 
+    /** 同一管理员 RATE_WINDOW 秒内最多签发 RATE_LIMIT 张：前端重连逻辑出错时不至于把接口刷爆。 */
+    public const RATE_LIMIT = 30;
+
+    public const RATE_WINDOW = 60;
+
     private const KEY_PREFIX = 'ws:ticket:';
 
     private const PATTERN = '/^[0-9a-f]{48}$/';
 
     private const GET_AND_DELETE = "local v = redis.call('GET', KEYS[1]) if v then redis.call('DEL', KEYS[1]) end return v";
+
+    /** 计数 +1 并保证带过期时间，一段 Lua 原子执行（与 LoginRateLimitMiddleware 同一写法）。 */
+    private const INCR_WITH_TTL = "local n = redis.call('INCR', KEYS[1]) if n == 1 or redis.call('TTL', KEYS[1]) == -1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return n";
+
+    /**
+     * 限流后签发（控制器入口）。
+     *
+     * @return array{ticket: string, expires_in: int}
+     * @throws BusinessException code 429：超出频率
+     */
+    public function grant(int $adminId, int $ver, string $jti, string $ip, string $ua): array
+    {
+        $count = (int) Redis::eval(self::INCR_WITH_TTL, 1, "ws:ticket:rate:{$adminId}", self::RATE_WINDOW);
+        if ($count > self::RATE_LIMIT) {
+            throw new BusinessException(lang('business.ws_ticket_rate_limited'), 429);
+        }
+
+        return ['ticket' => $this->issue($adminId, $ver, $jti, $ip, $ua), 'expires_in' => self::TTL];
+    }
 
     public function issue(int $adminId, int $ver, string $jti, string $ip, string $ua): string
     {

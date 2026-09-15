@@ -59,6 +59,18 @@ final class AdminAuthMiddlewareTest extends TestCase
         $this->assertSame(5, RequestContext::actingUser());
     }
 
+    public function test_valid_token_exposes_its_version_and_jti_on_the_request(): void
+    {
+        $manager = TokenManager::scope('admin');
+        $token = $manager->generate(['admin_id' => 5, 'username' => 'alice', 'ver' => TokenVersion::current(5)]);
+        $request = $this->request($token);
+
+        (new AdminAuthMiddleware())->process($request, fn () => Api::success());
+
+        $this->assertSame(TokenVersion::current(5), $request->tokenVer);
+        $this->assertSame($manager->verifyClaims($token)['jti'], $request->tokenJti);
+    }
+
     public function test_user_scope_token_is_401(): void
     {
         $token = TokenManager::scope('user')->generate(['user_id' => 5]);

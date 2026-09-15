@@ -254,6 +254,22 @@ final class AdminLogMiddlewareTest extends TestCase
         $this->assertTrue(mb_check_encoding((string) $record['result']['message'], 'UTF-8'));
     }
 
+    public function test_actions_listed_in_skip_are_not_recorded(): void
+    {
+        RequestContext::setActingUser(7);
+        $dispatcher = new SpyQueueDispatcher();
+        $repository = new SpyOperationLogRepository();
+
+        (new AdminLogMiddleware($repository, $dispatcher))->process(
+            $this->request('POST', 'app\\adminapi\\controller\\realtime\\WsTicketController', 'store'),
+            static fn () => Api::success(['ticket' => 'x'])
+        );
+
+        $this->assertContains('WsTicketController@store', (array) config('admin_log.skip', []));
+        $this->assertSame([], $dispatcher->dispatched);
+        $this->assertSame([], $repository->records);
+    }
+
     public function test_short_key_strips_the_namespace(): void
     {
         $this->assertSame('AdminController@store', AdminLogMiddleware::shortKey('app\\adminapi\\controller\\system\\AdminController', 'store'));

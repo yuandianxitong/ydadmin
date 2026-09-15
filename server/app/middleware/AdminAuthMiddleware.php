@@ -28,10 +28,11 @@ class AdminAuthMiddleware implements MiddlewareInterface
         }
 
         try {
-            $data = $mgr->verify($token);
+            $claims = $mgr->verifyClaims($token);
         } catch (AuthException $e) {
             return Api::error($e->getMessage(), 401);
         }
+        $data = $claims['payload'];
 
         $adminId = (int) ($data['admin_id'] ?? 0);
         if ($adminId <= 0) {
@@ -45,6 +46,9 @@ class AdminAuthMiddleware implements MiddlewareInterface
 
         $request->userId = $adminId;
         $request->username = (string) ($data['username'] ?? '');
+        // M4：WS 票据要记下本次 token 的版本号与 jti，WS 进程据此判断会话是否已被吊销 / 登出
+        $request->tokenVer = (int) ($data['ver'] ?? 0);
+        $request->tokenJti = $claims['jti'];
         RequestContext::setActingUser($adminId);
 
         return $handler($request);
