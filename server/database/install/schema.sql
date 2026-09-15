@@ -294,3 +294,39 @@ CREATE TABLE `failed_jobs` (
   KEY `idx_queue` (`queue`),
   KEY `idx_failed_at` (`failed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='队列失败任务';
+
+CREATE TABLE `cron_jobs` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '任务名称',
+  `command` varchar(255) NOT NULL COMMENT '执行命令：config/cron.php 白名单里的控制台命令及参数，如 log:archive --days=90',
+  `expression` varchar(100) NOT NULL COMMENT 'Cron 表达式（5 段：分 时 日 月 周，如 */5 * * * *）',
+  `description` varchar(255) DEFAULT NULL COMMENT '任务描述',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1启用 0禁用',
+  `last_run_at` datetime DEFAULT NULL COMMENT '上次执行时间',
+  `last_status` tinyint DEFAULT NULL COMMENT '上次执行结果：1成功 0失败',
+  `last_result` varchar(500) DEFAULT NULL COMMENT '上次输出或错误（截断到 500 字）',
+  `run_count` int unsigned NOT NULL DEFAULT 0 COMMENT '累计执行次数',
+  `sort` int NOT NULL DEFAULT 0,
+  `created_by` int unsigned DEFAULT NULL COMMENT '创建人（不接数据权限，由 Service 显式写入）',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='定时任务';
+
+CREATE TABLE `cron_job_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `cron_job_id` int unsigned NOT NULL COMMENT '所属任务',
+  `trigger` tinyint NOT NULL DEFAULT 1 COMMENT '触发方式：1定时 2手动（MySQL 保留字，原生 SQL 里须加反引号）',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1成功 0失败（执行结束才写这一行，没有「执行中」）',
+  `output` mediumtext COMMENT '命令输出（截断到 60000 字）',
+  `error` mediumtext COMMENT '错误信息（截断到 60000 字）',
+  `started_at` datetime NOT NULL COMMENT '开始时间',
+  `finished_at` datetime NOT NULL COMMENT '结束时间',
+  `duration` int unsigned NOT NULL DEFAULT 0 COMMENT '耗时（毫秒）',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_cron_job_id` (`cron_job_id`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='定时任务执行日志';

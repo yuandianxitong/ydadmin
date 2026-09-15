@@ -159,3 +159,18 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (201, 200, 3, '生成', NULL, NULL, NULL, NULL, NULL, 'system.generator.generate', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (210, 3, 2, 'API文档', 'DevApiDoc', '/dev-tools/api-doc', 'system/api-doc/index',
    NULL, 'i-svg:notebook-text', 'system.api_doc', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M3：定时任务
+
+-- 菜单：沿用 TP8 id（90 定时任务，91–95 按钮）。TP8 漏种了 system.cron_job.clear 权限点，本版补齐
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (90, 2, 2, '定时任务', 'SystemCronJob', '/system/cron-job', '/system/cron-job/index', NULL, 'i-svg:bolt', 'system.cron_job.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 9, NOW(), NOW()),
+  (91, 90, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (92, 90, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (93, 90, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (94, 90, 3, '执行', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.run', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (95, 90, 3, '清空日志', NULL, NULL, NULL, NULL, NULL, 'system.cron_job.clear', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 5, NOW(), NOW());
+
+-- 示例任务：每天凌晨 3 点清理 90 天前的管理员操作日志与登录日志（log:archive 见 app/command/LogArchiveCommand.php）
+INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  ('清理过期管理员日志', 'log:archive --days=90', '0 3 * * *', '每天凌晨 3 点清理 90 天前的管理员操作日志与登录日志', 1, 0, NOW(), NOW());

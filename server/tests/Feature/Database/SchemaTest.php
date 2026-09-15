@@ -128,6 +128,38 @@ final class SchemaTest extends TestCase
         }
     }
 
+    public function test_m3_cron_tables_and_menu_seeds(): void
+    {
+        foreach (['cron_jobs', 'cron_job_logs'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
+        }
+        foreach (['name', 'command', 'expression', 'description', 'status', 'last_run_at', 'last_status', 'last_result', 'run_count', 'sort', 'created_by', 'deleted_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('cron_jobs', $column), "cron_jobs 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('cron_jobs', 'cron_expression'), '列名沿用 TP8 的 expression，cron_expression 只是接口字段');
+        foreach (['cron_job_id', 'trigger', 'status', 'output', 'error', 'started_at', 'finished_at', 'duration', 'created_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('cron_job_logs', $column), "cron_job_logs 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('cron_job_logs', 'updated_at'));
+
+        $menus = Db::table('menus')->whereBetween('id', [90, 95])->orderBy('id')->get()->all();
+        $this->assertCount(6, $menus);
+        $this->assertSame([2, 90, 90, 90, 90, 90], array_map(static fn (object $m): int => (int) $m->parent_id, $menus));
+        $this->assertSame(
+            ['system.cron_job.list', 'system.cron_job.create', 'system.cron_job.update', 'system.cron_job.delete', 'system.cron_job.run', 'system.cron_job.clear'],
+            array_map(static fn (object $m): string => (string) $m->permission, $menus)
+        );
+        $this->assertSame('/system/cron-job/index', $menus[0]->component);
+        $this->assertSame('/system/cron-job', $menus[0]->path);
+        $this->assertSame('SystemCronJob', $menus[0]->name);
+        $this->assertSame('i-svg:bolt', $menus[0]->icon);
+
+        $seed = Db::table('cron_jobs')->where('command', 'log:archive --days=90')->first();
+        $this->assertNotNull($seed, '种子示例任务');
+        $this->assertSame('0 3 * * *', $seed->expression);
+        $this->assertSame(1, (int) $seed->status);
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');
