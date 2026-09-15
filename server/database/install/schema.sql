@@ -280,3 +280,17 @@ CREATE TABLE `files` (
   KEY `idx_upload_by` (`upload_by`),
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件管理表';
+
+-- ---------------------------------------------------------------- M3：调度器与队列
+
+CREATE TABLE `failed_jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `queue` varchar(100) NOT NULL COMMENT '队列名',
+  `payload` json NOT NULL COMMENT '任务数据（已脱敏；queue:retry 按它重新投递）',
+  `exception` text COMMENT '异常类名、消息与调用栈（截断到 5000 字）',
+  `attempts` int unsigned NOT NULL DEFAULT 0 COMMENT '已尝试次数',
+  `failed_at` datetime NOT NULL COMMENT '最后一次失败时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_queue` (`queue`),
+  KEY `idx_failed_at` (`failed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='队列失败任务';

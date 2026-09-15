@@ -21,6 +21,7 @@ final class DevDatabaseGuard
     private const REQUIRED = [
         'system_configs' => ['is_public'],  // M1b Task 5 加的列
         'files'          => [],            // M1c Task 2 加的表
+        'failed_jobs'    => [],            // M3 Task 2 加的表
     ];
 
     /**

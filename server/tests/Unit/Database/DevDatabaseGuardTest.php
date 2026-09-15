@@ -45,6 +45,7 @@ final class DevDatabaseGuardTest extends TestCase
 
         $this->assertContains('system_configs 缺列 is_public', $missing);
         $this->assertContains('缺表 files', $missing);
+        $this->assertContains('缺表 failed_jobs', $missing);
     }
 
     public function test_a_database_that_does_not_exist_is_not_reported_as_stale(): void
