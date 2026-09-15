@@ -31,7 +31,10 @@ class ApiDocService extends Service
      */
     private static array $documentCache = [];
 
-    /** @param string $type 'admin' | 'api'；未知值按 'api' 处理（返回空文档） */
+    /**
+     * @param string $type 'admin' | 'api'；未知值按 'api' 处理（返回空文档）
+     * @return array<string, mixed>
+     */
     public function document(string $type): array
     {
         $type = array_key_exists($type, self::PREFIXES) ? $type : 'api';
