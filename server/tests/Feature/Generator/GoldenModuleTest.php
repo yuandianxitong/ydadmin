@@ -95,6 +95,42 @@ final class GoldenModuleTest extends TestCase
         $this->assertGoldenFile($path, $content);
     }
 
+    public function test_controller_wraps_batch_delete_and_status_rules_in_named_methods(): void
+    {
+        [, $content] = $this->renderGolden('controller');
+
+        $this->assertStringContainsString(
+            '$this->validate($this->body($request), $this->storeRules(), $this->messages());',
+            $content,
+            'store() 必须通过 storeRules() 取规则'
+        );
+        $this->assertStringContainsString(
+            '$this->validate($this->body($request), $this->updateRules(), $this->messages());',
+            $content,
+            'update() 必须通过 updateRules() 取规则'
+        );
+        $this->assertStringContainsString(
+            '$this->validate($this->body($request), $this->batchDeleteRules(), [',
+            $content,
+            'batchDelete() 必须通过 batchDeleteRules() 取规则，不能内联数组（check:context 规则七会拦）'
+        );
+        $this->assertStringContainsString(
+            '$this->validate($this->body($request), $this->statusRules(), [',
+            $content,
+            'status() 必须通过 statusRules() 取规则，不能内联数组（check:context 规则七会拦）'
+        );
+        $this->assertStringContainsString(
+            "private function batchDeleteRules(): array\n    {\n        return [\n            'ids'   => 'required|array|min:1',\n            'ids.*' => 'integer',\n        ];\n    }",
+            $content,
+            'batchDeleteRules() 必须原样保留原先内联的规则内容'
+        );
+        $this->assertStringContainsString(
+            "private function statusRules(): array\n    {\n        return ['status' => 'required|integer|in:0,1'];\n    }",
+            $content,
+            'statusRules() 必须原样保留原先内联的规则内容'
+        );
+    }
+
     public function test_api_matches_the_golden_file(): void
     {
         [$path, $content] = $this->renderGolden('api');
