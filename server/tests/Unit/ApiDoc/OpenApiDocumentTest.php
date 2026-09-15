@@ -405,15 +405,16 @@ final class OpenApiDocumentTest extends TestCase
     }
 
     /**
-     * 只有 `present` 的字段翻译出空 schema（F5 起不再自动 nullable）。schema 在 OpenAPI 里是对象，
+     * 只有 `required` 的字段翻译出空 schema（没有任何类型或约束 token）。schema 在 OpenAPI 里是对象，
      * 空的也必须编成 `{}`；但操作级 `security: []` 是列表，必须保持 `[]`。
+     * （不用 `present`：裸 present 接受 null，翻译结果是 {nullable: true}，不是空 schema。）
      */
     public function test_to_json_encodes_empty_schemas_as_objects_but_keeps_empty_security_a_list(): void
     {
         $endpoints = [
             new EndpointDescriptor('PUT', '/adminapi/system/config/{id}', self::CONTROLLER, 'update', null, false, 'system', false),
         ];
-        $doc = $this->document()->build($endpoints, ['DictionaryController::update' => ['config_value' => 'present']], []);
+        $doc = $this->document()->build($endpoints, ['DictionaryController::update' => ['config_value' => 'required']], []);
 
         $json = OpenApiDocument::toJson($doc);
 

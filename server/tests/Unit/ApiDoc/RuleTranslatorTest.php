@@ -67,23 +67,31 @@ final class RuleTranslatorTest extends TestCase
     }
 
     /**
-     * present 只保证「键必须出现」→ 进 required；它不说值可以是 null。旧断言要求 'present|array'
-     * 翻出 nullable: true，但真实校验器对 menu_ids=null 报 validation.array（评审 M2 实测）——
-     * 那是文档说谎。只有规则串里真的写了 nullable 才加 nullable。
+     * present 只保证「键必须出现」→ 进 required；可空性取决于同串里有没有会拒绝 null 的规则。
+     * Laravel 实测：'present'+null 通过、'configs.*.config_value'（present）+null 通过；
+     * 'present|array'+null 与 'present|in:0,1'+null 失败。所以：
+     *   - 'present|array'（menu_ids）不可空——array 拒绝 null；
+     *   - 裸 'present'（config_value）可空——没有任何规则拒绝 null，不标 nullable 就是说严了；
+     *   - 显式 nullable 照常生效。
      */
-    public function test_present_is_required_but_not_implicitly_nullable(): void
+    public function test_present_nullability_follows_whether_another_rule_rejects_null(): void
     {
         $translator = new RuleTranslator();
 
-        // RoleController::storeRules 'menu_ids'
+        // RoleController::assignPermissionsRules 'menu_ids'
         $menuIds = $translator->translate('present|array');
         $this->assertTrue($menuIds['required']);
         $this->assertSame(['type' => 'array'], $menuIds['schema']);
 
-        // SystemConfigController::updateRules 'config_value'：present 单独出现，没有类型 token
+        // SystemConfigController::updateRules 'config_value'：present 单独出现，Laravel 接受 null
         $configValue = $translator->translate('present');
         $this->assertTrue($configValue['required']);
-        $this->assertSame([], $configValue['schema']);
+        $this->assertSame(['nullable' => true], $configValue['schema']);
+
+        // present 与 in 同串：in 拒绝 null，不得标 nullable
+        $withIn = $translator->translate('present|in:0,1');
+        $this->assertTrue($withIn['required']);
+        $this->assertArrayNotHasKey('nullable', $withIn['schema']);
 
         // 显式 nullable 仍然生效
         $explicit = $translator->translate('present|nullable|array');

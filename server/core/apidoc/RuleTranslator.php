@@ -34,6 +34,13 @@ final class RuleTranslator
     private const FORMAT_IMPLIES_STRING = ['email', 'url', 'alpha_dash', 'regex', 'date_format'];
 
     /**
+     * 不会拒绝 null 的规则：裸 present 只与它们同串时，值可以是 null（Laravel 实测）。
+     *
+     * @var list<string>
+     */
+    private const NULL_TOLERANT = ['present', 'sometimes', 'bail', 'nullable'];
+
+    /**
      * @return array{schema: array<string, mixed>, required: bool, notes: list<string>}
      */
     public function translate(string $ruleString): array
@@ -83,9 +90,14 @@ final class RuleTranslator
                     $required = false;
                     break;
                 case 'present':
-                    // present 只保证键必须出现，不说值可以是 null：'present|array' 收到 null 会被
-                    // array 规则拒绝。只有规则串里真的写了 nullable 才加 nullable（见下一个 case）。
+                    // present 只保证键必须出现。可空性看同串里有没有会拒绝 null 的规则：
+                    // 'present|array'、'present|in:0,1' 收到 null 会被 array / in 拒绝，不可空；
+                    // 裸 'present'（只伴随 sometimes/bail/nullable）在 Laravel 里接受 null，
+                    // 不标 nullable 就是把约束说严了——文档宁可少说，不可说谎。
                     $required = true;
+                    if ($type === null && array_diff(array_column($rules, 'name'), self::NULL_TOLERANT) === []) {
+                        $schema['nullable'] = true;
+                    }
                     break;
                 case 'nullable':
                     $schema['nullable'] = true;

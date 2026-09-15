@@ -1535,7 +1535,9 @@
                                                     "type": "string",
                                                     "maxLength": 100
                                                 },
-                                                "config_value": {}
+                                                "config_value": {
+                                                    "nullable": true
+                                                }
                                             },
                                             "required": [
                                                 "config_key",
@@ -1830,7 +1832,9 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
-                                    "config_value": {}
+                                    "config_value": {
+                                        "nullable": true
+                                    }
                                 },
                                 "required": [
                                     "config_value"
