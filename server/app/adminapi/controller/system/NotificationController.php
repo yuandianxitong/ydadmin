@@ -13,21 +13,21 @@ use support\Response;
 use Webman\Http\Request;
 
 /**
- * 站内通知（契约 §2.10）。
+ * 站内通知（契约 §2.10；M4 spec §6 指定管理员）。
  *
  * 端点（具名路由在 {id} 通配路由之前注册）：
- *   GET    /adminapi/system/notification                index        system.notification.list
- *   GET    /adminapi/system/notification/mine            mine         PermissionSkip
- *   GET    /adminapi/system/notification/unread-count    unreadCount  PermissionSkip
- *   POST   /adminapi/system/notification/read-all        readAll      PermissionSkip
- *   POST   /adminapi/system/notification/{id}/read       read         PermissionSkip
- *   GET    /adminapi/system/notification/{id}            show         system.notification.list
- *   POST   /adminapi/system/notification                 store        system.notification.create
- *   PUT    /adminapi/system/notification/{id}            update       system.notification.update
- *   DELETE /adminapi/system/notification/{id}            delete       system.notification.delete
+ *   GET    /adminapi/system/notification                 index         system.notification.list
+ *   GET    /adminapi/system/notification/mine            mine          PermissionSkip
+ *   GET    /adminapi/system/notification/unread-count    unreadCount   PermissionSkip
+ *   GET    /adminapi/system/notification/admin-options   adminOptions  system.notification.create
+ *   POST   /adminapi/system/notification/read-all        readAll       PermissionSkip
+ *   POST   /adminapi/system/notification/{id}/read       read          PermissionSkip
+ *   GET    /adminapi/system/notification/{id}            show          system.notification.list
+ *   POST   /adminapi/system/notification                 store         system.notification.create
+ *   PUT    /adminapi/system/notification/{id}            update        system.notification.update
+ *   DELETE /adminapi/system/notification/{id}            delete        system.notification.delete
  *
- * target_type：M1 只支持 1（全员广播）。传 2 返回 422「暂不支持指定用户通知」（spec §1.1-7），M4 实现；
- * 其他值返回 422「通知目标类型无效」。
+ * target_type：1 全员广播，2 指定管理员（admin_ids 必填，范围与存在性由服务层判定）；发布后不能修改。
  */
 class NotificationController extends Controller
 {
@@ -90,6 +90,17 @@ class NotificationController extends Controller
         return $this->success(['count' => $this->notificationService->getUnreadCount()], lang('messages.get_success'));
     }
 
+    #[Permission('system.notification.create')]
+    public function adminOptions(Request $request): Response
+    {
+        $params = $this->validate((array) $request->get(), $this->adminOptionsRules(), [
+            'keyword.string' => 'validation.notification_keyword_max',
+            'keyword.max'    => 'validation.notification_keyword_max',
+        ]);
+
+        return $this->success($this->notificationService->adminOptions((string) ($params['keyword'] ?? '')), lang('messages.get_success'));
+    }
+
     #[PermissionSkip]
     public function read(Request $request, string $id): Response
     {
@@ -108,7 +119,8 @@ class NotificationController extends Controller
 
     /**
      * create 场景 title/content/type 必填；update 场景一律 sometimes|required（局部更新，传空字符串必须失败）。
-     * target_type 先 in:1,2 判合法，再 not_in:2 拒绝指定用户：两条规则给出不同的消息。
+     * admin_ids：create 场景 target_type=2 时必填；update 场景可选（只对指定通知生效，服务层判定）。
+     * admin_ids 的数据范围与存在性不在这里校验（需要查库），由 NotificationService 抛 422。
      * content 列是 TEXT（65535 字节），限 10000 字符，避免超长内容在 MySQL 严格模式下 500。
      *
      * @return array<string, string>
@@ -121,7 +133,9 @@ class NotificationController extends Controller
             'title'       => "{$required}|string|max:200",
             'content'     => "{$required}|string|max:10000",
             'type'        => "{$required}|integer|in:1,2,3",
-            'target_type' => 'sometimes|required|integer|in:1,2|not_in:2',
+            'target_type' => 'sometimes|required|integer|in:1,2',
+            'admin_ids'   => $scene === 'create' ? 'required_if:target_type,2|array|max:500' : 'sometimes|required|array|min:1|max:500',
+            'admin_ids.*' => 'integer|min:1',
             'status'      => 'sometimes|required|integer|in:0,1',
         ];
     }
@@ -152,6 +166,12 @@ class NotificationController extends Controller
         return ['is_read' => 'nullable|in:0,1'];
     }
 
+    /** @return array<string, string> */
+    private function adminOptionsRules(): array
+    {
+        return ['keyword' => 'nullable|string|max:50'];
+    }
+
     /**
      * message 值即 lang key（与 ValidatorFactory::resolveMessage 的约定一致）。
      *
@@ -172,7 +192,13 @@ class NotificationController extends Controller
             'target_type.required' => 'validation.notification_target_invalid',
             'target_type.integer'  => 'validation.notification_target_invalid',
             'target_type.in'       => 'validation.notification_target_invalid',
-            'target_type.not_in'   => 'validation.notification_target_unsupported',
+            'admin_ids.required_if' => 'validation.notification_admin_ids_require',
+            'admin_ids.required'   => 'validation.notification_admin_ids_require',
+            'admin_ids.array'      => 'validation.notification_admin_ids_invalid',
+            'admin_ids.min'        => 'validation.notification_admin_ids_require',
+            'admin_ids.max'        => 'validation.notification_admin_ids_max',
+            'admin_ids.*.integer'  => 'validation.notification_admin_ids_invalid',
+            'admin_ids.*.min'      => 'validation.notification_admin_ids_invalid',
             'status.required'      => 'validation.status_invalid',
             'status.integer'       => 'validation.status_integer',
             'status.in'            => 'validation.status_invalid',

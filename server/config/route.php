@@ -147,6 +147,7 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('', [NotificationController::class, 'index']);
         Route::get('/mine', [NotificationController::class, 'mine']);
         Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::get('/admin-options', [NotificationController::class, 'adminOptions']);
         Route::post('/read-all', [NotificationController::class, 'readAll']);
         Route::post('/{id:\d+}/read', [NotificationController::class, 'read']);
         Route::get('/{id:\d+}', [NotificationController::class, 'show']);

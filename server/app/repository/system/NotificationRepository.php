@@ -15,16 +15,20 @@ use support\Db;
 /**
  * 站内通知仓储（不受数据权限约束）。
  *
- * 个人侧（mine / unread-count / read / read-all）只面向「已发布的全员广播」：status=1、target_type=1、未删除
- * （spec §1.1-7：M1 只支持全员广播，指定用户通知在 M4 实现）。已读状态记在 notification_reads，
- * 唯一键 (notification_id, admin_id)，按管理员隔离。
+ * 个人侧（mine / unread-count / read / read-all）面向「本人可见」的通知（M4 spec §6）：
+ * status=1、未删除（SoftDeletes），且 target_type=1（全员广播）或存在本人的收件行。
+ * 指定通知（target_type=2）的收件人在发布时写进 notification_reads（read_at 为 NULL 即未读）；
+ * 广播的已读行照旧在「读」时按需插入。唯一键 (notification_id, admin_id)，按管理员隔离。
  */
 class NotificationRepository extends Repository
 {
     /** target_type：全员广播。 */
     public const TARGET_ALL = 1;
 
-    /** read-all 的多行 upsert 每条语句最多写这么多行。 */
+    /** target_type：指定管理员。 */
+    public const TARGET_ADMINS = 2;
+
+    /** read-all 与收件行的多行写入每条语句最多这么多行。 */
     private const UPSERT_CHUNK = 500;
 
     /** @var list<string> */
@@ -36,7 +40,8 @@ class NotificationRepository extends Repository
     }
 
     /**
-     * 管理端列表：每行含 reads_count（已读人数）。keyword 模糊匹配标题（% 与 _ 按字面匹配），type 精确过滤。
+     * 管理端列表：每行含 reads_count（已读人数）与 target_count（指定通知的收件人数，广播为 null）。
+     * keyword 模糊匹配标题（% 与 _ 按字面匹配），type 精确过滤。
      *
      * @param array<string, mixed> $params
      * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
@@ -45,9 +50,12 @@ class NotificationRepository extends Repository
     {
         $page = max(1, $page);
         $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
-        $query = $this->query()->withCount(['reads' => static function (Builder $reads): void {
-            $reads->whereNotNull('notification_reads.read_at');
-        }]);
+        $query = $this->query()->withCount([
+            'reads' => static function (Builder $reads): void {
+                $reads->whereNotNull('notification_reads.read_at');
+            },
+            'reads as recipients_count',
+        ]);
 
         $keyword = trim((string) ($params['keyword'] ?? ''));
         if ($keyword !== '') {
@@ -59,12 +67,17 @@ class NotificationRepository extends Repository
 
         $total = (clone $query)->count();
         $list = $this->applyOrder($query, 'created_at desc, id desc')->forPage($page, $limit)->get()->toArray();
+        foreach ($list as &$row) {
+            $row['target_count'] = (int) $row['target_type'] === self::TARGET_ADMINS ? (int) $row['recipients_count'] : null;
+            unset($row['recipients_count']);
+        }
+        unset($row);
 
         return $this->buildPagination($list, $page, $limit, $total);
     }
 
     /**
-     * 「我的通知」：已发布的全员广播，每行附 is_read（该管理员是否已读）。$isRead 为 0/1 时按已读状态过滤。
+     * 「我的通知」：本人可见的通知，每行附 is_read（该管理员是否已读）。$isRead 为 0/1 时按已读状态过滤。
      *
      * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
      */
@@ -72,7 +85,7 @@ class NotificationRepository extends Repository
     {
         $page = max(1, $page);
         $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
-        $query = $this->broadcastQuery();
+        $query = $this->visibleQuery($adminId);
         if ($isRead === 1) {
             $query->whereExists($this->readBy($adminId));
         } elseif ($isRead === 0) {
@@ -91,19 +104,19 @@ class NotificationRepository extends Repository
         return $this->buildPagination($list, $page, $limit, $total);
     }
 
-    /** 该管理员未读的已发布广播数。 */
+    /** 该管理员可见且未读的通知数。 */
     public function countUnread(int $adminId): int
     {
-        return $this->broadcastQuery()->whereNotExists($this->readBy($adminId))->count();
+        return $this->visibleQuery($adminId)->whereNotExists($this->readBy($adminId))->count();
     }
 
-    /** 通知对个人侧是否可见（已发布的全员广播、未删除）。 */
-    public function isVisibleBroadcast(int $id): bool
+    /** 通知对该管理员的个人侧是否可见。 */
+    public function isVisibleTo(int $notificationId, int $adminId): bool
     {
-        return $this->broadcastQuery()->where($this->qualify('id'), $id)->exists();
+        return $this->visibleQuery($adminId)->where($this->qualify('id'), $notificationId)->exists();
     }
 
-    /** 标记一条已读：幂等 upsert，已读过的保留第一次的 read_at。 */
+    /** 标记一条已读：幂等 upsert，已读过的保留第一次的 read_at；指定通知的未读收件行被补上时间。 */
     public function markRead(int $notificationId, int $adminId): void
     {
         $now = date('Y-m-d H:i:s');
@@ -115,14 +128,14 @@ class NotificationRepository extends Repository
     }
 
     /**
-     * 把该管理员全部未读的已发布广播标记为已读。已有行但 read_at 为空的补上时间，没有行的插入新行；
-     * 用多行 upsert，每条语句最多 UPSERT_CHUNK 行。返回本次标记的条数。
+     * 把该管理员全部可见且未读的通知标记为已读。已有行但 read_at 为空（含指定通知的收件行）补上时间，
+     * 没有行的（广播）插入新行；用多行 upsert，每条语句最多 UPSERT_CHUNK 行。返回本次标记的条数。
      */
     public function markAllRead(int $adminId): int
     {
         $ids = array_values(array_map(
             'intval',
-            $this->broadcastQuery()->whereNotExists($this->readBy($adminId))->pluck($this->qualify('id'))->all()
+            $this->visibleQuery($adminId)->whereNotExists($this->readBy($adminId))->pluck($this->qualify('id'))->all()
         ));
         $now = date('Y-m-d H:i:s');
         foreach (array_chunk($ids, self::UPSERT_CHUNK) as $chunk) {
@@ -143,15 +156,64 @@ class NotificationRepository extends Repository
     }
 
     /**
-     * 已发布、全员广播、未删除（SoftDeletes 作用域）的通知。
+     * 指定通知的收件人换成 $adminIds：插入缺失的收件行（read_at NULL），删除名单之外且未读的行；已读行保留。
+     *
+     * @param array<int, int> $adminIds 已去重、已校验的管理员 id
+     */
+    public function replaceRecipients(int $notificationId, array $adminIds): void
+    {
+        $adminIds = array_values(array_unique(array_map('intval', $adminIds)));
+        $stale = Db::table('notification_reads')->where('notification_id', $notificationId)->whereNull('read_at');
+        if ($adminIds !== []) {
+            $stale->whereNotIn('admin_id', $adminIds);
+        }
+        $stale->delete();
+
+        $now = date('Y-m-d H:i:s');
+        foreach (array_chunk($adminIds, self::UPSERT_CHUNK) as $chunk) {
+            $bindings = [];
+            foreach ($chunk as $adminId) {
+                array_push($bindings, $notificationId, $adminId, $now);
+            }
+            Db::statement(
+                'INSERT INTO notification_reads (notification_id, admin_id, read_at, created_at) VALUES '
+                . implode(', ', array_fill(0, count($chunk), '(?, ?, NULL, ?)'))
+                . ' ON DUPLICATE KEY UPDATE notification_id = notification_id',
+                $bindings
+            );
+        }
+    }
+
+    /** @return list<int> 该通知全部收件行的管理员 id（含已读），升序 */
+    public function recipientIds(int $notificationId): array
+    {
+        return array_values(array_map('intval', Db::table('notification_reads')
+            ->where('notification_id', $notificationId)
+            ->orderBy('admin_id')
+            ->pluck('admin_id')
+            ->all()));
+    }
+
+    /**
+     * 本人可见：已发布、未删除（SoftDeletes 作用域），且全员广播或存在本人收件行。
      *
      * @return Builder<Model>
      */
-    private function broadcastQuery(): Builder
+    private function visibleQuery(int $adminId): Builder
     {
+        $notificationId = $this->qualify('id');
+        $targetType = $this->qualify('target_type');
+
         return $this->query()
             ->where($this->qualify('status'), 1)
-            ->where($this->qualify('target_type'), self::TARGET_ALL);
+            ->where(static function (Builder $q) use ($adminId, $notificationId, $targetType): void {
+                $q->where($targetType, self::TARGET_ALL)
+                    ->orWhereExists(static function (QueryBuilder $sub) use ($adminId, $notificationId): void {
+                        $sub->selectRaw('1')->from('notification_reads')
+                            ->whereColumn('notification_reads.notification_id', $notificationId)
+                            ->where('notification_reads.admin_id', $adminId);
+                    });
+            });
     }
 
     /** 「该管理员已读」的 EXISTS 子查询。 */

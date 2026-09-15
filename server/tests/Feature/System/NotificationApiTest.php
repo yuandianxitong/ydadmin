@@ -85,22 +85,14 @@ final class NotificationApiTest extends ApiTestCase
         $this->assertSame(1, (int) $row->status);
     }
 
-    public function test_targeted_notifications_are_rejected_with_422(): void
+    public function test_target_type_outside_one_and_two_is_rejected(): void
     {
         $admin = $this->actingAsAdmin(self::ALL);
         $before = Db::table('notifications')->count();
 
-        $response = $this->post(self::BASE, ['title' => '指定用户', 'content' => '正文', 'type' => 1, 'target_type' => 2], $admin->token)->assertCode(422);
-        $this->assertSame(lang('validation.notification_target_unsupported'), $response->data()['errors']['target_type']);
-        $this->assertSame($before, Db::table('notifications')->count());
-
-        $id = $this->publish($admin);
-        $response = $this->put(self::BASE . "/{$id}", ['target_type' => 2], $admin->token)->assertCode(422);
-        $this->assertSame(lang('validation.notification_target_unsupported'), $response->data()['errors']['target_type']);
-        $this->assertSame(1, (int) Db::table('notifications')->where('id', $id)->value('target_type'));
-
         $response = $this->post(self::BASE, ['title' => '非法目标', 'content' => '正文', 'type' => 1, 'target_type' => 3], $admin->token)->assertCode(422);
         $this->assertSame(lang('validation.notification_target_invalid'), $response->data()['errors']['target_type']);
+        $this->assertSame($before, Db::table('notifications')->count());
     }
 
     public function test_validation(): void

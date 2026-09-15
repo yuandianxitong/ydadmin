@@ -8,6 +8,8 @@ use app\model\system\Admin;
 use core\base\Model;
 use core\base\Repository;
 use core\datascope\DataScope;
+use core\support\Like;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use support\Db;
 
@@ -149,6 +151,38 @@ class AdminRepository extends Repository
         }
 
         return array_values(array_map('intval', $this->query()->whereIn($this->qualify('id'), $ids)->pluck($this->qualify('id'))->all()));
+    }
+
+    /**
+     * 通知「指定管理员」的下拉选项：当前数据范围内（经 query() 的数据权限作用域）、启用、未删除的管理员，
+     * keyword 模糊匹配用户名或昵称，按 id 升序取前 $limit 个。只取三列，不经 toArray()（避免 appends 访问未选列）。
+     *
+     * @return list<array{id: int, username: string, nickname: string}>
+     */
+    public function options(string $keyword, int $limit): array
+    {
+        $query = $this->query()->where($this->qualify('status'), 1);
+        $keyword = trim($keyword);
+        if ($keyword !== '') {
+            $like = Like::contains($keyword);
+            $username = $this->qualify('username');
+            $nickname = $this->qualify('nickname');
+            $query->where(static function (Builder $q) use ($like, $username, $nickname): void {
+                $q->where($username, 'like', $like)->orWhere($nickname, 'like', $like);
+            });
+        }
+
+        // 链式 ->orderBy()->limit()->get() 会先转发到底层 Query\Builder 丢失 Eloquent 泛型（无 larastan
+        // 时 phpstan 把结果类型退化成 stdClass）；分两条语句、始终对 $query（声明类型 Builder<Model>）调用，
+        // 保住 get() 的返回类型。
+        $query->orderBy($this->qualify('id'))->limit($limit);
+        $rows = $query->get([$this->qualify('id'), $this->qualify('username'), $this->qualify('nickname')]);
+
+        return array_values(array_map(static fn (Model $admin): array => [
+            'id'       => (int) $admin->getAttribute('id'),
+            'username' => (string) $admin->getAttribute('username'),
+            'nickname' => (string) ($admin->getAttribute('nickname') ?? ''),
+        ], $rows->all()));
     }
 
     /**
