@@ -152,6 +152,30 @@ class AdminRepository extends Repository
     }
 
     /**
+     * 按 id 批量取管理员的展示字段（在线列表补全用户名与昵称）。受数据权限约束：范围外的 id 不出现在结果里。
+     *
+     * @param array<int, int> $ids
+     * @return array<int, array{id: int, username: string, nickname: string}> 键为管理员 id
+     */
+    public function briefByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $rows = $this->query()
+            ->whereIn($this->qualify('id'), $ids)
+            ->get([$this->qualify('id'), $this->qualify('username'), $this->qualify('nickname')])
+            ->toArray();
+        $result = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $result[$id] = ['id' => $id, 'username' => (string) $row['username'], 'nickname' => (string) ($row['nickname'] ?? '')];
+        }
+
+        return $result;
+    }
+
+    /**
      * 按 id 插入或更新（更新时恢复软删行）。只给 admin:init 用——业务新增走 create()（自增 id）。
      *
      * @param array<string, mixed> $data       插入与更新都写的列

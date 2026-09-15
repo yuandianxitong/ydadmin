@@ -174,3 +174,10 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 -- 示例任务：每天凌晨 3 点清理 90 天前的管理员操作日志与登录日志（log:archive 见 app/command/LogArchiveCommand.php）
 INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status`, `sort`, `created_at`, `updated_at`) VALUES
   ('清理过期管理员日志', 'log:archive --days=90', '0 3 * * *', '每天凌晨 3 点清理 90 天前的管理员操作日志与登录日志', 1, 0, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M4：在线管理员
+
+-- 菜单：120 在线管理员（系统管理下，排在日志管理 11 之后），121 强制下线按钮
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (120, 2, 2, '在线管理员', 'SystemOnline', '/system/online', '/system/online/index', NULL, 'i-svg:users-round', 'system.online.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
+  (121, 120, 3, '强制下线', NULL, NULL, NULL, NULL, NULL, 'system.online.logout', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());

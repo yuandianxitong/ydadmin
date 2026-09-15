@@ -93,6 +93,9 @@ return [
         'CronJobController@status'    => ['admin_log.cron_job_status', 'admin_log.cron_job_status_desc'],
         'CronJobController@clearLogs' => ['admin_log.cron_job_clear_logs', 'admin_log.cron_job_clear_logs_desc'],
         'CronJobController@run'       => ['admin_log.cron_job_run', 'admin_log.cron_job_run_desc'],
+
+        // 在线管理员（M4）
+        'OnlineController@logout' => ['admin_log.online_logout', 'admin_log.online_logout_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

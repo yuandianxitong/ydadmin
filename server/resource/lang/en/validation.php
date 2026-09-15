@@ -320,6 +320,9 @@ return [
     'cron_sort_max'            => 'Sort may not exceed 9999',
     'cron_keep_days_invalid'   => 'Days to keep must be an integer between 0 and 3650',
 
+    'online_kick_self'       => 'You cannot force yourself offline',
+    'online_kick_super'      => 'A super administrator cannot be forced offline',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

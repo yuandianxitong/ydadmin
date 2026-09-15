@@ -129,4 +129,7 @@ return [
     'cron_job_clear_logs_desc'     => 'Clear run logs of a scheduled task',
     'cron_job_run'                 => 'Run scheduled task',
     'cron_job_run_desc'            => 'Run a scheduled task once manually',
+
+    'online_logout'                => 'Force logout',
+    'online_logout_desc'           => 'Force an admin offline and revoke all of their sessions',
 ];

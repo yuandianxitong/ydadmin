@@ -13,6 +13,7 @@ use app\adminapi\controller\system\GeneratorController;
 use app\adminapi\controller\system\LogController;
 use app\adminapi\controller\system\MenuController;
 use app\adminapi\controller\system\NotificationController;
+use app\adminapi\controller\system\OnlineController;
 use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\adminapi\controller\realtime\WsTicketController;
@@ -187,6 +188,11 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [CronJobController::class, 'store']);
         Route::put('/{id:\d+}', [CronJobController::class, 'update']);
         Route::delete('/{id:\d+}', [CronJobController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/system/online', function () {
+        Route::get('', [OnlineController::class, 'index']);
+        Route::post('/{adminId:\d+}/logout', [OnlineController::class, 'logout']);
     })->middleware($adminAuth);
 
     // ---- M4：WebSocket 握手票据（登录即可；按管理员限流）

@@ -129,4 +129,7 @@ return [
     'cron_job_clear_logs_desc'     => '清理指定定时任务的执行日志',
     'cron_job_run'                 => '执行定时任务',
     'cron_job_run_desc'            => '手动执行一次定时任务',
+
+    'online_logout'                => '强制下线',
+    'online_logout_desc'           => '强制指定管理员下线并吊销其全部会话',
 ];

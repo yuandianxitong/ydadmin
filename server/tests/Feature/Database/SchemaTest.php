@@ -160,6 +160,20 @@ final class SchemaTest extends TestCase
         $this->assertSame(1, (int) $seed->status);
     }
 
+    public function test_m4_online_menu_seeds(): void
+    {
+        $menus = Db::table('menus')->whereIn('id', [120, 121])->orderBy('id')->get()->all();
+        $this->assertCount(2, $menus);
+        $this->assertSame([2, 120], array_map(static fn (object $m): int => (int) $m->parent_id, $menus));
+        $this->assertSame(['system.online.list', 'system.online.logout'], array_map(static fn (object $m): string => (string) $m->permission, $menus));
+        $this->assertSame('/system/online/index', $menus[0]->component);
+        $this->assertSame('/system/online', $menus[0]->path);
+        $this->assertSame('SystemOnline', $menus[0]->name);
+        $this->assertSame('i-svg:users-round', $menus[0]->icon);
+        $this->assertSame(12, (int) $menus[0]->sort);
+        $this->assertSame(3, (int) $menus[1]->type);
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');

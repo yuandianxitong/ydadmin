@@ -226,6 +226,9 @@ return [
     'cron_sort_max'            => '排序值不能超过9999',
     'cron_keep_days_invalid'   => '保留天数必须是0到3650之间的整数',
 
+    'online_kick_self'       => '不能强制自己下线',
+    'online_kick_super'      => '不能强制超级管理员下线',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

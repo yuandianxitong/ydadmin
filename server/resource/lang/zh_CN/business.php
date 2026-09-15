@@ -86,4 +86,7 @@ return [
 
     // WebSocket 实时通道
     'ws_ticket_rate_limited'     => '获取实时连接凭证过于频繁，请稍后再试',
+
+    // 实时通道（M4）
+    'realtime_force_logout'      => '您已被管理员强制下线，请重新登录',
 ];

@@ -86,4 +86,7 @@ return [
 
     // WebSocket realtime channel
     'ws_ticket_rate_limited'      => 'Too many realtime connection requests, please try again later',
+
+    // Realtime channel (M4)
+    'realtime_force_logout'       => 'You have been signed out by an administrator. Please log in again',
 ];
