@@ -43,4 +43,11 @@ return [
             ],
         ],
     ],
+    // 定时任务调度（M3）：每分钟判定到点任务并投递到 cron-job 队列。必须 count=1——多进程会各判定一遍，
+    // 触发锁虽能去重，但每个进程每分钟都白查一次库。队列消费进程由 webman/redis-queue 插件自己注册
+    // （config/plugin/webman/redis-queue/process.php）。
+    'scheduler' => [
+        'handler' => app\process\Scheduler::class,
+        'count'   => 1,
+    ],
 ];
