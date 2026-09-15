@@ -82,4 +82,5 @@ return [
     // Scheduled task execution
     'cron_job_running'            => 'The task is already running, please try again later',
     'cron_run_submitted'          => 'Submitted for execution; check the run logs for the result',
+    'cron_run_dispatch_failed'    => 'Failed to submit for execution; check that the queue service (Redis) is available',
 ];

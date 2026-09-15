@@ -10,6 +10,7 @@ use support\Db;
 use support\Redis;
 use tests\fixtures\Cron\FixtureCommand;
 use tests\fixtures\Queue\NoopConsumer;
+use tests\fixtures\Queue\PlainConsumer;
 use tests\Support\ApiTestCase;
 use tests\Support\ConfigOverride;
 
@@ -153,7 +154,87 @@ final class CronJobRunTest extends ApiTestCase
         $this->assertSame(['status' => 0, 'output' => lang('business.cron_job_running')], $data);
         $this->assertSame([], $this->logsOf($id));
         $this->assertSame(0, (int) Db::table('cron_jobs')->where('id', $id)->value('run_count'));
-        $this->assertSame('another-worker-token', Redis::get("cron:running:{$id}"), '不能删掉别人持有的锁');
+        $this->assertSame('another-worker-token', Redis::get("cron:running:{$id}"), '不能删掉别人持有的锁（无法解析的锁值一律按持有处理）');
+    }
+
+    /** 一个肯定已经退出的进程号：起一个立即退出的 php 子进程并等它结束。 */
+    private function deadPid(): int
+    {
+        $process = proc_open([PHP_BINARY, '-r', 'exit(0);'], [], $pipes);
+        $this->assertIsResource($process);
+        $pid = (int) proc_get_status($process)['pid'];
+        proc_close($process);
+        $this->assertFalse(posix_kill($pid, 0), '夹具进程必须已经退出');
+
+        return $pid;
+    }
+
+    public function test_stale_lock_of_a_dead_process_on_this_host_is_cleared_and_the_run_proceeds(): void
+    {
+        // 队列进程执行中被强杀（reload 超过 stop_timeout、kill -9、OOM），finally 没跑，锁留到 lock_ttl
+        $id = $this->insertJob('fixture:cron after-crash');
+        $admin = $this->actingAsAdmin(['system.cron_job.run']);
+        $stale = gethostname() . '|' . $this->deadPid() . '|deadbeef';
+        Redis::set("cron:running:{$id}", $stale, 'EX', 3600, 'NX');
+
+        $data = $this->post("/adminapi/system/cron-job/{$id}/run", [], $admin->token)->assertOk()->data();
+
+        $this->assertSame(1, $data['status'], '同机持锁进程已死：自动清掉残留锁并照常执行');
+        $this->assertStringContainsString('after-crash', $data['output']);
+        $this->assertCount(1, $this->logsOf($id));
+        $this->assertSame(0, (int) Redis::exists("cron:running:{$id}"), '接管的锁执行完同样释放');
+    }
+
+    public function test_stale_lock_is_also_cleared_for_a_scheduled_run(): void
+    {
+        $id = $this->insertJob('fixture:cron scheduled-after-crash');
+        Redis::set("cron:running:{$id}", gethostname() . '|' . $this->deadPid() . '|deadbeef', 'EX', 3600, 'NX');
+
+        Container::get(CronJobService::class)->execute(['cron_job_id' => $id, 'trigger' => CronJobService::TRIGGER_SCHEDULED, 'scheduled_at' => date('Y-m-d H:i:00')]);
+
+        $this->assertCount(1, $this->logsOf($id));
+        $this->assertSame(0, (int) Redis::exists("cron:running:{$id}"));
+    }
+
+    public function test_lock_of_a_live_process_on_this_host_is_treated_as_held(): void
+    {
+        $id = $this->insertJob('fixture:cron hello');
+        $admin = $this->actingAsAdmin(['system.cron_job.run']);
+        $live = gethostname() . '|' . getmypid() . '|livetoken';
+        Redis::set("cron:running:{$id}", $live, 'EX', 60, 'NX');
+
+        $data = $this->post("/adminapi/system/cron-job/{$id}/run", [], $admin->token)->assertOk()->data();
+
+        $this->assertSame(['status' => 0, 'output' => lang('business.cron_job_running')], $data);
+        $this->assertSame([], $this->logsOf($id));
+        $this->assertSame($live, Redis::get("cron:running:{$id}"), '持锁进程还活着，锁不能动');
+    }
+
+    public function test_lock_held_on_another_host_is_treated_as_held_even_if_the_pid_looks_dead(): void
+    {
+        $id = $this->insertJob('fixture:cron hello');
+        $admin = $this->actingAsAdmin(['system.cron_job.run']);
+        $foreign = 'another-host.invalid|' . $this->deadPid() . '|foreigntoken';
+        Redis::set("cron:running:{$id}", $foreign, 'EX', 60, 'NX');
+
+        $data = $this->post("/adminapi/system/cron-job/{$id}/run", [], $admin->token)->assertOk()->data();
+
+        $this->assertSame(['status' => 0, 'output' => lang('business.cron_job_running')], $data);
+        $this->assertSame([], $this->logsOf($id));
+        $this->assertSame($foreign, Redis::get("cron:running:{$id}"), '别的机器上的进程号在本机无从判断，只能等 lock_ttl');
+    }
+
+    public function test_run_returns_failure_instead_of_500_when_dispatch_throws(): void
+    {
+        $id = $this->insertJob('fixture:cron hello');
+        $admin = $this->actingAsAdmin(['system.cron_job.run']);
+        // 消费者不是 QueueHandler：sync 驱动投递即抛异常，模拟 Redis 不可用等投递失败
+        $this->overrideConfig('queue.queues.cron-job.consumer', PlainConsumer::class);
+
+        $data = $this->post("/adminapi/system/cron-job/{$id}/run", [], $admin->token)->assertOk()->data();
+
+        $this->assertSame(['status' => 0, 'output' => lang('business.cron_run_dispatch_failed')], $data);
+        $this->assertSame([], $this->logsOf($id));
     }
 
     public function test_run_times_out_when_nobody_consumes_the_queue(): void

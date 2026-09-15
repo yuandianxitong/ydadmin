@@ -29,7 +29,8 @@ use support\Redis;
  * 失败抛 ValidationException，响应仍是 422 且错误挂在 command / cron_expression 上。
  *
  * 执行（spec §8.2、§8.3）：定时触发与手动执行都投进 cron-job 队列，由 CronJobConsumer 调 execute()。
- * - 执行锁 cron:running:{id}（SET NX EX lock_ttl，值为随机令牌，Lua 比较后删除）保证同一任务不重叠。
+ * - 执行锁 cron:running:{id}（SET NX EX lock_ttl，值为「主机名|进程号|随机令牌」，Lua 比较后删除）保证同一任务不重叠；
+ *   同机持锁进程已退出（被强杀、finally 没跑）的残留锁在下次抢锁时自动清理，见 acquireLock()。
  * - 命令失败（非 0 退出或抛异常）如实写执行日志，不重试；只有写日志这类基础设施异常才抛给队列（进 failed_jobs）。
  * - 手动执行带 token：结果 LPUSH 到 cron:result:{token}（EXPIRE 120），http 进程 BLPOP 最多等 manual_wait_seconds。
  */
@@ -188,13 +189,18 @@ class CronJobService extends Service
         }
 
         $lockKey = self::RUNNING_KEY . $jobId;
-        $lockToken = bin2hex(random_bytes(16));
-        $lockTtl = max(1, (int) config('cron.lock_ttl', 3600));
-        if (Redis::set($lockKey, $lockToken, 'EX', $lockTtl, 'NX') !== true) {
+        [$lockValue, $holder] = $this->acquireLock($lockKey);
+        if ($lockValue === null) {
             if ($trigger === self::TRIGGER_MANUAL) {
                 $this->pushResult($token, 0, lang('business.cron_job_running'));
             } else {
-                Log::info('定时任务上次执行尚未结束，本次跳过', ['cron_job_id' => $jobId, 'scheduled_at' => $payload['scheduled_at'] ?? null]);
+                $parsed = self::parseLockHolder($holder);
+                Log::warning('定时任务上次执行尚未结束（或持锁进程在别的机器上已退出、锁未过期），本次跳过', [
+                    'cron_job_id'  => $jobId,
+                    'scheduled_at' => $payload['scheduled_at'] ?? null,
+                    'lock_host'    => $parsed['host'] ?? null,
+                    'lock_pid'     => $parsed['pid'] ?? null,
+                ]);
             }
 
             return;
@@ -203,14 +209,16 @@ class CronJobService extends Service
         try {
             $result = $this->commandRunner->run((string) $job['command']);
             $this->recordResult($jobId, $trigger, $result);
-            $this->pushResult(
-                $token,
-                $result->success ? 1 : 0,
-                $result->success || $result->error === '' ? $result->output : $result->error
-            );
         } finally {
-            Redis::eval(self::RELEASE_LOCK, 1, $lockKey, $lockToken);
+            $this->releaseLock($lockKey, $lockValue);
         }
+
+        // 先释放锁再回传结果：否则拿到结果立刻再点「执行」，可能撞上尚未释放的锁
+        $this->pushResult(
+            $token,
+            $result->success ? 1 : 0,
+            $result->success || $result->error === '' ? $result->output : $result->error
+        );
     }
 
     /**
@@ -224,11 +232,18 @@ class CronJobService extends Service
         $this->findOrFail($id);
 
         $token = bin2hex(random_bytes(16));
-        $this->queueDispatcher->dispatch(self::QUEUE, [
-            'cron_job_id' => $id,
-            'trigger'     => self::TRIGGER_MANUAL,
-            'token'       => $token,
-        ]);
+        try {
+            $this->queueDispatcher->dispatch(self::QUEUE, [
+                'cron_job_id' => $id,
+                'trigger'     => self::TRIGGER_MANUAL,
+                'token'       => $token,
+            ]);
+        } catch (\Throwable $e) {
+            // 投递失败（如 Redis 不可用）按接口契约回 status 0，不让它变成 HTTP 500
+            Log::error('定时任务手动执行投递失败：' . $e->getMessage(), ['cron_job_id' => $id]);
+
+            return ['status' => 0, 'output' => lang('business.cron_run_dispatch_failed')];
+        }
 
         $wait = max(1, (int) config('cron.manual_wait_seconds', 10));
         $popped = Redis::blPop(self::RESULT_KEY . $token, $wait);
@@ -247,6 +262,78 @@ class CronJobService extends Service
     protected function findOrFail(int $id): array
     {
         return $this->cronJobRepository->find($id) ?? throw new NotFoundException();
+    }
+
+    /**
+     * 抢执行锁。锁值「主机名|进程号|随机令牌」。抢不到时看持有者：同一台机器上、进程已不存在（posix_kill 0 报 ESRCH），
+     * 说明持锁的队列进程执行中被强杀、finally 没跑——比较后删掉这把残留锁，再抢一次（只重试一次）。
+     * 别的机器、进程仍在、值无法解析、没有 posix 扩展，一律按持有处理（fail closed）。
+     *
+     * @return array{0: ?string, 1: string} [抢到的锁值（没抢到为 null）, 没抢到时的持有者锁值]
+     */
+    private function acquireLock(string $key): array
+    {
+        $ttl = max(1, (int) config('cron.lock_ttl', 3600));
+        $value = (string) gethostname() . '|' . getmypid() . '|' . bin2hex(random_bytes(16));
+        if ($this->setLockIfAbsent($key, $value, $ttl)) {
+            return [$value, ''];
+        }
+
+        $holder = (string) Redis::get($key);
+        if (!self::isStaleHolder($holder)) {
+            return [null, $holder];
+        }
+
+        // 比较后删除：只删这把确认已死的锁，期间被别人抢到的新锁不受影响；然后只重试一次
+        Redis::eval(self::RELEASE_LOCK, 1, $key, $holder);
+        Log::warning('持锁进程已退出，清理残留的定时任务执行锁', ['lock_key' => $key, 'lock_holder' => $holder]);
+        if ($this->setLockIfAbsent($key, $value, $ttl)) {
+            return [$value, ''];
+        }
+
+        return [null, (string) Redis::get($key)];
+    }
+
+    /** @phpstan-impure 每次调用都真的去 Redis 执行一次 SET NX，结果不能沿用上一次 */
+    private function setLockIfAbsent(string $key, string $value, int $ttl): bool
+    {
+        return Redis::set($key, $value, 'EX', $ttl, 'NX') === true;
+    }
+
+    /** 释放失败只记 error：在 finally 里，不能让它盖掉命令或写日志抛出的原始异常。 */
+    private function releaseLock(string $key, string $value): void
+    {
+        try {
+            Redis::eval(self::RELEASE_LOCK, 1, $key, $value);
+        } catch (\Throwable $e) {
+            Log::error('释放定时任务执行锁失败：' . $e->getMessage(), ['lock_key' => $key]);
+        }
+    }
+
+    /** @return array{host: string, pid: int}|null 锁值「主机名|进程号|令牌」无法解析时为 null */
+    private static function parseLockHolder(string $value): ?array
+    {
+        $parts = explode('|', $value);
+        if (count($parts) !== 3 || $parts[0] === '' || !ctype_digit($parts[1]) || (int) $parts[1] <= 0) {
+            return null;
+        }
+
+        return ['host' => $parts[0], 'pid' => (int) $parts[1]];
+    }
+
+    private static function isStaleHolder(string $value): bool
+    {
+        $holder = self::parseLockHolder($value);
+        $host = gethostname();
+        if ($holder === null || $host === false || $holder['host'] !== $host || !function_exists('posix_kill')) {
+            return false;
+        }
+        if (posix_kill($holder['pid'], 0)) {
+            return false;
+        }
+
+        // EPERM（进程在、属于别的用户）不算退出；只认 ESRCH（3，Linux 与 macOS 相同）
+        return !function_exists('posix_get_last_error') || posix_get_last_error() === 3;
     }
 
     /** 同一个事务里写执行日志并回写任务的 last_* 与 run_count；失败原样抛出（交给队列进 failed_jobs）。 */
