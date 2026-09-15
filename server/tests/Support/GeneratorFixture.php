@@ -66,6 +66,72 @@ trait GeneratorFixture
         Db::statement('DROP TABLE IF EXISTS `gen_articles`');
     }
 
+    public const GOLDEN_TABLE_2 = 'gen_categories';
+
+    public const GOLDEN_COMMENT_2 = '生成器夹具表二（无状态列/图片列/创建人列）';
+
+    public const GOLDEN_MODULE_2 = 'catalog';
+
+    public const GOLDEN_MODEL_2 = 'GenCategory';
+
+    /**
+     * 第二张黄金夹具表（M2a 延续清单 #5）：刻意不含 status / 图片列名提示 / created_by，
+     * 用来跑到 gen_articles 从未跑过的六类分支——hasStatus=false、hasImage=false、
+     * dataScoped=false、boolean（tinyint(1)）、json、email（contact_email 命名列）。
+     */
+    public static function createGoldenTable2(): void
+    {
+        self::dropGoldenTable2();
+        Db::statement(<<<'SQL'
+            CREATE TABLE `gen_categories` (
+              `id` int unsigned NOT NULL AUTO_INCREMENT,
+              `name` varchar(100) NOT NULL COMMENT '名称',
+              `is_featured` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否精选',
+              `settings` json DEFAULT NULL COMMENT '扩展配置',
+              `contact_email` varchar(100) DEFAULT NULL COMMENT '联系邮箱',
+              `sort` int NOT NULL DEFAULT '0' COMMENT '排序',
+              `created_at` datetime DEFAULT NULL,
+              `updated_at` datetime DEFAULT NULL,
+              PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生成器夹具表二（无状态列/图片列/创建人列）'
+            SQL);
+    }
+
+    public static function dropGoldenTable2(): void
+    {
+        Db::statement('DROP TABLE IF EXISTS `gen_categories`');
+    }
+
+    /** 夹具表二的模块蓝图，不需要 overrides（第一张表已覆盖 override 分支，见 goldenBlueprint()）。 */
+    protected function goldenBlueprintSecondary(): ModuleBlueprint
+    {
+        $inference = new TypeInference();
+        $columns = [];
+        foreach ((new SchemaRepository())->listColumns(self::GOLDEN_TABLE_2) as $raw) {
+            $columns[] = $inference->describe($raw);
+        }
+
+        return new ModuleBlueprint(
+            new TableDefinition(self::GOLDEN_TABLE_2, self::GOLDEN_COMMENT_2, $columns),
+            new GeneratorRequest(self::GOLDEN_TABLE_2, self::GOLDEN_MODULE_2, self::GOLDEN_MODEL_2, self::GOLDEN_COMMENT_2, []),
+        );
+    }
+
+    /**
+     * 渲染夹具表二模块的某一个产物，形状与 renderGolden() 一致。
+     *
+     * @return array{0: string, 1: string} [相对基准的落盘路径, 渲染内容]
+     */
+    protected function renderGoldenSecondary(string $key): array
+    {
+        $artifacts = $this->goldenBlueprintSecondary()->artifacts();
+        $this->assertArrayHasKey($key, $artifacts, "夹具表二的蓝图里没有产物 {$key}");
+        $artifact = $artifacts[$key];
+        $renderer = new TemplateRenderer(base_path('core/generator/stubs'));
+
+        return [$artifact['path'], $renderer->render($artifact['stub'], $artifact['vars'])];
+    }
+
     /**
      * 夹具表的模块蓝图。
      *
