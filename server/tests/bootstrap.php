@@ -18,6 +18,8 @@ $overrides = [
     // 注册，且路由经 TestCase::ensureRoutesLoaded() 只加载一次，运行期 overrideConfig() 改不动
     // 已注册的路由表——不固定这个值，干净检出/CI 上 Test6 与 ApiDoc 系列测试就会红。
     'APP_DEBUG' => 'true',
+    // 测试不起 queue 进程：投递即在当前进程调用消费者的 handle()，失败直接按「最后一次」进 failed_jobs（M3 设计决定 3、5）
+    'QUEUE_DRIVER' => 'sync',
 ];
 foreach ($overrides as $name => $value) {
     $_ENV[$name] = $value;
