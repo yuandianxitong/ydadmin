@@ -20,6 +20,10 @@ use Symfony\Component\Console\Output\BufferedOutput;
  *   不让一次性的 Application 挂在容器单例上。Symfony 7.4 的 add() 已弃用，只能用 addCommand()。
  * - new Application() 会把 pcntl_async_signals 翻成 true（SignalRegistry 构造函数），queue 进程里这会改掉
  *   Workerman 自己的信号投递方式，所以在 finally 里恢复成调用前的值。
+ * - Application::run() 的第一行无条件 putenv('LINES=...')/putenv('COLUMNS=...')（取
+ *   Terminal::getHeight()/getWidth()），且不像它自己处理的 SHELL_VERBOSITY 那样在 finally 里恢复——
+ *   常驻 worker 里每跑一次命令就会永久改写这两个进程级环境变量，所以同样要在 finally 里恢复成调用前的值
+ *   （原先没有就 putenv() 不带值来 unset，避免凭空造出这两个变量）。
  * - 退出码 0 为成功；非 0 或抛出任何 Throwable 为失败，异常记为「类名: 消息」，抛出前写入的输出保留。
  *
  * 容器单例，无实例属性。
@@ -44,6 +48,8 @@ class CronCommandRunner
 
         $output = new BufferedOutput();
         $asyncSignals = pcntl_async_signals();
+        $linesBefore = getenv('LINES');
+        $columnsBefore = getenv('COLUMNS');
         $start = hrtime(true);
         $exitCode = 1;
         $error = '';
@@ -62,6 +68,8 @@ class CronCommandRunner
             $error = $e::class . ': ' . $e->getMessage();
         } finally {
             pcntl_async_signals($asyncSignals);
+            $linesBefore === false ? putenv('LINES') : putenv('LINES=' . $linesBefore);
+            $columnsBefore === false ? putenv('COLUMNS') : putenv('COLUMNS=' . $columnsBefore);
         }
         $durationMs = intdiv(hrtime(true) - $start, 1_000_000);
 

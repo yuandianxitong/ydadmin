@@ -117,6 +117,45 @@ final class CronCommandRunnerTest extends TestCase
         }
     }
 
+    public function test_run_restores_lines_and_columns_env_vars_when_previously_set(): void
+    {
+        // Symfony\Component\Console\Application::run() 无条件 putenv('LINES=...')/putenv('COLUMNS=...')
+        // （vendor/symfony/console/Application.php:165-168），且不像 SHELL_VERBOSITY 那样在 finally 里
+        // 恢复——常驻 worker 里每跑一次命令就永久改写这两个环境变量。
+        $beforeLines = getenv('LINES');
+        $beforeColumns = getenv('COLUMNS');
+        putenv('LINES=41');
+        putenv('COLUMNS=137');
+        try {
+            $this->runner->run('fixture:cron');
+            $this->assertSame('41', getenv('LINES'), 'run() 之后必须恢复成调用前的值');
+            $this->assertSame('137', getenv('COLUMNS'), 'run() 之后必须恢复成调用前的值');
+
+            $this->runner->run('fixture:cron --throw');
+            $this->assertSame('41', getenv('LINES'), '命令抛异常时同样要恢复');
+            $this->assertSame('137', getenv('COLUMNS'), '命令抛异常时同样要恢复');
+        } finally {
+            $beforeLines === false ? putenv('LINES') : putenv('LINES=' . $beforeLines);
+            $beforeColumns === false ? putenv('COLUMNS') : putenv('COLUMNS=' . $beforeColumns);
+        }
+    }
+
+    public function test_run_restores_lines_and_columns_env_vars_when_previously_unset(): void
+    {
+        $beforeLines = getenv('LINES');
+        $beforeColumns = getenv('COLUMNS');
+        putenv('LINES');
+        putenv('COLUMNS');
+        try {
+            $this->runner->run('fixture:cron');
+            $this->assertFalse(getenv('LINES'), 'run() 之前没有 LINES 时，之后也不能凭空出现');
+            $this->assertFalse(getenv('COLUMNS'), 'run() 之前没有 COLUMNS 时，之后也不能凭空出现');
+        } finally {
+            $beforeLines === false ? putenv('LINES') : putenv('LINES=' . $beforeLines);
+            $beforeColumns === false ? putenv('COLUMNS') : putenv('COLUMNS=' . $beforeColumns);
+        }
+    }
+
     public function test_repeated_runs_reuse_nothing_from_the_previous_run(): void
     {
         $this->runner->run('fixture:cron --throw');
