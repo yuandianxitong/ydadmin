@@ -17,10 +17,29 @@ use Webman\Route;
  * 手法与 tests/Unit/Generator/RouteStubTest.php 一致：不走 Route::load()（会清空全局路由表且不
  * 重建，殃及其它测试），临时换一个全新 RouteCollector，require 真正的 config/route.php，
  * 断言完把 collector 换回来。
+ *
+ * 与 RouteStubTest 不同的是：RouteStubTest require 的是一份临时生成的独立文件，本测试
+ * 必须 require 真正的 config/route.php（否则测不到真实生产文件里的 `if (config('app.debug'))`
+ * 这一行）。PHP 的 require_once/include_once 是按「解析后的真实路径是否已被 include 过」
+ * 判断的，与当初是用 require 还是 require_once 引入的无关——本测试若在全进程第一次
+ * TestCase::ensureRoutesLoaded()（内部对 config/route.php 用 require_once）之前，先用普通
+ * require 引入过同一个路径，会把这个路径标记为"已 include"，之后 ensureRoutesLoaded() 的
+ * require_once 就会静默跳过、不再执行文件体，导致全局路由表永远是空的，殃及同进程里其它
+ * 所有依赖真实路由表的测试（已实测复现：只要本类先跑，RouteHarvesterTest/AuthApiTest 等会
+ * 大批量转红）。setUpBeforeClass() 先经官方入口把真实路由安全加载一次（把 config/route.php
+ * 标记为"已 include"这件事提前到官方路径上完成，且 ensureRoutesLoaded() 的门闩保证全进程
+ * 只有这一次会走 require_once），本类测试方法自己的 require 调用发生在这之后，不会再影响
+ * 任何人。
  */
 final class ApiDocProductionGateTest extends TestCase
 {
     use ConfigOverride;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+        self::ensureRoutesLoaded();
+    }
 
     protected function tearDown(): void
     {
