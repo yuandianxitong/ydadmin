@@ -1293,6 +1293,36 @@ if (in_array($genAppDebug, ['false', '0', ''], true)) {
     echo "   负分支已由 Task 8 的 PHPUnit 红线测试覆盖，见 spec §11.4 第三条）\n";
 }
 
+echo "\n=== M2b：API 文档 ===\n";
+$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=admin", $api);
+check('openapi.json：未登录也可达（两个按钮走 window.open，带不了 Authorization）', $r['status'] === 200, $r['body']);
+check('openapi.json：Content-Type 是 application/json', str_contains($r['headers']['content-type'] ?? '', 'application/json'), (string) ($r['headers']['content-type'] ?? ''));
+check('openapi.json：不是 {code,message,data,timestamp} 信封，是裸 OpenAPI 文档', !isEnvelope($r['json']) && ($r['json']['openapi'] ?? null) !== null, $r['body']);
+check('openapi.json：type=admin 下 paths 非空', is_array($r['json']['paths'] ?? null) && $r['json']['paths'] !== [], $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=api", $api);
+check(
+    'openapi.json：type=api 是合法的空文档（本仓库当前只有 /adminapi，将来 /api 一出现推导器自动有内容）',
+    ($r['json']['openapi'] ?? null) !== null && is_array($r['json']['info'] ?? null) && is_array($r['json']['servers'] ?? null) && ($r['json']['paths'] ?? null) === [],
+    $r['body']
+);
+
+$r = http('GET', "{$base}/adminapi/system/api-doc?type=admin", $api);
+check('api-doc 页面：未登录也可达', $r['status'] === 200, (string) $r['status']);
+check('api-doc 页面：Content-Type 是 text/html', str_contains($r['headers']['content-type'] ?? '', 'text/html'), (string) ($r['headers']['content-type'] ?? ''));
+check('api-doc 页面：引用 swagger-ui-dist@5 CDN（决策 5，不落地本地副本）', str_contains($r['body'], 'swagger-ui-dist@5'), '');
+
+$r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPayload, 'module_name' => 'apidoc']);
+check('generator/preview：module_name 撞新增语言分组 apidoc → 422', respCode($r) === 422 && (respData($r)['errors']['module_name'] ?? '') === lang('generator.module_name_reserved'), $r['body']);
+
+if (in_array($genAppDebug, ['false', '0', ''], true)) {
+    $r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=admin", $api);
+    check('api-doc：APP_DEBUG=false 时两条路由压根不存在（HTTP 404 走 fallback，不是 401/403）', $r['status'] === 404 && respCode($r) === 404, $r['body']);
+    echo "  （当前 APP_DEBUG=false，已覆盖生产闸门分支）\n";
+} else {
+    echo "  （当前 APP_DEBUG={$genAppDebug}，跳过生产闸门分支的活体断言——已由 tests/Unit/ApiDoc/ApiDocProductionGateTest.php 覆盖）\n";
+}
+
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);
 $newToken = (string) (respData($r)['token'] ?? '');
