@@ -117,14 +117,14 @@ php webman queue:flush --days=30     # 删除 30 天前的失败记录（不带 
 
 | 配置 | 默认 | 说明 |
 |---|---|---|
-| `WS_LISTEN`（`server/.env`） | `websocket://0.0.0.0:8001` | WebSocket 进程监听地址 |
+| `WS_LISTEN`（`server/.env`） | `websocket://0.0.0.0:8001` | WebSocket 进程监听地址；放在 nginx 后面时建议设为 `websocket://127.0.0.1:8001`，只让 nginx 访问 |
 | `WS_PROCESS_COUNT`（`server/.env`） | `1` | WebSocket 进程数；多进程时每个进程只投递自己持有的连接 |
 | `VITE_APP_WS_URL`（`admin/.env.production`） | 空 | 前端连接地址前缀，如 `wss://admin.example.com`；留空时按当前页面地址推导为 `ws(s)://当前域名/ws` |
 
 **nginx**：前端默认连 `ws(s)://当前域名/ws`，在「nginx 反向代理」的配置里再加一段：
 
 ```nginx
-location /ws {
+location = /ws {
     proxy_pass http://127.0.0.1:8001;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
@@ -135,7 +135,7 @@ location /ws {
 }
 ```
 
-`proxy_read_timeout` 必须大于前端心跳间隔（25 秒）；不加 `Upgrade` / `Connection` 两个头时握手会失败，前端会一直退回轮询。开发时 `pnpm dev` 已把 `/ws` 代理到 `ws://127.0.0.1:8001`。
+`location = /ws` 是精确匹配，只把 `/ws` 这一个地址转给 WebSocket 进程，不会误吞 `/ws` 开头的其他路径；`proxy_read_timeout` 必须大于前端心跳间隔（25 秒）；不加 `Upgrade` / `Connection` 两个头时握手会失败，前端会一直退回轮询。开发时 `pnpm dev` 已把 `/ws` 代理到 `ws://127.0.0.1:8001`。
 
 **鉴权**：浏览器的 WebSocket 不能带 `Authorization` 头，前端先带登录 token 调 `POST /adminapi/ws/ticket` 换一张票据，再连 `/ws?ticket=…`。票据 30 秒内有效、只能用一次，JWT 不会出现在 URL 与访问日志里。
 
@@ -143,7 +143,7 @@ location /ws {
 
 **在线管理员**：「系统管理 → 在线管理员」列出当前开着后台页面（有 WebSocket 连接）的管理员。在线状态存 Redis，页面关闭后立即移除；进程崩溃来不及清理时最多 90 秒后自动消失。
 
-**强制下线**：踢掉该管理员的**全部**会话——所有 token 立即失效（下一次请求即 401），打开着的页面收到提示后跳转登录页。不能踢自己，也不能踢超级管理员。禁用、删除管理员、修改密码、登出同样会让已打开的页面在 1 分钟内断开。
+**强制下线**：踢掉该管理员的**全部**会话——所有 token 立即失效（下一次请求即 401），打开着的页面收到提示后跳转登录页。不能踢自己，也不能踢超级管理员。禁用、删除管理员、修改密码、登出同样会让已打开的页面在一次吊销复查间隔（1 分钟）内断开；后台静默刷新 token 沿用同一个会话 id，不会断开连接。
 
 | 关闭码 | 含义 | 前端行为 |
 |---|---|---|
