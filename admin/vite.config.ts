@@ -88,8 +88,8 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                 '/ws': {
                     target: env.VITE_APP_WS_TARGET || 'ws://127.0.0.1:8001',
                     ws: true,
-                    changeOrigin: true,
-                },
+                    changeOrigin: true
+                }
             },
         },
 
