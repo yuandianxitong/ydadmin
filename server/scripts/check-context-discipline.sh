@@ -43,6 +43,7 @@ STATIC_WHITELIST=(
   'core/validation/ValidatorFactory.php:$translator'               # 只读消息目录；每次使用前从 Context 取 locale
   'core/validation/ValidatorFactory.php:$factory'                  # 只读校验工厂
   'app/middleware/AdminPermissionMiddleware.php:$permissionCache'  # 注解反射结果：key=类@方法，部署期固定
+  'app/service/system/ApiDocService.php:$documentCache'            # 部署期固定：路由表与注解在运行期不变
 )
 
 fail=0
