@@ -46,7 +46,7 @@ class AuthController extends Controller
         // login_captcha 关闭时验证码可不填（spec §1.1 差异 2：TP8 忽略该配置、强制必填）。
         // 只有明确的关闭值才算关：认不出的值按「开」算，不能因为配置被写坏就静默放行（isSecuritySwitchOn()）
         $captchaRequired = $this->systemConfigService->isSecuritySwitchOn('login_captcha');
-        $data = $this->validate($this->body($request), $this->loginRules($captchaRequired), $this->loginMessages());
+        $data = $this->validate($this->body($request), $this->loginRules(), $this->loginMessages());
         if ($captchaRequired && !$this->captchaService->verify((string) $data['captcha_key'], (string) $data['captcha'])) {
             throw new BusinessException(lang('auth.captcha_invalid'));
         }
@@ -95,8 +95,14 @@ class AuthController extends Controller
         return $this->success([], lang('messages.logout_success'));
     }
 
+    /** @return array<string, string> 与请求管道同一路径：按当前配置求值 */
+    private function loginRules(): array
+    {
+        return $this->loginRulesFor($this->systemConfigService->isSecuritySwitchOn('login_captcha'));
+    }
+
     /** @return array<string, string> */
-    private function loginRules(bool $captchaRequired): array
+    private function loginRulesFor(bool $captchaRequired): array
     {
         $presence = $captchaRequired ? 'required' : 'nullable';
 

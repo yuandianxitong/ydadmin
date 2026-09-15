@@ -40,7 +40,7 @@ class AdminController extends Controller
     #[Permission('system.admin.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         return $this->success($this->adminService->createAdmin($data), lang('messages.create_success'));
     }
@@ -48,7 +48,7 @@ class AdminController extends Controller
     #[Permission('system.admin.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
         $this->adminService->updateAdmin((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -77,7 +77,7 @@ class AdminController extends Controller
     #[Permission('system.admin.status')]
     public function status(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['status' => 'required|integer|in:0,1'], [
+        $data = $this->validate($this->body($request), $this->statusRules(), [
             'status.required' => 'validation.status_invalid',
             'status.integer'  => 'validation.status_invalid',
             'status.in'       => 'validation.status_invalid',
@@ -90,7 +90,7 @@ class AdminController extends Controller
     #[Permission('system.admin.update')]
     public function resetPassword(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['password' => 'required|' . $this->adminService->passwordRule()], [
+        $data = $this->validate($this->body($request), $this->resetPasswordRules(), [
             'password.required' => 'validation.password_require',
             'password.max'      => 'validation.password_max',
         ]);
@@ -102,10 +102,7 @@ class AdminController extends Controller
     #[PermissionSkip]
     public function changePassword(Request $request): Response
     {
-        $data = $this->validate($this->body($request), [
-            'old_password' => 'required|string',
-            'new_password' => 'required|' . $this->adminService->passwordRule() . '|different:old_password',
-        ], [
+        $data = $this->validate($this->body($request), $this->changePasswordRules(), [
             'old_password.required'  => 'validation.password_require',
             'new_password.required'  => 'validation.password_require',
             'new_password.max'       => 'validation.password_max',
@@ -144,6 +141,52 @@ class AdminController extends Controller
             'status'        => 'sometimes|required|integer|in:0,1',
             'role_ids'      => 'sometimes|array',
             'role_ids.*'    => 'integer|min:1',
+        ];
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->rules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->rules('update');
+    }
+
+    /** @return array<string, string> */
+    private function statusRules(): array
+    {
+        return ['status' => 'required|integer|in:0,1'];
+    }
+
+    /**
+     * 容器解析出的控制器实例是完整初始化过的，$this->adminService 已注入，实调即得真值——
+     * 这正是 RuleReflector 必须走 DI 容器而不能 newInstanceWithoutConstructor() 的原因（spec §5 约束 1）。
+     *
+     * @return array<string, string>
+     */
+    private function resetPasswordRules(): array
+    {
+        return ['password' => 'required|' . $this->adminService->passwordRule()];
+    }
+
+    /** @return array<string, string> */
+    private function changePasswordRules(): array
+    {
+        return [
+            'old_password' => 'required|string',
+            'new_password' => 'required|' . $this->adminService->passwordRule() . '|different:old_password',
         ];
     }
 

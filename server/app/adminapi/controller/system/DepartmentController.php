@@ -60,7 +60,7 @@ class DepartmentController extends Controller
     #[Permission('system.department.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         $result = $this->departmentService->createDepartment($data);
 
@@ -70,7 +70,7 @@ class DepartmentController extends Controller
     #[Permission('system.department.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
 
         $this->departmentService->updateDepartment((int) $id, $data);
 
@@ -80,7 +80,7 @@ class DepartmentController extends Controller
     #[Permission('system.department.update')]
     public function status(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['status' => 'required|integer|in:0,1'], [
+        $data = $this->validate($this->body($request), $this->statusRules(), [
             'status.required' => 'validation.status_invalid',
             'status.integer'  => 'validation.status_invalid',
             'status.in'       => 'validation.status_invalid',
@@ -118,6 +118,32 @@ class DepartmentController extends Controller
             'sort'      => 'sometimes|required|integer|min:0',
             'remark'    => 'nullable|string|max:255',
         ];
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->rules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->rules('update');
+    }
+
+    /** @return array<string, string> */
+    private function statusRules(): array
+    {
+        return ['status' => 'required|integer|in:0,1'];
     }
 
     /**
