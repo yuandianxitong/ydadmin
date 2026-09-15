@@ -15,6 +15,7 @@ export default {
         SystemFile: '文件管理',
         SystemNotification: '通知管理',
         SystemCronJob: '定时任务',
+        SystemOnline: '在线管理员',
         SystemConfig: '系统配置',
         SystemLog: '日志管理',
         SystemLoginLog: '登录日志',
@@ -818,6 +819,20 @@ export default {
             typeRequired: '请选择通知类型',
             contentRequired: '请输入通知内容'
         }
+    },
+    // 在线管理员
+    onlineAdmin: {
+        title: '在线管理员',
+        username: '用户名',
+        nickname: '昵称',
+        connections: '连接数',
+        ip: 'IP 地址',
+        userAgent: '浏览器 / 系统',
+        connectedAt: '上线时间',
+        lastSeen: '最后心跳',
+        forceLogout: '强制下线',
+        forceLogoutConfirm: '确定要将「{name}」强制下线吗？该管理员所有已登录的会话都会立即失效。',
+        forceLogoutSuccess: '已强制下线，断开 {count} 个连接'
     },
     // 定时任务
     cronJob: {

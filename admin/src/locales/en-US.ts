@@ -15,6 +15,7 @@ export default {
         SystemFile: 'Files',
         SystemNotification: 'Notifications',
         SystemCronJob: 'Scheduled Tasks',
+        SystemOnline: 'Online Admins',
         SystemConfig: 'Settings',
         SystemLog: 'Logs',
         SystemLoginLog: 'Login Log',
@@ -827,6 +828,21 @@ export default {
             typeRequired: 'Please select notification type',
             contentRequired: 'Please enter notification content'
         }
+    },
+    // Online admins
+    onlineAdmin: {
+        title: 'Online Admins',
+        username: 'Username',
+        nickname: 'Nickname',
+        connections: 'Connections',
+        ip: 'IP Address',
+        userAgent: 'Browser / OS',
+        connectedAt: 'Connected At',
+        lastSeen: 'Last Heartbeat',
+        forceLogout: 'Force Logout',
+        forceLogoutConfirm:
+            'Force "{name}" to log out? All of this admin\'s signed-in sessions will be revoked immediately.',
+        forceLogoutSuccess: 'Logged out, {count} connection(s) closed'
     },
     // Cron job
     cronJob: {

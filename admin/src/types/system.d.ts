@@ -379,6 +379,18 @@ export interface NotificationQuery extends PageQuery {
     type?: number
 }
 
+// ========== 在线管理员 ==========
+export interface OnlineAdminInfo {
+    admin_id: number
+    username: string
+    nickname: string
+    connections: number
+    ip: string
+    ua: string
+    connected_at: string
+    last_seen: string
+}
+
 // ========== 定时任务 ==========
 export interface CronJobInfo {
     id: number
