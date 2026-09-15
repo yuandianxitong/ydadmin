@@ -86,4 +86,19 @@ final class ApiDocControllerTest extends ApiTestCase
         $index = $this->get('/adminapi/system/api-doc', ['type' => ['x']]);
         $this->assertSame(200, $index->status(), $index->body());
     }
+
+    /**
+     * F7：两个端点对 type 的归一必须同源。旧版 ?type=bogus 时 openapi.json 按 'api' 给空文档，
+     * index 页却指向 'admin'——同一个参数两种解读。
+     */
+    public function test_both_endpoints_normalise_an_unknown_type_identically(): void
+    {
+        $openapi = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => 'bogus']);
+        $this->assertSame(200, $openapi->status());
+        $this->assertMatchesRegularExpression('/"paths":\s*\{\}/', $openapi->body(), '未知 type 归一为 api：空文档');
+
+        $index = $this->get('/adminapi/system/api-doc', ['type' => 'bogus']);
+        $this->assertSame(200, $index->status());
+        $this->assertStringContainsString('openapi.json?type=api', $index->body(), 'index 页必须与 openapi.json 用同一个归一结果');
+    }
 }

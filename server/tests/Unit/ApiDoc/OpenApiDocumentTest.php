@@ -30,9 +30,9 @@ final class OpenApiDocumentTest extends TestCase
     private function endpoints(): array
     {
         return [
-            new EndpointDescriptor('GET', '/adminapi/system/dictionary/{id:\d+}', self::CONTROLLER, 'show', 'system.dictionary.list', false, 'system'),
-            new EndpointDescriptor('GET', '/adminapi/system/dictionary/options', self::CONTROLLER, 'options', null, true, 'system'),
-            new EndpointDescriptor('POST', '/adminapi/system/dictionary', self::CONTROLLER, 'store', 'system.dictionary.create', false, 'system'),
+            new EndpointDescriptor('GET', '/adminapi/system/dictionary/{id:\d+}', self::CONTROLLER, 'show', 'system.dictionary.list', false, 'system', true),
+            new EndpointDescriptor('GET', '/adminapi/system/dictionary/options', self::CONTROLLER, 'options', null, true, 'system', true),
+            new EndpointDescriptor('POST', '/adminapi/system/dictionary', self::CONTROLLER, 'store', 'system.dictionary.create', false, 'system', true),
         ];
     }
 
@@ -89,22 +89,64 @@ final class OpenApiDocumentTest extends TestCase
         $this->assertArrayNotHasKey('/adminapi/system/dictionary/{id:\d+}', $doc['paths']);
     }
 
-    public function test_permission_code_is_written_to_x_permission_and_prepended_to_description(): void
+    /** 鉴权四种情况之二：需登录 + #[Permission('x')]。 */
+    public function test_authenticated_endpoint_with_permission_requires_bearer_and_names_the_node(): void
     {
         $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
         $get = $doc['paths']['/adminapi/system/dictionary/{id}']['get'];
 
         $this->assertSame('system.dictionary.list', $get['x-permission']);
-        $this->assertStringContainsString('system.dictionary.list', $get['description']);
+        $this->assertSame('需登录，且需权限 `system.dictionary.list`', $get['description']);
+        $this->assertSame([['bearerAuth' => []]], $get['security']);
     }
 
-    public function test_permission_skip_is_marked_as_unauthenticated(): void
+    /**
+     * 鉴权四种情况之三：需登录 + #[PermissionSkip]。旧版把它写成「免鉴权」——但这类端点都挂在
+     * 认证组里，无 token 得 code 401，「免鉴权」是谎话。
+     */
+    public function test_permission_skip_inside_the_auth_group_still_requires_login(): void
     {
         $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
         $get = $doc['paths']['/adminapi/system/dictionary/options']['get'];
 
         $this->assertNull($get['x-permission']);
-        $this->assertStringContainsString('免鉴权', $get['description']);
+        $this->assertSame('需登录，无需权限节点', $get['description']);
+        $this->assertSame([['bearerAuth' => []]], $get['security']);
+        $this->assertStringNotContainsString('免鉴权', $get['description']);
+    }
+
+    /** 鉴权四种情况之一：公开路由（不挂认证中间件）。不论有无注解，都显式 security: [] 覆盖全局 Bearer。 */
+    public function test_public_route_overrides_global_security_with_an_empty_list(): void
+    {
+        $endpoints = [
+            new EndpointDescriptor('GET', '/adminapi/health', 'app\\adminapi\\controller\\HealthController', 'index', null, false, 'health', false),
+            new EndpointDescriptor('POST', '/adminapi/auth/login', 'app\\adminapi\\controller\\auth\\AuthController', 'login', null, true, 'auth', false),
+        ];
+        $doc = $this->document()->build($endpoints, [], []);
+
+        foreach ([['/adminapi/health', 'get'], ['/adminapi/auth/login', 'post']] as [$path, $method]) {
+            $operation = $doc['paths'][$path][$method];
+            $this->assertSame([], $operation['security'], "{$method} {$path}");
+            $this->assertSame('公开接口，无需登录', $operation['description'], "{$method} {$path}");
+            $this->assertNull($operation['x-permission'], "{$method} {$path}");
+        }
+    }
+
+    /**
+     * 鉴权四种情况之四（triage #8，此前无测试）：需登录但两个注解都没有——权限中间件默认拒绝，
+     * 只有超管能过。
+     */
+    public function test_authenticated_route_without_any_permission_attribute_is_default_denied(): void
+    {
+        $endpoints = [
+            new EndpointDescriptor('GET', '/adminapi/system/thing', self::CONTROLLER, 'thing', null, false, 'system', true),
+        ];
+        $doc = $this->document()->build($endpoints, [], []);
+        $operation = $doc['paths']['/adminapi/system/thing']['get'];
+
+        $this->assertNull($operation['x-permission']);
+        $this->assertSame('需登录；缺少权限注解，默认拒绝（仅超管可访问）', $operation['description']);
+        $this->assertSame([['bearerAuth' => []]], $operation['security']);
     }
 
     public function test_get_endpoint_exposes_query_parameters_translated_by_rule_translator(): void
@@ -122,7 +164,6 @@ final class OpenApiDocumentTest extends TestCase
         $this->assertSame('string', $byName['keyword']['schema']['type']);
         $this->assertSame(100, $byName['keyword']['schema']['maxLength']);
         $this->assertArrayNotHasKey('requestBody', $get);
-        $this->assertArrayNotHasKey('422', $get['responses']);
     }
 
     public function test_post_endpoint_builds_request_body_instead_of_query_parameters(): void
@@ -136,11 +177,57 @@ final class OpenApiDocumentTest extends TestCase
         $this->assertSame('string', $bodySchema['properties']['name']['type']);
         $this->assertSame(50, $bodySchema['properties']['name']['maxLength']);
         $this->assertSame('integer', $bodySchema['properties']['sort']['type']);
-        $this->assertArrayHasKey('422', $post['responses']);
-        $this->assertSame(
-            '#/components/schemas/' . EnvelopeSchemas::VALIDATION,
-            $post['responses']['422']['content']['application/json']['schema']['$ref'],
-        );
+    }
+
+    /**
+     * F1：本项目除未捕获异常外一律 HTTP 200，校验失败是 HTTP 200 + body code 422
+     * （app/exception/Handler.php → Api::error）。文档只能声明真实存在的 HTTP 状态。
+     */
+    public function test_responses_only_declare_real_http_statuses(): void
+    {
+        $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
+
+        foreach ($doc['paths'] as $path => $methods) {
+            foreach ($methods as $httpMethod => $operation) {
+                $statuses = array_map('strval', array_keys($operation['responses']));
+                $this->assertContains('200', $statuses, "{$httpMethod} {$path}");
+                $this->assertSame([], array_diff($statuses, ['200', '500']), "{$httpMethod} {$path} 声明了不存在的 HTTP 状态");
+            }
+        }
+    }
+
+    /** 有规则的操作（POST body 与 GET query 都算）：校验错误信封进 200 的 oneOf，描述写明 code 422。 */
+    public function test_validation_envelope_is_listed_under_200_whenever_the_operation_has_rules(): void
+    {
+        $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
+        $validationRef = '#/components/schemas/' . EnvelopeSchemas::VALIDATION;
+
+        foreach ([['/adminapi/system/dictionary', 'post'], ['/adminapi/system/dictionary/options', 'get']] as [$path, $method]) {
+            $ok = $doc['paths'][$path][$method]['responses']['200'];
+            $this->assertContains($validationRef, array_column($ok['content']['application/json']['schema']['oneOf'], '$ref'), "{$method} {$path}");
+            $this->assertStringContainsString('422', $ok['description'], "{$method} {$path}");
+        }
+
+        $withoutRules = $doc['paths']['/adminapi/system/dictionary/{id}']['get']['responses']['200'];
+        $this->assertNotContains($validationRef, array_column($withoutRules['content']['application/json']['schema']['oneOf'], '$ref'));
+        $this->assertStringNotContainsString('422', $withoutRules['description']);
+    }
+
+    /** 200 的描述按该操作真实可能出现的业务 code 写：需登录才有 401；公开路由不写 401/403。 */
+    public function test_response_200_description_lists_business_codes_that_can_actually_occur(): void
+    {
+        $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
+        $protected = $doc['paths']['/adminapi/system/dictionary/{id}']['get']['responses']['200']['description'];
+        $this->assertStringContainsString('401', $protected);
+        $this->assertStringContainsString('403', $protected);
+
+        $public = $this->document()->build(
+            [new EndpointDescriptor('GET', '/adminapi/health', 'app\\adminapi\\controller\\HealthController', 'index', null, false, 'health', false)],
+            [],
+            [],
+        )['paths']['/adminapi/health']['get']['responses']['200']['description'];
+        $this->assertStringNotContainsString('401', $public);
+        $this->assertStringNotContainsString('403', $public);
     }
 
     public function test_response_200_documents_all_three_generic_envelope_shapes_via_oneof(): void
@@ -156,6 +243,63 @@ final class OpenApiDocumentTest extends TestCase
             ],
             $refs,
         );
+    }
+
+    /**
+     * F3：`x.*` 的规则是 `x` 的元素 schema，`x.*.y` 是元素对象的属性——不是名叫 "x.*" 的字面字段。
+     * 父字段没有规则时也要建出 type: array 的父节点；每个 type: array 都必须带 items。
+     */
+    public function test_wildcard_rules_fold_into_the_parent_field_of_the_request_body(): void
+    {
+        $endpoints = [new EndpointDescriptor('POST', '/adminapi/system/thing', self::CONTROLLER, 'store', 'x', false, 'system', true)];
+        $rules = [
+            'ids'                    => 'required|array|min:1',
+            'ids.*'                  => 'integer',
+            'configs.*.config_key'   => 'required|string|max:100',
+            'configs'                => 'required|array',
+            'configs.*.config_value' => 'present',
+            'tags.*'                 => 'string',
+            'meta'                   => 'nullable|array',
+        ];
+        $doc = $this->document()->build($endpoints, ['DictionaryController::store' => $rules], []);
+        $body = $doc['paths']['/adminapi/system/thing']['post']['requestBody']['content']['application/json']['schema'];
+
+        $this->assertSame(['ids', 'configs', 'tags', 'meta'], array_keys($body['properties']));
+        $this->assertSame(['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'integer']], $body['properties']['ids']);
+        $this->assertSame(['ids', 'configs'], $body['required']);
+
+        $configs = $body['properties']['configs'];
+        $this->assertSame('array', $configs['type']);
+        $this->assertSame('object', $configs['items']['type']);
+        $this->assertSame(['type' => 'string', 'maxLength' => 100], $configs['items']['properties']['config_key']);
+        $this->assertArrayHasKey('config_value', $configs['items']['properties']);
+        $this->assertSame(['config_key', 'config_value'], $configs['items']['required']);
+
+        $this->assertSame(['type' => 'array', 'items' => ['type' => 'string']], $body['properties']['tags'], '父字段无规则时建出 type: array 父节点');
+        $this->assertSame([], $body['properties']['meta']['items'], '无通配子规则的 array 给空 items');
+
+        $json = OpenApiDocument::toJson($doc);
+        $this->assertStringNotContainsString('"ids.*"', $json);
+        $this->assertMatchesRegularExpression('/"items":\s*\{\}/', $json, '空 items 必须编成 JSON 对象');
+    }
+
+    /** F3：GET 的 query 同样折叠，不输出带点的参数名；数组参数的 schema 带 items。 */
+    public function test_wildcard_rules_fold_into_the_parent_query_parameter(): void
+    {
+        $endpoints = [new EndpointDescriptor('GET', '/adminapi/system/thing', self::CONTROLLER, 'index', 'x', false, 'system', true)];
+        $rules = ['codes' => 'required|array|max:50', 'codes.*' => 'string', 'ids.*' => 'integer'];
+        $doc = $this->document()->build($endpoints, ['DictionaryController::index' => $rules], []);
+
+        $byName = [];
+        foreach ($doc['paths']['/adminapi/system/thing']['get']['parameters'] as $parameter) {
+            $byName[$parameter['name']] = $parameter;
+        }
+
+        $this->assertSame(['codes', 'ids'], array_keys($byName));
+        $this->assertTrue($byName['codes']['required']);
+        $this->assertSame(['type' => 'array', 'maxItems' => 50, 'items' => ['type' => 'string']], $byName['codes']['schema']);
+        $this->assertFalse($byName['ids']['required']);
+        $this->assertSame(['type' => 'array', 'items' => ['type' => 'integer']], $byName['ids']['schema']);
     }
 
     /**
@@ -248,7 +392,7 @@ final class OpenApiDocumentTest extends TestCase
     public function test_to_json_encodes_an_empty_request_body_properties_array_as_a_json_object(): void
     {
         $endpoints = [
-            new EndpointDescriptor('POST', '/adminapi/system/dictionary', self::CONTROLLER, 'store', 'system.dictionary.create', false, 'system'),
+            new EndpointDescriptor('POST', '/adminapi/system/dictionary', self::CONTROLLER, 'store', 'system.dictionary.create', false, 'system', true),
         ];
         $doc = $this->document()->build($endpoints, ['DictionaryController::store' => null], []);
         $bodySchema = $doc['paths']['/adminapi/system/dictionary']['post']['requestBody']['content']['application/json']['schema'];
@@ -258,6 +402,23 @@ final class OpenApiDocumentTest extends TestCase
 
         $this->assertDoesNotMatchRegularExpression('/"properties":\s*\[\s*\]/', $json);
         $this->assertMatchesRegularExpression('/"properties":\s*\{\}/', $json);
+    }
+
+    /**
+     * 只有 `present` 的字段翻译出空 schema（F5 起不再自动 nullable）。schema 在 OpenAPI 里是对象，
+     * 空的也必须编成 `{}`；但操作级 `security: []` 是列表，必须保持 `[]`。
+     */
+    public function test_to_json_encodes_empty_schemas_as_objects_but_keeps_empty_security_a_list(): void
+    {
+        $endpoints = [
+            new EndpointDescriptor('PUT', '/adminapi/system/config/{id}', self::CONTROLLER, 'update', null, false, 'system', false),
+        ];
+        $doc = $this->document()->build($endpoints, ['DictionaryController::update' => ['config_value' => 'present']], []);
+
+        $json = OpenApiDocument::toJson($doc);
+
+        $this->assertMatchesRegularExpression('/"config_value":\s*\{\}/', $json);
+        $this->assertMatchesRegularExpression('/"security":\s*\[\]/', $json);
     }
 
     /** 非空的 paths / properties 原样编码，toJson() 的递归替换不能牵连正常数据。 */

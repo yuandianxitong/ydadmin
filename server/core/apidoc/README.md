@@ -55,4 +55,10 @@ vendor/bin/phpunit --filter ApiDocGoldenTest                          # 去掉�
 
 - 不推导 `data` 内部的业务字段——Service 返回类型全是无结构 `array`，只描述信封与分页的结构。
 - `loginRules()` 按运行时 `login_captcha` 开关的实际值求值（不是「无参包装、恒定必填」的超集
-  写法）：开关开时验证码必填，关时可不传，文档如实反映当前配置下的真实规则。
+  写法）：开关开时验证码必填，关时可不传。文档按生成时的配置求值并进程内缓存——**修改影响规则的
+  配置（如 `login_captcha`）后需重启 worker**，文档才会反映新值。
+- 规则方法看不见动作里在 `validate()` 之前做的数据整形（默认值、逗号拆分等）：例如
+  `DashboardController::activeRanking` 的 `period` 有默认值却被文档标为必填，
+  `DictionaryController::batchOptions` 的 `codes` 实际也接受逗号分隔字符串。
+- 数组/对象型查询参数：PHP 只认 `name[]=a` / `name[key]=v`，OpenAPI 3.0 的 `style`/`explode`
+  无法描述，文档保留 schema 并在参数说明里写明真实传法，Swagger 的 Try it out 可能传错。

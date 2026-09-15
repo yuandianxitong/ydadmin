@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\service\system;
 
+use app\middleware\AdminAuthMiddleware;
+use app\middleware\ApiAuthMiddleware;
 use core\apidoc\OpenApiDocument;
 use core\apidoc\RouteHarvester;
 use core\apidoc\RuleReflector;
@@ -24,6 +26,17 @@ class ApiDocService extends Service
     ];
 
     /**
+     * type => 代表「需登录」的中间件。core/ 不能写死 app\ 类名，由这里注入 RouteHarvester：
+     * 路由实际挂了其中任一，文档才标需登录；否则是公开路由（security: []）。
+     *
+     * @var array<string, list<string>>
+     */
+    private const AUTH_MIDDLEWARE = [
+        'admin' => [AdminAuthMiddleware::class],
+        'api'   => [ApiAuthMiddleware::class],
+    ];
+
+    /**
      * 整份文档按 type 缓存：部署期固定，路由表与注解在运行期不变
      * （scripts/check-context-discipline.sh STATIC_WHITELIST 已登记）。
      *
@@ -32,18 +45,32 @@ class ApiDocService extends Service
     private static array $documentCache = [];
 
     /**
-     * @param string $type 'admin' | 'api'；未知值按 'api' 处理（返回空文档）
+     * type 归一的唯一入口，两个控制器动作与 document() 都经它，返回值必然是 PREFIXES 的键。
+     * 缺省（null）与数组等非字符串 → 'admin'（管理端文档是本仓库唯一有内容的一份）；
+     * 未知字符串 → 'api'（合法空文档，不把拼错的 type 猜成 admin）。
+     */
+    public function normalizeType(mixed $type): string
+    {
+        if (!is_string($type)) {
+            return 'admin';
+        }
+
+        return array_key_exists($type, self::PREFIXES) ? $type : 'api';
+    }
+
+    /**
+     * @param string $type 'admin' | 'api'；其它值按 normalizeType() 归一
      * @return array<string, mixed>
      */
     public function document(string $type): array
     {
-        $type = array_key_exists($type, self::PREFIXES) ? $type : 'api';
+        $type = $this->normalizeType($type);
         if (isset(self::$documentCache[$type])) {
             return self::$documentCache[$type];
         }
 
         $prefix = self::PREFIXES[$type];
-        $harvester = new RouteHarvester($prefix);
+        $harvester = new RouteHarvester($prefix, self::AUTH_MIDDLEWARE[$type]);
         $endpoints = $harvester->harvest();
 
         $reflector = new RuleReflector(static fn (string $class): object => Container::get($class));

@@ -42,17 +42,50 @@ final class ApiDocRulesBijectionTest extends ApiTestCase
             $operation = $document['paths'][$path][strtolower($endpoint->method)] ?? null;
             $this->assertIsArray($operation, "文档缺少 {$endpoint->operationId()} 对应的 operation（{$endpoint->method} {$path}）");
 
-            $paramNames = array_column($operation['parameters'] ?? [], 'name');
-            $bodyProps = array_keys($operation['requestBody']['content']['application/json']['schema']['properties'] ?? []);
+            $roots = [];
+            foreach ($operation['parameters'] ?? [] as $parameter) {
+                if (($parameter['in'] ?? null) === 'query') {
+                    $roots[$parameter['name']] = $parameter['schema'];
+                }
+            }
+            foreach ($operation['requestBody']['content']['application/json']['schema']['properties'] ?? [] as $name => $schema) {
+                $roots[$name] = $schema;
+            }
 
             foreach (array_keys($rules) as $field) {
                 $this->assertTrue(
-                    in_array($field, $paramNames, true) || in_array($field, $bodyProps, true),
+                    self::resolves((string) $field, $roots),
                     "{$endpoint->operationId()} 的规则字段 '{$field}' 没有出现在文档的 parameters 或 requestBody 里"
                 );
             }
         }
 
         $this->assertGreaterThanOrEqual(38, $checked, 'spec §6 盘点：38 处有校验的调用点，一个都不能在遍历里被跳过');
+    }
+
+    /**
+     * 按折叠语义解析规则字段：`a` 是顶层参数/属性；`a.*` 是 `a.items`；`a.*.b` 是
+     * `a.items.properties.b`；`a.b` 是 `a.properties.b`。不再要求文档里有名叫 "a.*.b" 的字面键
+     * （那样的字段真实校验器根本不认，文档在说谎）。
+     *
+     * @param array<string, mixed> $roots
+     */
+    private static function resolves(string $field, array $roots): bool
+    {
+        $segments = explode('.', $field);
+        $head = array_shift($segments);
+        if (!is_array($roots[$head] ?? null)) {
+            return false;
+        }
+        $node = $roots[$head];
+        foreach ($segments as $segment) {
+            $next = $segment === '*' ? ($node['items'] ?? null) : ($node['properties'][$segment] ?? null);
+            if (!is_array($next)) {
+                return false;
+            }
+            $node = $next;
+        }
+
+        return true;
     }
 }

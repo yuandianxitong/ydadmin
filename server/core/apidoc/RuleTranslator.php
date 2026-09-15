@@ -83,8 +83,9 @@ final class RuleTranslator
                     $required = false;
                     break;
                 case 'present':
+                    // present 只保证键必须出现，不说值可以是 null：'present|array' 收到 null 会被
+                    // array 规则拒绝。只有规则串里真的写了 nullable 才加 nullable（见下一个 case）。
                     $required = true;
-                    $schema['nullable'] = true;
                     break;
                 case 'nullable':
                     $schema['nullable'] = true;

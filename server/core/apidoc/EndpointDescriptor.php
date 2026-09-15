@@ -7,6 +7,11 @@ namespace core\apidoc;
 /** 路由 + 反射推出的一个端点的全部已知信息。纯值对象，不做任何 I/O。 */
 final class EndpointDescriptor
 {
+    /**
+     * @param bool $requiresAuth 路由实际挂载的中间件（含路由组挂载的）里是否有「需登录」的认证中间件。
+     *                           与注解无关：#[PermissionSkip] 只免权限节点，不免登录；公开路由不经任何认证。
+     *                           必填、无默认值——漏传就该在构造时报错，而不是静默当成公开或需登录。
+     */
     public function __construct(
         public readonly string $method,
         public readonly string $path,
@@ -15,6 +20,7 @@ final class EndpointDescriptor
         public readonly ?string $permission,
         public readonly bool $permissionSkipped,
         public readonly string $tag,
+        public readonly bool $requiresAuth,
     ) {
     }
 

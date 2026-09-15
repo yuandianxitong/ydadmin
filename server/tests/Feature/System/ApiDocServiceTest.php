@@ -33,6 +33,79 @@ final class ApiDocServiceTest extends TestCase
         $this->assertArrayHasKey('/adminapi/system/dictionary/{id}', $document['paths'], '路径参数必须归一化成 {id}，不能带 webman 的 :\\d+ 正则片段');
     }
 
+    /**
+     * F2：鉴权描述从路由真实中间件 + 方法注解共同推导。四个真实端点各代表一种情况；
+     * health 两个注解都没有，但它在认证组外——必须落在「公开」，不是「默认拒绝」。
+     */
+    public function test_security_and_description_follow_real_route_middleware(): void
+    {
+        $paths = Container::get(ApiDocService::class)->document('admin')['paths'];
+
+        $public = [
+            ['/adminapi/auth/login', 'post'],
+            ['/adminapi/auth/captcha', 'get'],
+            ['/adminapi/health', 'get'],
+            ['/adminapi/system/api-doc', 'get'],
+            ['/adminapi/system/api-doc/openapi.json', 'get'],
+        ];
+        foreach ($public as [$path, $method]) {
+            $operation = $paths[$path][$method];
+            $this->assertSame([], $operation['security'], "{$method} {$path} 是公开路由");
+            $this->assertSame('公开接口，无需登录', $operation['description'], "{$method} {$path}");
+        }
+
+        $info = $paths['/adminapi/auth/info']['get'];
+        $this->assertSame([['bearerAuth' => []]], $info['security']);
+        $this->assertSame('需登录，无需权限节点', $info['description']);
+        $this->assertNull($info['x-permission']);
+
+        $show = $paths['/adminapi/system/dictionary/{id}']['get'];
+        $this->assertSame([['bearerAuth' => []]], $show['security']);
+        $this->assertSame('需登录，且需权限 `system.dictionary.list`', $show['description']);
+        $this->assertSame('system.dictionary.list', $show['x-permission']);
+
+        $json = OpenApiDocument::toJson(Container::get(ApiDocService::class)->document('admin'));
+        $this->assertStringNotContainsString('免鉴权', $json);
+    }
+
+    /**
+     * F1/F3 结构断言（整份真实文档）：只声明真实 HTTP 状态；无带 `.` 的属性名/参数名；
+     * 每个 type: array 都有 items（OpenAPI 3.0.3 必需）。
+     */
+    public function test_real_document_structure_is_valid_and_honest(): void
+    {
+        $paths = Container::get(ApiDocService::class)->document('admin')['paths'];
+
+        foreach ($paths as $path => $operations) {
+            foreach ($operations as $method => $operation) {
+                $statuses = array_map('strval', array_keys($operation['responses']));
+                $this->assertSame([], array_diff($statuses, ['200', '500']), "{$method} {$path} 声明了不存在的 HTTP 状态");
+                foreach ($operation['parameters'] ?? [] as $parameter) {
+                    $this->assertStringNotContainsString('.', $parameter['name'], "{$method} {$path} 参数名带点");
+                    $this->assertSchemaIsHonest($parameter['schema'], "{$method} {$path} 参数 {$parameter['name']}");
+                }
+                if (isset($operation['requestBody'])) {
+                    $this->assertSchemaIsHonest($operation['requestBody']['content']['application/json']['schema'], "{$method} {$path} body");
+                }
+            }
+        }
+    }
+
+    /** @param array<string, mixed> $schema */
+    private function assertSchemaIsHonest(array $schema, string $where): void
+    {
+        if (($schema['type'] ?? null) === 'array') {
+            $this->assertArrayHasKey('items', $schema, "{$where}：type array 缺 items");
+        }
+        foreach ($schema['properties'] ?? [] as $name => $child) {
+            $this->assertStringNotContainsString('.', (string) $name, "{$where}：属性名 {$name} 带点");
+            $this->assertSchemaIsHonest($child, "{$where}.{$name}");
+        }
+        if (is_array($schema['items'] ?? null)) {
+            $this->assertSchemaIsHonest($schema['items'], "{$where}[]");
+        }
+    }
+
     public function test_unknown_type_falls_back_to_a_legal_empty_document(): void
     {
         $document = Container::get(ApiDocService::class)->document('does-not-exist');

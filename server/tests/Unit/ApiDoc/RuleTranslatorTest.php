@@ -66,20 +66,29 @@ final class RuleTranslatorTest extends TestCase
         $this->assertTrue($name['required']);
     }
 
-    /** present → 进 required，同时 nullable: true（spec §7）。 */
-    public function test_present_is_required_and_nullable(): void
+    /**
+     * present 只保证「键必须出现」→ 进 required；它不说值可以是 null。旧断言要求 'present|array'
+     * 翻出 nullable: true，但真实校验器对 menu_ids=null 报 validation.array（评审 M2 实测）——
+     * 那是文档说谎。只有规则串里真的写了 nullable 才加 nullable。
+     */
+    public function test_present_is_required_but_not_implicitly_nullable(): void
     {
         $translator = new RuleTranslator();
 
         // RoleController::storeRules 'menu_ids'
         $menuIds = $translator->translate('present|array');
         $this->assertTrue($menuIds['required']);
-        $this->assertSame(['type' => 'array', 'nullable' => true], $menuIds['schema']);
+        $this->assertSame(['type' => 'array'], $menuIds['schema']);
 
-        // SystemConfigController 内联规则 'config_value'：present 单独出现，没有类型 token
+        // SystemConfigController::updateRules 'config_value'：present 单独出现，没有类型 token
         $configValue = $translator->translate('present');
         $this->assertTrue($configValue['required']);
-        $this->assertSame(['nullable' => true], $configValue['schema']);
+        $this->assertSame([], $configValue['schema']);
+
+        // 显式 nullable 仍然生效
+        $explicit = $translator->translate('present|nullable|array');
+        $this->assertTrue($explicit['required']);
+        $this->assertSame(['type' => 'array', 'nullable' => true], $explicit['schema']);
     }
 
     /** in 的枚举值到达时是字符串；类型已定型为 integer 才转型，否则保持字符串。 */

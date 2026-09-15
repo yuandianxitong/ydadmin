@@ -12,15 +12,23 @@ use Webman\Route\Route as RouteObject;
 
 /**
  * 从 Webman\Route::getRoutes() 问活的路由表要 /adminapi（或 /api）下的端点。
- * 不猜：callback 不是 [控制器类, 动作] 数组的路由一律跳过并记录理由，供 x-doc-warnings 用。
+ * 不猜：callback 不是 [控制器类, 动作] 数组、或控制器/动作无法反射的路由一律跳过并记录理由，
+ * 供 x-doc-warnings 用——一条坏路由绝不能把整份文档打成 500（spec §9）。
  */
 final class RouteHarvester
 {
     /** @var list<string> */
     private array $skipped = [];
 
-    public function __construct(private readonly string $prefix)
-    {
+    /**
+     * @param list<string> $authMiddleware 代表「需登录」的中间件类名。由 app/ 注入：core/ 不得写死
+     *                                     app\ 下的类名（check:context 规则六）。默认空——不注入就
+     *                                     不判定任何路由需登录，调用方必须显式说明哪些中间件算认证。
+     */
+    public function __construct(
+        private readonly string $prefix,
+        private readonly array $authMiddleware = [],
+    ) {
     }
 
     /** @return list<EndpointDescriptor> 按 path 再按 method 稳定排序 */
@@ -69,14 +77,34 @@ final class RouteHarvester
         }
 
         [$controller, $action] = $callback;
-        $reflection = new ReflectionMethod($controller, $action);
 
-        $permission = null;
-        foreach ($reflection->getAttributes(Permission::class) as $attribute) {
-            $permission = $attribute->newInstance()->code;
+        // webman 会保留 callback 不可调用的路由（例如删了生成的控制器、config/route/{module}.php 还在），
+        // 只在控制台打一行 "is not callable"。反射与注解实例化的任何异常都只影响这一条路由。
+        // 只记异常类名，不回显异常原文。
+        try {
+            $reflection = new ReflectionMethod($controller, $action);
+
+            $permission = null;
+            foreach ($reflection->getAttributes(Permission::class) as $attribute) {
+                $permission = $attribute->newInstance()->code;
+            }
+
+            $permissionSkipped = $reflection->getAttributes(PermissionSkip::class) !== [];
+        } catch (\Throwable $e) {
+            $this->skipped[] = sprintf(
+                '%s %s：%s::%s 无法反射（%s），已跳过',
+                $method,
+                $route->getPath(),
+                $controller,
+                $action,
+                $e::class,
+            );
+
+            return null;
         }
 
-        $permissionSkipped = $reflection->getAttributes(PermissionSkip::class) !== [];
+        // getMiddleware() 含路由组挂载的中间件（tests/RedLine/Test6_RouteMountTest.php 同样靠它判定组归属）。
+        $routeMiddleware = array_values(array_filter($route->getMiddleware(), 'is_string'));
 
         return new EndpointDescriptor(
             method: $method,
@@ -86,6 +114,7 @@ final class RouteHarvester
             permission: $permission,
             permissionSkipped: $permissionSkipped,
             tag: $this->tagFor($route->getPath()),
+            requiresAuth: array_intersect($this->authMiddleware, $routeMiddleware) !== [],
         );
     }
 

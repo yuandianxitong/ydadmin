@@ -27,12 +27,9 @@ class ApiDocController extends Controller
     #[PermissionSkip]
     public function openapi(Request $request): Response
     {
-        // $request->get('type') 在 ?type[]=x 这种写法下会是数组：这是公开、免鉴权端点，
-        // 不能因为一个不合法的查询参数就抛未捕获异常变成 500（debug 下错误页可能带文件路径）。
-        // 非字符串一律落到 'admin'，交给 ApiDocService::document() 再按已知 type 表归一化。
-        $type = $request->get('type');
-        $type = is_string($type) ? $type : 'admin';
-        $document = $this->apiDocService->document($type);
+        // $request->get('type') 在 ?type[]=x 这种写法下会是数组：这是公开端点，不能因为一个不合法的
+        // 查询参数就抛未捕获异常变成 500。归一只有 ApiDocService::normalizeType() 一处，index() 同用。
+        $document = $this->apiDocService->document($this->apiDocService->normalizeType($request->get('type')));
         // 空 paths / 空 properties 编成合法 OpenAPI 对象（{} 而不是 []）——唯一实现在
         // OpenApiDocument::toJson()，这里不再自己写一遍 stdClass 特判。
         $body = OpenApiDocument::toJson($document);
@@ -43,9 +40,8 @@ class ApiDocController extends Controller
     #[PermissionSkip]
     public function index(Request $request): Response
     {
-        $type = $request->get('type');
-        $type = is_string($type) ? $type : 'admin';
-        $type = in_array($type, ['admin', 'api'], true) ? $type : 'admin';
+        // 拼进 HTML 前的值必然 ∈ {admin, api}：与 openapi() 同一个归一函数，不另写白名单。
+        $type = $this->apiDocService->normalizeType($request->get('type'));
 
         return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], $this->page($type));
     }

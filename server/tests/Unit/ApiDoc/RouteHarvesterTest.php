@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Unit\ApiDoc;
 
 use app\adminapi\controller\system\DictionaryController;
+use app\middleware\AdminAuthMiddleware;
 use core\apidoc\EndpointDescriptor;
 use core\apidoc\RouteHarvester;
 use ReflectionProperty;
@@ -123,6 +124,70 @@ final class RouteHarvesterTest extends TestCase
             $this->assertCount(1, $skipped);
             $this->assertStringContainsString('/adminapi/__apidoc_harvester_test_closure', $skipped[0]);
             $this->assertStringContainsString('GET', $skipped[0]);
+        } finally {
+            $allRoutesProperty->setValue(null, $originalRoutes);
+            $methodPathIndexProperty->setValue(null, $originalIndex);
+        }
+    }
+
+    /**
+     * F2：requiresAuth 看路由实际挂的中间件（含路由组挂载的），不看注解。认证中间件类名由调用方
+     * 注入——core/ 不写死 app\ 类名。
+     */
+    public function test_requires_auth_is_derived_from_the_routes_real_middleware(): void
+    {
+        self::ensureRoutesLoaded();
+
+        $harvester = new RouteHarvester('/adminapi', [AdminAuthMiddleware::class]);
+        $byKey = [];
+        foreach ($harvester->harvest() as $endpoint) {
+            $byKey["{$endpoint->method} {$endpoint->path}"] = $endpoint;
+        }
+
+        $this->assertFalse($byKey['GET /adminapi/health']->requiresAuth, 'health 在认证组外，是公开路由');
+        $this->assertFalse($byKey['POST /adminapi/auth/login']->requiresAuth);
+        $this->assertFalse($byKey['GET /adminapi/auth/captcha']->requiresAuth);
+        $this->assertTrue($byKey['GET /adminapi/auth/info']->requiresAuth, 'auth/info 标 PermissionSkip，但挂在认证组里');
+        $this->assertTrue($byKey['GET /adminapi/system/dictionary/{id:\d+}']->requiresAuth);
+
+        $withoutInjection = new RouteHarvester('/adminapi');
+        foreach ($withoutInjection->harvest() as $endpoint) {
+            $this->assertFalse($endpoint->requiresAuth, '未注入认证中间件列表时不得凭空判定需登录');
+        }
+    }
+
+    /**
+     * F4：webman 会保留 callback 不可调用的路由（删了生成的控制器但路由文件还在）。一条这样的路由
+     * 不能让 harvest() 抛异常、把整份公开文档打成 500——记入 skipped() 继续收割。
+     */
+    public function test_unreflectable_route_is_skipped_instead_of_aborting_the_harvest(): void
+    {
+        self::ensureRoutesLoaded();
+
+        $allRoutesProperty = new ReflectionProperty(Route::class, 'allRoutes');
+        $allRoutesProperty->setAccessible(true);
+        $methodPathIndexProperty = new ReflectionProperty(Route::class, 'methodPathIndex');
+        $methodPathIndexProperty->setAccessible(true);
+
+        $originalRoutes = $allRoutesProperty->getValue();
+        $originalIndex = $methodPathIndexProperty->getValue();
+
+        try {
+            Route::get('/adminapi/__apidoc_harvester_missing_method', [DictionaryController::class, 'methodThatDoesNotExist']);
+            Route::get('/adminapi/__apidoc_harvester_missing_class', ['app\\adminapi\\controller\\NoSuchController', 'index']);
+
+            $harvester = new RouteHarvester('/adminapi');
+            $endpoints = $harvester->harvest();
+
+            $paths = array_map(static fn (EndpointDescriptor $e): string => $e->path, $endpoints);
+            $this->assertNotContains('/adminapi/__apidoc_harvester_missing_method', $paths);
+            $this->assertNotContains('/adminapi/__apidoc_harvester_missing_class', $paths);
+            $this->assertContains('/adminapi/system/dictionary/{id:\d+}', $paths, '其余路由照常收割');
+
+            $skipped = implode("\n", $harvester->skipped());
+            $this->assertStringContainsString('GET /adminapi/__apidoc_harvester_missing_method', $skipped);
+            $this->assertStringContainsString('methodThatDoesNotExist', $skipped);
+            $this->assertStringContainsString('GET /adminapi/__apidoc_harvester_missing_class', $skipped);
         } finally {
             $allRoutesProperty->setValue(null, $originalRoutes);
             $methodPathIndexProperty->setValue(null, $originalIndex);
