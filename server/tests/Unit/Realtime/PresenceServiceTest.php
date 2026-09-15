@@ -99,6 +99,43 @@ final class PresenceServiceTest extends TestCase
         $this->assertNotContains(self::A, $presence->onlineAdminIds());
     }
 
+    /**
+     * fix round 1：leave() 的 HDEL 与「置空判断 + DEL/ZREM」曾经不是原子操作，并发 join() 可能夹在中间
+     * 把刚建好的记录连同索引一起删掉。改用 Lua 原子脚本后，同一管理员还有其它字段在线时，
+     * leave() 绝不能动索引或整张 hash。真正的并发交错无法在 PHPUnit 里确定性复现，
+     * 原子性由 Lua 脚本单命令执行保证。
+     */
+    public function test_leave_keeps_the_admin_online_when_another_field_remains(): void
+    {
+        $presence = new PresenceService();
+        $presence->join(self::A, 'node:1:1', ['ip' => '10.0.0.1', 'ua' => 'UA-1', 'connected_at' => '2026-09-15 10:00:00']);
+        $presence->join(self::A, 'node:1:2', ['ip' => '10.0.0.2', 'ua' => 'UA-2', 'connected_at' => '2026-09-15 10:00:01']);
+
+        $presence->leave(self::A, 'node:1:1');
+
+        $this->assertContains(self::A, $presence->onlineAdminIds(), 'leave() 不能连带删掉仍有其它连接的管理员索引');
+        $this->assertNotFalse(Redis::zScore(PresenceService::INDEX_KEY, (string) self::A), '索引成员保留');
+        $info = $presence->describe(self::A);
+        $this->assertNotNull($info);
+        $this->assertSame(1, $info['connections'], '另一个字段仍在');
+        $this->assertSame('10.0.0.2', $info['ip']);
+    }
+
+    /** fix round 1：forget() 的 HLEN 读数与 DEL/ZREM 之间同样不能被并发 join() 插入，改用 Lua 原子脚本。 */
+    public function test_forget_clears_both_hash_and_index_atomically(): void
+    {
+        $presence = new PresenceService();
+        $presence->join(self::A, 'node:1:1', ['ip' => '', 'ua' => '', 'connected_at' => '2026-09-15 10:00:00']);
+        $presence->join(self::A, 'node:1:2', ['ip' => '', 'ua' => '', 'connected_at' => '2026-09-15 10:00:00']);
+
+        $count = $presence->forget(self::A);
+
+        $this->assertSame(2, $count, '返回清除前的连接字段数');
+        $this->assertSame(0, (int) Redis::exists('ws:online:' . self::A), 'hash 已删');
+        $this->assertFalse(Redis::zScore(PresenceService::INDEX_KEY, (string) self::A), '索引已删');
+        $this->assertSame(0, $presence->forget(self::A), '再次 forget 已清空的管理员返回 0');
+    }
+
     public function test_online_ids_prune_index_members_whose_hash_expired(): void
     {
         $presence = new PresenceService();
