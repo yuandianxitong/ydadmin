@@ -83,6 +83,28 @@ final class RuleReflectorTest extends TestCase
         $this->assertStringContainsString('DoesNotExist', $this->reflector->warnings()[0]);
     }
 
+    public function test_autoload_failure_during_class_exists_is_downgraded_to_null_with_a_warning(): void
+    {
+        $explodingClass = 'tests\\fixtures\\ApiDoc\\AutoloadExplodingController';
+        $autoloader = static function (string $class) use ($explodingClass): void {
+            if ($class === $explodingClass) {
+                throw new \Error('simulated autoload failure');
+            }
+        };
+
+        spl_autoload_register($autoloader, true, true);
+
+        try {
+            $rules = $this->reflector->rulesFor($explodingClass, 'store');
+
+            $this->assertNull($rules);
+            $this->assertCount(1, $this->reflector->warnings());
+            $this->assertStringContainsString($explodingClass, $this->reflector->warnings()[0]);
+        } finally {
+            spl_autoload_unregister($autoloader);
+        }
+    }
+
     /**
      * 反证 §核心约束：newInstanceWithoutConstructor() 拿到的实例，$service 是
      * uninitialized typed property，调用 resetRules() 会直接 Error 而不是优雅降级——

@@ -28,18 +28,19 @@ final class RuleReflector
     /** @return array<string, string>|null 字段名 => 规则串；null 表示该动作没有规则方法 */
     public function rulesFor(string $controller, string $action): ?array
     {
-        if (!class_exists($controller)) {
-            $this->warnings[] = sprintf('%s 不存在，已跳过该控制器的规则反射', $controller);
-
-            return null;
-        }
-
         $method = $action . 'Rules';
-        if (!method_exists($controller, $method)) {
-            return null;
-        }
 
         try {
+            if (!class_exists($controller)) {
+                $this->warnings[] = sprintf('%s 不存在，已跳过该控制器的规则反射', $controller);
+
+                return null;
+            }
+
+            if (!method_exists($controller, $method)) {
+                return null;
+            }
+
             $reflectionMethod = new \ReflectionMethod($controller, $method);
             $reflectionMethod->setAccessible(true);
             $instance = ($this->resolver)($controller);
