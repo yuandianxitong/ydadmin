@@ -75,4 +75,7 @@ return [
     'storage_oss_region_required' => '请先配置 OSS Region（或使用标准 Endpoint 以便自动推导）',
     'storage_upload_failed'      => '文件上传到 :driver 失败：:error',
     'storage_delete_failed'      => ':driver 上的文件删除失败：:error',
+
+    // 定时任务（M3）
+    'cron_command_not_allowed'   => '命令不在定时任务白名单中',
 ];

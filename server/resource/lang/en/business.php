@@ -75,4 +75,7 @@ return [
     'storage_oss_region_required' => 'Please configure the OSS region, or use a standard endpoint so it can be derived',
     'storage_upload_failed'       => 'Failed to upload the file to :driver: :error',
     'storage_delete_failed'       => 'Failed to delete the file on :driver: :error',
+
+    // Scheduled jobs (M3)
+    'cron_command_not_allowed'    => 'The command is not in the scheduled job whitelist',
 ];
