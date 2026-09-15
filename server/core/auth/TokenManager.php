@@ -107,12 +107,30 @@ final class TokenManager
      */
     public function verify(string $token): array
     {
+        return $this->verifyClaims($token)['payload'];
+    }
+
+    /**
+     * 与 verify() 同样的校验，另外带出 jti 与 exp（M4：WS 票据要记下签发它的 token 的 jti，
+     * 复查时据此判断该 token 是否已被登出拉黑）。
+     *
+     * @return array{payload: array<string, mixed>, jti: string, exp: int}
+     * @throws AuthException 签名错误、已过期、scope/issuer 不符、已拉黑
+     */
+    public function verifyClaims(string $token): array
+    {
         $claims = $this->decode($token);
         if ($this->isBlacklisted($claims)) {
             throw new AuthException(lang('auth.token_expired'));
         }
 
-        return $this->payloadOf($claims);
+        return ['payload' => $this->payloadOf($claims), 'jti' => (string) $claims['jti'], 'exp' => (int) $claims['exp']];
+    }
+
+    /** jti 是否已被拉黑（M4：WS 进程定期复查已建立的连接用，连接本身不再持有 token）。 */
+    public function isJtiRevoked(string $jti): bool
+    {
+        return Cache::has($this->blacklistKey($jti));
     }
 
     /**
@@ -202,7 +220,7 @@ final class TokenManager
     /** @param array<string, mixed> $claims */
     private function isBlacklisted(array $claims): bool
     {
-        return Cache::has($this->blacklistKey((string) $claims['jti']));
+        return $this->isJtiRevoked((string) $claims['jti']);
     }
 
     private function blacklistKey(string $jti): string
