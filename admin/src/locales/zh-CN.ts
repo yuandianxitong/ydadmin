@@ -811,7 +811,7 @@ export default {
             business: '业务消息'
         },
         scopeOptions: {
-            all: '全部用户',
+            all: '全部管理员',
             specified: '指定管理员'
         },
         specifiedCount: '指定 {count} 人',

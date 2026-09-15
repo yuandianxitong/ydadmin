@@ -3,8 +3,8 @@
  *
  * - 连接前先经 HTTP 取一次性票据（30 秒有效），再连 `{WS_BASE}/ws?ticket=…`。
  * - 打开后每 25 秒发 `{event:'ping'}`；服务端 90 秒收不到心跳会以 4000 关闭。
- * - 关闭码：4003（已吊销 / 被踢）不重连并触发一次 force_logout；4001（票据无效）立即重新取票据，最多 3 次；
- *   其余按 nextDelay 指数退避。页面不可见时暂停重连，可见后立即重连。
+ * - 关闭码：4003（已吊销 / 被踢）不重连并触发一次 force_logout；4001（票据无效）按 nextDelay 退避后重新取票据，
+ *   最多 3 次；其余按 nextDelay 指数退避。页面不可见时暂停重连，可见后立即重连。
  * - 依赖可注入（WebSocket 构造、取票据、定时器、document），测试不需要真实网络。
  *
  * import 环纪律：utils/auth.ts → store/modules/realtime.store.ts → 本文件。本文件不得静态 import
@@ -115,6 +115,8 @@ export class RealtimeClient {
     private pendingReconnect = false
     private forcedOut = false
     private visibilityBound = false
+    /** 每次 open() / disconnect() 自增：取票据期间若已被更新的 open() 或 disconnect() 取代，旧的 open() 放弃建连。 */
+    private generation = 0
 
     constructor(deps: Partial<RealtimeDeps> = {}) {
         this.deps = { ...defaultDeps(), ...deps }
@@ -152,6 +154,7 @@ export class RealtimeClient {
     }
 
     disconnect(): void {
+        this.generation++
         this.manualClose = true
         this.pendingReconnect = false
         this.clearReconnect()
@@ -164,6 +167,7 @@ export class RealtimeClient {
     }
 
     private async open(): Promise<void> {
+        const generation = ++this.generation
         this.clearReconnect()
         this.setStatus('connecting')
 
@@ -171,14 +175,14 @@ export class RealtimeClient {
         try {
             ticket = await this.deps.fetchTicket()
         } catch {
-            if (this.manualClose) {
+            if (this.manualClose || generation !== this.generation) {
                 return
             }
             this.setStatus('closed')
             this.scheduleReconnect()
             return
         }
-        if (this.manualClose) {
+        if (this.manualClose || generation !== this.generation) {
             return
         }
 
@@ -251,8 +255,9 @@ export class RealtimeClient {
                 this.stopped = true
                 return
             }
+            const delay = nextDelay(this.ticketRetries)
             this.ticketRetries++
-            this.runOrDefer(0)
+            this.runOrDefer(delay)
             return
         }
         this.scheduleReconnect()

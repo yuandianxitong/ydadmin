@@ -820,7 +820,7 @@ export default {
             business: 'Business Message'
         },
         scopeOptions: {
-            all: 'All Users',
+            all: 'All Admins',
             specified: 'Specified Admins'
         },
         specifiedCount: '{count} specified',

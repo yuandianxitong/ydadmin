@@ -276,14 +276,18 @@ describe('RealtimeClient', () => {
         expect(FakeSocket.instances).toHaveLength(1)
     })
 
-    it('refetches the ticket immediately on 4001, at most 3 times', async () => {
+    it('refetches the ticket on 4001 with backoff, at most 3 times', async () => {
         const { client, fetchTicket } = makeClient()
         await client.connect()
         await flush()
 
-        for (let i = 0; i < 3; i++) {
+        for (const delay of [1000, 2000, 4000]) {
+            const count = FakeSocket.instances.length
             lastSocket().serverClose(CLOSE_TICKET)
-            await flush()
+            await vi.advanceTimersByTimeAsync(delay - 1)
+            expect(FakeSocket.instances).toHaveLength(count)
+            await vi.advanceTimersByTimeAsync(1)
+            expect(FakeSocket.instances).toHaveLength(count + 1)
         }
         expect(FakeSocket.instances).toHaveLength(4)
 
@@ -293,6 +297,34 @@ describe('RealtimeClient', () => {
         expect(FakeSocket.instances).toHaveLength(4)
         expect(fetchTicket).toHaveBeenCalledTimes(4)
         expect(client.status).toBe('closed')
+    })
+
+    it('drops a ticket fetch that resolves after disconnect() + connect()', async () => {
+        let resolveFirst: (ticket: string) => void = () => {}
+        const fetchTicket = vi
+            .fn<() => Promise<string>>()
+            .mockImplementationOnce(
+                () =>
+                    new Promise<string>((resolve) => {
+                        resolveFirst = resolve
+                    })
+            )
+            .mockResolvedValue('t2')
+        const { client } = makeClient({ fetchTicket })
+
+        const first = client.connect()
+        client.disconnect()
+        await client.connect()
+        await flush()
+        expect(FakeSocket.instances).toHaveLength(1)
+
+        resolveFirst('t1')
+        await first
+        await flush()
+
+        expect(FakeSocket.instances).toHaveLength(1)
+        expect(lastSocket().url).toBe('ws://test/ws?ticket=t2')
+        client.disconnect()
     })
 
     it('disconnect closes the socket, clears timers and never reconnects', async () => {
