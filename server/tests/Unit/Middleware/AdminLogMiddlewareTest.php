@@ -230,6 +230,30 @@ final class AdminLogMiddlewareTest extends TestCase
         $this->assertSame(['code' => 204, 'message' => ''], $this->onlyPayload($dispatcher)['result']);
     }
 
+    public function test_invalid_utf8_in_query_user_agent_and_message_is_scrubbed_before_dispatch(): void
+    {
+        RequestContext::setActingUser(7);
+        $dispatcher = new SpyQueueDispatcher();
+        $request = new Request("POST /adminapi/demo/1?x=%FF&%FEkey=v&nested[k]=a%FEb HTTP/1.1\r\nHost: localhost\r\nUser-Agent: ua\xFF\r\nContent-Type: application/json\r\nContent-Length: 0\r\n\r\n");
+        $request->connection = new FakeConnection('10.9.8.7');
+        $request->controller = DemoLogController::class;
+        $request->action = 'store';
+        $request->username = "al\xFFice";
+
+        (new AdminLogMiddleware(new SpyOperationLogRepository(), $dispatcher))->process($request, static fn () => new Response(200, [], '{"code":400,"message":"bad\xFF"}'));
+
+        $record = $this->onlyPayload($dispatcher);
+        $this->assertNotFalse(json_encode($record), '非法 UTF-8 必须在投递前替换掉，否则 redis-queue 编码失败、日志丢失');
+        foreach (['username', 'user_agent', 'path'] as $field) {
+            $this->assertTrue(mb_check_encoding((string) $record[$field], 'UTF-8'), "{$field} 必须是合法 UTF-8");
+        }
+        $this->assertStringStartsWith('ua', (string) $record['user_agent']);
+        $this->assertTrue(mb_check_encoding((string) $record['params']['x'], 'UTF-8'));
+        $this->assertTrue(mb_check_encoding((string) $record['params']['nested']['k'], 'UTF-8'));
+        $this->assertStringStartsWith('a', (string) $record['params']['nested']['k']);
+        $this->assertTrue(mb_check_encoding((string) $record['result']['message'], 'UTF-8'));
+    }
+
     public function test_short_key_strips_the_namespace(): void
     {
         $this->assertSame('AdminController@store', AdminLogMiddleware::shortKey('app\\adminapi\\controller\\system\\AdminController', 'store'));

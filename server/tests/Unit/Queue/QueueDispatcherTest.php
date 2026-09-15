@@ -109,4 +109,40 @@ final class QueueDispatcherTest extends TestCase
         $this->assertSame(0, $package['attempts']);
         $this->assertSame([], RecordingConsumer::$handled, 'redis 驱动只投递，不在当前进程消费');
     }
+
+    public function test_redis_driver_rejects_a_payload_that_is_not_valid_utf8_without_writing_redis(): void
+    {
+        // redis-queue 的 send() 不带 flag 调 json_encode()：失败返回 false，lPush(false) 写进空串且返回成功，任务静默丢失
+        $this->overrideConfig('queue.driver', 'redis');
+        $this->overrideConfig('queue.queues.fixture-redis', ['consumer' => RecordingConsumer::class, 'max_attempts' => 0]);
+        Redis::del(self::WAITING_KEY);
+
+        $caught = null;
+        try {
+            $this->dispatcher()->dispatch('fixture-redis', ['user_agent' => "bad\xFF"]);
+        } catch (\Throwable $e) {
+            $caught = $e;
+        }
+
+        $this->assertInstanceOf(\RuntimeException::class, $caught, '不可编码的载荷必须抛 RuntimeException，让调用方走兜底');
+        $this->assertNotInstanceOf(\JsonException::class, $caught);
+        $this->assertStringContainsString('fixture-redis', $caught->getMessage());
+        $this->assertSame(0, (int) Redis::llen(self::WAITING_KEY), '编码失败不得往 Redis 写任何东西');
+    }
+
+    public function test_sync_driver_surfaces_an_unencodable_payload_as_runtime_exception(): void
+    {
+        $this->overrideConfig('queue.queues.fixture-record', ['consumer' => RecordingConsumer::class, 'max_attempts' => 0]);
+
+        $caught = null;
+        try {
+            $this->dispatcher()->dispatch('fixture-record', ['user_agent' => "bad\xFF"]);
+        } catch (\Throwable $e) {
+            $caught = $e;
+        }
+
+        $this->assertInstanceOf(\RuntimeException::class, $caught, '不可编码的载荷必须抛 RuntimeException');
+        $this->assertNotInstanceOf(\JsonException::class, $caught, 'JsonException 不得从 sync 驱动逃出');
+        $this->assertSame([], RecordingConsumer::$handled);
+    }
 }

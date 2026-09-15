@@ -96,6 +96,22 @@ final class AdminLogMiddlewareTest extends ApiTestCase
         $this->assertSame(lang('admin_log.admin_update'), $logs[1]->action, '带 /{id} 的路径同样命中映射（TP8 按路径匹配时落到兜底文案）');
     }
 
+    public function test_invalid_utf8_in_query_and_user_agent_still_stores_the_log(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $this->call('PUT', '/adminapi/system/admin/999999999?probe=%FF', ['nickname' => '不存在'], $super->token, ['User-Agent' => "ua\xFF"])->assertCode(404);
+
+        $logs = $this->logsOf($super->id);
+        $this->assertCount(1, $logs, '带非法 UTF-8 的写请求也必须留下操作日志');
+        $this->assertTrue(mb_check_encoding((string) $logs[0]->user_agent, 'UTF-8'));
+        $this->assertStringStartsWith('ua', (string) $logs[0]->user_agent);
+        $params = json_decode((string) $logs[0]->params, true);
+        $this->assertIsArray($params);
+        $this->assertArrayHasKey('probe', $params);
+        $this->assertTrue(mb_check_encoding((string) $params['probe'], 'UTF-8'));
+        $this->assertSame('不存在', $params['nickname']);
+    }
+
     public function test_config_values_that_may_be_credentials_are_masked(): void
     {
         $super = $this->actingAsAdmin('super');

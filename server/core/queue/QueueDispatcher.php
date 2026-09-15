@@ -23,9 +23,11 @@ use Webman\RedisQueue\Redis as QueueRedis;
 class QueueDispatcher
 {
     /**
-     * @param array<string, mixed> $data 必须可 JSON 编码（redis 驱动写 Redis 前编码，sync 驱动同样往返一次保持一致）
+     * @param array<string, mixed> $data 必须可 JSON 编码（非法 UTF-8、资源等）：两个驱动都先带 JSON_THROW_ON_ERROR 编码一次，
+     *                                   不可编码直接抛 RuntimeException。redis-queue 的 send() 自己编码时不带 flag，失败得到 false，
+     *                                   lPush(false) 写进空串却返回成功——任务静默丢失、调用方的兜底也不会执行
      * @throws \InvalidArgumentException 队列未在 config/queue.php 登记，或 sync 驱动下消费者没有实现 QueueHandler
-     * @throws \RuntimeException redis 驱动投递失败（Redis 不可用或未确认写入）
+     * @throws \RuntimeException 载荷不可 JSON 编码（两个驱动），或 redis 驱动投递失败（Redis 不可用或未确认写入）
      */
     public function dispatch(string $queue, array $data): void
     {
@@ -38,6 +40,7 @@ class QueueDispatcher
         }
 
         try {
+            json_encode($data, JSON_THROW_ON_ERROR);
             $sent = QueueRedis::connection()->send($queue, $data);
         } catch (\Throwable $e) {
             throw new \RuntimeException("队列 {$queue} 投递失败：" . $e->getMessage(), 0, $e);
@@ -64,17 +67,24 @@ class QueueDispatcher
     /**
      * @param array{consumer: string, max_attempts: int} $definition
      * @param array<string, mixed> $data
+     * @throws \RuntimeException 载荷不可 JSON 编码
      */
     private function dispatchSync(string $queue, array $definition, array $data): void
     {
+        // 与 redis 驱动一致：先编码，消费者拿到的是 JSON 往返后的数据（非法 UTF-8、资源等不可编码的值在这里就暴露出来）
+        try {
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException("队列 {$queue} 投递失败：载荷无法 JSON 编码（" . $e->getMessage() . '）', 0, $e);
+        }
+
         $consumer = Container::get($definition['consumer']);
         if (!$consumer instanceof QueueHandler) {
             throw new \InvalidArgumentException("队列 {$queue} 的消费者 {$definition['consumer']} 没有实现 " . QueueHandler::class);
         }
 
-        // 与 redis 驱动一致：消费者拿到的是 JSON 往返后的数据（对象、资源等不可编码的值在这里就暴露出来）
         /** @var array<string, mixed> $payload */
-        $payload = (array) json_decode((string) json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), true);
+        $payload = (array) json_decode($json, true);
 
         try {
             $consumer->handle($payload);

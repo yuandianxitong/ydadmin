@@ -90,6 +90,9 @@ class AdminLogMiddleware implements MiddlewareInterface
             'execution_time' => round(microtime(true) - $start, 3),
             'operation_time' => date('Y-m-d H:i:s', (int) $start),
         ];
+        // 查询串、请求体、User-Agent、用户名、响应文案都可能带非法 UTF-8（如 ?x=%FF）：不替换掉就无法 JSON 编码，
+        // 队列投递和同步写库（json 列）都会失败，任何有写权限的人都能借此抹掉自己这次写操作的审计记录
+        $payload = self::scrub($payload);
 
         try {
             $this->dispatcher->dispatch(self::QUEUE, $payload);
@@ -123,6 +126,30 @@ class AdminLogMiddleware implements MiddlewareInterface
         }
 
         return $params;
+    }
+
+    /**
+     * 递归把字符串值与字符串键中的非法 UTF-8 字节替换为替换字符（mb_scrub），其余类型原样保留。
+     * 在脱敏之后执行：脱敏按原始键名匹配。
+     *
+     * @template T
+     * @param T $value
+     * @return T
+     */
+    private static function scrub(mixed $value): mixed
+    {
+        if (is_string($value)) {
+            return mb_scrub($value, 'UTF-8');
+        }
+        if (!is_array($value)) {
+            return $value;
+        }
+        $clean = [];
+        foreach ($value as $key => $item) {
+            $clean[is_string($key) ? mb_scrub($key, 'UTF-8') : $key] = self::scrub($item);
+        }
+
+        return $clean;
     }
 
     /**
