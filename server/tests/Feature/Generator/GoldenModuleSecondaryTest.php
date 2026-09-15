@@ -91,6 +91,9 @@ final class GoldenModuleSecondaryTest extends TestCase
         [$path, $content] = $this->renderGoldenSecondary('page');
 
         $this->assertSame('admin/src/views/catalog/gen-category/index.vue', $path);
+        // json 列：列表里直接 prop="settings" 会把对象渲染成 [object Object]，必须序列化后显示
+        $this->assertStringContainsString('JSON.stringify(row.settings)', $content, 'json 列在列表里必须序列化显示');
+        $this->assertStringNotContainsString('prop="settings" />', $content, 'json 列不能再用裸 prop 渲染');
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
 
@@ -99,6 +102,22 @@ final class GoldenModuleSecondaryTest extends TestCase
         [$path, $content] = $this->renderGoldenSecondary('form');
 
         $this->assertSame('admin/src/views/catalog/gen-category/components/GenCategoryForm.vue', $path);
+        // json 列：后端规则是 nullable|array，表单里存 JSON 文本，打开时解码、提交前编码回对象
+        $this->assertStringContainsString('<el-input v-model="form.settings" type="textarea"', $content, 'json 列必须用 textarea 编辑 JSON 文本');
+        $this->assertStringContainsString('settings?: string', $content, 'json 列在表单状态里是 JSON 文本，类型必须是 string');
+        $this->assertStringNotContainsString('settings?: Record<string, any>', $content, '表单状态不能再把 json 列声明成对象');
+        $this->assertStringContainsString("const JSON_FIELDS = ['settings'] as const", $content, '必须登记表中的 json 列');
+        $this->assertStringContainsString('sourceData: () => decodeJsonFields(props.formData)', $content, '编辑回填必须先把对象解码成 JSON 文本');
+        $this->assertStringContainsString('create(encodeJsonFields(data))', $content, '新增提交前必须把 JSON 文本编码回对象');
+        $this->assertStringContainsString('update(id, encodeJsonFields(data))', $content, '修改提交前必须把 JSON 文本编码回对象');
+        $this->assertStringContainsString('validator: validateJsonField', $content, 'json 列必须在前端校验 JSON 合法性，避免撞后端 422');
+        // useFormDialog() 内部对 sourceData 做 watch({ immediate: true })，getter 在调用返回前就同步执行一次，
+        // 会立刻调 decodeJsonFields → 读 JSON_FIELDS。const 若声明在调用之后，组件一挂载就抛 TDZ ReferenceError。
+        $jsonFieldsAt = strpos($content, 'const JSON_FIELDS');
+        $dialogCallAt = strpos($content, 'useFormDialog<');
+        $this->assertNotFalse($jsonFieldsAt);
+        $this->assertNotFalse($dialogCallAt);
+        $this->assertLessThan($dialogCallAt, $jsonFieldsAt, 'JSON_FIELDS 必须声明在 useFormDialog() 调用之前，否则 immediate watch 触发 TDZ 错误');
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
 

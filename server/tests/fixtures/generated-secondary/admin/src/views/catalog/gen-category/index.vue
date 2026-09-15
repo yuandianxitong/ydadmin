@@ -57,7 +57,11 @@
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="扩展配置" prop="settings" />
+                <el-table-column label="扩展配置" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        {{ row.settings == null ? '' : JSON.stringify(row.settings) }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="联系邮箱" prop="contact_email" show-overflow-tooltip />
                 <el-table-column label="排序" prop="sort" />
                 <el-table-column label="created_at" prop="created_at" />

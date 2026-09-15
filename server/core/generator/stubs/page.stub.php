@@ -121,6 +121,13 @@ foreach ($listColumns as $column) {
             . "                        <span v-else>-</span>\n"
             . "                    </template>\n"
             . "                </el-table-column>";
+    } elseif ($column->type === 'json') {
+        // json 列在行数据里是对象，裸 prop 会渲染成 [object Object]；序列化后显示，超长截断悬停看全文
+        $columnItems[] = "                <el-table-column label=\"{$colLabel}\" show-overflow-tooltip>\n"
+            . "                    <template #default=\"{ row }\">\n"
+            . "                        {{ row.{$column->name} == null ? '' : JSON.stringify(row.{$column->name}) }}\n"
+            . "                    </template>\n"
+            . "                </el-table-column>";
     } else {
         $attrs = ["label=\"{$colLabel}\"", "prop=\"{$column->name}\""];
         if ($column->name === $primaryKey) {

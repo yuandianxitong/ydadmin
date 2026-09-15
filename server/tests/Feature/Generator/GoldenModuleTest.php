@@ -152,6 +152,10 @@ final class GoldenModuleTest extends TestCase
         [$path, $content] = $this->renderGolden('form');
 
         $this->assertSame('admin/src/views/demo/gen-article/components/GenArticleForm.vue', $path);
+        // gen_articles 没有 json 列：JSON 编解码辅助代码只在有 json 列时才生成，这里必须一行都不出现
+        $this->assertStringNotContainsString('JSON_FIELDS', $content, '无 json 列的表不得生成 JSON 编解码辅助代码');
+        $this->assertStringNotContainsString('encodeJsonFields', $content);
+        $this->assertStringContainsString('sourceData: () => props.formData as Partial<GenArticleFormData>', $content);
         $this->assertGoldenFile($path, $content);
     }
 }

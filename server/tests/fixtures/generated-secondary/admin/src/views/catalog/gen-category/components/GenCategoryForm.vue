@@ -17,7 +17,7 @@
             </el-form-item>
 
             <el-form-item label="扩展配置" prop="settings">
-                <el-input v-model="form.settings" placeholder="请输入扩展配置" clearable />
+                <el-input v-model="form.settings" type="textarea" :rows="6" placeholder="请输入扩展配置（JSON 格式）" />
             </el-form-item>
 
             <el-form-item label="联系邮箱" prop="contact_email">
@@ -56,7 +56,7 @@ interface GenCategoryFormData {
     id?: number
     name: string
     is_featured?: boolean
-    settings?: Record<string, any>
+    settings?: string
     contact_email?: string
     sort?: number
 }
@@ -74,6 +74,45 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+/** 表中的 json 列：表单里以 JSON 文本编辑，打开编辑时解码、提交前编码回对象 */
+const JSON_FIELDS = ['settings'] as const
+
+function decodeJsonFields(row: Record<string, any>): Record<string, any> {
+    const data: Record<string, any> = { ...row }
+    for (const field of JSON_FIELDS) {
+        const value = data[field]
+        if (value === null || value === undefined) {
+            data[field] = ''
+        } else if (typeof value !== 'string') {
+            data[field] = JSON.stringify(value, null, 2)
+        }
+    }
+    return data
+}
+
+function encodeJsonFields<T extends Record<string, any>>(data: T): T {
+    const payload: Record<string, any> = { ...data }
+    for (const field of JSON_FIELDS) {
+        const text = typeof payload[field] === 'string' ? payload[field].trim() : ''
+        payload[field] = text === '' ? null : JSON.parse(text)
+    }
+    return payload as T
+}
+
+function validateJsonField(_rule: unknown, value: unknown, callback: (error?: Error) => void) {
+    const text = typeof value === 'string' ? value.trim() : ''
+    if (text === '') {
+        callback()
+        return
+    }
+    try {
+        const parsed = JSON.parse(text)
+        callback(parsed !== null && typeof parsed === 'object' ? undefined : new Error('请输入 JSON 对象或数组'))
+    } catch {
+        callback(new Error('JSON 格式不正确'))
+    }
+}
+
 const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
     useFormDialog<GenCategoryFormData>({
         defaultForm: {
@@ -87,12 +126,13 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
         modelValue: () => props.modelValue,
         onUpdate: (v) => emit('update:modelValue', v),
         onSuccess: () => emit('success'),
-        createFn: (data) => genCategoryApi.create(data),
-        updateFn: (id, data) => genCategoryApi.update(id, data),
-        sourceData: () => props.formData as Partial<GenCategoryFormData>
+        createFn: (data) => genCategoryApi.create(encodeJsonFields(data)),
+        updateFn: (id, data) => genCategoryApi.update(id, encodeJsonFields(data)),
+        sourceData: () => decodeJsonFields(props.formData) as Partial<GenCategoryFormData>
     })
 
 const rules = computed<FormRules>(() => ({
-    name: [{ required: true, message: t('message.required'), trigger: 'blur' }]
+    name: [{ required: true, message: t('message.required'), trigger: 'blur' }],
+    settings: [{ validator: validateJsonField, trigger: 'blur' }]
 }))
 </script>

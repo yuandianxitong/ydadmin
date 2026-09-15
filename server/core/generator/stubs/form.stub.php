@@ -34,7 +34,8 @@ $tsType = static function (\core\generator\ColumnDescriptor $column, bool $forFo
         'boolean' => 'boolean',
         'date', 'datetime' => 'string',
         'enum' => $tsEnumType($column->enumValues),
-        'json' => 'Record<string, any>',
+        // json 列在表单状态里是 JSON 文本（打开时解码、提交前编码，见下方 JSON 辅助代码）；行数据里才是对象
+        'json' => $forForm ? 'string' : 'Record<string, any>',
         default => 'string',
     };
 };
@@ -84,11 +85,22 @@ foreach ($formColumns as $c) {
     }
 }
 
-// ---- 每个字段一个 el-form-item，控件按 formType 七选一 ----
+// json 列：后端规则是 nullable|array（PHP 数组），表单里用 textarea 编辑 JSON 文本，
+// 打开编辑时把对象解码成文本、提交前再编码回对象（与 admin/src/views/system/config 页的约定一致）。
+$jsonColumns = array_values(array_filter($formColumns, static fn ($c): bool => $c->type === 'json'));
+$hasJson = $jsonColumns !== [];
+
+// ---- 每个字段一个 el-form-item，控件按 formType 七选一（json 列单独一支）----
 $itemBlocks = [];
 foreach ($formColumns as $column) {
     $colLabel = $label($column);
     $name = $column->name;
+    if ($column->type === 'json') {
+        $itemBlocks[] = "            <el-form-item label=\"{$colLabel}\" prop=\"{$name}\">\n"
+            . "                <el-input v-model=\"form.{$name}\" type=\"textarea\" :rows=\"6\" placeholder=\"请输入{$colLabel}（JSON 格式）\" />\n"
+            . "            </el-form-item>";
+        continue;
+    }
 
     $itemBlocks[] = match ($column->formType) {
         'textarea' => "            <el-form-item label=\"{$colLabel}\" prop=\"{$name}\">\n"
@@ -170,9 +182,17 @@ foreach ($formColumns as $column) {
     $fieldLines[] = "    {$column->name}{$optional}: " . $tsType($column, true);
     $defaultLines[] = "            {$column->name}: " . $defaultLiteral($column);
 
+    $ruleItems = [];
     if ($isRequiredInForm($column) && $column->formType !== 'switch') {
-        $requiredRules[] = "    {$column->name}: [{ required: true, message: t('message.required'), trigger: '"
-            . $triggerFor($column->formType) . "' }]";
+        $ruleItems[] = "{ required: true, message: t('message.required'), trigger: '"
+            . $triggerFor($column->formType) . "' }";
+    }
+    if ($column->type === 'json') {
+        // 前端先校验 JSON 合法且是对象/数组，避免提交后才撞后端 array 规则的 422
+        $ruleItems[] = "{ validator: validateJsonField, trigger: 'blur' }";
+    }
+    if ($ruleItems !== []) {
+        $requiredRules[] = "    {$column->name}: [" . implode(', ', $ruleItems) . ']';
     }
 }
 $fieldsBlock = implode("\n", $fieldLines);
@@ -211,6 +231,50 @@ $imageHelpers = $hasImage
         . "    return true\n"
         . "}"
     : '';
+
+$jsonFieldList = implode(', ', array_map(static fn ($c): string => "'{$c->name}'", $jsonColumns));
+$jsonHelpers = $hasJson
+    ? "\n\n/** 表中的 json 列：表单里以 JSON 文本编辑，打开编辑时解码、提交前编码回对象 */\n"
+        . "const JSON_FIELDS = [{$jsonFieldList}] as const\n\n"
+        . "function decodeJsonFields(row: Record<string, any>): Record<string, any> {\n"
+        . "    const data: Record<string, any> = { ...row }\n"
+        . "    for (const field of JSON_FIELDS) {\n"
+        . "        const value = data[field]\n"
+        . "        if (value === null || value === undefined) {\n"
+        . "            data[field] = ''\n"
+        . "        } else if (typeof value !== 'string') {\n"
+        . "            data[field] = JSON.stringify(value, null, 2)\n"
+        . "        }\n"
+        . "    }\n"
+        . "    return data\n"
+        . "}\n\n"
+        . "function encodeJsonFields<T extends Record<string, any>>(data: T): T {\n"
+        . "    const payload: Record<string, any> = { ...data }\n"
+        . "    for (const field of JSON_FIELDS) {\n"
+        . "        const text = typeof payload[field] === 'string' ? payload[field].trim() : ''\n"
+        . "        payload[field] = text === '' ? null : JSON.parse(text)\n"
+        . "    }\n"
+        . "    return payload as T\n"
+        . "}\n\n"
+        . "function validateJsonField(_rule: unknown, value: unknown, callback: (error?: Error) => void) {\n"
+        . "    const text = typeof value === 'string' ? value.trim() : ''\n"
+        . "    if (text === '') {\n"
+        . "        callback()\n"
+        . "        return\n"
+        . "    }\n"
+        . "    try {\n"
+        . "        const parsed = JSON.parse(text)\n"
+        . "        callback(parsed !== null && typeof parsed === 'object' ? undefined : new Error('请输入 JSON 对象或数组'))\n"
+        . "    } catch {\n"
+        . "        callback(new Error('JSON 格式不正确'))\n"
+        . "    }\n"
+        . "}"
+    : '';
+
+$sourceData = $hasJson
+    ? "decodeJsonFields(props.formData) as Partial<{$model}FormData>"
+    : "props.formData as Partial<{$model}FormData>";
+$createData = $hasJson ? 'encodeJsonFields(data)' : 'data';
 
 $imageStyle = $hasImage
     ? "\n\n<style lang=\"scss\" scoped>\n"
@@ -291,7 +355,7 @@ interface Emits {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>()__JSON_HELPERS__
 
 const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm } =
     useFormDialog<__MODEL__FormData>({
@@ -301,9 +365,9 @@ __DEFAULT_FORM_BLOCK__
         modelValue: () => props.modelValue,
         onUpdate: (v) => emit('update:modelValue', v),
         onSuccess: () => emit('success'),
-        createFn: (data) => __MODEL_CAMEL__Api.create(data),
-        updateFn: (id, data) => __MODEL_CAMEL__Api.update(id, data),
-        sourceData: () => props.formData as Partial<__MODEL__FormData>
+        createFn: (data) => __MODEL_CAMEL__Api.create(__SUBMIT_DATA__),
+        updateFn: (id, data) => __MODEL_CAMEL__Api.update(id, __SUBMIT_DATA__),
+        sourceData: () => __SOURCE_DATA__
     })
 
 const rules = computed<FormRules>(() => ({
@@ -327,6 +391,9 @@ $replacements = [
     '__DEFAULT_FORM_BLOCK__' => $defaultFormBlock,
     '__RULES_BLOCK__' => $rulesBlock,
     '__IMAGE_HELPERS__' => $imageHelpers,
+    '__JSON_HELPERS__' => $jsonHelpers,
+    '__SUBMIT_DATA__' => $createData,
+    '__SOURCE_DATA__' => $sourceData,
     '__IMAGE_STYLE__' => $imageStyle,
 ];
 
