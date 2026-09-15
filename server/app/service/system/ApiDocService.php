@@ -54,8 +54,12 @@ class ApiDocService extends Service
 
         $warnings = [...$harvester->skipped(), ...$reflector->warnings()];
 
+        // serverUrl 必须是 '/'，不能是 $prefix：paths 的 key 已经带着完整前缀
+        // （如 '/adminapi/system/dictionary/{id}'，Task 13 的路由表↔文档双射靠这一点），
+        // OpenAPI 客户端按 server.url + path 拼请求 URL——传 $prefix 会把前缀拼两遍
+        // （'/adminapi' + '/adminapi/...'），Swagger UI 的 Try it out 全部打到不存在的路径上。
         $title = $type === 'admin' ? lang('apidoc.admin_title') : lang('apidoc.api_title');
-        $document = new OpenApiDocument(new RuleTranslator(), $title, (string) config('version.version'), $prefix);
+        $document = new OpenApiDocument(new RuleTranslator(), $title, (string) config('version.version'), '/');
 
         return self::$documentCache[$type] = $document->build($endpoints, $rulesByOperationId, $warnings);
     }

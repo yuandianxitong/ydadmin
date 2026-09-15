@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\adminapi\controller\system;
 
 use app\service\system\ApiDocService;
+use core\apidoc\OpenApiDocument;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
@@ -26,14 +27,15 @@ class ApiDocController extends Controller
     #[PermissionSkip]
     public function openapi(Request $request): Response
     {
-        $type = (string) $request->get('type', 'admin');
+        // $request->get('type') 在 ?type[]=x 这种写法下会是数组：这是公开、免鉴权端点，
+        // 不能因为一个不合法的查询参数就抛未捕获异常变成 500（debug 下错误页可能带文件路径）。
+        // 非字符串一律落到 'admin'，交给 ApiDocService::document() 再按已知 type 表归一化。
+        $type = $request->get('type');
+        $type = is_string($type) ? $type : 'admin';
         $document = $this->apiDocService->document($type);
-        // OpenAPI 3.0 的 paths 必须是对象；本仓库当前没有 /api 路由时 OpenApiDocument::build()
-        // 会把 paths 算成一个空 PHP 数组，json_encode 会把它编成 [] 而不是 {}，不是合法文档。
-        if ($document['paths'] === []) {
-            $document['paths'] = new \stdClass();
-        }
-        $body = (string) json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        // 空 paths / 空 properties 编成合法 OpenAPI 对象（{} 而不是 []）——唯一实现在
+        // OpenApiDocument::toJson()，这里不再自己写一遍 stdClass 特判。
+        $body = OpenApiDocument::toJson($document);
 
         return new Response(200, ['Content-Type' => 'application/json; charset=utf-8'], $body);
     }
@@ -41,7 +43,8 @@ class ApiDocController extends Controller
     #[PermissionSkip]
     public function index(Request $request): Response
     {
-        $type = (string) $request->get('type', 'admin');
+        $type = $request->get('type');
+        $type = is_string($type) ? $type : 'admin';
         $type = in_array($type, ['admin', 'api'], true) ? $type : 'admin';
 
         return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], $this->page($type));
