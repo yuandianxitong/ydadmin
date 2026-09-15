@@ -1,1 +1,0 @@
-import{a1 as a}from"./index.BuFPgsPn.js";const t={getList:t=>a.get("/adminapi/article/list",{params:t}),getDetail:t=>a.get(`/adminapi/article/detail/${t}`),create:t=>a.post("/adminapi/article",t),update:(t,e)=>a.put(`/adminapi/article/${t}`,e),delete:t=>a.delete(`/adminapi/article/${t}`),updateStatus:(t,e)=>a.put(`/adminapi/article/${t}/status`,{status:e})};export{t as a};

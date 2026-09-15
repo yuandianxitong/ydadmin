@@ -1,1 +1,0 @@
-import{a1 as i}from"./index.BuFPgsPn.js";const e={get:()=>i.get("/adminapi/mobile/config"),update:e=>i.put("/adminapi/mobile/config",e),eligible:()=>i.get("/adminapi/mobile/config/eligible")};export{e as m};
