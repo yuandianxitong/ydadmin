@@ -814,10 +814,14 @@ export default {
             all: '全部用户',
             specified: '指定用户'
         },
+        specifiedCount: '指定 {count} 人',
+        recipients: '接收管理员',
+        recipientsPlaceholder: '输入用户名或昵称搜索',
         validate: {
             titleRequired: '请输入通知标题',
             typeRequired: '请选择通知类型',
-            contentRequired: '请输入通知内容'
+            contentRequired: '请输入通知内容',
+            recipientsRequired: '请选择接收的管理员'
         }
     },
     // 在线管理员

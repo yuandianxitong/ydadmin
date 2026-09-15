@@ -366,6 +366,14 @@ export interface NotificationInfo {
     read_count?: number
     created_at?: string
     updated_at?: string
+    /** 1 全部 2 指定管理员（M4） */
+    target_type?: number
+    /** 管理端列表已读人数 */
+    reads_count?: number
+    /** 指定管理员的收件人数；广播为 null（M4） */
+    target_count?: number | null
+    /** 指定管理员的收件人 id，仅详情返回（M4） */
+    admin_ids?: number[]
 }
 
 export interface NotificationReq {
@@ -373,6 +381,17 @@ export interface NotificationReq {
     content: string
     type: number
     send_to?: string | number[]
+    target_type?: number
+    status?: number
+    /** target_type=2 时必填，1–500 个管理员 id（M4） */
+    admin_ids?: number[]
+}
+
+/** 通知「指定管理员」选人接口的选项（M4） */
+export interface NotificationAdminOption {
+    id: number
+    username: string
+    nickname: string
 }
 
 export interface NotificationQuery extends PageQuery {

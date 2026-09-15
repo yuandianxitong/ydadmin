@@ -1,5 +1,10 @@
 import type { PageResult } from '@/types/common'
-import type { NotificationInfo, NotificationQuery, NotificationReq } from '@/types/system'
+import type {
+    NotificationAdminOption,
+    NotificationInfo,
+    NotificationQuery,
+    NotificationReq
+} from '@/types/system'
 import { myRequest } from '@/utils/request'
 
 /**
@@ -31,6 +36,14 @@ export const notificationApi = {
     /** 删除通知 */
     delete(id: number) {
         return myRequest.delete<void>(`/adminapi/system/notification/${id}`)
+    },
+
+    /** 指定管理员的候选人：数据范围内、启用的管理员，按关键字匹配用户名或昵称，最多 50 条 */
+    adminOptions(keyword?: string) {
+        return myRequest.get<NotificationAdminOption[]>(
+            '/adminapi/system/notification/admin-options',
+            { params: keyword ? { keyword } : undefined }
+        )
     },
 
     /** 获取我的通知 */

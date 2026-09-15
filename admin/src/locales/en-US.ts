@@ -823,10 +823,14 @@ export default {
             all: 'All Users',
             specified: 'Specified Users'
         },
+        specifiedCount: '{count} specified',
+        recipients: 'Recipients',
+        recipientsPlaceholder: 'Search by username or nickname',
         validate: {
             titleRequired: 'Please enter notification title',
             typeRequired: 'Please select notification type',
-            contentRequired: 'Please enter notification content'
+            contentRequired: 'Please enter notification content',
+            recipientsRequired: 'Please select at least one admin'
         }
     },
     // Online admins
