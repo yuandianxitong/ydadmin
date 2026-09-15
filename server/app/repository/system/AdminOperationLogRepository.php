@@ -71,7 +71,9 @@ class AdminOperationLogRepository extends Repository
     }
 
     /**
-     * 写入一条操作日志（AdminLogMiddleware 调用）。字符串按列宽截断，避免超长路径或文案让写库失败。
+     * 写入一条操作日志（OperationLogConsumer 消费队列时调用；投递失败时 AdminLogMiddleware 同步回退调用）。
+     * 字符串按列宽截断，避免超长路径或文案让写库失败。operation_time 取载荷里的请求时刻（队列落库有延迟），
+     * 缺省才取当前时间。
      *
      * @param array<string, mixed> $data
      */
@@ -88,7 +90,7 @@ class AdminOperationLogRepository extends Repository
             'description'    => mb_substr((string) ($data['description'] ?? ''), 0, 255),
             'params'         => (array) ($data['params'] ?? []),
             'result'         => (array) ($data['result'] ?? []),
-            'operation_time' => date('Y-m-d H:i:s'),
+            'operation_time' => (string) ($data['operation_time'] ?? date('Y-m-d H:i:s')),
             'execution_time' => (float) ($data['execution_time'] ?? 0),
         ]);
     }

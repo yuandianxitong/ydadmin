@@ -169,6 +169,8 @@ $contractAdminId = (int) $created['id'];
 /** @var array{admin_ids: list<int>, role_ids: list<int>, menu_ids: list<int>, dept_ids: list<int>, dict_ids: list<int>, notification_ids: list<int>, file_ids: list<int>, disk_paths: list<string>, temp_files: list<string>, configs: array<string, string>} $cleanup */
 $cleanup = ['admin_ids' => [$contractAdminId], 'role_ids' => [], 'menu_ids' => [], 'dept_ids' => [], 'dict_ids' => [], 'notification_ids' => [], 'file_ids' => [], 'disk_paths' => [], 'temp_files' => [], 'configs' => []];
 register_shutdown_function(static function () use (&$cleanup): void {
+    // 迟到的操作日志会在删完之后才落库，留下孤儿行：先等队列排空
+    waitForOperationLogQueue();
     // 先删关联表（外键依赖方向），再删主表
     foreach ($cleanup['admin_ids'] as $id) {
         support\Db::table('admin_roles')->where('admin_id', $id)->delete();
@@ -228,6 +230,26 @@ register_shutdown_function(static function () use (&$cleanup): void {
         (new app\repository\system\SystemConfigRepository())->forgetCache();
     }
 });
+
+/**
+ * M3 起操作日志经 operation-log 队列由 queue 进程异步落库：读操作日志或清理之前，先等队列排空（最多 10 秒）。
+ * 队列出队后到写库之间还有一小段，所以排空后再多等 300 毫秒。10 秒仍未排空多半是 queue 进程没起来，打一行警告，
+ * 后续断言会如实失败。键名是 webman/redis-queue 的约定：{redis-queue}-waiting{队列名}，延迟重试在 {redis-queue}-delayed。
+ */
+function waitForOperationLogQueue(): void
+{
+    $deadline = microtime(true) + 10;
+    do {
+        $pending = (int) support\Redis::lLen('{redis-queue}-waitingoperation-log') + (int) support\Redis::zCard('{redis-queue}-delayed');
+        if ($pending === 0) {
+            usleep(300_000);
+
+            return;
+        }
+        usleep(100_000);
+    } while (microtime(true) < $deadline);
+    echo "  （警告：operation-log 队列 10 秒内未排空，queue 进程是否在运行？）\n";
+}
 
 /** @param array{json: mixed} $r */
 function respData(array $r): mixed
@@ -827,6 +849,7 @@ check(
     $r['body']
 );
 
+waitForOperationLogQueue();
 $r = http('GET', "{$base}/adminapi/system/log/operation?page=1&limit=100", $logAuth);
 $scopedOps = (array) (respData($r)['list'] ?? []);
 check(
@@ -858,7 +881,11 @@ $ownOpId = (int) ($scopedOps[0]['id'] ?? 0);
 $r = http('DELETE', "{$base}/adminapi/system/log/operation/{$ownOpId}", $auth);
 check('log/operation 删除：记录被删除', respCode($r) === 200 && $ownOpId > 0 && !support\Db::table('admin_operation_logs')->where('id', $ownOpId)->exists(), $r['body']);
 
+// 两次 DELETE 自己也会产生日志：先等它们落库再清空，否则迟到的日志会出现在「清空之后」
+waitForOperationLogQueue();
 $r = http('POST', "{$base}/adminapi/system/log/operation/clear", $logAuth);
+// 清空请求自己的那条日志同样异步落库
+waitForOperationLogQueue();
 $left = (array) (respData(http('GET', "{$base}/adminapi/system/log/operation?page=1&limit=100", $logAuth))['list'] ?? []);
 check(
     'log/operation/clear：范围内清空（之后只剩这次清空请求自己的日志），范围外不动',

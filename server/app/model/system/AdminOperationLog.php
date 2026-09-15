@@ -7,11 +7,12 @@ namespace app\model\system;
 use core\base\Model;
 
 /**
- * 管理员操作日志（admin_operation_logs 表），由 AdminLogMiddleware 同步写入（Task 9）。
+ * 管理员操作日志（admin_operation_logs 表）。AdminLogMiddleware 在请求内算好载荷投递到 operation-log 队列，
+ * 由 OperationLogConsumer 落库；投递失败时中间件同步回退写库（M3，spec §8.4）。
  *
  * 无 updated_at、无 deleted_at（日志表不软删）：显式关闭 UPDATED_AT，禁止引入 SoftDeletes。
- * params/result 是 JSON 列，cast 为 array；operation_time 由 Repository::record() 显式赋值，
- * created_at 由 Eloquent 时间戳机制写入。
+ * params/result 是 JSON 列，cast 为 array；operation_time 是请求时刻，由 Repository::record() 从载荷取值
+ * （与队列落库时刻不同），created_at 由 Eloquent 时间戳机制写入。
  */
 class AdminOperationLog extends Model
 {

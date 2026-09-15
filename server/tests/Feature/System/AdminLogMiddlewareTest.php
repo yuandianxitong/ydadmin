@@ -63,6 +63,16 @@ final class AdminLogMiddlewareTest extends ApiTestCase
         $this->assertStringNotContainsString($admin->password, (string) $log->params);
     }
 
+    public function test_operation_time_is_recorded_no_later_than_the_row_creation(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $this->put('/adminapi/system/admin/change-password', ['old_password' => $admin->password, 'new_password' => 'N3wPassw0rd!'], $admin->token)->assertOk();
+
+        $log = $this->logsOf($admin->id)[0];
+        $this->assertNotNull($log->operation_time);
+        $this->assertLessThanOrEqual((string) $log->created_at, (string) $log->operation_time, 'operation_time 取请求时刻，不可能晚于落库时刻');
+    }
+
     public function test_reads_are_not_logged(): void
     {
         $super = $this->actingAsAdmin('super');

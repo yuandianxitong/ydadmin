@@ -11,5 +11,7 @@ return [
     // redis：经 webman/redis-queue 投递到 Redis，由 queue 进程消费；sync：投递即在当前进程调用消费者的 handle()（测试专用）
     'driver' => env('QUEUE_DRIVER', 'redis'),
 
-    'queues' => [],
+    'queues' => [
+        'operation-log' => ['consumer' => app\queue\redis\OperationLogConsumer::class, 'max_attempts' => 3],
+    ],
 ];
