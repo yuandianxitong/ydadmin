@@ -174,6 +174,52 @@ if [ -n "$core_hits" ]; then
 fi
 [ "$core_fail" = 0 ] && echo "✅ 规则六通过：core/ 未依赖 app/"
 
-if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ] || [ "$scope_fail" != 0 ] || [ "$core_fail" != 0 ]; then
+# ---------------------------------------------------------------------------
+# 规则七（M2b spec §6/§14）：$this->validate( 的第二个参数必须是 $this->{当前动作名}Rules()。
+# core/apidoc/RuleReflector 按动作名反射调用 "{action}Rules"；校验规则一旦写成内联数组，
+# 文档就会静默漏掉那个端点的参数——什么都不会报错，这正是本条门禁要堵的洞。
+#
+# 用 awk 而不是纯 grep：判定需要知道 $this->validate( 所在的是哪个动作，得先记住「最近一次
+# function 声明的方法名」，纯正则单行扫描做不到「跨行记状态」。用两次 sub() 而不是 gawk 的
+# 三参数 match(s, r, arr)：本仓库跑在 macOS 自带的 one true awk（20200816）上，三参数 match()
+# 会直接 "syntax error ... bailing out"，实测过。
+#
+# 只有「function 后面紧跟标识符」才更新当前动作名：匿名函数（->where(function ($q) {、
+# static function () { 这类）不满足 function[ \t]+[A-Za-z0-9_]+\( ——function 与 ( 之间没有
+# 标识符——不会被这条正则命中，因此不会把「当前动作名」重置成空字符串，同一个动作后面真正
+# 合规的 $this->validate(..., $this->xxxRules(), ...) 不会被误判。
+rules_fail=0
+rules_dirs=""
+for d in app/controller app/adminapi/controller app/api/controller; do
+  [ -d "$d" ] && rules_dirs="$rules_dirs $d"
+done
+if [ -n "$rules_dirs" ]; then
+  rules_hits=""
+  # shellcheck disable=SC2086
+  for f in $(find $rules_dirs -name '*.php'); do
+    hit=$(awk '
+      /^[ \t]*(public|private|protected)?[ \t]*(static[ \t]+)?function[ \t]+[A-Za-z0-9_]+\(/ {
+        line = $0
+        sub(/^.*function[ \t]+/, "", line)
+        sub(/\(.*/, "", line)
+        action = line
+      }
+      /\$this->validate\(/ {
+        expected = "$this->" action "Rules()"
+        if (index($0, expected) == 0) print FILENAME ":" FNR ": " $0
+      }
+    ' "$f")
+    [ -n "$hit" ] && rules_hits="$rules_hits
+$hit"
+  done
+  if [ -n "$rules_hits" ]; then
+    echo "❌ \$this->validate( 的第二个参数必须是 \$this->{动作名}Rules()（发现不匹配的调用，文档会静默漏掉该端点的参数）："
+    echo "$rules_hits"
+    rules_fail=1
+  fi
+fi
+[ "$rules_fail" = 0 ] && echo "✅ 规则七通过：\$this->validate( 的规则参数均为 \$this->{动作名}Rules()"
+
+if [ "$fail" != 0 ] || [ "$db_fail" != 0 ] || [ "$model_fail" != 0 ] || [ "$repo_fail" != 0 ] || [ "$scope_fail" != 0 ] || [ "$core_fail" != 0 ] || [ "$rules_fail" != 0 ]; then
   exit 1
 fi

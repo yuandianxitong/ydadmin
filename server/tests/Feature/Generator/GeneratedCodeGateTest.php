@@ -398,6 +398,95 @@ final class GeneratedCodeGateTest extends TestCase
         }
     }
 
+    /**
+     * check:context 规则七（本任务新增）：往生成的 Controller 的 store() 里把 $this->storeRules()
+     * 换成一段内联规则数组，断言 check-context-discipline.sh 必须变红，且报错文本点名了被注入的
+     * 那个文件——不是随便什么原因导致的非零退出码。
+     */
+    public function test_check_context_discipline_catches_an_inline_rule_array_injected_into_a_controller(): void
+    {
+        $controllerFile = $this->findGeneratedFile('/app/adminapi/controller/demo/GenArticleController.php');
+        $original = (string) file_get_contents($controllerFile);
+        $this->assertStringContainsString(
+            '$this->storeRules()',
+            $original,
+            'Task 10 应该已经把生成的 store() 收敛成 $this->storeRules()，这条用例才有意义'
+        );
+        $mutated = str_replace(
+            '$this->storeRules()',
+            "[\n            'title' => 'required|string|max:200',\n        ]",
+            $original
+        );
+        $this->assertNotSame($original, $mutated, '替换没有命中任何内容，注入点选取失败');
+        file_put_contents($controllerFile, $mutated);
+
+        try {
+            exec(sprintf(
+                'bash %s %s 2>&1',
+                escapeshellarg(base_path() . '/scripts/check-context-discipline.sh'),
+                escapeshellarg(self::$tmpRoot . '/server')
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertNotSame(0, $exitCode, "注入内联规则数组之后 check:context 必须变红。实际输出：\n{$text}");
+            $this->assertStringContainsString(
+                '$this->validate( 的第二个参数必须是 $this->{动作名}Rules()',
+                $text,
+                "退出码非零，但报错文本里没有规则七的文案，可能是别的原因导致的失败：\n{$text}"
+            );
+            $this->assertStringContainsString(
+                'app/adminapi/controller/demo/GenArticleController.php',
+                $text,
+                "报错文本没有点名被注入违规的那个文件：\n{$text}"
+            );
+        } finally {
+            file_put_contents($controllerFile, $original);
+            $this->assertSame($original, (string) file_get_contents($controllerFile), '注入的违规必须清理干净，不能残留污染后续用例');
+        }
+    }
+
+    /**
+     * check:context 规则七的反向假阳性用例：闭包（如 ->where(function ($q) { ... }) 或
+     * static function () { ... }）不是「当前动作」的边界。规则七靠 awk 顺序扫描、遇到
+     * function 声明就更新「当前动作名」变量——如果实现天真地把任何包含 "function (" 的行
+     * 都当成新动作，闭包会把当前动作名重置成空字符串，导致同一个动作后面真正合规的
+     * $this->validate(..., $this->storeRules(), ...) 被误判成「不匹配 $this->Rules()」而报红。
+     * 这里往 store() 里、真正的 $this->validate(...) 调用之前插入一个匿名函数，断言 check:context
+     * 必须保持绿色（退出码 0）——只有正确实现（只在 "function 标识符(" 时才更新当前动作名）能过。
+     */
+    public function test_check_context_discipline_tolerates_a_closure_before_validate_call_in_same_action(): void
+    {
+        $controllerFile = $this->findGeneratedFile('/app/adminapi/controller/demo/GenArticleController.php');
+        $original = (string) file_get_contents($controllerFile);
+        $needle = '$data = $this->validate($this->body($request), $this->storeRules(), $this->messages());';
+        $this->assertStringContainsString($needle, $original, '生成的 store() 形状变了，注入点选取失败');
+        $mutated = str_replace(
+            $needle,
+            "\$callback = function (\$q) {\n            return \$q;\n        };\n        {$needle}",
+            $original
+        );
+        $this->assertNotSame($original, $mutated, '替换没有命中任何内容，注入点选取失败');
+        file_put_contents($controllerFile, $mutated);
+
+        try {
+            exec(sprintf(
+                'bash %s %s 2>&1',
+                escapeshellarg(base_path() . '/scripts/check-context-discipline.sh'),
+                escapeshellarg(self::$tmpRoot . '/server')
+            ), $output, $exitCode);
+            $text = implode("\n", $output);
+
+            $this->assertSame(
+                0,
+                $exitCode,
+                "store() 里的闭包不该被当成新动作，把 store() 的 \$this->validate() 误判成不合规。实际输出：\n{$text}"
+            );
+        } finally {
+            file_put_contents($controllerFile, $original);
+            $this->assertSame($original, (string) file_get_contents($controllerFile), '注入的闭包必须清理干净，不能残留污染后续用例');
+        }
+    }
+
     /** 在 self::$phpFiles（已落盘的绝对路径）里找一个按后缀匹配的文件，找不到就让用例直接失败。 */
     private function findGeneratedFile(string $suffix): string
     {
