@@ -1,5 +1,11 @@
 <template>
-    <el-popover placement="bottom" :width="360" trigger="click" @show="loadNotifications">
+    <el-popover
+        placement="bottom"
+        :width="360"
+        trigger="click"
+        @show="handleShow"
+        @hide="handleHide"
+    >
         <template #reference>
             <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="mr-4">
                 <div
@@ -59,14 +65,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { notificationApi } from '@/api/notification'
+import { useRealtimeFallbackPolling } from '@/hooks/useRealtimeFallbackPolling'
+import { realtimeClient } from '@/utils/realtime'
 
 const { t } = useI18n()
 const unreadCount = ref(0)
 const notifications = ref<any[]>([])
+const popoverVisible = ref(false)
 
 const formatTime = (time: string) => {
     if (!time) return ''
@@ -97,6 +106,15 @@ const loadNotifications = async () => {
     }
 }
 
+const handleShow = () => {
+    popoverVisible.value = true
+    loadNotifications()
+}
+
+const handleHide = () => {
+    popoverVisible.value = false
+}
+
 const handleRead = async (item: any) => {
     if (!item.is_read) {
         try {
@@ -119,18 +137,18 @@ const handleReadAll = async () => {
     }
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
+// M4：实时通道在线时靠推送，断开时回退 60 秒轮询；每次重新连上先补拉一次未读数
+useRealtimeFallbackPolling(fetchUnreadCount)
 
-onMounted(() => {
-    fetchUnreadCount()
-    pollTimer = setInterval(fetchUnreadCount, 60000)
+const offNotificationCreated = realtimeClient.on('notification.created', () => {
+    unreadCount.value += 1
+    if (popoverVisible.value) {
+        loadNotifications()
+    }
 })
 
 onUnmounted(() => {
-    if (pollTimer) {
-        clearInterval(pollTimer)
-        pollTimer = null
-    }
+    offNotificationCreated()
 })
 </script>
 

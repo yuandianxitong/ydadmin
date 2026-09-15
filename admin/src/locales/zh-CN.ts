@@ -180,6 +180,12 @@ export default {
         minutesAgo: '分钟前',
         hoursAgo: '小时前'
     },
+    // 实时通道（M4）
+    realtime: {
+        forceLogoutTitle: '下线通知',
+        kicked: '您已被管理员强制下线，请重新登录',
+        revoked: '登录状态已失效，请重新登录'
+    },
     // HTTP 错误消息
     http: {
         loginExpired: '登录已过期，请重新登录',

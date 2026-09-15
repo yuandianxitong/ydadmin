@@ -187,6 +187,12 @@ export default {
         minutesAgo: 'minutes ago',
         hoursAgo: 'hours ago'
     },
+    // Realtime channel (M4)
+    realtime: {
+        forceLogoutTitle: 'Signed Out',
+        kicked: 'You have been signed out by an administrator. Please log in again.',
+        revoked: 'Your session is no longer valid. Please log in again.'
+    },
     // HTTP error messages
     http: {
         loginExpired: 'Session expired, please login again',

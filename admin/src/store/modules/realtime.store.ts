@@ -1,7 +1,36 @@
+// src/store/modules/realtime.store.ts
+import { ElMessageBox } from 'element-plus'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+import { PageEnum } from '@/constants/page'
+import { createForceLogoutHandler, type ForceLogoutPayload } from '@/utils/forceLogout'
+import { t } from '@/utils/i18n'
 import { realtimeClient, type RealtimeStatus } from '@/utils/realtime'
+
+/**
+ * 全局唯一的强制下线处理。auth.ts 静态 import 本 store、router 的守卫也静态 import 本 store，
+ * 所以 clearAuthInfo 与 router 只能动态 import，否则形成静态环。
+ */
+const handleForceLogout = createForceLogoutHandler({
+    alert: (message, title) =>
+        ElMessageBox.alert(message, title, {
+            type: 'warning',
+            showClose: false,
+            closeOnPressEscape: false
+        }),
+    clearAuth: async () => {
+        const { clearAuthInfo } = await import('@/utils/auth')
+        clearAuthInfo()
+    },
+    goLogin: async () => {
+        const { default: router } = await import('@/router')
+        if (router.currentRoute.value.path !== PageEnum.LOGIN) {
+            await router.push(PageEnum.LOGIN)
+        }
+    },
+    t
+})
 
 /**
  * 实时连接状态（M4 spec §5「前端」）。
@@ -19,6 +48,9 @@ export const useRealtimeStore = defineStore('realtime', () => {
         bound = true
         realtimeClient.on('status', (next: RealtimeStatus) => {
             status.value = next
+        })
+        realtimeClient.on('force_logout', (payload: ForceLogoutPayload) => {
+            void handleForceLogout(payload)
         })
     }
 
