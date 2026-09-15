@@ -90,6 +90,7 @@ class AuthController extends Controller
         $token = $mgr->getTokenFromHeader($request);
         if ($token !== null) {
             $mgr->blacklist($token);
+            $mgr->revokeSession($token);
         }
 
         return $this->success([], lang('messages.logout_success'));

@@ -36,7 +36,7 @@ final class Test19_RealtimeTargetIsolationTest extends ApiTestCase
     {
         $this->touchedAdmins[] = $adminId;
         $ticket = Container::get(WsTicketService::class)
-            ->issue($adminId, TokenVersion::current($adminId), bin2hex(random_bytes(16)), '10.0.0.9', 'phpunit-redline');
+            ->issue($adminId, TokenVersion::current($adminId), bin2hex(random_bytes(16)), '', time() + 3600, '10.0.0.9', 'phpunit-redline');
         $request = new class ($ticket) {
             public function __construct(private readonly string $ticket)
             {

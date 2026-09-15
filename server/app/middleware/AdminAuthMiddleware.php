@@ -46,9 +46,12 @@ class AdminAuthMiddleware implements MiddlewareInterface
 
         $request->userId = $adminId;
         $request->username = (string) ($data['username'] ?? '');
-        // M4：WS 票据要记下本次 token 的版本号与 jti，WS 进程据此判断会话是否已被吊销 / 登出
+        // M4：WS 票据要记下本次 token 的版本号、jti、会话 id 与会话绝对到期时间，
+        // WS 进程据此判断连接是否已被吊销 / 登出 / 超过登录时长上限（旧 token 没有 sid 时为空串）
         $request->tokenVer = (int) ($data['ver'] ?? 0);
         $request->tokenJti = $claims['jti'];
+        $request->tokenSid = is_string($data['sid'] ?? null) ? $data['sid'] : '';
+        $request->tokenSessionExpiresAt = $claims['session_expires_at'];
         RequestContext::setActingUser($adminId);
 
         return $handler($request);

@@ -24,7 +24,7 @@ final class WsTicketServiceTest extends TestCase
 
     private function issue(WsTicketService $service): string
     {
-        $ticket = $service->issue(11, 1000001, str_repeat('a', 32), '10.0.0.8', 'Mozilla/5.0');
+        $ticket = $service->issue(11, 1000001, str_repeat('a', 32), str_repeat('f', 32), 1900000000, '10.0.0.8', 'Mozilla/5.0');
         $this->tickets[] = $ticket;
 
         return $ticket;
@@ -50,10 +50,31 @@ final class WsTicketServiceTest extends TestCase
         $ticket = $this->issue($service);
 
         $this->assertSame(
-            ['admin_id' => 11, 'ver' => 1000001, 'jti' => str_repeat('a', 32), 'ip' => '10.0.0.8', 'ua' => 'Mozilla/5.0'],
+            [
+                'admin_id'           => 11,
+                'ver'                => 1000001,
+                'jti'                => str_repeat('a', 32),
+                'sid'                => str_repeat('f', 32),
+                'session_expires_at' => 1900000000,
+                'ip'                 => '10.0.0.8',
+                'ua'                 => 'Mozilla/5.0',
+            ],
             $service->consume($ticket)
         );
         $this->assertNull($service->consume($ticket), '票据只能用一次');
+    }
+
+    public function test_consume_accepts_an_empty_sid_but_rejects_a_ticket_without_session_fields(): void
+    {
+        $service = new WsTicketService();
+        $legacy = $service->issue(11, 1, str_repeat('a', 32), '', 1900000000, '10.0.0.8', 'ua');
+        $this->tickets[] = $legacy;
+        $this->assertSame('', $service->consume($legacy)['sid'] ?? null, '不带 sid 的旧 token 签出的票据 sid 为空串');
+
+        $old = str_repeat('e', 48);
+        $this->tickets[] = $old;
+        Redis::set("ws:ticket:{$old}", '{"admin_id":11,"ver":1,"jti":"' . str_repeat('a', 32) . '","ip":"x","ua":"y"}', 'EX', 30);
+        $this->assertNull($service->consume($old), '缺 sid / session_expires_at 的旧格式票据按无效处理（前端 4001 后重新取票据）');
     }
 
     public function test_consume_rejects_malformed_unknown_and_corrupt_tickets(): void
@@ -73,7 +94,7 @@ final class WsTicketServiceTest extends TestCase
     public function test_user_agent_is_truncated_to_255_characters(): void
     {
         $service = new WsTicketService();
-        $ticket = $service->issue(11, 1, str_repeat('d', 32), '10.0.0.8', str_repeat('浏', 300));
+        $ticket = $service->issue(11, 1, str_repeat('d', 32), '', 1900000000, '10.0.0.8', str_repeat('浏', 300));
         $this->tickets[] = $ticket;
 
         $this->assertSame(255, mb_strlen((string) ($service->consume($ticket)['ua'] ?? '')));

@@ -639,10 +639,12 @@ class AdminService extends Service
 
     protected function issueToken(int $adminId, string $username): string
     {
+        // sid：本次登录的会话 id，刷新原样沿用，登出时整体吊销（M4：WS 连接按它区分「刷新」与「登出」）
         return TokenManager::scope('admin')->generate([
             'admin_id' => $adminId,
             'username' => $username,
             'ver'      => TokenVersion::current($adminId),
+            'sid'      => bin2hex(random_bytes(16)),
         ]);
     }
 

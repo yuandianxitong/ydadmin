@@ -31,6 +31,12 @@ final class WebSocketServerTest extends TestCase
     /** @var list<string> 已拉黑的 jti */
     private array $revoked = [];
 
+    /** @var list<string> 已吊销（登出）的会话 id */
+    private array $revokedSessions = [];
+
+    /** 查这个管理员的版本号时抛异常（模拟单次查询失败） */
+    private ?int $failVersionFor = null;
+
     private WsTicketService $tickets;
 
     private PresenceService $presence;
@@ -42,6 +48,8 @@ final class WebSocketServerTest extends TestCase
         $this->presence = Container::get(PresenceService::class);
         $this->versions = [self::ADMIN_A => 7, self::ADMIN_B => 3];
         $this->revoked = [];
+        $this->revokedSessions = [];
+        $this->failVersionFor = null;
         $this->cleanRedis();
     }
 
@@ -65,8 +73,15 @@ final class WebSocketServerTest extends TestCase
             $this->tickets,
             $this->presence,
             new ConnectionRegistry(),
-            $versionOf ?? fn (int $adminId): int => $this->versions[$adminId] ?? 0,
+            $versionOf ?? function (int $adminId): int {
+                if ($adminId === $this->failVersionFor) {
+                    throw new \RuntimeException('模拟版本号查询失败');
+                }
+
+                return $this->versions[$adminId] ?? 0;
+            },
             fn (string $jti): bool => in_array($jti, $this->revoked, true),
+            fn (string $sid): bool => in_array($sid, $this->revokedSessions, true),
         );
     }
 
@@ -82,9 +97,9 @@ final class WebSocketServerTest extends TestCase
         return $connection;
     }
 
-    private function ticketFor(int $adminId, ?int $ver = null, string $jti = 'jti-default'): string
+    private function ticketFor(int $adminId, ?int $ver = null, string $jti = 'jti-default', string $sid = '', ?int $sessionExpiresAt = null): string
     {
-        return $this->tickets->issue($adminId, $ver ?? $this->versions[$adminId], $jti, '10.0.0.8', 'phpunit-ua');
+        return $this->tickets->issue($adminId, $ver ?? $this->versions[$adminId], $jti, $sid, $sessionExpiresAt ?? time() + 3600, '10.0.0.8', 'phpunit-ua');
     }
 
     public function test_invalid_ticket_is_closed_with_4001_after_the_handshake_completes(): void
@@ -239,18 +254,87 @@ final class WebSocketServerTest extends TestCase
         $a = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-a'));
         $b = $this->connect($server, $this->ticketFor(self::ADMIN_B, null, 'jti-b'));
 
-        $server->recheckRevocation();
+        $server->recheckRevocation(time());
         $this->assertFalse($a->closed);
         $this->assertFalse($b->closed);
 
         $this->versions[self::ADMIN_A] = 8;
         $this->revoked = ['jti-b'];
-        $server->recheckRevocation();
+        $server->recheckRevocation(time());
 
         $this->assertSame(['connected', 'force_logout'], $a->events());
         $this->assertSame('revoked', $a->frames()[1]['payload']['reason']);
         $this->assertSame(WebSocketServer::CLOSE_REVOKED, $a->closeCode);
-        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $b->closeCode);
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $b->closeCode, '不带 sid 的旧 token：按 jti 黑名单判定');
+    }
+
+    public function test_connection_with_a_session_id_ignores_the_jti_blacklisted_by_refresh(): void
+    {
+        $server = $this->server();
+        $connection = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-before-refresh', 'sid-a'));
+        $this->revoked = ['jti-before-refresh']; // 静默刷新会拉黑旧 jti
+
+        $server->recheckRevocation(time());
+        $this->assertFalse($connection->closed, '刷新不断开同一会话的连接');
+
+        $this->revokedSessions = ['sid-a']; // 登出
+        $server->recheckRevocation(time());
+
+        $this->assertSame(['connected', 'force_logout'], $connection->events());
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $connection->closeCode);
+    }
+
+    public function test_handshake_decides_by_session_id_when_the_ticket_carries_one(): void
+    {
+        $this->revoked = ['jti-refreshed'];
+        $this->revokedSessions = ['sid-logged-out'];
+        $server = $this->server();
+
+        $refreshed = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-refreshed', 'sid-alive'));
+        $loggedOut = $this->connect($server, $this->ticketFor(self::ADMIN_B, null, 'jti-fine', 'sid-logged-out'));
+
+        $this->assertFalse($refreshed->closed, '会话未吊销：旧 jti 已拉黑也允许握手');
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $loggedOut->closeCode);
+    }
+
+    public function test_recheck_closes_connections_past_the_absolute_session_expiry(): void
+    {
+        $server = $this->server();
+        $expiresAt = time() + 100;
+        $connection = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-a', 'sid-a', $expiresAt));
+
+        $server->recheckRevocation($expiresAt);
+        $this->assertFalse($connection->closed, '恰好到期那一秒还不关闭');
+
+        $server->recheckRevocation($expiresAt + 1);
+
+        $this->assertSame(['connected', 'force_logout'], $connection->events());
+        $this->assertSame('revoked', $connection->frames()[1]['payload']['reason']);
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $connection->closeCode);
+    }
+
+    public function test_handshake_rejects_a_ticket_whose_session_already_expired(): void
+    {
+        $server = $this->server();
+
+        $connection = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-a', 'sid-a', time() - 1));
+
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $connection->closeCode);
+        $this->assertNull($this->presence->describe(self::ADMIN_A));
+    }
+
+    public function test_recheck_keeps_checking_other_connections_when_one_lookup_throws(): void
+    {
+        $server = $this->server();
+        $failing = $this->connect($server, $this->ticketFor(self::ADMIN_A, null, 'jti-a'));
+        $revoked = $this->connect($server, $this->ticketFor(self::ADMIN_B, null, 'jti-b'));
+        $this->failVersionFor = self::ADMIN_A;
+        $this->versions[self::ADMIN_B] = 4;
+
+        $server->recheckRevocation(time());
+
+        $this->assertFalse($failing->closed, '查询失败的连接本轮跳过');
+        $this->assertSame(WebSocketServer::CLOSE_REVOKED, $revoked->closeCode, '排在后面的已吊销连接仍须关闭');
     }
 
     public function test_close_removes_presence_and_registry_entry(): void

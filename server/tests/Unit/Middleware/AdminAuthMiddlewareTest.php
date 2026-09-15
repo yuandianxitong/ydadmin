@@ -71,6 +71,31 @@ final class AdminAuthMiddlewareTest extends TestCase
         $this->assertSame($manager->verifyClaims($token)['jti'], $request->tokenJti);
     }
 
+    public function test_valid_token_exposes_its_session_id_and_absolute_session_expiry(): void
+    {
+        $loginAt = time() - 100;
+        $token = TokenManager::scope('admin')->generate(
+            ['admin_id' => 5, 'username' => 'alice', 'ver' => TokenVersion::current(5), 'sid' => 'sess-1'],
+            $loginAt,
+        );
+        $request = $this->request($token);
+
+        (new AdminAuthMiddleware())->process($request, fn () => Api::success());
+
+        $this->assertSame('sess-1', $request->tokenSid);
+        $this->assertSame($loginAt + 604800, $request->tokenSessionExpiresAt);
+    }
+
+    public function test_token_without_a_session_id_exposes_an_empty_sid(): void
+    {
+        $token = TokenManager::scope('admin')->generate(['admin_id' => 5, 'username' => 'alice', 'ver' => TokenVersion::current(5)]);
+        $request = $this->request($token);
+
+        (new AdminAuthMiddleware())->process($request, fn () => Api::success());
+
+        $this->assertSame('', $request->tokenSid);
+    }
+
     public function test_user_scope_token_is_401(): void
     {
         $token = TokenManager::scope('user')->generate(['user_id' => 5]);

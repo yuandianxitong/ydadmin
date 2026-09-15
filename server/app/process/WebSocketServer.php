@@ -56,8 +56,11 @@ class WebSocketServer
 
     private readonly \Closure $isRevoked;
 
+    private readonly \Closure $isSessionRevoked;
+
     /**
-     * 连接 id → 元数据。握手通过：{admin_id, ver, jti, field, last_ping}；握手被拒：{reject_code, reject_reason}。
+     * 连接 id → 元数据。握手通过：{admin_id, ver, jti, sid, session_expires_at, field, last_ping}；
+     * 握手被拒：{reject_code, reject_reason}。
      *
      * @var array<int, array<string, int|string>>
      */
@@ -71,6 +74,7 @@ class WebSocketServer
      *
      * @param (\Closure(int): int)|null     $versionOf 管理员 → 当前 token 版本号
      * @param (\Closure(string): bool)|null $isRevoked jti 是否已拉黑
+     * @param (\Closure(string): bool)|null $isSessionRevoked 会话 id 是否已被登出吊销
      */
     public function __construct(
         private readonly ?WsTicketService $tickets = null,
@@ -78,10 +82,12 @@ class WebSocketServer
         ?ConnectionRegistry $registry = null,
         ?\Closure $versionOf = null,
         ?\Closure $isRevoked = null,
+        ?\Closure $isSessionRevoked = null,
     ) {
         $this->registry = $registry ?? new ConnectionRegistry();
         $this->versionOf = $versionOf ?? static fn (int $adminId): int => TokenVersion::current($adminId);
         $this->isRevoked = $isRevoked ?? static fn (string $jti): bool => TokenManager::scope('admin')->isJtiRevoked($jti);
+        $this->isSessionRevoked = $isSessionRevoked ?? static fn (string $sid): bool => TokenManager::scope('admin')->isSessionRevoked($sid);
     }
 
     // ------------------------------------------------------------------ Workerman 入口
@@ -95,7 +101,7 @@ class WebSocketServer
             $this->guard('ws.sweep', fn () => $this->sweep(time()));
         });
         Timer::add(self::RECHECK_INTERVAL, function (): void {
-            $this->guard('ws.recheck', fn () => $this->recheckRevocation());
+            $this->guard('ws.recheck', fn () => $this->recheckRevocation(time()));
         });
     }
 
@@ -128,7 +134,7 @@ class WebSocketServer
 
     // ------------------------------------------------------------------ 可测的公开方法
 
-    /** 握手响应发出之前：一次性票据 → 版本号 → jti 黑名单；通过则登记，失败只记下关闭码（此时发不了帧）。 */
+    /** 握手响应发出之前：一次性票据 → 吊销判定（isRevokedSession）；通过则登记，失败只记下关闭码（此时发不了帧）。 */
     public function handleHandshake(object $connection, object $request): void
     {
         $id = (int) $connection->id;
@@ -141,7 +147,7 @@ class WebSocketServer
         }
 
         $adminId = $claims['admin_id'];
-        if ($claims['ver'] !== ($this->versionOf)($adminId) || ($this->isRevoked)($claims['jti'])) {
+        if ($this->isRevokedSession(($this->versionOf)($adminId), $claims['ver'], $claims['jti'], $claims['sid'], $claims['session_expires_at'], time())) {
             $this->meta[$id] = ['reject_code' => self::CLOSE_REVOKED, 'reject_reason' => 'revoked'];
 
             return;
@@ -152,9 +158,11 @@ class WebSocketServer
         $this->meta[$id] = [
             'admin_id'  => $adminId,
             'ver'       => $claims['ver'],
-            'jti'       => $claims['jti'],
-            'field'     => $field,
-            'last_ping' => time(),
+            'jti'                => $claims['jti'],
+            'sid'                => $claims['sid'],
+            'session_expires_at' => $claims['session_expires_at'],
+            'field'              => $field,
+            'last_ping'          => time(),
         ];
         $this->presence()->join($adminId, $field, [
             'ip'           => $claims['ip'],
@@ -242,24 +250,41 @@ class WebSocketServer
         }
     }
 
-    /** 版本号变化（禁用 / 删除 / 改密码 / 强制下线）或 jti 被拉黑（登出）的连接：下发 force_logout 后 4003 关闭。 */
-    public function recheckRevocation(): void
+    /**
+     * 已被吊销（见 isRevokedSession）的连接：下发 force_logout 后 4003 关闭。
+     * 每个连接单独 try/catch：一次查询失败（Redis 抖动等）只跳过这一个连接，本轮其余连接照常复查。
+     */
+    public function recheckRevocation(int $now): void
     {
         $versions = [];
         foreach ($this->registry->all() as $connection) {
-            $meta = $this->meta[(int) $connection->id] ?? null;
-            if ($meta === null) {
-                continue;
-            }
-            $adminId = (int) $meta['admin_id'];
-            $versions[$adminId] ??= ($this->versionOf)($adminId);
-            if ($versions[$adminId] === (int) $meta['ver'] && !($this->isRevoked)((string) $meta['jti'])) {
-                continue;
-            }
+            try {
+                $meta = $this->meta[(int) $connection->id] ?? null;
+                if ($meta === null) {
+                    continue;
+                }
+                $adminId = (int) $meta['admin_id'];
+                $versions[$adminId] ??= ($this->versionOf)($adminId);
+                if (!$this->isRevokedSession(
+                    $versions[$adminId],
+                    (int) $meta['ver'],
+                    (string) $meta['jti'],
+                    (string) $meta['sid'],
+                    (int) $meta['session_expires_at'],
+                    $now,
+                )) {
+                    continue;
+                }
 
-            $connection->send($this->frame('force_logout', ['reason' => 'revoked', 'message' => lang('auth.token_expired')]));
-            $this->closeWith($connection, self::CLOSE_REVOKED, 'revoked');
-            $this->handleClose($connection);
+                $connection->send($this->frame('force_logout', ['reason' => 'revoked', 'message' => lang('auth.token_expired')]));
+                $this->closeWith($connection, self::CLOSE_REVOKED, 'revoked');
+                $this->handleClose($connection);
+            } catch (\Throwable $e) {
+                Log::error('ws.recheck_connection_failed', [
+                    'connection' => (int) $connection->id,
+                    'error'      => mb_substr($e->getMessage(), 0, 500),
+                ]);
+            }
         }
     }
 
@@ -274,6 +299,22 @@ class WebSocketServer
     }
 
     // ------------------------------------------------------------------ 内部
+
+    /**
+     * 握手与复查共用的吊销判定：
+     * 1. 版本号变化（禁用 / 删除 / 改密码 / 强制下线）→ 已吊销；
+     * 2. 超过会话绝对到期时间（login_at + refresh_expire）→ 已吊销：连接不能比 7 天登录上限活得更久；
+     * 3. 带会话 id → 仅当会话被登出吊销。静默刷新会拉黑旧 jti，但会话 id 不变，连接保持；
+     * 4. 不带会话 id 的旧 token → 退回按 jti 黑名单判定。
+     */
+    private function isRevokedSession(int $currentVer, int $ver, string $jti, string $sid, int $sessionExpiresAt, int $now): bool
+    {
+        if ($currentVer !== $ver || $now > $sessionExpiresAt) {
+            return true;
+        }
+
+        return $sid !== '' ? ($this->isSessionRevoked)($sid) : ($this->isRevoked)($jti);
+    }
 
     private function subscribe(): void
     {

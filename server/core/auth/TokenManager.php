@@ -111,10 +111,12 @@ final class TokenManager
     }
 
     /**
-     * 与 verify() 同样的校验，另外带出 jti 与 exp（M4：WS 票据要记下签发它的 token 的 jti，
-     * 复查时据此判断该 token 是否已被登出拉黑）。
+     * 与 verify() 同样的校验，另外带出 jti、exp 与会话的绝对到期时间（M4：WS 票据要记下签发它的 token 的
+     * jti 与会话到期时间，复查时据此判断连接是否已被登出 / 已超过 7 天登录上限）。
      *
-     * @return array{payload: array<string, mixed>, jti: string, exp: int}
+     * session_expires_at = login_at + refresh_expire（刷新也越不过的绝对上限）；没有 login_at 时退回 exp。
+     *
+     * @return array{payload: array<string, mixed>, jti: string, exp: int, session_expires_at: int}
      * @throws AuthException 签名错误、已过期、scope/issuer 不符、已拉黑
      */
     public function verifyClaims(string $token): array
@@ -124,13 +126,42 @@ final class TokenManager
             throw new AuthException(lang('auth.token_expired'));
         }
 
-        return ['payload' => $this->payloadOf($claims), 'jti' => (string) $claims['jti'], 'exp' => (int) $claims['exp']];
+        return [
+            'payload'            => $this->payloadOf($claims),
+            'jti'                => (string) $claims['jti'],
+            'exp'                => (int) $claims['exp'],
+            'session_expires_at' => isset($claims['login_at']) ? (int) $claims['login_at'] + $this->refreshExpire : (int) $claims['exp'],
+        ];
     }
 
     /** jti 是否已被拉黑（M4：WS 进程定期复查已建立的连接用，连接本身不再持有 token）。 */
     public function isJtiRevoked(string $jti): bool
     {
         return Cache::has($this->blacklistKey($jti));
+    }
+
+    /**
+     * 吊销 token 所属的整个登录会话（登出用）。会话 id 是登录时写进 payload 的 sid，刷新原样沿用，
+     * 所以「刷新」只拉黑旧 jti、不影响会话，「登出」才让同一会话的 WS 连接断开。
+     * TTL = refresh_expire：会话自 login_at 起最长就这么久，之后 WS 连接也会按绝对到期时间关闭。
+     * 不带 sid 的 token 与无效 token 静默忽略。
+     */
+    public function revokeSession(string $token): void
+    {
+        try {
+            $sid = $this->payloadOf($this->decode($token))['sid'] ?? null;
+        } catch (AuthException) {
+            return;
+        }
+        if (is_string($sid) && $sid !== '') {
+            Cache::set($this->sessionRevokedKey($sid), 1, max(1, $this->refreshExpire));
+        }
+    }
+
+    /** 会话是否已被登出吊销（M4：WS 进程判定用）。空 sid 永远返回 false。 */
+    public function isSessionRevoked(string $sid): bool
+    {
+        return $sid !== '' && Cache::has($this->sessionRevokedKey($sid));
     }
 
     /**
@@ -226,5 +257,10 @@ final class TokenManager
     private function blacklistKey(string $jti): string
     {
         return "jwt_blacklist_{$this->scope}_{$jti}";
+    }
+
+    private function sessionRevokedKey(string $sid): string
+    {
+        return "jwt_session_revoked_{$this->scope}_{$sid}";
     }
 }

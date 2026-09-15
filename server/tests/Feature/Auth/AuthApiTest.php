@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\Auth;
 
+use core\auth\TokenManager;
 use support\Db;
 use support\Redis;
 use tests\Support\ApiTestCase;
@@ -35,6 +36,26 @@ final class AuthApiTest extends ApiTestCase
         $this->assertSame('127.0.0.1', $row->last_login_ip);
         $this->assertSame(1, Db::table('admin_login_logs')->where('admin_id', $admin->id)->where('login_result', 1)->count());
         $this->get('/adminapi/auth/info', [], $data['token'])->assertOk();
+    }
+
+    public function test_login_token_carries_a_session_id_kept_by_refresh_and_revoked_by_logout(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $manager = TokenManager::scope('admin');
+        $token = (string) $this->login($admin->username, $admin->password)->assertOk()->data()['token'];
+        $sid = (string) ($manager->verify($token)['sid'] ?? '');
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $sid, '登录签发随机会话 id');
+
+        $refreshed = (string) $this->post('/adminapi/auth/refresh', [], $token)->assertOk()->data()['token'];
+        $this->assertSame($sid, $manager->verify($refreshed)['sid'] ?? null, '静默刷新沿用同一个会话 id');
+        $this->assertFalse($manager->isSessionRevoked($sid));
+
+        $again = (string) $this->login($admin->username, $admin->password)->assertOk()->data()['token'];
+        $this->assertNotSame($sid, $manager->verify($again)['sid'] ?? null, '每次登录是一个新会话');
+
+        $this->post('/adminapi/auth/logout', [], $refreshed)->assertOk();
+        $this->assertTrue($manager->isSessionRevoked($sid), '登出吊销整个会话');
+        $this->assertFalse($manager->isSessionRevoked((string) ($manager->verify($again)['sid'] ?? '')), '只吊销登出的那个会话');
     }
 
     public function test_login_ip_ignores_x_forwarded_for_from_an_untrusted_peer(): void

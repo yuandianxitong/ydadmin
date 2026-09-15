@@ -31,6 +31,8 @@ class WsTicketController extends Controller
             (int) $request->userId,
             (int) ($request->tokenVer ?? 0),
             (string) ($request->tokenJti ?? ''),
+            (string) ($request->tokenSid ?? ''),
+            (int) ($request->tokenSessionExpiresAt ?? 0),
             ClientIp::resolve($request),
             (string) $request->header('user-agent', ''),
         ), lang('messages.get_success'));

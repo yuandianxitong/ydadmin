@@ -31,11 +31,15 @@ final class WsTicketApiTest extends ApiTestCase
         parent::tearDown();
     }
 
+    /** @return array<string, mixed> */
+    private static function claimsOf(string $token): array
+    {
+        return (array) json_decode((string) base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
+    }
+
     private static function jtiOf(string $token): string
     {
-        $claims = json_decode((string) base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
-
-        return (string) ($claims['jti'] ?? '');
+        return (string) (self::claimsOf($token)['jti'] ?? '');
     }
 
     public function test_requires_login(): void
@@ -58,6 +62,8 @@ final class WsTicketApiTest extends ApiTestCase
         $this->assertSame($admin->id, $payload['admin_id']);
         $this->assertSame(TokenVersion::current($admin->id), $payload['ver']);
         $this->assertSame(self::jtiOf($admin->token), $payload['jti']);
+        $this->assertSame('', $payload['sid'], 'actingAsAdmin 直接签发的 token 不带 sid');
+        $this->assertSame((int) self::claimsOf($admin->token)['login_at'] + 604800, $payload['session_expires_at']);
         $this->assertSame('phpunit-ws', $payload['ua']);
         $this->assertNotSame('', $payload['ip']);
         $this->assertNull($service->consume((string) $data['ticket']), '票据只能用一次');
