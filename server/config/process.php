@@ -50,4 +50,11 @@ return [
         'handler' => app\process\Scheduler::class,
         'count'   => 1,
     ],
+    // 管理员 WebSocket 实时通道（M4）：一次性票据握手，订阅 Redis 频道 realtime:admin 并只投递本进程内的连接。
+    // 可开多个进程、多台部署：每个进程都订阅同一频道、各自过滤，不需要中心进程。nginx 把 /ws 反向代理到这里。
+    'websocket' => [
+        'handler' => app\process\WebSocketServer::class,
+        'listen'  => env('WS_LISTEN', 'websocket://0.0.0.0:8001'),
+        'count'   => max(1, (int) env('WS_PROCESS_COUNT', 1)),
+    ],
 ];
