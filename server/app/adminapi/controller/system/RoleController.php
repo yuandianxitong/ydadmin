@@ -60,7 +60,7 @@ class RoleController extends Controller
     #[Permission('system.role.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         $result = $this->roleService->createRole($data);
 
@@ -70,7 +70,7 @@ class RoleController extends Controller
     #[Permission('system.role.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
 
         $this->roleService->updateRole((int) $id, $data);
 
@@ -102,10 +102,7 @@ class RoleController extends Controller
     #[Permission('system.role.permission')]
     public function assignPermissions(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), [
-            'menu_ids'   => 'present|array',
-            'menu_ids.*' => 'integer|min:1',
-        ], [
+        $data = $this->validate($this->body($request), $this->assignPermissionsRules(), [
             'menu_ids.present'     => 'validation.menu_ids_array',
             'menu_ids.array'       => 'validation.menu_ids_array',
             'menu_ids.*.integer'   => 'validation.menu_ids_integer',
@@ -128,7 +125,7 @@ class RoleController extends Controller
     #[Permission('system.role.status')]
     public function status(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['status' => 'required|integer|in:0,1'], [
+        $data = $this->validate($this->body($request), $this->statusRules(), [
             'status.required' => 'validation.status_invalid',
             'status.integer'  => 'validation.status_invalid',
             'status.in'       => 'validation.status_invalid',
@@ -200,6 +197,41 @@ class RoleController extends Controller
             'status'      => 'sometimes|required|integer|in:0,1',
             'sort'        => 'sometimes|required|integer|min:0',
         ];
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->rules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->rules('update');
+    }
+
+    /** @return array<string, string> */
+    private function assignPermissionsRules(): array
+    {
+        return [
+            'menu_ids'   => 'present|array',
+            'menu_ids.*' => 'integer|min:1',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function statusRules(): array
+    {
+        return ['status' => 'required|integer|in:0,1'];
     }
 
     /** message 值即 lang key（与 ValidatorFactory::resolveMessage 的约定一致）。

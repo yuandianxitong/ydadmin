@@ -35,7 +35,7 @@ class SystemConfigController extends Controller
     #[Permission('system.config.list')]
     public function index(Request $request): Response
     {
-        $data = $this->validate((array) $request->get(), ['group' => 'nullable|string|max:50'], [
+        $data = $this->validate((array) $request->get(), $this->indexRules(), [
             'group.string' => 'validation.config_group_invalid',
             'group.max'    => 'validation.config_group_invalid',
         ]);
@@ -65,7 +65,7 @@ class SystemConfigController extends Controller
     #[Permission('system.config.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), ['config_value' => 'present'], [
+        $data = $this->validate($this->body($request), $this->updateRules(), [
             'config_value.present' => 'validation.config_value_present',
         ]);
 
@@ -75,11 +75,7 @@ class SystemConfigController extends Controller
     #[Permission('system.config.update')]
     public function batchUpdate(Request $request): Response
     {
-        $data = $this->validate($this->body($request), [
-            'configs'                => 'required|array|min:1',
-            'configs.*.config_key'   => 'required|string|max:100',
-            'configs.*.config_value' => 'present',
-        ], [
+        $data = $this->validate($this->body($request), $this->batchUpdateRules(), [
             'configs.required'               => 'validation.configs_require',
             'configs.array'                  => 'validation.configs_array',
             'configs.min'                    => 'validation.configs_require',
@@ -96,6 +92,28 @@ class SystemConfigController extends Controller
         }
 
         return $this->success($this->systemConfigService->batchUpdateConfigs($configs), lang('messages.config_update_success'));
+    }
+
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return ['group' => 'nullable|string|max:50'];
+    }
+
+    /** @return array<string, string> */
+    private function updateRules(): array
+    {
+        return ['config_value' => 'present'];
+    }
+
+    /** @return array<string, string> */
+    private function batchUpdateRules(): array
+    {
+        return [
+            'configs'                => 'required|array|min:1',
+            'configs.*.config_key'   => 'required|string|max:100',
+            'configs.*.config_value' => 'present',
+        ];
     }
 
     #[PermissionSkip]

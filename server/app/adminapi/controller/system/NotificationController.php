@@ -51,7 +51,7 @@ class NotificationController extends Controller
     #[Permission('system.notification.create')]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('create'), $this->messages());
+        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
         return $this->success($this->notificationService->createNotification($data), lang('messages.publish_success'));
     }
@@ -59,7 +59,7 @@ class NotificationController extends Controller
     #[Permission('system.notification.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->rules('update'), $this->messages());
+        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
         $this->notificationService->updateNotification((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -76,7 +76,7 @@ class NotificationController extends Controller
     #[PermissionSkip]
     public function mine(Request $request): Response
     {
-        $params = $this->validate((array) $request->get(), ['is_read' => 'nullable|in:0,1'], [
+        $params = $this->validate((array) $request->get(), $this->mineRules(), [
             'is_read.in' => 'validation.notification_is_read_invalid',
         ]);
         [$page, $limit] = $this->pageParams($request, 20);
@@ -124,6 +124,32 @@ class NotificationController extends Controller
             'target_type' => 'sometimes|required|integer|in:1,2|not_in:2',
             'status'      => 'sometimes|required|integer|in:0,1',
         ];
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('create')。
+     *
+     * @return array<string, string>
+     */
+    private function storeRules(): array
+    {
+        return $this->rules('create');
+    }
+
+    /**
+     * 薄包装，委派给既有的 rules('update')。
+     *
+     * @return array<string, string>
+     */
+    private function updateRules(): array
+    {
+        return $this->rules('update');
+    }
+
+    /** @return array<string, string> */
+    private function mineRules(): array
+    {
+        return ['is_read' => 'nullable|in:0,1'];
     }
 
     /**
