@@ -343,6 +343,218 @@ final class CheckValidateRulesScriptTest extends TestCase
         );
     }
 
+    /**
+     * F6(a)：validate 藏在非动作的私有辅助方法里、配同名 {helper}Rules()——旧版放行，但文档按
+     * 「动作名 + Rules」反射永远找不到（GeneratorController 在 M2b 之前正是这个形态）。
+     */
+    public function test_case9_validate_inside_a_private_helper_is_caught(): void
+    {
+        $this->assertJudgedAsViolation(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use support\Response;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function store(Request $request): Response
+                    {
+                        return $this->success($this->payload($request));
+                    }
+
+                    private function payload(Request $request): array
+                    {
+                        return $this->validate($this->body($request), $this->payloadRules());
+                    }
+
+                    private function payloadRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+                }
+                PHP,
+            'validate 只能出现在控制器动作（public 方法）中'
+        );
+    }
+
+    /** F6(a) 的正确写法：validate 直接写在 public 动作里（未写可见性修饰符的方法按 PHP 语义也是 public）。 */
+    public function test_case10_validate_inside_public_actions_is_allowed(): void
+    {
+        $this->assertJudgedAsClean(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use support\Response;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function store(Request $request): Response
+                    {
+                        return $this->success($this->validate($this->body($request), $this->storeRules()));
+                    }
+
+                    function update(Request $request): Response
+                    {
+                        return $this->success($this->validate($this->body($request), $this->updateRules()));
+                    }
+
+                    private function storeRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+
+                    private function updateRules(): array
+                    {
+                        return ['title' => 'sometimes'];
+                    }
+                }
+                PHP
+        );
+    }
+
+    /** F6(b)：`function &update(` 引用返回——旧版识别不出方法名，当前动作仍停在 store，于是放行 storeRules()。 */
+    public function test_case11_reference_returning_method_is_tracked_and_mismatch_caught(): void
+    {
+        $this->assertJudgedAsViolation(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function store(Request $request): array
+                    {
+                        return $this->validate($this->body($request), $this->storeRules());
+                    }
+
+                    public function &update(Request $request): array
+                    {
+                        $data = $this->validate($this->body($request), $this->storeRules());
+
+                        return $data;
+                    }
+
+                    private function storeRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+                }
+                PHP,
+            '期望 $this->updateRules()'
+        );
+    }
+
+    /** F6(b) 的正确写法：引用返回的动作用自己的 Rules()，必须放行。 */
+    public function test_case12_reference_returning_method_with_its_own_rules_is_allowed(): void
+    {
+        $this->assertJudgedAsClean(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function &update(Request $request): array
+                    {
+                        $data = $this->validate($this->body($request), $this->updateRules());
+
+                        return $data;
+                    }
+
+                    private function updateRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+                }
+                PHP
+        );
+    }
+
+    /** F6(c)：展开参数 `$this->validate(...$args)` 无法静态确定第二参数——fail closed。 */
+    public function test_case13_spread_arguments_are_caught(): void
+    {
+        $this->assertJudgedAsViolation(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function store(Request $request): array
+                    {
+                        return $this->validate(...[$this->body($request), $this->storeRules()]);
+                    }
+
+                    private function storeRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+                }
+                PHP,
+            '展开参数'
+        );
+    }
+
+    /** F6(c) 的正确写法：参数逐个写出；参数内部的一等可调用语法 `foo(...)` 不是顶层展开，不得误拦。 */
+    public function test_case14_explicit_arguments_are_allowed(): void
+    {
+        $this->assertJudgedAsClean(
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                namespace app\adminapi\controller\testdemo;
+
+                use core\base\Controller;
+                use Webman\Http\Request;
+
+                class FooController extends Controller
+                {
+                    public function store(Request $request): array
+                    {
+                        return $this->validate(array_map(trim(...), $this->body($request)), $this->storeRules());
+                    }
+
+                    private function storeRules(): array
+                    {
+                        return ['title' => 'required'];
+                    }
+                }
+                PHP
+        );
+    }
+
     private function assertJudgedAsViolation(string $source, string $expectedFragment): void
     {
         [$exitCode, $text] = $this->runScriptAgainst($source);

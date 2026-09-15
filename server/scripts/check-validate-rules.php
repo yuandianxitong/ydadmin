@@ -67,6 +67,29 @@ function renderSegment(array $tokens, ?int $start, ?int $end): string
 }
 
 /**
+ * 从 T_FUNCTION 往前读修饰符，得出方法可见性。未写可见性修饰符的类方法按 PHP 语义是 public。
+ *
+ * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens token_get_all() 的原始返回值
+ */
+function methodVisibility(array $tokens, int $functionIndex): string
+{
+    $visibility = 'public';
+    $modifiers = [T_PUBLIC, T_PROTECTED, T_PRIVATE, T_STATIC, T_ABSTRACT, T_FINAL];
+    for ($k = nextSignificantIndex($tokens, $functionIndex, -1); $k !== null; $k = nextSignificantIndex($tokens, $k, -1)) {
+        $token = $tokens[$k];
+        if (!is_array($token) || !in_array($token[0], $modifiers, true)) {
+            break;
+        }
+        if ($token[0] === T_PROTECTED) {
+            $visibility = 'protected';
+        } elseif ($token[0] === T_PRIVATE) {
+            $visibility = 'private';
+        }
+    }
+    return $visibility;
+}
+
+/**
  * 扫描单个文件，返回违规描述列表（每条已经是"相对路径:行号: 期望.../实际..."的成品文案）。
  *
  * @return list<string>
@@ -77,17 +100,22 @@ function scanValidateCalls(string $source, string $relativePath): array
     $total = count($tokens);
     $violations = [];
     $currentAction = null;
+    $currentVisibility = 'public';
 
     for ($i = 0; $i < $total; $i++) {
         $token = $tokens[$i];
 
-        // --- 追踪「当前动作名」：T_FUNCTION 后紧跟 T_STRING 才是具名方法声明（哪怕方法名跟
-        //     function 关键字不在同一行）；紧跟 "(" 的是闭包（function (...) {...}），不更新；
-        //     T_FN 箭头函数根本不是 T_FUNCTION token，同样不会走到这里，天生不更新。
+        // --- 追踪「当前动作名」与其可见性：T_FUNCTION 后紧跟 T_STRING 才是具名方法声明（哪怕方法名跟
+        //     function 关键字不在同一行；引用返回 `function &name(` 先跳过 &）；紧跟 "(" 的是闭包
+        //     （function (...) {...}），不更新；T_FN 箭头函数不是 T_FUNCTION token，天生不更新。
         if (is_array($token) && $token[0] === T_FUNCTION) {
             $nameIdx = nextSignificantIndex($tokens, $i, 1);
+            if ($nameIdx !== null && (is_array($tokens[$nameIdx]) ? $tokens[$nameIdx][1] : $tokens[$nameIdx]) === '&') {
+                $nameIdx = nextSignificantIndex($tokens, $nameIdx, 1);
+            }
             if ($nameIdx !== null && is_array($tokens[$nameIdx]) && $tokens[$nameIdx][0] === T_STRING) {
                 $currentAction = $tokens[$nameIdx][1];
+                $currentVisibility = methodVisibility($tokens, $i);
             }
             continue;
         }
@@ -116,10 +144,24 @@ function scanValidateCalls(string $source, string $relativePath): array
         }
         $callLine = $token[2];
 
+        // --- validate 只能写在控制器动作（public 方法）里：RuleReflector 按「动作名 + Rules」反射，
+        //     藏在私有辅助方法里的 validate 配 {helper}Rules() 永远不会进文档。
+        if ($currentVisibility !== 'public') {
+            $violations[] = sprintf(
+                '%s:%d: validate 只能出现在控制器动作（public 方法）中，实际位于 %s 方法 %s()',
+                $relativePath,
+                $callLine,
+                $currentVisibility,
+                $currentAction ?? '(未知)'
+            );
+            continue;
+        }
+
         // --- 从 '(' 之后按括号/中括号/花括号深度走，切出深度为 1 的顶层逗号分隔参数区间。
         $depth = 1;
         $segStart = nextSignificantIndex($tokens, $parenIdx, 1);
         $params = [];
+        $hasSpread = false;
         $j = $parenIdx;
         while (true) {
             $j++;
@@ -128,6 +170,9 @@ function scanValidateCalls(string $source, string $relativePath): array
             }
             $current = $tokens[$j];
             $text = is_array($current) ? $current[1] : $current;
+            if ($depth === 1 && is_array($current) && $current[0] === T_ELLIPSIS) {
+                $hasSpread = true; // 顶层展开参数；嵌套里的 trim(...) 一等可调用在更深层，不算
+            }
             if ($text === '(' || $text === '[' || $text === '{') {
                 $depth++;
                 continue;
@@ -144,6 +189,15 @@ function scanValidateCalls(string $source, string $relativePath): array
                 $params[] = [$segStart, $j - 1];
                 $segStart = nextSignificantIndex($tokens, $j, 1);
             }
+        }
+
+        if ($hasSpread) {
+            $violations[] = sprintf(
+                '%s:%d: validate 的参数含展开参数（...），无法静态确定规则参数，必须逐个写出 $this->{当前动作名}Rules()',
+                $relativePath,
+                $callLine
+            );
+            continue;
         }
 
         if (!isset($params[1])) {
