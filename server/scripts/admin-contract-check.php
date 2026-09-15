@@ -752,7 +752,7 @@ check('notification store：返回新建行，sender_id 为当前管理员', res
 $cleanup['notification_ids'][] = $noticeId;
 
 $r = http('POST', "{$base}/adminapi/system/notification", $auth, ['title' => "{$noticeTitle}定向", 'content' => '正文', 'type' => 1, 'target_type' => 2]);
-check('notification store：target_type=2 → 422（M1 只支持全员广播）', respCode($r) === 422 && isset(respData($r)['errors']['target_type']), $r['body']);
+check('notification store：target_type=2 不带 admin_ids → 422（M4 起 target_type=2 需要 admin_ids）', respCode($r) === 422 && isset(respData($r)['errors']['admin_ids']), $r['body']);
 
 $r = http('GET', "{$base}/adminapi/system/notification?page=1&limit=20&keyword=" . rawurlencode($noticeTitle), $auth);
 $noticeRow = (array) (respData($r)['list'][0] ?? []);
@@ -1390,6 +1390,34 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('cron_jobs')) {
     $r = http('GET', "{$base}/adminapi/system/cron-job/999999999", $auth);
     check('cron-job 详情：不存在的 id → code 404', respCode($r) === 404, $r['body']);
 }
+
+// ---------------------------------------------------------------- M4
+echo "\n=== M4：实时通道（只读） ===\n";
+// 只做 GET：取票据是写接口，由 tests/Feature 与 scripts/ws-smoke.php 覆盖。契约账号挂超管角色（权限点 '*'），
+// 开发库里即使还没有菜单 120/121（M4 开发库补丁 SQL 未执行）也照样有权访问，所以本段不需要跳过分支。
+$onlinePageOk = static fn (mixed $data): bool => is_array($data)
+    && array_keys($data) === ['list', 'pagination']
+    && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys((array) $data['pagination'])) === [];
+$onlineRowKeys = ['admin_id', 'username', 'nickname', 'connections', 'ip', 'ua', 'connected_at', 'last_seen'];
+
+$r = http('GET', "{$base}/adminapi/system/online?page=1&limit=10", $api);
+check('online 列表：未登录 → code 401', respCode($r) === 401, $r['body']);
+
+$r = http('GET', "{$base}/adminapi/system/online?page=1&limit=10", $auth);
+check('online 列表：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $onlinePageOk(respData($r)), $r['body']);
+$onlineRow = (array) (respData($r)['list'][0] ?? []);
+if ($onlineRow === []) {
+    echo "  （当前没有管理员开着后台页面，跳过行级断言）\n";
+} else {
+    check('online 列表行：字段恰为 admin_id/username/nickname/connections/ip/ua/connected_at/last_seen', array_diff($onlineRowKeys, array_keys($onlineRow)) === [] && is_int($onlineRow['connections']), $r['body']);
+}
+
+$r = http('GET', "{$base}/adminapi/system/notification/admin-options?keyword=" . rawurlencode($username), $auth);
+$options = respData($r);
+$optionShapeOk = is_array($options) && array_is_list($options) && count($options) <= 50
+    && array_filter($options, static fn (mixed $row): bool => !is_array($row) || array_keys($row) !== ['id', 'username', 'nickname']) === [];
+check('notification admin-options：code 200，[{id, username, nickname}] 且不超过 50 条', respCode($r) === 200 && $optionShapeOk, $r['body']);
+check('notification admin-options：按关键字能找到契约账号自己', in_array($contractAdminId, array_map(static fn (array $row): int => (int) $row['id'], (array) $options), true), $r['body']);
 
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);

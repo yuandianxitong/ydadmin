@@ -111,6 +111,46 @@ php webman queue:retry all           # 重新投递全部
 php webman queue:flush --days=30     # 删除 30 天前的失败记录（不带 --days 删除全部）
 ```
 
+### WebSocket 实时通道
+
+`php start.php start` 还会拉起 `websocket` 进程，给管理后台推送实时事件：新通知到达（铃铛即时 +1）、被强制下线、会话被吊销。
+
+| 配置 | 默认 | 说明 |
+|---|---|---|
+| `WS_LISTEN`（`server/.env`） | `websocket://0.0.0.0:8001` | WebSocket 进程监听地址 |
+| `WS_PROCESS_COUNT`（`server/.env`） | `1` | WebSocket 进程数；多进程时每个进程只投递自己持有的连接 |
+| `VITE_APP_WS_URL`（`admin/.env.production`） | 空 | 前端连接地址前缀，如 `wss://admin.example.com`；留空时按当前页面地址推导为 `ws(s)://当前域名/ws` |
+
+**nginx**：前端默认连 `ws(s)://当前域名/ws`，在「nginx 反向代理」的配置里再加一段：
+
+```nginx
+location /ws {
+    proxy_pass http://127.0.0.1:8001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_read_timeout 120s;
+}
+```
+
+`proxy_read_timeout` 必须大于前端心跳间隔（25 秒）；不加 `Upgrade` / `Connection` 两个头时握手会失败，前端会一直退回轮询。开发时 `pnpm dev` 已把 `/ws` 代理到 `ws://127.0.0.1:8001`。
+
+**鉴权**：浏览器的 WebSocket 不能带 `Authorization` 头，前端先带登录 token 调 `POST /adminapi/ws/ticket` 换一张票据，再连 `/ws?ticket=…`。票据 30 秒内有效、只能用一次，JWT 不会出现在 URL 与访问日志里。
+
+**投递**：业务进程把事件发到 Redis 频道 `realtime:admin`，每个 WebSocket 进程订阅后投给自己持有的目标连接。**多台服务器部署时所有实例必须连同一个 Redis**，否则连在另一台上的管理员收不到推送。推送是**至多一次**：WebSocket 进程与 Redis 断线重连期间的事件不补发——通知仍以数据库为准（前端重连后会主动补拉未读数），强制下线另有 token 版本号兜底。
+
+**在线管理员**：「系统管理 → 在线管理员」列出当前开着后台页面（有 WebSocket 连接）的管理员。在线状态存 Redis，页面关闭后立即移除；进程崩溃来不及清理时最多 90 秒后自动消失。
+
+**强制下线**：踢掉该管理员的**全部**会话——所有 token 立即失效（下一次请求即 401），打开着的页面收到提示后跳转登录页。不能踢自己，也不能踢超级管理员。禁用、删除管理员、修改密码、登出同样会让已打开的页面在 1 分钟内断开。
+
+| 关闭码 | 含义 | 前端行为 |
+|---|---|---|
+| `4000` | 心跳超时（90 秒没有收到 ping） | 自动重连 |
+| `4001` | 票据无效或已过期 | 重新取票据重连，最多 3 次 |
+| `4003` | 会话已被吊销或被强制下线 | 不重连，跳转登录页 |
+
 ### nginx 反向代理
 
 ```nginx
@@ -205,7 +245,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M1 | 系统核心 + 数据权限 | ✅（认证、RBAC、数据权限，管理员/角色/菜单/部门，系统配置、数据字典、登录/操作日志、站内通知、仪表盘，素材与上传） |
 | M2 | 代码生成器 + API 文档 | ✅（按表生成 CRUD 模块与 `make:crud`，由路由与校验规则推导的 OpenAPI 文档） |
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
-| M4 | WebSocket 实时通道 | |
+| M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | |
 | M6 | 消息与微信 | |
 | M7 | 内容与装修 | |
