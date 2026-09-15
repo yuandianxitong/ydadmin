@@ -224,6 +224,52 @@ final class OpenApiDocumentTest extends TestCase
         );
     }
 
+    /**
+     * build() 对空端点列表返回 paths=[]（合法的 PHP 空数组，Task 13 的双射测试按数组读它）。
+     * 但 json_encode([]) 编成 JSON `[]`，OpenAPI 3.0 规定 paths 是对象——toJson() 必须
+     * 在编码这一步把它换成 `{}`，不能影响 build() 返回给 PHP 调用方的数组本身。
+     */
+    public function test_to_json_encodes_an_empty_paths_array_as_a_json_object(): void
+    {
+        $doc = $this->document()->build([], [], []);
+        $this->assertSame([], $doc['paths'], 'build() 返回给 PHP 调用方的仍是空数组，不受 toJson() 影响');
+
+        $json = OpenApiDocument::toJson($doc);
+
+        $this->assertMatchesRegularExpression('/"paths":\s*\{\}/', $json);
+        $decoded = json_decode($json, false);
+        $this->assertInstanceOf(\stdClass::class, $decoded->paths);
+    }
+
+    /**
+     * 没有规则方法的写端点（如生成的控制器里没有 xxxRules()）反射不出规则，buildRequestBody()
+     * 对应产出 properties=[]。同样必须在 toJson() 里换成 {}，否则是非法 OpenAPI 文档。
+     */
+    public function test_to_json_encodes_an_empty_request_body_properties_array_as_a_json_object(): void
+    {
+        $endpoints = [
+            new EndpointDescriptor('POST', '/adminapi/system/dictionary', self::CONTROLLER, 'store', 'system.dictionary.create', false, 'system'),
+        ];
+        $doc = $this->document()->build($endpoints, ['DictionaryController::store' => null], []);
+        $bodySchema = $doc['paths']['/adminapi/system/dictionary']['post']['requestBody']['content']['application/json']['schema'];
+        $this->assertSame([], $bodySchema['properties'], 'build() 返回给 PHP 调用方的仍是空数组');
+
+        $json = OpenApiDocument::toJson($doc);
+
+        $this->assertDoesNotMatchRegularExpression('/"properties":\s*\[\s*\]/', $json);
+        $this->assertMatchesRegularExpression('/"properties":\s*\{\}/', $json);
+    }
+
+    /** 非空的 paths / properties 原样编码，toJson() 的递归替换不能牵连正常数据。 */
+    public function test_to_json_leaves_non_empty_content_unchanged(): void
+    {
+        $doc = $this->document()->build($this->endpoints(), $this->rulesByOperationId(), []);
+
+        $roundTripped = json_decode(OpenApiDocument::toJson($doc), true);
+
+        $this->assertSame($doc, $roundTripped);
+    }
+
     /** @param array<string, mixed> $node @param list<string> $refs */
     private function collectRefs(array $node, array &$refs): void
     {

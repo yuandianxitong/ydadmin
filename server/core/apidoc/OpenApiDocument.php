@@ -99,6 +99,50 @@ final class OpenApiDocument
     }
 
     /**
+     * `build()` 对 PHP 调用方返回的是数组,空对象与空数组在数组里天然无法区分,这在 PHP 里
+     * 不是问题——但 json_encode() 会把 PHP 空数组编成 JSON `[]`,而 OpenAPI 3.0 规定
+     * `paths`、schema 的 `properties` 语义上都是对象,空的必须编成 `{}`,不能是 `[]`
+     * (Swagger UI/校验器按对象解析,拿到数组会直接判非法文档)。这个转换只在编码成 JSON
+     * 字符串这一步发生,`build()` 返回给 PHP 调用方的数组不受影响,调用方仍按数组读
+     * `$doc['paths']`(Task 13 的双射/黄金测试依赖这一点)。
+     *
+     * 只此一份实现:调用方(如 ApiDocController)一律经这个方法编码,不各自写一遍同样的
+     * "空数组转 stdClass" 逻辑,否则判定规则一改,遗漏的调用点会继续把非法文档发出去。
+     *
+     * @param array<string, mixed> $document build() 的返回值
+     */
+    public static function toJson(array $document): string
+    {
+        return (string) json_encode(
+            self::objectifyEmptyMaps($document),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+        );
+    }
+
+    /**
+     * 递归地把 `paths` 与任意层级的 `properties` 键,只要值是空 PHP 数组,换成 `stdClass`,
+     * 这样 json_encode() 才会编成 `{}`。其它键(包括 `tags`、`parameters`、
+     * `x-doc-warnings` 这类语义上是列表的空数组)不受影响,继续编成 `[]`。
+     *
+     * @param array<int|string, mixed> $node
+     * @return array<int|string, mixed>
+     */
+    private static function objectifyEmptyMaps(array $node): array
+    {
+        foreach ($node as $key => $value) {
+            if (($key === 'paths' || $key === 'properties') && $value === []) {
+                $node[$key] = new \stdClass();
+                continue;
+            }
+            if (is_array($value)) {
+                $node[$key] = self::objectifyEmptyMaps($value);
+            }
+        }
+
+        return $node;
+    }
+
+    /**
      * OpenAPI 3.0 的 paths key 只认 `{name}`,不认路由表里的 `{name:正则}` 类型约束写法
      * (webman 路由用后者拿参数类型,EndpointDescriptor::pathParameters() 也靠它判
      * integer/string——见类注释)。公开静态纯函数:Task 13 的路由表↔文档双射测试要复用
