@@ -45,14 +45,18 @@ class DashboardController extends Controller
     #[PermissionSkip]
     public function activeRanking(Request $request): Response
     {
-        $data = $this->validate(['period' => $request->get('period', 'day')], [
-            'period' => 'required|string|in:day,week,month',
-        ], [
+        $data = $this->validate(['period' => $request->get('period', 'day')], $this->activeRankingRules(), [
             'period.required' => 'validation.dashboard_period_invalid',
             'period.string'   => 'validation.dashboard_period_invalid',
             'period.in'       => 'validation.dashboard_period_invalid',
         ]);
 
         return $this->success($this->dashboardService->getActiveRanking((string) $data['period']), lang('messages.get_success'));
+    }
+
+    /** @return array<string, string> */
+    private function activeRankingRules(): array
+    {
+        return ['period' => 'required|string|in:day,week,month'];
     }
 }

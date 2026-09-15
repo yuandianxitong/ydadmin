@@ -19,7 +19,8 @@ use Webman\Http\Request;
  *   POST /adminapi/system/generator/preview            preview   system.generator.generate
  *   POST /adminapi/system/generator/generate           generate  system.generator.generate
  *
- * 两个写端点的入参逐字相同，共用 generatorRequest()；真正的安全判定（生产禁用、名称白名单、
+ * 两个写端点的入参逐字相同，共用 generatorRules()（各自经 previewRules()/generateRules()
+ * 转调）与 buildGeneratorRequest()；真正的安全判定（生产禁用、名称白名单、
  * 表名白名单）都在 GeneratorService 里，控制器这层的校验只是第一道。
  */
 class GeneratorController extends Controller
@@ -36,7 +37,7 @@ class GeneratorController extends Controller
     #[Permission('system.generator.list')]
     public function columns(Request $request): Response
     {
-        $data = $this->validate(['table' => $request->get('table')], $this->columnRules(), $this->columnMessages());
+        $data = $this->validate(['table' => $request->get('table')], $this->columnsRules(), $this->columnMessages());
 
         return $this->success($this->generatorService->getColumns((string) $data['table']), lang('messages.get_success'));
     }
@@ -44,24 +45,28 @@ class GeneratorController extends Controller
     #[Permission('system.generator.generate')]
     public function preview(Request $request): Response
     {
-        return $this->success($this->generatorService->preview($this->generatorRequest($request)), lang('messages.get_success'));
+        $data = $this->validate($this->body($request), $this->previewRules(), $this->generatorMessages());
+
+        return $this->success($this->generatorService->preview($this->buildGeneratorRequest($data)), lang('messages.get_success'));
     }
 
     #[Permission('system.generator.generate')]
     public function generate(Request $request): Response
     {
-        return $this->success($this->generatorService->generate($this->generatorRequest($request)), lang('messages.create_success'));
+        $data = $this->validate($this->body($request), $this->generateRules(), $this->generatorMessages());
+
+        return $this->success($this->generatorService->generate($this->buildGeneratorRequest($data)), lang('messages.create_success'));
     }
 
     /**
-     * 入参 → GeneratorRequest。validate() 的返回值就是字段白名单：columns 只声明了
+     * 已校验数据 → GeneratorRequest。validate() 的返回值就是字段白名单：columns 只声明了
      * name 与四个可编辑字段的规则，别的键根本不会出现在返回值里（spec §9.4 的第一道防线；
      * 第二道在 GeneratorService::columnsOf()，那里一切以实时查表结果为准）。
+     *
+     * @param array<string, mixed> $data 已经过 previewRules()/generateRules() 校验的数据
      */
-    private function generatorRequest(Request $request): GeneratorRequest
+    private function buildGeneratorRequest(array $data): GeneratorRequest
     {
-        $data = $this->validate($this->body($request), $this->generatorRules(), $this->generatorMessages());
-
         $overrides = [];
         foreach ((array) ($data['columns'] ?? []) as $column) {
             if (!is_array($column) || !isset($column['name'])) {
@@ -82,6 +87,26 @@ class GeneratorController extends Controller
             (string) ($data['table_comment'] ?? ''),
             $overrides,
         );
+    }
+
+    /**
+     * 薄包装，委派给既有的 generatorRules()（preview 与 generate 入参逐字相同，见类注释）。
+     *
+     * @return array<string, string>
+     */
+    private function previewRules(): array
+    {
+        return $this->generatorRules();
+    }
+
+    /**
+     * 薄包装，委派给既有的 generatorRules()。
+     *
+     * @return array<string, string>
+     */
+    private function generateRules(): array
+    {
+        return $this->generatorRules();
     }
 
     /**
@@ -123,7 +148,7 @@ class GeneratorController extends Controller
     }
 
     /** @return array<string, string> */
-    private function columnRules(): array
+    private function columnsRules(): array
     {
         return [
             'table' => 'required|string|max:64',
