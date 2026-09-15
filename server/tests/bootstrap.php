@@ -14,6 +14,10 @@ $overrides = [
     'DB_PREFIX' => '',
     'REDIS_DB'  => '15',
     'CORS_ALLOWED_ORIGINS' => 'http://allowed.test',
+    // .env.example 默认 debug=false，本机 .env 恰好是 true；API 文档两条路由只在 debug 为真时
+    // 注册，且路由经 TestCase::ensureRoutesLoaded() 只加载一次，运行期 overrideConfig() 改不动
+    // 已注册的路由表——不固定这个值，干净检出/CI 上 Test6 与 ApiDoc 系列测试就会红。
+    'APP_DEBUG' => 'true',
 ];
 foreach ($overrides as $name => $value) {
     $_ENV[$name] = $value;

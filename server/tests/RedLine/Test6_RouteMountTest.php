@@ -17,8 +17,22 @@ use Webman\Route\Route as RouteObject;
 /** 红线：默认拒绝与操作审计完全依赖路由有没有挂对组。/adminapi 下除公开白名单外，每条路由都必须挂认证 + 权限 + 操作日志中间件。 */
 final class Test6_RouteMountTest extends TestCase
 {
-    /** 公开路由白名单：与 config/route.php 的公开区一致。新增公开路由必须同时改这里，并在评审里说明理由。 */
-    private const PUBLIC_ROUTES = ['/adminapi/health', '/adminapi/auth/captcha', '/adminapi/auth/login'];
+    /**
+     * 公开路由白名单：与 config/route.php 的公开区一致。新增公开路由必须同时改这里，并在评审里说明理由。
+     *
+     * M2b 新增两条：/adminapi/system/api-doc、/adminapi/system/api-doc/openapi.json。
+     * 理由：前端「Swagger UI」「下载 JSON」两个按钮都用 window.open 新开标签，那是浏览器原生导航，
+     * 带不了自定义请求头（Authorization），而前端这两行代码不可改（spec §3）。要么这两条路由公开，
+     * 要么按钮永久 401。代价被生产闸门兜住：config/route.php 里这两条路由只在 APP_DEBUG=true 时
+     * 才注册，生产环境的公开路由数量仍是三条，不受影响。
+     */
+    private const PUBLIC_ROUTES = [
+        '/adminapi/health',
+        '/adminapi/auth/captcha',
+        '/adminapi/auth/login',
+        '/adminapi/system/api-doc',
+        '/adminapi/system/api-doc/openapi.json',
+    ];
 
     /** @return list<RouteObject> */
     private function adminapiRoutes(): array

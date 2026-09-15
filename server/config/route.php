@@ -4,6 +4,7 @@ use app\adminapi\controller\auth\AuthController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
+use app\adminapi\controller\system\ApiDocController;
 use app\adminapi\controller\system\DepartmentController;
 use app\adminapi\controller\system\DictionaryController;
 use app\adminapi\controller\system\FileController;
@@ -37,6 +38,16 @@ Route::group('/adminapi', function () use ($adminAuth) {
     Route::get('/health', [HealthController::class, 'index']);
     Route::get('/auth/captcha', [AuthController::class, 'captcha']);
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);
+
+    // ---- M2b：API 文档。生产环境（APP_DEBUG=false）整个功能都不存在——最诚实的生产闸门实现，
+    // 没有可探测的面，也不依赖控制器内部判断没被绕过（与 M2a GeneratorService::assertWritesEnabled()
+    // 不同：那里生产仍要保留只读端点，只关写操作；这里整个功能都不该在生产出现，粒度不同）。
+    // 两条都必须公开（Test6 白名单已加）：前端「Swagger UI」「下载 JSON」按钮走 window.open，
+    // 浏览器导航带不了 Authorization 头。代价被这个 if 兜住：生产环境的公开路由数量仍是三条。
+    if (config('app.debug')) {
+        Route::get('/system/api-doc/openapi.json', [ApiDocController::class, 'openapi']);
+        Route::get('/system/api-doc', [ApiDocController::class, 'index']);
+    }
 
     // ---- 认证组。具名路由必须写在 {id} 通配路由之前，否则会被 {id} 吞掉
     Route::group('/auth', function () {
