@@ -43,7 +43,7 @@ class GeneratorService extends Service
      * 前端模块名的默认值恰好就是 business（generator/index.vue 里硬编码），用户不填直接下一步
      * 就会踩中，所以这条不是理论风险。
      */
-    private const RESERVED_MODULES = ['admin_log', 'auth', 'business', 'messages', 'validation', 'generator'];
+    private const RESERVED_MODULES = ['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'];
 
     #[Inject]
     protected SchemaRepository $schemaRepository;

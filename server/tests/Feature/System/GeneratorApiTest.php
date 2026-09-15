@@ -80,6 +80,21 @@ final class GeneratorApiTest extends ApiTestCase
         );
     }
 
+    public function test_module_name_reserved_list_includes_apidoc(): void
+    {
+        $admin = $this->actingAsAdmin(['system.generator.list', 'system.generator.generate']);
+
+        $response = $this->post(self::BASE . '/preview', [
+            'table_name'    => 'dictionaries',
+            'module_name'   => 'apidoc',
+            'model_name'    => 'ApidocProbe',
+            'table_comment' => '探测语言分组 apidoc 是否被 RESERVED_MODULES 拦下',
+        ], $admin->token);
+
+        $response->assertCode(422);
+        $this->assertSame(lang('generator.module_name_reserved'), $response->data()['errors']['module_name'] ?? null);
+    }
+
     public function test_tables_endpoint_requires_permission_and_lists_shape(): void
     {
         $noPerm = $this->actingAsAdmin([]);
