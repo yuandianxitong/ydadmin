@@ -354,6 +354,9 @@ return [
     'user_id_require'        => 'Please select a member',
     'amount_invalid'         => 'Invalid amount',
     'amount_zero'            => 'The adjustment amount may not be 0',
+    'recharge_amount_invalid' => 'Recharge amount must be between 1 and 10000 with at most two decimal places',
+    'payment_channel_invalid' => 'Please choose WeChat Pay or Alipay',
+    'order_no_require'        => 'Order number is required',
     'points_invalid'         => 'Invalid points value',
     'points_zero'            => 'The adjustment points may not be 0',
 

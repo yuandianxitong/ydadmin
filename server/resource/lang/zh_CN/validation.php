@@ -260,6 +260,9 @@ return [
     'user_id_require'        => '请选择会员',
     'amount_invalid'         => '金额格式不正确',
     'amount_zero'            => '调整金额不能为 0',
+    'recharge_amount_invalid' => '充值金额须在 1 到 10000 元之间，最多两位小数',
+    'payment_channel_invalid' => '请选择微信或支付宝',
+    'order_no_require'        => '订单号不能为空',
     'points_invalid'         => '积分格式不正确',
     'points_zero'            => '调整积分不能为 0',
 

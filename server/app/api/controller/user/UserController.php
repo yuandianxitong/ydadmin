@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace app\api\controller\user;
 
+use app\service\payment\RechargeService;
 use app\service\user\UserService;
 use core\base\Controller;
+use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\Response;
@@ -20,6 +22,9 @@ class UserController extends Controller
 {
     #[Inject]
     protected UserService $userService;
+
+    #[Inject]
+    protected RechargeService $rechargeService;
 
     #[PermissionSkip]
     public function profile(Request $request): Response
@@ -73,6 +78,26 @@ class UserController extends Controller
         return $this->paginate($this->userService->getPointsLogs((int) $request->userId, $page, $limit));
     }
 
+    /**
+     * 余额充值（M5b spec §5.1）。端类型只看 X-Client-Type；客户端 IP 用 ClientIp::resolve()，
+     * 不用 getRealIp()（直连地址是私网时它会信任客户端伪造的 X-Forwarded-For）。
+     */
+    #[PermissionSkip]
+    public function recharge(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->rechargeRules(), $this->rechargeMessages());
+
+        $result = $this->rechargeService->recharge(
+            (int) $request->userId,
+            (string) $data['amount'],
+            (string) $data['channel'],
+            trim((string) ($request->header('x-client-type') ?? '')),
+            ClientIp::resolve($request),
+        );
+
+        return $this->success($result, lang('messages.success'));
+    }
+
     /** @return array<string, string> */
     private function updateProfileRules(): array
     {
@@ -120,6 +145,35 @@ class UserController extends Controller
             'new_password.required' => 'validation.new_password_require',
             'new_password.min'      => 'validation.password_length',
             'new_password.max'      => 'validation.password_length',
+        ];
+    }
+
+    /**
+     * decimal:0,2 与 numeric 都放过 +10、.5、10. 这类写法，Money::toCents() 不收——多一条 regex 从入口挡住，
+     * 否则会漏成 500。
+     *
+     * @return array<string, string>
+     */
+    private function rechargeRules(): array
+    {
+        return [
+            'amount'  => 'required|numeric|decimal:0,2|regex:/^\d+(\.\d{1,2})?$/|between:1,10000',
+            'channel' => 'required|string|in:wechat,alipay',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function rechargeMessages(): array
+    {
+        return [
+            'amount.required'  => 'validation.recharge_amount_invalid',
+            'amount.numeric'   => 'validation.recharge_amount_invalid',
+            'amount.decimal'   => 'validation.recharge_amount_invalid',
+            'amount.regex'     => 'validation.recharge_amount_invalid',
+            'amount.between'   => 'validation.recharge_amount_invalid',
+            'channel.required' => 'validation.payment_channel_invalid',
+            'channel.string'   => 'validation.payment_channel_invalid',
+            'channel.in'       => 'validation.payment_channel_invalid',
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 use app\adminapi\controller\auth\AuthController;
 use app\api\controller\auth\AuthController as ApiAuthController;
+use app\api\controller\payment\PaymentController;
 use app\api\controller\user\UserController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
@@ -258,6 +259,12 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/balance-logs', [UserController::class, 'balanceLogs']);
         Route::get('/points', [UserController::class, 'points']);
         Route::get('/points-logs', [UserController::class, 'pointsLogs']);
+        Route::post('/recharge', [UserController::class, 'recharge']);
+    })->middleware($apiAuth);
+
+    // M5b：支付订单查询（回调在公开段，由 Task 9 注册）
+    Route::group('/payment', function () {
+        Route::get('/query', [PaymentController::class, 'query']);
     })->middleware($apiAuth);
 })->middleware($apiOuter);
 

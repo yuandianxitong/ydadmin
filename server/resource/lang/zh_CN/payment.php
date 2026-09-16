@@ -8,4 +8,8 @@ return [
     'create_failed'   => '支付下单失败，请稍后重试',
     'order_not_found' => '订单不存在',
     'recharge_remark' => '在线充值',
+    'client_not_supported' => '当前环境不支持该支付方式',
+    'wechat_auth_required' => '请先完成微信授权后再支付',
+    'rate_limited'         => '操作过于频繁，请稍后再试',
+    'recharge_subject'     => '余额充值',
 ];
