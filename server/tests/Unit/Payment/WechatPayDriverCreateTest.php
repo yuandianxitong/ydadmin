@@ -48,7 +48,7 @@ final class WechatPayDriverCreateTest extends TestCase
         return new WechatPayDriver($this->fx->config(), $this->fx->handler($queue, $this->history));
     }
 
-    private function request(string $tradeType, ?string $openid = null, ?string $clientIp = null): CreateOrderRequest
+    private function request(string $tradeType, ?string $openid = null, ?string $clientIp = null, ?string $appId = null): CreateOrderRequest
     {
         return new CreateOrderRequest(
             self::ORDER_NO,
@@ -59,6 +59,7 @@ final class WechatPayDriverCreateTest extends TestCase
             self::NOTIFY_URL,
             $openid,
             $clientIp,
+            $appId,
         );
     }
 
@@ -160,6 +161,39 @@ final class WechatPayDriverCreateTest extends TestCase
             $data['sign'],
             Rsa::from($this->fx->merchantPublicPem, Rsa::KEY_TYPE_PUBLIC),
         ));
+    }
+
+    public function test_request_app_id_overrides_config_in_body_and_jsapi_signature(): void
+    {
+        $result = $this->driver([$this->fx->jsonResponse(200, ['prepay_id' => 'wx-mini-prepay'])])
+            ->create($this->request(TradeType::JSAPI, openid: 'o-mini-openid', appId: 'wxmini000000000001'));
+
+        $this->assertSame('wxmini000000000001', $this->sentJson()['appid']);
+        $data = $result->data;
+        $this->assertSame('wxmini000000000001', $data['appId']);
+        $this->assertTrue(Rsa::verify(
+            Formatter::joinedByLineFeed('wxmini000000000001', $data['timeStamp'], $data['nonceStr'], $data['package']),
+            $data['paySign'],
+            Rsa::from($this->fx->merchantPublicPem, Rsa::KEY_TYPE_PUBLIC),
+        ), 'paySign 必须按实际下单的 appid 签，否则小程序拉起支付校验失败');
+    }
+
+    public function test_request_app_id_overrides_config_in_app_signature_and_native_body(): void
+    {
+        $app = $this->driver([$this->fx->jsonResponse(200, ['prepay_id' => 'wx-app-prepay'])])
+            ->create($this->request(TradeType::APP, appId: 'wxapp0000000000001'));
+        $this->assertSame('wxapp0000000000001', $this->sentJson()['appid']);
+        $this->assertSame('wxapp0000000000001', $app->data['appid']);
+        $this->assertTrue(Rsa::verify(
+            Formatter::joinedByLineFeed('wxapp0000000000001', $app->data['timestamp'], $app->data['noncestr'], 'wx-app-prepay'),
+            $app->data['sign'],
+            Rsa::from($this->fx->merchantPublicPem, Rsa::KEY_TYPE_PUBLIC),
+        ));
+
+        $this->history = [];
+        $this->driver([$this->fx->jsonResponse(200, ['code_url' => 'weixin://x'])])
+            ->create($this->request(TradeType::NATIVE, appId: 'wxopen000000000001'));
+        $this->assertSame('wxopen000000000001', $this->sentJson()['appid']);
     }
 
     public function test_jsapi_without_openid_fails_before_sending(): void

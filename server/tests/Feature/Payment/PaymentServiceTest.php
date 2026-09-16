@@ -158,6 +158,28 @@ final class PaymentServiceTest extends ApiTestCase
         $this->assertSame('https://shop.example.com/api/payment/notify/alipay', $calls[1][0]->notifyUrl);
     }
 
+    public function test_create_order_stores_and_passes_app_id(): void
+    {
+        $userId = $this->user();
+        $this->wechat->queue('create', new CreateOrderResult('jsapi', ['appId' => 'wxmini000000000001']));
+
+        $result = $this->service()->createOrder($userId, PaymentOrder::BIZ_RECHARGE, 'miniapp', 'wechat', 'jsapi', '余额充值', 100, 'o-mini', null, 'wxmini000000000001');
+
+        $this->assertSame('wxmini000000000001', Db::table('payment_orders')->where('order_no', $result['order_no'])->value('app_id'));
+        [$args] = $this->wechat->callsTo('create');
+        $this->assertSame('wxmini000000000001', $args[0]->appId);
+    }
+
+    public function test_create_order_without_app_id_stores_null(): void
+    {
+        $userId = $this->user();
+        $this->wechat->queue('create', new CreateOrderResult('native', ['code_url' => 'weixin://x']));
+
+        $result = $this->service()->createOrder($userId, PaymentOrder::BIZ_RECHARGE, 'pc', 'wechat', 'native', '余额充值', 100, null, null);
+
+        $this->assertNull(Db::table('payment_orders')->where('order_no', $result['order_no'])->value('app_id'));
+    }
+
     public function test_incomplete_credentials_insert_nothing_and_say_unavailable(): void
     {
         $userId = $this->user();

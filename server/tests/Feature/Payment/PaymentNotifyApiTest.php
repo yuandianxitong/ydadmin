@@ -109,6 +109,7 @@ final class PaymentNotifyApiTest extends ApiTestCase
             'biz_type'       => 'recharge',
             'client_type'    => 'pc',
             'order_no'       => $orderNo,
+            'app_id'         => 'wx5b6c4f2d8e9a1b3c',
             'channel'        => 'wechat',
             'trade_type'     => 'native',
             'subject'        => '余额充值',
@@ -122,7 +123,7 @@ final class PaymentNotifyApiTest extends ApiTestCase
         $this->track('payment_orders', $orderId);
 
         $wechat = new FakeGateway();
-        $paid = new NotifyResult(true, $orderNo, 'WX-HTTP-1', 2550, ['trade_state' => 'SUCCESS']);
+        $paid = new NotifyResult(true, $orderNo, 'WX-HTTP-1', 2550, ['trade_state' => 'SUCCESS'], appId: 'wx5b6c4f2d8e9a1b3c');
         $wechat->queue('verifyNotify', $paid);
         $wechat->queue('verifyNotify', $paid);
         $this->useFakeGateway($wechat);

@@ -414,7 +414,7 @@ final class SchemaTest extends TestCase
         }
 
         foreach ([
-            'id', 'user_id', 'biz_type', 'client_type', 'order_no', 'trade_no', 'channel', 'trade_type', 'subject',
+            'id', 'user_id', 'biz_type', 'client_type', 'order_no', 'app_id', 'trade_no', 'channel', 'trade_type', 'subject',
             'amount_cents', 'refunded_cents', 'status', 'error_msg', 'expires_at', 'paid_at', 'closed_at',
             'notify_data', 'created_at', 'updated_at',
         ] as $column) {

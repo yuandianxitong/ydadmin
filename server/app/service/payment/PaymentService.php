@@ -65,6 +65,7 @@ class PaymentService extends Service
     /**
      * 插入 pending 订单 → 事务外调网关下单（spec §5.1 步骤 4–7）。渠道开关由调用方判断（RechargeService）。
      *
+     * @param ?string $appId 下单所用 appid（M6a spec §7，微信按端解析；支付宝为 null）
      * @return array{order_no: string, payment_id: int, payment_data: array{trade_type: string, data: array<string, mixed>}}
      * @throws BusinessException 凭据不全（payment.unavailable，不插单）；网关失败或结果不确定（payment.create_failed）
      */
@@ -78,6 +79,7 @@ class PaymentService extends Service
         int $amountCents,
         ?string $openid,
         ?string $clientIp,
+        ?string $appId = null,
     ): array {
         $prefix = self::ORDER_NO_PREFIXES[$bizType] ?? throw new \InvalidArgumentException("未知支付业务类型：{$bizType}");
 
@@ -96,6 +98,7 @@ class PaymentService extends Service
             'biz_type'     => $bizType,
             'client_type'  => $clientType,
             'channel'      => $channel,
+            'app_id'       => $appId !== null && $appId !== '' ? $appId : null,
             'trade_type'   => $tradeType,
             'subject'      => $subject,
             'amount_cents' => $amountCents,
@@ -114,6 +117,7 @@ class PaymentService extends Service
                 notifyUrl: $this->notifyUrl($channel),
                 openid: $openid,
                 clientIp: $clientIp,
+                appId: $appId,
             ));
         } catch (GatewayException $e) {
             $this->orders->updateWhere(
@@ -231,6 +235,11 @@ class PaymentService extends Service
         }
 
         try {
+            if ($channel === Channel::WECHAT && !$this->wechatAppIdMatchesOrder($result->orderNo, $result->appId)) {
+                Log::error('支付回调：appid 与订单下单时不符，拒绝入账', ['channel' => $channel, 'order_no' => $result->orderNo]);
+
+                return $gateway->notifyAck(false);
+            }
             // paidCents 缺失时传 -1：必然与订单金额不符，落到 MISMATCH，而不是含糊的 0
             $outcome = $this->markPaid($result->orderNo, $channel, $result->tradeNo, $result->paidCents ?? -1, $result->raw);
         } catch (\Throwable $e) {
@@ -257,6 +266,25 @@ class PaymentService extends Service
             Channel::ALIPAY => new NotifyAck(200, 'text/plain', 'fail'),
             default         => new NotifyAck(500, 'text/plain', 'fail'),
         };
+    }
+
+    /**
+     * 微信已支付回调的 appid 必须是下单时用的那个（M6a spec §7）：订单记录了 app_id 就比它，
+     * M6a 之前的旧订单没有 app_id 时回退 pay_wechat_app_id。订单不存在时放行，交给 markPaid 走 NOT_FOUND。
+     * appid 下单后不变，锁外先查即可，不需要进 markPaid 的行锁。
+     */
+    private function wechatAppIdMatchesOrder(string $orderNo, ?string $appId): bool
+    {
+        $order = $this->orders->findByOrderNo($orderNo);
+        if ($order === null) {
+            return true;
+        }
+        $expected = trim((string) ($order['app_id'] ?? ''));
+        if ($expected === '') {
+            $expected = trim((string) $this->config->getConfigValue('pay_wechat_app_id', ''));
+        }
+
+        return $appId !== null && $appId !== '' && $expected !== '' && hash_equals($expected, $appId);
     }
 
     /**

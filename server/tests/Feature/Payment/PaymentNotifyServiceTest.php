@@ -49,6 +49,8 @@ final class BrokenGatewayResolver implements GatewayResolver
  */
 final class PaymentNotifyServiceTest extends ApiTestCase
 {
+    private const WX_APP_ID = 'wx5b6c4f2d8e9a1b3c';
+
     private FakeGateway $wechat;
 
     /** @var list<int> */
@@ -104,6 +106,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
             'biz_type'       => 'recharge',
             'client_type'    => 'pc',
             'order_no'       => 'RT' . bin2hex(random_bytes(8)),
+            'app_id'         => self::WX_APP_ID,
             'channel'        => 'wechat',
             'trade_type'     => 'native',
             'subject'        => '余额充值',
@@ -137,7 +140,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_paid_notify_marks_order_paid_credits_balance_and_acks_success(): void
     {
         $order = $this->createOrder();
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T1', 1000, ['trade_state' => 'SUCCESS']));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T1', 1000, ['trade_state' => 'SUCCESS'], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -151,7 +154,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_duplicate_paid_notify_is_idempotent_and_still_acks_success(): void
     {
         $order = $this->createOrder();
-        $result = new NotifyResult(true, $order['order_no'], 'WX-T2', 1000, []);
+        $result = new NotifyResult(true, $order['order_no'], 'WX-T2', 1000, [], appId: self::WX_APP_ID);
         $this->wechat->queue('verifyNotify', $result);
         $this->wechat->queue('verifyNotify', $result);
 
@@ -199,7 +202,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_amount_mismatch_acks_failure_and_leaves_order_pending(): void
     {
         $order = $this->createOrder();
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T3', 999, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T3', 999, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -210,7 +213,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_missing_paid_amount_is_treated_as_mismatch(): void
     {
         $order = $this->createOrder();
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T4', null, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T4', null, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -221,7 +224,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_channel_mismatch_acks_failure(): void
     {
         $order = $this->createOrder(['channel' => 'alipay', 'trade_type' => 'page']);
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T5', 1000, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T5', 1000, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -231,7 +234,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
 
     public function test_unknown_order_acks_failure(): void
     {
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, 'R_NOT_EXIST_' . bin2hex(random_bytes(4)), 'WX-T6', 1000, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, 'R_NOT_EXIST_' . bin2hex(random_bytes(4)), 'WX-T6', 1000, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -242,7 +245,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     {
         // 订单指向一个不存在的会员：BalanceService::change() 抛 NotFoundException，markPaid 整个事务回滚
         $order = $this->createOrder(['user_id' => 2_000_000_000]);
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T7', 1000, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T7', 1000, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -254,7 +257,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     {
         $order = $this->createOrder();
         $openid = 'o-SECRET-openid-' . bin2hex(random_bytes(4));
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T8', 1000, ['payer' => ['openid' => $openid]]));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T8', 1000, ['payer' => ['openid' => $openid]], appId: self::WX_APP_ID));
 
         // 模拟写库失败：QueryException 的消息里带着 SQL 与绑定值（绑定值就是回调原文）
         $failing = new class ($openid) extends BalanceService {
@@ -299,7 +302,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
     public function test_balance_log_remark_is_chinese_regardless_of_request_locale(): void
     {
         $order = $this->createOrder();
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T9', 1000, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T9', 1000, [], appId: self::WX_APP_ID));
 
         Context::set('locale', 'en');
         try {
@@ -328,7 +331,7 @@ final class PaymentNotifyServiceTest extends ApiTestCase
         $order = $this->createOrder();
         Container::set(GatewayResolver::class, new FakeGatewayResolver(['wechat' => $this->wechat], ['wechat' => false, 'alipay' => false]));
         Container::set(PaymentService::class, Container::make(PaymentService::class, []));
-        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T8', 1000, []));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T8', 1000, [], appId: self::WX_APP_ID));
 
         $ack = $this->service()->handleNotify('wechat', $this->request());
 
@@ -368,5 +371,54 @@ final class PaymentNotifyServiceTest extends ApiTestCase
 
         $this->assertEquals($alipay->notifyAck(false), $this->service()->notifyFailureAck('alipay'));
         $this->assertEquals($wechat->notifyAck(false), $this->service()->notifyFailureAck('wechat'));
+    }
+
+    public function test_wechat_paid_notify_with_foreign_appid_is_refused_without_credit(): void
+    {
+        $order = $this->createOrder();
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-FOREIGN', 1000, [], appId: 'wx0000000000000000'));
+
+        $ack = $this->service()->handleNotify('wechat', $this->request());
+
+        $this->assertEquals($this->wechat->notifyAck(false), $ack);
+        $this->assertSame('pending', $this->orderRow($order['id'])->status);
+        $this->assertSame(0, Db::table('balance_logs')->where('user_id', $order['user_id'])->count());
+    }
+
+    public function test_wechat_paid_notify_without_appid_is_refused(): void
+    {
+        $order = $this->createOrder();
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-NOAPP', 1000, []));
+
+        $ack = $this->service()->handleNotify('wechat', $this->request());
+
+        $this->assertSame(500, $ack->status);
+        $this->assertSame('pending', $this->orderRow($order['id'])->status);
+    }
+
+    public function test_order_without_app_id_falls_back_to_pay_wechat_app_id(): void
+    {
+        $this->setConfig('pay_wechat_app_id', 'wxpay0000000000001');
+        $order = $this->createOrder(['app_id' => null]);
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-FALLBACK', 1000, [], appId: 'wxpay0000000000001'));
+
+        $ack = $this->service()->handleNotify('wechat', $this->request());
+
+        $this->assertSame(200, $ack->status);
+        $this->assertSame('paid', $this->orderRow($order['id'])->status);
+    }
+
+    public function test_alipay_paid_notify_is_not_subject_to_appid_check(): void
+    {
+        $alipay = new FakeGateway();
+        Container::set(GatewayResolver::class, new FakeGatewayResolver(['wechat' => $this->wechat, 'alipay' => $alipay]));
+        Container::set(PaymentService::class, Container::make(PaymentService::class, []));
+        $order = $this->createOrder(['channel' => 'alipay', 'trade_type' => 'page', 'app_id' => null]);
+        $alipay->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'ALI-T1', 1000, []));
+
+        $ack = $this->service()->handleNotify('alipay', $this->request());
+
+        $this->assertSame('success', $ack->body);
+        $this->assertSame('paid', $this->orderRow($order['id'])->status);
     }
 }

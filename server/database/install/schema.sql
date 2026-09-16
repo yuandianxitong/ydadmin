@@ -402,6 +402,7 @@ CREATE TABLE `payment_orders` (
   `biz_type` varchar(30) NOT NULL COMMENT '业务类型：recharge',
   `client_type` varchar(20) NOT NULL COMMENT '客户端：pc/h5/app/wechat_h5/miniapp',
   `order_no` varchar(32) NOT NULL COMMENT '商户订单号',
+  `app_id` varchar(32) DEFAULT NULL COMMENT '下单所用 appid（微信）',
   `trade_no` varchar(64) DEFAULT NULL COMMENT '渠道交易号',
   `channel` varchar(20) NOT NULL COMMENT '支付渠道：wechat/alipay',
   `trade_type` varchar(20) NOT NULL COMMENT '交易类型：native/h5/app/jsapi/page/wap',

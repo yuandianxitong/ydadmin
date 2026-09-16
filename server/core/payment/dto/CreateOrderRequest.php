@@ -19,6 +19,8 @@ final readonly class CreateOrderRequest
         public string $notifyUrl,
         public ?string $openid = null,
         public ?string $clientIp = null,
+        /** 下单所用 appid（M6a spec §7）：为空时驱动用渠道配置里的 appid */
+        public ?string $appId = null,
     ) {
     }
 }

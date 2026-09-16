@@ -56,6 +56,7 @@ final class PaymentContractTest extends TestCase
         $jsapi = new CreateOrderRequest('R2', TradeType::JSAPI, 's', 1, $expires, 'u', 'openid-x', '1.2.3.4');
         $this->assertSame('openid-x', $jsapi->openid);
         $this->assertSame('1.2.3.4', $jsapi->clientIp);
+        $this->assertNull((new CreateOrderRequest('R1', 'native', 's', 1, new \DateTimeImmutable(), 'https://x/n'))->appId, 'CreateOrderRequest::appId 缺省为 null');
     }
 
     public function test_dtos_are_readonly(): void
@@ -102,6 +103,7 @@ final class PaymentContractTest extends TestCase
         $this->assertSame([false, '', null, null, []], [$ignored->paid, $ignored->orderNo, $ignored->tradeNo, $ignored->paidCents, $ignored->raw]);
         $notified = new NotifyResult(true, 'R1', 'T1', 100, ['x' => 1]);
         $this->assertSame([true, 'R1', 'T1', 100, ['x' => 1]], [$notified->paid, $notified->orderNo, $notified->tradeNo, $notified->paidCents, $notified->raw]);
+        $this->assertNull((new NotifyResult(false))->appId, 'NotifyResult::appId 缺省为 null');
 
         $ack = new NotifyAck(200, 'text/plain', 'success');
         $this->assertSame([200, 'text/plain', 'success'], [$ack->status, $ack->contentType, $ack->body]);

@@ -95,8 +95,9 @@ final class WechatPayDriver implements PaymentGatewayInterface
             default           => throw new GatewayException("微信支付不支持的交易类型：{$request->tradeType}"),
         };
 
+        $appId = $request->appId !== null && $request->appId !== '' ? $request->appId : $this->config->appId;
         $body = [
-            'appid'        => $this->config->appId,
+            'appid'        => $appId,
             'mchid'        => $this->config->mchId,
             'description'  => $request->subject,
             'out_trade_no' => $request->orderNo,
@@ -127,8 +128,8 @@ final class WechatPayDriver implements PaymentGatewayInterface
         return match ($request->tradeType) {
             TradeType::NATIVE => new CreateOrderResult(TradeType::NATIVE, ['code_url' => self::requireString($data, 'code_url')]),
             TradeType::H5     => new CreateOrderResult(TradeType::H5, ['h5_url' => self::requireString($data, 'h5_url')]),
-            TradeType::JSAPI  => new CreateOrderResult(TradeType::JSAPI, $this->jsapiParams(self::requireString($data, 'prepay_id'))),
-            default           => new CreateOrderResult(TradeType::APP, $this->appParams(self::requireString($data, 'prepay_id'))),
+            TradeType::JSAPI  => new CreateOrderResult(TradeType::JSAPI, $this->jsapiParams($appId, self::requireString($data, 'prepay_id'))),
+            default           => new CreateOrderResult(TradeType::APP, $this->appParams($appId, self::requireString($data, 'prepay_id'))),
         };
     }
 
@@ -283,8 +284,9 @@ final class WechatPayDriver implements PaymentGatewayInterface
         if (($envelope['event_type'] ?? null) !== 'TRANSACTION.SUCCESS') {
             return new NotifyResult(false, $orderNo, raw: $data);
         }
-        if (!is_string($data['appid'] ?? null) || $data['appid'] !== $this->config->appId) {
-            throw new NotifyVerificationException('微信支付回调 appid 不符');
+        // 各端 appid 不同（M6a spec §7）：不与配置比较，只要求存在，交给 PaymentService 按订单 app_id 核对
+        if (!is_string($data['appid'] ?? null) || $data['appid'] === '') {
+            throw new NotifyVerificationException('微信支付回调缺少 appid');
         }
         if (($data['trade_state'] ?? null) !== 'SUCCESS') {
             return new NotifyResult(false, $orderNo, raw: $data);
@@ -296,7 +298,7 @@ final class WechatPayDriver implements PaymentGatewayInterface
             throw new NotifyVerificationException('微信支付回调缺少订单号、交易号或金额');
         }
 
-        return new NotifyResult(true, $orderNo, $tradeNo, $total, $data);
+        return new NotifyResult(true, $orderNo, $tradeNo, $total, $data, $data['appid']);
     }
 
     public function notifyAck(bool $success): NotifyAck
@@ -690,36 +692,36 @@ final class WechatPayDriver implements PaymentGatewayInterface
     // ------------------------------------------------------------------ 调起参数与映射
 
     /** @return array{appId: string, timeStamp: string, nonceStr: string, package: string, signType: string, paySign: string} */
-    private function jsapiParams(string $prepayId): array
+    private function jsapiParams(string $appId, string $prepayId): array
     {
         $timeStamp = (string) Formatter::timestamp();
         $nonceStr = Formatter::nonce();
         $package = 'prepay_id=' . $prepayId;
 
         return [
-            'appId'     => $this->config->appId,
+            'appId'     => $appId,
             'timeStamp' => $timeStamp,
             'nonceStr'  => $nonceStr,
             'package'   => $package,
             'signType'  => 'RSA',
-            'paySign'   => Rsa::sign(Formatter::joinedByLineFeed($this->config->appId, $timeStamp, $nonceStr, $package), $this->merchantKey),
+            'paySign'   => Rsa::sign(Formatter::joinedByLineFeed($appId, $timeStamp, $nonceStr, $package), $this->merchantKey),
         ];
     }
 
     /** @return array{appid: string, partnerid: string, prepayid: string, package: string, noncestr: string, timestamp: string, sign: string} */
-    private function appParams(string $prepayId): array
+    private function appParams(string $appId, string $prepayId): array
     {
         $timestamp = (string) Formatter::timestamp();
         $noncestr = Formatter::nonce();
 
         return [
-            'appid'     => $this->config->appId,
+            'appid'     => $appId,
             'partnerid' => $this->config->mchId,
             'prepayid'  => $prepayId,
             'package'   => 'Sign=WXPay',
             'noncestr'  => $noncestr,
             'timestamp' => $timestamp,
-            'sign'      => Rsa::sign(Formatter::joinedByLineFeed($this->config->appId, $timestamp, $noncestr, $prepayId), $this->merchantKey),
+            'sign'      => Rsa::sign(Formatter::joinedByLineFeed($appId, $timestamp, $noncestr, $prepayId), $this->merchantKey),
         ];
     }
 

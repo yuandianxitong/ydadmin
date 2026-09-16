@@ -7,6 +7,7 @@ namespace app\service\payment;
 use app\repository\payment\PaymentOrderRepository;
 use app\repository\user\UserRepository;
 use core\base\Service;
+use core\contract\ConfigValueReader;
 use core\exception\BusinessException;
 use core\payment\Channel;
 use core\payment\GatewayResolver;
@@ -21,8 +22,8 @@ use support\Redis;
  * 顺序：限流 → 端 × 渠道矩阵（含 JSAPI openid）→ 渠道开关 → 未过期待支付单上限 → PaymentService::createOrder()。
  * X-Client-Type 缺省或不在矩阵里一律拒绝，不回退为 pc。
  *
- * appid：M5b 只用 pay_wechat_app_id（由 PaymentManager 放进 WechatPayConfig）。M6 接入各端 appid 时，
- * 给 CreateOrderRequest 加一个可空的 appId，由本类按端解析后传入——openid 与 appid 必须来自同一个公众号/小程序。
+ * appid：微信渠道按端解析（小程序 / 公众号 / 开放平台，其余端用 pay_wechat_app_id），空值回退 pay_wechat_app_id，
+ * 经 createOrder() 写入订单并传给驱动；支付宝不涉及 appid。
  *
  * 容器单例，无实例态。
  */
@@ -43,6 +44,13 @@ class RechargeService extends Service
         'miniapp'   => 'mini_openid',
     ];
 
+    /** 微信按端取 appid（M6a spec §7）：openid 与 appid 必须来自同一个公众号/小程序/开放平台应用；空值回退 pay_wechat_app_id */
+    private const WECHAT_APP_ID_KEYS = [
+        'miniapp'   => 'wechat_mini_app_id',
+        'wechat_h5' => 'wechat_official_app_id',
+        'pc'        => 'wechat_open_app_id',
+    ];
+
     private const RATE_WINDOW = 60;
 
     /** INCR 与 EXPIRE 原子执行（与 SmsCodeService 同一段脚本）：分两条命令时进程在中间崩掉，计数键就永不过期 */
@@ -59,6 +67,9 @@ class RechargeService extends Service
 
     #[Inject]
     protected PaymentOrderRepository $orders;
+
+    #[Inject]
+    protected ConfigValueReader $config;
 
     /**
      * @param string $amount     校验后的元字符串（最多两位小数，1–10000）
@@ -94,6 +105,7 @@ class RechargeService extends Service
             Money::toCents($amount),
             $openid,
             $clientIp,
+            $channel === Channel::WECHAT ? $this->wechatAppId($clientType) : null,
         );
     }
 
@@ -106,6 +118,18 @@ class RechargeService extends Service
         }
 
         return $openid;
+    }
+
+    /** 解析不到任何 appid 时返回 null：驱动用 WechatPayConfig 的 appid，此时 PaymentManager 本就会因凭据不全拒绝 */
+    private function wechatAppId(string $clientType): ?string
+    {
+        $key = self::WECHAT_APP_ID_KEYS[$clientType] ?? null;
+        $appId = $key !== null ? trim((string) $this->config->getConfigValue($key, '')) : '';
+        if ($appId === '') {
+            $appId = trim((string) $this->config->getConfigValue('pay_wechat_app_id', ''));
+        }
+
+        return $appId === '' ? null : $appId;
     }
 
     /**

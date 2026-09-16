@@ -115,6 +115,57 @@ final class RechargeServiceTest extends ApiTestCase
         $this->assertSame('recharge', $row['biz_type']);
     }
 
+    /** @return list<array{0: string, 1: array<string, string>, 2: ?string}> [X-Client-Type, 配置, 期望 appId] */
+    public static function appIdResolutions(): array
+    {
+        $all = ['wechat_mini_app_id' => 'wxmini000000000001', 'wechat_official_app_id' => 'wxoa00000000000001', 'wechat_open_app_id' => 'wxopen000000000001', 'pay_wechat_app_id' => 'wxpay0000000000001'];
+        $fallbackOnly = ['wechat_mini_app_id' => '', 'wechat_official_app_id' => '', 'wechat_open_app_id' => '', 'pay_wechat_app_id' => 'wxpay0000000000001'];
+        $nothing = ['wechat_mini_app_id' => '', 'wechat_official_app_id' => '', 'wechat_open_app_id' => '', 'pay_wechat_app_id' => ''];
+
+        return [
+            ['miniapp', $all, 'wxmini000000000001'],
+            ['wechat_h5', $all, 'wxoa00000000000001'],
+            ['pc', $all, 'wxopen000000000001'],
+            ['app', $all, 'wxpay0000000000001'],
+            ['h5', $all, 'wxpay0000000000001'],
+            ['miniapp', $fallbackOnly, 'wxpay0000000000001'],
+            ['wechat_h5', $fallbackOnly, 'wxpay0000000000001'],
+            ['pc', $fallbackOnly, 'wxpay0000000000001'],
+            ['pc', $nothing, null],
+        ];
+    }
+
+    /** @param array<string, string> $configs */
+    #[\PHPUnit\Framework\Attributes\DataProvider('appIdResolutions')]
+    public function test_wechat_app_id_is_resolved_per_client(string $clientType, array $configs, ?string $expected): void
+    {
+        foreach ($configs as $key => $value) {
+            $this->setConfig($key, $value);
+        }
+        $userId = $this->user(['oa_openid' => 'o-official', 'mini_openid' => 'o-mini']);
+        $tradeType = ['miniapp' => 'jsapi', 'wechat_h5' => 'jsapi', 'pc' => 'native', 'app' => 'app', 'h5' => 'h5'][$clientType];
+        $this->wechat->queue('create', new CreateOrderResult($tradeType, ['stub' => true]));
+
+        $result = $this->service()->recharge($userId, '1.00', 'wechat', $clientType, '198.51.100.7');
+
+        [$args] = $this->wechat->callsTo('create');
+        $this->assertSame($expected, $args[0]->appId);
+        $this->assertSame($expected, Db::table('payment_orders')->where('order_no', $result['order_no'])->value('app_id'));
+    }
+
+    public function test_alipay_orders_carry_no_app_id(): void
+    {
+        $this->setConfig('pay_wechat_app_id', 'wxpay0000000000001');
+        $userId = $this->user();
+        $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
+
+        $result = $this->service()->recharge($userId, '1.00', 'alipay', 'pc', '198.51.100.7');
+
+        [$args] = $this->alipay->callsTo('create');
+        $this->assertNull($args[0]->appId);
+        $this->assertNull(Db::table('payment_orders')->where('order_no', $result['order_no'])->value('app_id'));
+    }
+
     /** @return list<array{0: string, 1: string}> */
     public static function rejectedCombinations(): array
     {

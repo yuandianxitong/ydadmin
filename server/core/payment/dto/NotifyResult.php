@@ -14,6 +14,8 @@ final readonly class NotifyResult
         public ?string $tradeNo = null,
         public ?int $paidCents = null,
         public array $raw = [],
+        /** 回调资源里的 appid（仅微信已支付回调填写），由 PaymentService 按订单核对 */
+        public ?string $appId = null,
     ) {
     }
 }

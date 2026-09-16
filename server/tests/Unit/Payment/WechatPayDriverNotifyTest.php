@@ -74,6 +74,7 @@ final class WechatPayDriverNotifyTest extends TestCase
         $this->assertSame('R2026091612000012345678', $result->orderNo);
         $this->assertSame('4200001234202609160000000001', $result->tradeNo);
         $this->assertSame(1234, $result->paidCents);
+        $this->assertSame(WechatPayFixture::APP_ID, $result->appId);
         $this->assertSame($transaction, $result->raw);
         $this->assertSame([], $this->history);
     }
@@ -223,12 +224,24 @@ final class WechatPayDriverNotifyTest extends TestCase
         );
     }
 
-    public function test_appid_mismatch_is_rejected(): void
+    public function test_paid_notification_carries_appid_without_comparing_to_config(): void
     {
-        $this->assertRejected(
-            $this->driver(true),
+        // M6a spec §7：各端 appid 不同（小程序 / 公众号 / 开放平台），驱动不再与配置 appid 比较，
+        // 只把回调里的 appid 带出，由 PaymentService 按订单下单时记录的 app_id 核对。
+        $result = $this->driver(true)->verifyNotify(
             $this->fx->notification($this->fx->transaction(['appid' => 'wx0000000000000000']), publicKeyMode: true),
         );
+
+        $this->assertTrue($result->paid);
+        $this->assertSame('wx0000000000000000', $result->appId);
+    }
+
+    public function test_paid_notification_without_appid_is_rejected(): void
+    {
+        $transaction = $this->fx->transaction();
+        unset($transaction['appid']);
+
+        $this->assertRejected($this->driver(true), $this->fx->notification($transaction, publicKeyMode: true));
     }
 
     public function test_resource_encrypted_with_other_key_is_rejected(): void
@@ -247,6 +260,7 @@ final class WechatPayDriverNotifyTest extends TestCase
         $result = $this->driver(true)->verifyNotify($this->fx->notification($refund, 'REFUND.SUCCESS', true));
 
         $this->assertFalse($result->paid);
+        $this->assertNull($result->appId);
     }
 
     public function test_trade_state_other_than_success_is_not_paid(): void
