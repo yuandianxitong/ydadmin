@@ -179,4 +179,50 @@ final class SchemaTest extends TestCase
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');
         $this->assertStringNotContainsString('INSERT INTO `admins`', $init, '管理员账号由 php webman admin:init 建立');
     }
+
+    public function test_m5a_asset_tables_exist_with_expected_columns_and_indexes(): void
+    {
+        foreach (['users', 'balance_logs', 'points_logs'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
+        }
+
+        foreach ([
+            'nickname', 'avatar', 'mobile', 'email', 'password', 'gender', 'birthday',
+            'openid', 'oa_openid', 'unionid', 'mini_openid',
+            'last_login_ip', 'last_login_time', 'login_count', 'status', 'balance', 'points',
+            'created_at', 'updated_at', 'deleted_at',
+        ] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('users', $column), "users 缺列 {$column}");
+        }
+
+        foreach (['user_id', 'amount', 'before_balance', 'after_balance', 'type', 'source', 'remark', 'operator_id', 'created_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('balance_logs', $column), "balance_logs 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('balance_logs', 'updated_at'), 'balance_logs 无 updated_at');
+        $this->assertFalse(Db::schema()->hasColumn('balance_logs', 'deleted_at'), 'balance_logs 不软删');
+
+        foreach (['user_id', 'points', 'before_points', 'after_points', 'type', 'source', 'remark', 'operator_id', 'created_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('points_logs', $column), "points_logs 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('points_logs', 'updated_at'), 'points_logs 无 updated_at');
+        $this->assertFalse(Db::schema()->hasColumn('points_logs', 'deleted_at'), 'points_logs 不软删');
+
+        // uk_mobile：重复手机号必须被唯一索引拒绝
+        $now = date('Y-m-d H:i:s');
+        Db::table('users')->insert([
+            'mobile' => '13800009999', 'status' => 1, 'balance' => '0.00', 'points' => 0,
+            'login_count' => 0, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        try {
+            Db::table('users')->insert([
+                'mobile' => '13800009999', 'status' => 1, 'balance' => '0.00', 'points' => 0,
+                'login_count' => 0, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+            $this->fail('uk_mobile 唯一索引未生效');
+        } catch (\Illuminate\Database\QueryException $e) {
+            $this->assertStringContainsString('uk_mobile', $e->getMessage());
+        } finally {
+            Db::table('users')->where('mobile', '13800009999')->delete();
+        }
+    }
 }

@@ -89,4 +89,15 @@ return [
 
     // 实时通道（M4）
     'realtime_force_logout'      => '您已被管理员强制下线，请重新登录',
+
+    // 会员资产（M5a）
+    'balance_log_type_1' => '充值',
+    'balance_log_type_2' => '消费',
+    'balance_log_type_3' => '退款',
+    'balance_log_type_4' => '后台调整',
+    'points_log_type_1'  => '后台调整',
+    'points_log_type_2'  => '注册赠送',
+    'points_log_type_3'  => '签到',
+    'points_log_type_4'  => '消费赠送',
+    'points_log_type_5'  => '消费扣减',
 ];

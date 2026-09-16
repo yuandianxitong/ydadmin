@@ -89,4 +89,15 @@ return [
 
     // Realtime channel (M4)
     'realtime_force_logout'       => 'You have been signed out by an administrator. Please log in again',
+
+    // Member assets (M5a)
+    'balance_log_type_1' => 'Recharge',
+    'balance_log_type_2' => 'Consumption',
+    'balance_log_type_3' => 'Refund',
+    'balance_log_type_4' => 'Admin adjustment',
+    'points_log_type_1'  => 'Admin adjustment',
+    'points_log_type_2'  => 'Registration bonus',
+    'points_log_type_3'  => 'Daily check-in',
+    'points_log_type_4'  => 'Consumption bonus',
+    'points_log_type_5'  => 'Consumption deduction',
 ];
