@@ -16,6 +16,9 @@ $builder->addDefinitions([
     core\sms\SmsInterface::class => \DI\factory(
         static fn (core\sms\SmsManager $manager): core\sms\SmsInterface => $manager->driver()
     ),
+    // 支付：服务注入的是接口，测试用 Container::set 换成假解析器。用 \DI\get 而不是工厂：
+    // PaymentManager 每次 gateway() 都现读配置、现 new 驱动，所以改支付配置不需要 reload（与上面的短信不同）。
+    core\payment\GatewayResolver::class => \DI\get(core\payment\PaymentManager::class),
 ]);
 
 return $builder->build();

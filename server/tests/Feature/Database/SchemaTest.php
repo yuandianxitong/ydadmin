@@ -128,6 +128,49 @@ final class SchemaTest extends TestCase
         }
     }
 
+    public function test_payment_config_seeds(): void
+    {
+        $rows = Db::table('system_configs')->where('config_group', 'payment')->orderBy('sort_order')->get()->all();
+
+        $this->assertSame([
+            'pay_alipay_enabled', 'pay_alipay_sandbox', 'pay_alipay_app_id', 'pay_alipay_private_key',
+            'pay_alipay_public_key', 'pay_alipay_notify_url',
+            'pay_wechat_enabled', 'pay_wechat_app_id', 'pay_wechat_mch_id', 'pay_wechat_api_v3_key',
+            'pay_wechat_serial_no', 'pay_wechat_private_key_path', 'pay_wechat_public_key_id',
+            'pay_wechat_public_key', 'pay_wechat_notify_url',
+        ], array_map(static fn (object $row): string => (string) $row->config_key, $rows), 'M5b spec §6：15 项，顺序即管理端表单顺序');
+
+        foreach ($rows as $row) {
+            $key = (string) $row->config_key;
+            $this->assertSame(0, (int) $row->is_public, "{$key} 不得出现在 config/global");
+            $this->assertSame(1, (int) $row->status, $key);
+
+            if (in_array($key, ['pay_alipay_enabled', 'pay_wechat_enabled'], true)) {
+                $this->assertSame('boolean', (string) $row->config_type, $key);
+                $this->assertSame('0', (string) $row->config_value, '渠道默认关闭');
+                $this->assertNull($row->config_depends, '开关本身不依赖别的项');
+
+                continue;
+            }
+
+            $channel = str_starts_with($key, 'pay_alipay_') ? 'alipay' : 'wechat';
+            $this->assertSame(
+                ['field' => "pay_{$channel}_enabled", 'value' => '1'],
+                json_decode((string) $row->config_depends, true),
+                "{$key} 要挂在本渠道开关下联动显示"
+            );
+            if ($key === 'pay_alipay_sandbox') {
+                $this->assertSame('boolean', (string) $row->config_type);
+                $this->assertSame('0', (string) $row->config_value);
+            } else {
+                $this->assertSame('string', (string) $row->config_type, $key);
+                $this->assertSame('', (string) $row->config_value, "{$key} 种子不带任何凭据或地址");
+            }
+        }
+
+        $this->assertSame(0, Db::table('system_configs')->whereIn('config_key', ['pay_wechat_api_key', 'pay_wechat_cert_path'])->count(), '1.x 未使用的两项不再种入');
+    }
+
     public function test_m3_cron_tables_and_menu_seeds(): void
     {
         foreach (['cron_jobs', 'cron_job_logs'] as $table) {

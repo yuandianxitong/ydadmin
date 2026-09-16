@@ -197,6 +197,26 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('sms_template_login', '', 'sms', 'string', '登录模板ID', '登录 / 短信登录场景的模板 id（阿里云 TemplateCode，腾讯云 TemplateId）', NULL, NULL, 10, 1, 0, NOW(), NOW()),
   ('sms_template_register', '', 'sms', 'string', '注册模板ID', '注册场景的模板 id', NULL, NULL, 11, 1, 0, NOW(), NOW());
 
+-- payment 分组 15 项（M5b spec §6）。is_public 全部为 0；非开关项都挂在本渠道开关下联动显示。
+-- 1.x 未使用的 pay_wechat_api_key、pay_wechat_cert_path 不再种入。回调地址留空时按「网站地址」拼：
+-- site_url + /api/payment/notify/{channel}（不用请求 Host 头拼，Host 可被伪造）。
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
+  ('pay_alipay_enabled', '0', 'payment', 'boolean', '启用支付宝', '是否开启支付宝支付（只影响新下单；关单、退款、回调照常处理）', NULL, NULL, 1, 1, 0, NOW(), NOW()),
+  ('pay_alipay_sandbox', '0', 'payment', 'boolean', '沙箱环境', '开启后请求支付宝沙箱网关 openapi-sandbox.dl.alipaydev.com，仅用于联调', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 2, 1, 0, NOW(), NOW()),
+  ('pay_alipay_app_id', '', 'payment', 'string', '支付宝AppID', '支付宝开放平台应用 AppID', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 3, 1, 0, NOW(), NOW()),
+  ('pay_alipay_private_key', '', 'payment', 'string', '应用私钥', '应用私钥（RSA2），PEM 正文，可省略头尾行', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 4, 1, 0, NOW(), NOW()),
+  ('pay_alipay_public_key', '', 'payment', 'string', '支付宝公钥', '支付宝公钥（公钥模式，不是应用公钥；不支持公钥证书模式）', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 5, 1, 0, NOW(), NOW()),
+  ('pay_alipay_notify_url', '', 'payment', 'string', '异步通知地址', '留空则使用「网站地址」+ /api/payment/notify/alipay', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 6, 1, 0, NOW(), NOW()),
+  ('pay_wechat_enabled', '0', 'payment', 'boolean', '启用微信支付', '是否开启微信支付（只影响新下单；关单、退款、回调照常处理）', NULL, NULL, 11, 1, 0, NOW(), NOW()),
+  ('pay_wechat_app_id', '', 'payment', 'string', '微信AppID', '与商户号绑定的公众号、小程序或移动应用 AppID', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 12, 1, 0, NOW(), NOW()),
+  ('pay_wechat_mch_id', '', 'payment', 'string', '微信商户号', '微信支付商户号', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 13, 1, 0, NOW(), NOW()),
+  ('pay_wechat_api_v3_key', '', 'payment', 'string', '微信APIv3密钥', '商户平台设置的 APIv3 密钥（32 位）', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 14, 1, 0, NOW(), NOW()),
+  ('pay_wechat_serial_no', '', 'payment', 'string', '商户证书序列号', '商户 API 证书序列号（不是平台证书序列号）', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 15, 1, 0, NOW(), NOW()),
+  ('pay_wechat_private_key_path', '', 'payment', 'string', '商户私钥文件', '商户 API 私钥文件 apiclient_key.pem 的路径，相对路径从 server/ 目录算起', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 16, 1, 0, NOW(), NOW()),
+  ('pay_wechat_public_key_id', '', 'payment', 'string', '微信支付公钥ID', '选填：填写后用微信支付公钥验签（PUB_KEY_ID_ 开头），须与公钥成对填写；都留空则自动下载平台证书', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 17, 1, 0, NOW(), NOW()),
+  ('pay_wechat_public_key', '', 'payment', 'string', '微信支付公钥', '选填：微信支付公钥 PEM 正文，须与公钥ID成对填写', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 18, 1, 0, NOW(), NOW()),
+  ('pay_wechat_notify_url', '', 'payment', 'string', '异步通知地址', '留空则使用「网站地址」+ /api/payment/notify/wechat', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 19, 1, 0, NOW(), NOW());
+
 -- ---------------------------------------------------------------- M5a：会员管理
 
 -- 菜单：沿用 TP8 id（9 用户管理目录，900 用户列表，901–904 按钮，910 余额记录，920 积分记录）
