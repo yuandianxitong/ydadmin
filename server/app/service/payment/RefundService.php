@@ -52,6 +52,15 @@ class RefundService extends Service
     /** 渠道明确失败但没给原因时写进 error_msg 的内部标识（不是对外文案，不走 lang） */
     private const ERROR_CHANNEL_FAILED = 'channel_refund_failed';
 
+    /** 渠道查无此退款且已超过 refund_not_found_fail_seconds 时写进 error_msg 的内部标识 */
+    private const ERROR_CHANNEL_NOT_FOUND = 'channel_refund_not_found';
+
+    private const OUTCOME_SUCCESS = 'success';
+
+    private const OUTCOME_FAILED = 'failed';
+
+    private const OUTCOME_SKIPPED = 'skipped';
+
     #[Inject]
     protected PaymentOrderRepository $paymentOrderRepository;
 
@@ -175,6 +184,83 @@ class RefundService extends Service
                 );
             }
         });
+    }
+
+    /**
+     * 退款对账（spec §5.7）：扫描创建超过 reconcile_min_age_seconds 的 processing 退款单，逐条查网关结算。
+     * 每条独立 try/catch，一条出错（网关不确定、凭据不全、数据库异常）只记日志并计入 skipped，不中断整轮。
+     *
+     * @return array{scanned: int, success: int, failed: int, skipped: int}
+     */
+    public function reconcile(\DateTimeImmutable $now): array
+    {
+        $minAge = (int) config('payment.reconcile_min_age_seconds', 120);
+        $stuckAfter = (int) config('payment.refund_stuck_alert_seconds', 86400);
+        $rows = $this->refundOrderRepository->findProcessingCreatedBefore(
+            $now->modify("-{$minAge} seconds"),
+            (int) config('payment.reconcile_batch', 100),
+        );
+
+        $counts = ['scanned' => count($rows), 'success' => 0, 'failed' => 0, 'skipped' => 0];
+        foreach ($rows as $refund) {
+            $age = $now->getTimestamp() - (new \DateTimeImmutable((string) $refund['created_at']))->getTimestamp();
+            try {
+                $outcome = $this->reconcileOne($refund, $age);
+            } catch (\Throwable $e) {
+                Log::warning('退款对账单条失败，下轮重试', ['refund_no' => $refund['refund_no'], 'error' => $e->getMessage()]);
+                $outcome = self::OUTCOME_SKIPPED;
+            }
+            $counts[$outcome]++;
+
+            if ($outcome === self::OUTCOME_SKIPPED && $age >= $stuckAfter) {
+                Log::error('退款长时间处理中，需人工介入', [
+                    'refund_no'  => $refund['refund_no'],
+                    'created_at' => $refund['created_at'],
+                ]);
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param array<string, mixed> $refund
+     * @return self::OUTCOME_*
+     */
+    private function reconcileOne(array $refund, int $age): string
+    {
+        $order = $this->paymentOrderRepository->find((int) $refund['payment_order_id']);
+        if ($order === null) {
+            Log::error('退款单对应的支付订单不存在', ['refund_no' => $refund['refund_no']]);
+
+            return self::OUTCOME_SKIPPED;
+        }
+
+        // 凭据不全抛 PaymentConfigException，由 reconcile() 的 catch 计入 skipped（查询与对账不看渠道开关，spec §5.8）
+        $result = $this->gateways->gateway((string) $order['channel'])
+            ->queryRefund((string) $order['order_no'], (string) $refund['refund_no']);
+
+        switch ($result->status) {
+            case RefundResult::SUCCESS:
+                $this->settleSuccess((int) $refund['id'], $result->channelRefundNo);
+
+                return self::OUTCOME_SUCCESS;
+            case RefundResult::FAILED:
+                $this->settleFailed((int) $refund['id'], $result->errorMsg ?? self::ERROR_CHANNEL_FAILED);
+
+                return self::OUTCOME_FAILED;
+            case RefundResult::NOT_FOUND:
+                // 刚发出的退款可能还没在渠道落地：满阈值才判失败，防止把在途请求冲正掉
+                if ($age >= (int) config('payment.refund_not_found_fail_seconds', 1800)) {
+                    $this->settleFailed((int) $refund['id'], self::ERROR_CHANNEL_NOT_FOUND);
+
+                    return self::OUTCOME_FAILED;
+                }
+
+                return self::OUTCOME_SKIPPED;
+            default:
+                return self::OUTCOME_SKIPPED;
+        }
     }
 
     /**

@@ -12,6 +12,8 @@ return [
         'log:archive'           => app\command\LogArchiveCommand::class,
         // M5b：关单。单轮至多 payment.close_batch 单，网关调用都带超时；payment:refund 永远不进这里（设计决定 14）
         'payment:close-expired' => app\command\PaymentCloseExpiredCommand::class,
+        // M5b：退款对账。单轮至多 payment.reconcile_batch 条，网关调用都带超时
+        'payment:reconcile-refunds' => app\command\PaymentReconcileRefundsCommand::class,
     ],
     // 执行锁 cron:running:{id} 的 TTL（秒）：命令跑得比它久，锁会提前过期，下一周期可能与之重叠
     'lock_ttl'            => 3600,

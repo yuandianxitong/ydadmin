@@ -224,6 +224,13 @@ final class SchemaTest extends TestCase
         $this->assertSame('支付订单超时关闭', $seed->name);
         $this->assertSame('*/5 * * * *', $seed->expression);
         $this->assertSame(1, (int) $seed->status);
+
+        $reconcile = Db::table('cron_jobs')->where('command', 'payment:reconcile-refunds')->first();
+        $this->assertNotNull($reconcile, 'M5b 退款对账定时任务种子');
+        $this->assertSame('退款结果对账', $reconcile->name);
+        $this->assertSame('*/10 * * * *', $reconcile->expression);
+        $this->assertSame(1, (int) $reconcile->status);
+
         $this->assertSame(0, Db::table('cron_jobs')->where('command', 'like', 'payment:refund%')->count(), '退款命令永远不进定时任务');
     }
 

@@ -177,7 +177,8 @@ INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status
 
 -- M5b：支付定时任务（spec §9）。命令必须同时在 config/cron.php 白名单里；payment:refund 永远不进这里。
 INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status`, `sort`, `created_at`, `updated_at`) VALUES
-  ('支付订单超时关闭', 'payment:close-expired', '*/5 * * * *', '关闭超过支付时限的待支付订单；已支付的补记入账', 1, 0, NOW(), NOW());
+  ('支付订单超时关闭', 'payment:close-expired', '*/5 * * * *', '关闭超过支付时限的待支付订单；已支付的补记入账', 1, 0, NOW(), NOW()),
+  ('退款结果对账', 'payment:reconcile-refunds', '*/10 * * * *', '查询处理中的退款并结算结果，失败的退款把余额加回', 1, 0, NOW(), NOW());
 
 -- ---------------------------------------------------------------- M4：在线管理员
 

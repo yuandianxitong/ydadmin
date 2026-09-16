@@ -43,11 +43,15 @@ final class CronCommandRunnerTest extends TestCase
     {
         $this->restoreConfig();
 
-        $this->assertSame(['log:archive', 'payment:close-expired'], array_keys((array) config('cron.commands')));
+        $this->assertSame(
+            ['log:archive', 'payment:close-expired', 'payment:reconcile-refunds'],
+            array_keys((array) config('cron.commands'))
+        );
         $this->assertTrue((new CronCommandRunner())->allows('log:archive --days=90'));
         $this->assertTrue((new CronCommandRunner())->allows('payment:close-expired'));
+        $this->assertTrue((new CronCommandRunner())->allows('payment:reconcile-refunds'));
         $this->assertFalse((new CronCommandRunner())->allows('db:reset'), 'db:reset 永远不能进白名单');
-        $this->assertFalse((new CronCommandRunner())->allows('payment:refund R1 1.00'), 'payment:refund 只能手动执行（M5b 设计决定 14）');
+        $this->assertFalse((new CronCommandRunner())->allows('payment:refund R1 1.00'), '退款只能人工在命令行执行');
     }
 
     public function test_a_whitelisted_entry_that_is_not_a_console_command_is_not_allowed(): void
