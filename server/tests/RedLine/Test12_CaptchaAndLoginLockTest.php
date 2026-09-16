@@ -124,4 +124,37 @@ final class Test12_CaptchaAndLoginLockTest extends ApiTestCase
             Redis::del($failKey);
         }
     }
+
+    /**
+     * 最终评审第 2 条：M5a 第一次把 /api 暴露出去时，C 端密码登录一条限流都没挂，而管理端有
+     * （会员口令规则只有 min:6，公开接口无锁定、无计数、失败也不写日志）。同一个
+     * LoginRateLimitMiddleware 复用到 /api/auth/login 后，C 端也必须按「IP + 账号」精确计数：
+     * pc 发 account、uniapp 发 mobile，两个字段名都要落在同一个 key 上，否则限流退化成按 IP 一刀切，
+     * 同一个出口 NAT 后的正常会员会互相锁死。
+     */
+    public function test_c_end_password_login_locks_after_configured_failures(): void
+    {
+        $this->setConfig('login_max_retry', '2');
+        $this->setConfig('login_lock_duration', '1');
+        $user = $this->actingAsUser();
+        // 与 LoginRateLimitMiddleware 同一个 key：直连地址 127.0.0.1（测试不配置可信代理）+ 小写账号
+        $hash = md5('127.0.0.1|' . mb_strtolower($user->mobile));
+
+        try {
+            $this->post('/api/auth/login', ['account' => $user->mobile, 'password' => 'bad-pass-1'])->assertCode(400);
+            // 第二次故意换成 uniapp 的字段名：必须和 account 落在同一个计数 key 上
+            $this->post('/api/auth/login', ['mobile' => $user->mobile, 'password' => 'bad-pass-2'])->assertCode(400);
+
+            $locked = $this->post('/api/auth/login', ['account' => $user->mobile, 'password' => $user->password]);
+            $this->assertSame(200, $locked->status());
+            $locked->assertCode(429);
+            $this->assertMatchesRegularExpression('/\d+/', $locked->message(), '提示剩余秒数');
+
+            // 按 IP+账号计数，别的会员不受影响
+            $other = $this->actingAsUser();
+            $this->post('/api/auth/login', ['account' => $other->mobile, 'password' => $other->password])->assertOk();
+        } finally {
+            Redis::del("login_fail:{$hash}", "login_lock:{$hash}");
+        }
+    }
 }

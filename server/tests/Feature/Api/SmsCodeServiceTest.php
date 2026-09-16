@@ -65,6 +65,8 @@ final class SmsCodeServiceTest extends ApiTestCase
             "sms_code:register:{$mobile}",
             "sms_rate:minute:{$mobile}",
             "sms_rate:day:{$mobile}",
+            "sms_verify_fail:login:{$mobile}",
+            "sms_verify_fail:register:{$mobile}",
             'sms_rate:ip:' . md5(self::IP)
         );
     }
@@ -290,5 +292,83 @@ final class SmsCodeServiceTest extends ApiTestCase
 
         $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE), '用户根本拿不到这串码，留着只是给撞码开窗口');
         $this->assertSame('1', (string) Redis::get('sms_rate:minute:' . self::MOBILE), '限流计数不回退：网关坏掉时更不能让同一个号码每秒重试');
+    }
+
+    /**
+     * 最终评审第 1 条（Critical）：verify() 失败时不删码本身是有意的（手滑输错一位不该逼用户重等 60 秒），
+     * 但没有尝试次数上限时它就是一个 300 秒的撞码窗口——`/api/auth/sms-login` 是公开路由、不校验密码，
+     * 6 位码只有 100 万种，无限次尝试即可在 TTL 内穷举出来直接拿到该会员的 user token。
+     * 连续错到超过上限时必须把验证码一并作废：之后即使拿着原本正确的那串码也进不去，只能重新发码。
+     */
+    public function test_too_many_wrong_codes_lock_out_and_kill_the_cached_code(): void
+    {
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $code = (string) Redis::get('sms_code:register:' . self::MOBILE);
+        $wrong = '000000' === $code ? '111111' : '000000';
+
+        for ($i = 1; $i <= SmsCodeService::VERIFY_FAIL_LIMIT; ++$i) {
+            try {
+                $this->service()->verify(self::MOBILE, 'register', $wrong);
+                $this->fail("第 {$i} 次错码必须被拒绝");
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors(), "第 {$i} 次还在上限之内，只是普通的「验证码错误」");
+            }
+        }
+        $this->assertSame($code, (string) Redis::get('sms_code:register:' . self::MOBILE), '上限之内不动缓存里的码');
+
+        try {
+            $this->service()->verify(self::MOBILE, 'register', $wrong);
+            $this->fail('超过上限的那一次必须被拦下');
+        } catch (BusinessException $e) {
+            $this->assertSame(429, $e->getCode(), '与其它限流一致：HTTP 200 + code 429');
+            $this->assertSame(lang('business.sms_verify_too_many_attempts'), $e->getMessage());
+        }
+        $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE), '撞了这么多次，这串码必须作废');
+
+        try {
+            $this->service()->verify(self::MOBILE, 'register', $code);
+            $this->fail('作废之后，拿着原本正确的那串码也不能通过——必须重新发码');
+        } catch (BusinessException $e) {
+            // ValidationException 是 BusinessException 的子类，所以这里靠 code 区分：429 而不是 422
+            $this->assertSame(429, $e->getCode(), '码已作废，正确的码也登不进去');
+        }
+    }
+
+    /**
+     * 成功校验必须把失败计数一并清零：上一轮错过的次数不该带进下一轮，
+     * 否则「错两次→输对→重新发码」之后只剩下不到一轮的容错，正常用户会被莫名其妙地锁掉。
+     */
+    public function test_a_successful_verify_clears_the_failure_counter(): void
+    {
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $code = (string) Redis::get('sms_code:register:' . self::MOBILE);
+        $wrong = '000000' === $code ? '111111' : '000000';
+
+        foreach ([1, 2] as $attempt) {
+            try {
+                $this->service()->verify(self::MOBILE, 'register', $wrong);
+                $this->fail("第 {$attempt} 次错码必须被拒绝");
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors());
+            }
+        }
+
+        $this->service()->verify(self::MOBILE, 'register', $code);
+        $this->assertSame(0, (int) Redis::exists('sms_verify_fail:register:' . self::MOBILE), '校验成功即清零');
+
+        // 新一轮：重新发码后，完整的 VERIFY_FAIL_LIMIT 次容错必须都还在（没有累加上一轮那 2 次）
+        Redis::del('sms_rate:minute:' . self::MOBILE);
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $fresh = (string) Redis::get('sms_code:register:' . self::MOBILE);
+
+        for ($i = 1; $i <= SmsCodeService::VERIFY_FAIL_LIMIT; ++$i) {
+            try {
+                $this->service()->verify(self::MOBILE, 'register', '000000' === $fresh ? '111111' : '000000');
+                $this->fail("新一轮第 {$i} 次错码必须被拒绝");
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors(), "新一轮第 {$i} 次仍应是普通的「验证码错误」，失败计数没有跨轮累加");
+            }
+        }
+        $this->assertSame($fresh, (string) Redis::get('sms_code:register:' . self::MOBILE), '新一轮的码在上限之内仍然有效');
     }
 }

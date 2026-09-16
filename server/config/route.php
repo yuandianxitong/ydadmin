@@ -237,7 +237,9 @@ Route::group('/adminapi', function () use ($adminAuth) {
 Route::group('/api', function () use ($apiAuth) {
     // ---- 公开段（不挂认证）
     Route::post('/common/sms-code', [CommonController::class, 'smsCode']);
-    Route::post('/auth/login', [ApiAuthController::class, 'login']);
+    // 复用管理端那套登录限流（最终评审第 2 条）：C 端口令规则只有 min:6，公开接口再没有锁定、没有计数、
+    // 失败也不写日志的话，撞库的成本几乎为零。中间件按「IP + 账号」计数，账号字段兼容 account / mobile。
+    Route::post('/auth/login', [ApiAuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);
     Route::post('/auth/register', [ApiAuthController::class, 'register']);
     Route::post('/auth/sms-login', [ApiAuthController::class, 'smsLogin']);
 

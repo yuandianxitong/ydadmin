@@ -118,4 +118,5 @@ return [
     'sms_rate_limited_minute'       => '验证码发送过于频繁，请 :seconds 秒后再试',
     'sms_rate_limited_day'          => '今日验证码发送次数已达上限（:limit 次），请明天再试',
     'sms_rate_limited_ip'           => '当前网络请求验证码过于频繁（每小时最多 :limit 次），请稍后再试',
+    'sms_verify_too_many_attempts'  => '验证码连续输错次数过多，该验证码已失效，请重新获取',
 ];

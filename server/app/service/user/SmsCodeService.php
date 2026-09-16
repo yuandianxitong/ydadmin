@@ -17,7 +17,8 @@ use support\Redis;
 /**
  * 短信验证码（spec §7.2）。生成、缓存、校验、限流都是业务，不进 core/sms——core 只管把一条短信交给网关。
  *
- * 键：验证码 `sms_code:{scene}:{mobile}`（TTL 300 秒）；限流 `sms_rate:minute:{mobile}`（1 次 / 60 秒）、
+ * 键：验证码 `sms_code:{scene}:{mobile}`（TTL 300 秒）；校验失败计数 `sms_verify_fail:{scene}:{mobile}`
+ * （TTL 同验证码，见 verify()）；限流 `sms_rate:minute:{mobile}`（1 次 / 60 秒）、
  * `sms_rate:day:{mobile}`（10 次 / 86400 秒）与 `sms_rate:ip:` . md5($ip)（20 次 / 3600 秒，按 IP，
  * 修复轮第 2 条），超出一律 BusinessException code 429（HTTP 200 + code 429，与 LoginRateLimitMiddleware、
  * WsTicketService 同一先例，不照 TP8 的 HTTP 429）。计数的 INCR 与 EXPIRE 走一段 Lua 原子执行：分成两条命令时，
@@ -50,6 +51,9 @@ class SmsCodeService extends Service
     public const DAY_LIMIT = 10;
 
     public const DAY_WINDOW = 86400;
+
+    /** 校验侧的尝试次数上限（最终评审第 1 条）：理由见 verify()。 */
+    public const VERIFY_FAIL_LIMIT = 5;
 
     /** 按 IP 的闸门（修复轮第 2 条）：理由见类注释。 */
     public const IP_LIMIT = 20;
@@ -116,18 +120,34 @@ class SmsCodeService extends Service
 
     /**
      * 校验通过后立即删除验证码键，防重放（spec §7.2）。
-     * 校验失败**不**删：手滑输错一位不该逼用户重新等 60 秒——重放风险由一次性删除与 5 分钟 TTL 兜住。
+     * 校验失败**不**删：手滑输错一位不该逼用户重新等 60 秒。
+     *
+     * 但「失败不删」单独存在就是一个 300 秒的撞码窗口（最终评审第 1 条）：`/api/auth/sms-login` 是公开
+     * 路由、没有任何速率约束、而且不校验密码，6 位码只有 100 万种——对一个已注册号码发一次码，就能在
+     * TTL 内高速穷举出来，直接拿到该会员的 user token。发送侧的三道限流一概管不到这里，那是另一侧。
+     * 所以按 `sms_verify_fail:{scene}:{mobile}` 计失败次数，超过 VERIFY_FAIL_LIMIT 次就把验证码一并
+     * 作废：到这个次数已经不是「手滑输错一位」了，必须重新发码。计数 TTL 与验证码一致（300 秒），
+     * 所以即便误伤，代价上限也只是等这一轮码自然过期。
+     * 校验成功时把计数一起删掉：一轮里错两次再输对，不该把这两次带进下一轮。
      *
      * @throws ValidationException errors.code：验证码错误或已过期
+     * @throws BusinessException   连续输错超过上限（code 429），验证码同时作废
      */
     public function verify(string $mobile, string $scene, string $code): void
     {
         $this->assertScene($scene);
         $cached = Redis::get(self::codeKey($mobile, $scene));
         if (!is_string($cached) || $cached === '' || !hash_equals($cached, $code)) {
+            $fails = (int) Redis::eval(self::INCR_WITH_TTL, 1, self::verifyFailKey($mobile, $scene), self::CODE_TTL);
+            if ($fails > self::VERIFY_FAIL_LIMIT) {
+                Redis::del(self::codeKey($mobile, $scene));
+
+                throw new BusinessException(lang('business.sms_verify_too_many_attempts'), 429);
+            }
+
             throw new ValidationException(['code' => lang('validation.sms_code_invalid')]);
         }
-        Redis::del(self::codeKey($mobile, $scene));
+        Redis::del(self::codeKey($mobile, $scene), self::verifyFailKey($mobile, $scene));
     }
 
     private function assertScene(string $scene): void
@@ -189,6 +209,12 @@ class SmsCodeService extends Service
     private static function codeKey(string $mobile, string $scene): string
     {
         return "sms_code:{$scene}:{$mobile}";
+    }
+
+    /** 校验失败计数（最终评审第 1 条）：与验证码同 scene、同手机号、同 TTL。 */
+    private static function verifyFailKey(string $mobile, string $scene): string
+    {
+        return "sms_verify_fail:{$scene}:{$mobile}";
     }
 
     /**

@@ -118,4 +118,5 @@ return [
     'sms_rate_limited_minute'       => 'Verification codes are being requested too often, please retry in :seconds seconds',
     'sms_rate_limited_day'          => 'Daily verification code limit reached (:limit), please try again tomorrow',
     'sms_rate_limited_ip'           => 'Too many verification code requests from this network (max :limit per hour), please try again later',
+    'sms_verify_too_many_attempts'  => 'Too many incorrect attempts. This verification code is no longer valid, please request a new one',
 ];
