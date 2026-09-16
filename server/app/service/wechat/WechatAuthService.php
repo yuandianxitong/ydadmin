@@ -41,6 +41,13 @@ class WechatAuthService extends Service
 
     private const RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0";
 
+    /** 快捷登录中间态凭证的 Redis 键前缀（红线测试引用） */
+    public const QUICK_KEY_PREFIX = 'wechat:quick:';
+
+    private const TEMP_TOKEN_PATTERN = '/^[0-9a-f]{32}$/';
+
+    private const GET_AND_DELETE = "local v = redis.call('GET', KEYS[1]) if v then redis.call('DEL', KEYS[1]) end return v";
+
     /** users.avatar 是 varchar(255)：更长的头像地址宁可不存，也不能让插入报错把登录打断 */
     private const AVATAR_MAX_LENGTH = 255;
 
@@ -114,6 +121,90 @@ class WechatAuthService extends Service
     }
 
     /**
+     * 小程序快捷登录（spec §4.4）：命中直接登录；未命中返回一次性 temp_token，由 bindPhone 用手机号完成注册或绑定。
+     *
+     * @return array{status: 'logged_in', token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}|array{status: 'need_bindphone', temp_token: string}
+     * @throws BusinessException
+     */
+    public function quickLogin(string $code, string $ip): array
+    {
+        $identity = $this->wechat('sns/jscode2session', fn (): array => $this->miniProgram->code2Session($this->wechatConfig->mini(), $code));
+
+        $userId = $this->withLoginLock('mini_openid', $identity['openid'], function () use ($identity): ?int {
+            $user = $this->matchOrBind('mini_openid', $identity['openid'], $identity['unionid']);
+
+            return $user === null ? null : $this->activeUserId($user);
+        });
+
+        if ($userId !== null) {
+            return ['status' => 'logged_in'] + $this->sessions->issue($userId, $ip);
+        }
+
+        $tempToken = bin2hex(random_bytes(16));
+        Redis::set(
+            self::QUICK_KEY_PREFIX . $tempToken,
+            json_encode(['openid' => $identity['openid'], 'unionid' => $identity['unionid']], JSON_THROW_ON_ERROR),
+            'EX',
+            max(1, (int) config('wechat.quick_token_ttl', 300))
+        );
+
+        return ['status' => 'need_bindphone', 'temp_token' => $tempToken];
+    }
+
+    /**
+     * 绑手机号（spec §4.5）。temp_token 一次性：先原子取出并删除，再解密手机号——解密失败也不能重放，用户需重新快捷登录。
+     *
+     * 手机号已有账号：mini_openid 为空 → 补写；等于本 openid → 直接登录；是别的值 → 拒绝（不覆盖）。
+     * 若本 openid 在 quickLogin 之后已被另一个账号占用，同样拒绝，不让同一 mini_openid 挂到两个账号上。
+     * 手机号没有账号：锁内再按 mini_openid 查一次（防并发已注册），有则登录，无则带手机号注册。
+     *
+     * @return array{status: 'logged_in', token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}
+     * @throws BusinessException
+     */
+    public function bindPhone(string $tempToken, string $phoneCode, string $ip): array
+    {
+        $pending = $this->consumeQuickToken($tempToken) ?? throw new BusinessException(lang('wechat.quick_expired'));
+        $mobile = $this->wechat('wxa/business/getuserphonenumber', fn (): string => $this->miniProgram->getPhoneNumber($this->wechatConfig->mini(), $phoneCode));
+        $openid = $pending['openid'];
+        $unionid = $pending['unionid'];
+
+        $userId = $this->withLoginLock('mini_openid', $openid, function () use ($mobile, $openid, $unionid): int {
+            $user = $this->users->findByAccount($mobile);
+            if ($user === null) {
+                $existing = $this->users->findByWechatColumn('mini_openid', $openid);
+                if ($existing !== null) {
+                    return $this->activeUserId($existing);
+                }
+
+                return $this->register('mini_openid', $openid, $unionid, $this->defaultNickname(), null, $mobile);
+            }
+
+            $userId = $this->activeUserId($user);
+            $current = $user['mini_openid'] ?? null;
+            if ($current !== null && $current !== $openid) {
+                throw new BusinessException(lang('wechat.phone_bound_other'));
+            }
+            if ($current === null) {
+                $owner = $this->users->findByWechatColumn('mini_openid', $openid);
+                if ($owner !== null && (int) $owner['id'] !== $userId) {
+                    throw new BusinessException(lang('wechat.phone_bound_other'));
+                }
+                if (!$this->users->bindWechatColumnIfEmpty($userId, 'mini_openid', $openid)
+                    && ($this->users->find($userId)['mini_openid'] ?? null) !== $openid) {
+                    throw new BusinessException(lang('wechat.phone_bound_other'));
+                }
+            }
+            if ($unionid !== null && $this->users->findByUnionid($unionid) === null) {
+                $this->users->fillUnionidIfEmpty($userId, $unionid);
+            }
+
+            return $userId;
+        });
+
+        return ['status' => 'logged_in'] + $this->sessions->issue($userId, $ip);
+    }
+
+    /**
      * 把 core/wechat 的三类异常翻成对客户端的业务错误（计划设计决定 3）。
      * 日志只记接口名、errcode、异常类名：异常消息里虽不含 URL，也不把它原样写进日志，免得日后有人在 core 层加内容时泄漏。
      *
@@ -136,6 +227,29 @@ class WechatAuthService extends Service
 
             throw new BusinessException(lang('wechat.unavailable'));
         }
+    }
+
+    /**
+     * 原子取出并删除中间态（Lua GET + DEL，先例 WsTicketService::consume()）。格式非法、不存在、已用过、载荷损坏都返回 null。
+     *
+     * @return array{openid: string, unionid: ?string}|null
+     */
+    private function consumeQuickToken(string $tempToken): ?array
+    {
+        if (preg_match(self::TEMP_TOKEN_PATTERN, $tempToken) !== 1) {
+            return null;
+        }
+        $raw = Redis::eval(self::GET_AND_DELETE, 1, self::QUICK_KEY_PREFIX . $tempToken);
+        if (!is_string($raw)) {
+            return null;
+        }
+        $data = json_decode($raw, true);
+        if (!is_array($data) || !is_string($data['openid'] ?? null) || $data['openid'] === '') {
+            return null;
+        }
+        $unionid = $data['unionid'] ?? null;
+
+        return ['openid' => $data['openid'], 'unionid' => is_string($unionid) && $unionid !== '' ? $unionid : null];
     }
 
     /**

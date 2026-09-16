@@ -358,6 +358,8 @@ return [
     'payment_channel_invalid' => 'Please choose WeChat Pay or Alipay',
     'order_no_require'        => 'Order number is required',
     'wechat_code_require'     => 'WeChat authorization code is required',
+    'temp_token_invalid'      => 'Invalid login credential',
+    'phone_code_require'      => 'Phone number authorization code is required',
     'points_invalid'         => 'Invalid points value',
     'points_zero'            => 'The adjustment points may not be 0',
 

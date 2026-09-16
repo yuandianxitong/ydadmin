@@ -264,6 +264,8 @@ return [
     'payment_channel_invalid' => '请选择微信或支付宝',
     'order_no_require'        => '订单号不能为空',
     'wechat_code_require'     => '缺少微信授权码',
+    'temp_token_invalid'      => '登录凭证无效',
+    'phone_code_require'      => '缺少手机号授权码',
     'points_invalid'         => '积分格式不正确',
     'points_zero'            => '调整积分不能为 0',
 
