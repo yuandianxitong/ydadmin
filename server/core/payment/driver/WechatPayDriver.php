@@ -15,6 +15,7 @@ use core\payment\exception\GatewayResultUnknownException;
 use core\payment\exception\PaymentConfigException;
 use core\payment\TradeType;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use Psr\Http\Message\ResponseInterface;
@@ -37,6 +38,11 @@ use WeChatPay\Formatter;
  *
  * 平台证书缓存 {certCacheDir}/{mchId}/{SERIAL}.pem 按商户号隔离；下载限频用同目录 .refreshed_at 的 mtime
  * （不用静态属性，也不让 core 驱动依赖 Redis）。公钥模式下永不下载证书。
+ * 证书轮换：应答验签因「序列号不在当前映射里」失败时，在限频允许下重下一次证书并丢弃已建客户端，
+ * 本次请求仍按结果不确定抛出（不重试），下一次调用用新映射重建客户端。
+ *
+ * 缓存文件 I/O 一律静默（`@` + 返回值判断）：webman 把 Warning 转成 ErrorException，
+ * 不静默的话多 worker 竞争删除、目录不可写等情形会以错误的异常类型逃出分类表。
  *
  * 异常消息只含渠道错误码、配置项与路径，不含私钥、APIv3 key、证书正文。
  */
@@ -55,6 +61,9 @@ final class WechatPayDriver
     private readonly ?\OpenSSLAsymmetricKey $publicKey;
 
     private ?BuilderChainable $client = null;
+
+    /** @var list<string> 当前客户端验签映射里的序列号（证书轮换判定用） */
+    private array $clientSerials = [];
 
     public function __construct(
         private readonly WechatPayConfig $config,
@@ -229,22 +238,49 @@ final class WechatPayDriver
         } catch (ClientException $e) {
             return ['status' => $e->getResponse()->getStatusCode(), 'body' => self::decode($e->getResponse())];
         } catch (\Throwable $e) {
+            $this->refreshOnUnknownSerial($e);
+
             throw new GatewayResultUnknownException('微信支付请求结果不确定：' . $e::class, 0, $e);
         }
 
         return ['status' => $response->getStatusCode(), 'body' => self::decode($response)];
     }
 
+    /**
+     * 证书模式下，应答带回的 Wechatpay-Serial 不在当前验签映射里（平台证书已轮换）：限频允许时重下证书，
+     * 并丢弃已建客户端，让下一次调用用新映射重建。尽力而为，下载失败不改变本次「结果不确定」的结论。
+     */
+    private function refreshOnUnknownSerial(\Throwable $e): void
+    {
+        if ($this->publicKey !== null || !$e instanceof RequestException) {
+            return;
+        }
+        $serial = $e->getResponse()?->getHeaderLine('Wechatpay-Serial') ?? '';
+        if ($serial === '' || in_array($serial, $this->clientSerials, true) || !$this->refreshAllowed()) {
+            return;
+        }
+
+        try {
+            $this->downloadCerts();
+        } catch (\Throwable) {
+            return;
+        }
+        $this->client = null;
+        $this->clientSerials = [];
+    }
+
     /** @throws GatewayException */
     private function client(): BuilderChainable
     {
         if ($this->client === null) {
+            $certs = $this->verificationKeys();
             $this->client = Builder::factory($this->httpOptions([
                 'mchid'      => $this->config->mchId,
                 'serial'     => $this->config->merchantSerialNo,
                 'privateKey' => $this->merchantKey,
-                'certs'      => $this->verificationKeys(),
+                'certs'      => $certs,
             ]));
+            $this->clientSerials = array_map('strval', array_keys($certs));
         }
 
         return $this->client;
@@ -299,8 +335,13 @@ final class WechatPayDriver
             throw new PaymentConfigException("微信支付商户私钥文件不可读：{$path}");
         }
 
+        $content = @file_get_contents($path);
+        if ($content === false) {
+            throw new PaymentConfigException("微信支付商户私钥文件不可读：{$path}");
+        }
+
         try {
-            $key = Rsa::from((string) file_get_contents($path), Rsa::KEY_TYPE_PRIVATE);
+            $key = Rsa::from($content, Rsa::KEY_TYPE_PRIVATE);
         } catch (\Throwable) {
             $key = null;
         }
@@ -361,13 +402,17 @@ final class WechatPayDriver
         $certs = [];
         foreach (glob($this->certDir() . '/*.pem') ?: [] as $file) {
             $serial = basename($file, '.pem');
-            $pem = (string) file_get_contents($file);
+            $pem = @file_get_contents($file);
+            if ($pem === false) {
+                continue;
+            }
             $info = openssl_x509_parse($pem);
             if ($info === false || !self::sameSerial((string) ($info['serialNumberHex'] ?? ''), $serial)) {
                 continue;
             }
             if ((int) ($info['validTo_time_t'] ?? 0) <= time()) {
-                unlink($file);
+                // 另一个 worker 可能已先删掉：失败即忽略
+                @unlink($file);
                 continue;
             }
             if (self::sameSerial($serial, $this->config->merchantSerialNo)) {
@@ -386,7 +431,7 @@ final class WechatPayDriver
     {
         $marker = $this->certDir() . '/' . self::REFRESH_MARKER;
         clearstatcache(true, $marker);
-        $mtime = is_file($marker) ? filemtime($marker) : false;
+        $mtime = @filemtime($marker);
 
         return $mtime === false || time() - $mtime >= $this->config->certRefreshInterval;
     }
@@ -406,10 +451,14 @@ final class WechatPayDriver
     private function downloadCerts(): array
     {
         $dir = $this->certDir();
-        if (!is_dir($dir) && !mkdir($dir, 0o755, true) && !is_dir($dir)) {
+        // mkdir 失败后再判一次 is_dir：两个 worker 同时创建时，后到者失败但目录已存在
+        if (!is_dir($dir) && !@mkdir($dir, 0o755, true) && !is_dir($dir)) {
             throw new GatewayException('无法创建微信支付平台证书缓存目录');
         }
-        touch($dir . '/' . self::REFRESH_MARKER);
+        // 限频标记写不进去就不发请求：否则每次调用都会重下证书
+        if (!@touch($dir . '/' . self::REFRESH_MARKER)) {
+            throw new GatewayException('无法写入微信支付平台证书限频标记');
+        }
 
         $apiV3Key = $this->config->apiV3Key;
         $downloaded = ['__bootstrap__' => null];
@@ -453,7 +502,7 @@ final class WechatPayDriver
         try {
             $instance->chain('v3/certificates')->get();
         } catch (\Throwable $e) {
-            throw new GatewayException('下载微信支付平台证书失败：' . $e::class);
+            throw new GatewayException('下载微信支付平台证书失败：' . $e::class, 0, $e);
         }
 
         $certs = [];
@@ -474,10 +523,8 @@ final class WechatPayDriver
             }
             $file = $dir . '/' . $serial . '.pem';
             $tmp = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
-            if (file_put_contents($tmp, $pem) === false || !rename($tmp, $file)) {
-                if (is_file($tmp)) {
-                    unlink($tmp);
-                }
+            if (@file_put_contents($tmp, $pem) === false || !@rename($tmp, $file)) {
+                @unlink($tmp);
                 continue;
             }
             $certs[(string) $serial] = $key;
