@@ -106,6 +106,11 @@ class SmsCodeService extends Service
 
         $code = str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
         Redis::setEx(self::codeKey($mobile, $scene), self::CODE_TTL, $code);
+        // 换了新码就把上一轮的失败计数一并清零：否则被锁的人重发之后只要再手滑一次，就会立刻又撞上上限、
+        // 把刚收到的这条码也作废，最差要熬到计数自然过期（TTL 从第一次失败起算，重发不会延长它）。
+        // 不放水：每次发码都覆写验证码，攻击者对任一串码的猜测次数仍被 VERIFY_FAIL_LIMIT 卡死，
+        // 总预算由发送侧限流决定（同号每分钟 1 次、每天 10 次，同 IP 每小时 20 次）。
+        Redis::del(self::verifyFailKey($mobile, $scene));
 
         try {
             $this->driver()->send($mobile, $this->templateId($scene), ['code' => $code]);

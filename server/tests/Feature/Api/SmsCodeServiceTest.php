@@ -371,4 +371,59 @@ final class SmsCodeServiceTest extends ApiTestCase
         }
         $this->assertSame($fresh, (string) Redis::get('sms_code:register:' . self::MOBILE), '新一轮的码在上限之内仍然有效');
     }
+
+    /**
+     * 撞码锁定之后重新发码，必须把失败计数一并清零。
+     *
+     * 否则用户收到新码、只要再打错一个字，就会立刻又撞上上限、把这条新码也作废，只能再等一轮发送间隔；
+     * 最差要熬到计数自然过期（计数的 TTL 从第一次失败起算，重发并不会延长它）。被锁的人往往正是最容易
+     * 再手滑一次的人，这个窟窿很窄但真实。
+     *
+     * 安全上这不算放水：每次 send() 都会覆写验证码，攻击者对**任何一串码**的猜测次数仍被 VERIFY_FAIL_LIMIT
+     * 卡死；他的总预算由发送侧决定（同号每分钟 1 次、每天 10 次，同 IP 每小时 20 次），清零只是把容错还给
+     * 那串码的合法持有人。
+     */
+    public function test_resending_a_code_after_a_lockout_restores_the_full_attempt_budget(): void
+    {
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $code = (string) Redis::get('sms_code:register:' . self::MOBILE);
+        $wrong = '000000' === $code ? '111111' : '000000';
+
+        // 先撞到锁定：上限之内 VERIFY_FAIL_LIMIT 次普通失败，再多一次触发 429 并作废该码
+        for ($i = 1; $i <= SmsCodeService::VERIFY_FAIL_LIMIT; ++$i) {
+            try {
+                $this->service()->verify(self::MOBILE, 'register', $wrong);
+                $this->fail("第 {$i} 次错码必须被拒绝");
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors());
+            }
+        }
+        try {
+            $this->service()->verify(self::MOBILE, 'register', $wrong);
+            $this->fail('超过上限的那一次必须被拦下');
+        } catch (BusinessException $e) {
+            $this->assertSame(429, $e->getCode(), '锁定这一下是 HTTP 200 + code 429');
+        }
+
+        // 重新发码（发送间隔在测试里手工放行，模拟用户等满 60 秒后再要一条）
+        Redis::del('sms_rate:minute:' . self::MOBILE);
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $fresh = (string) Redis::get('sms_code:register:' . self::MOBILE);
+        $this->assertNotSame('', $fresh, '重新发码后缓存里应当有一串新码');
+        $this->assertSame(0, (int) Redis::exists('sms_verify_fail:register:' . self::MOBILE), '发码即把上一轮的失败计数清零');
+
+        // 关键一步：新码上手就打错一次，应当只是普通的「验证码错误」，而不是再次锁定并烧掉新码
+        try {
+            $this->service()->verify(self::MOBILE, 'register', '000000' === $fresh ? '111111' : '000000');
+            $this->fail('错码必须被拒绝');
+        } catch (BusinessException $e) {
+            $this->assertInstanceOf(ValidationException::class, $e, '重发之后的第一次手滑只该是普通的校验失败');
+            $this->assertNotSame(429, $e->getCode(), '重发之后不该立刻再次锁定');
+        }
+        $this->assertSame($fresh, (string) Redis::get('sms_code:register:' . self::MOBILE), '新码不该被这一次手滑烧掉');
+
+        // 新码仍然可用，成功后被消费
+        $this->service()->verify(self::MOBILE, 'register', $fresh);
+        $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE), '校验成功后这串码即作废');
+    }
 }
