@@ -22,4 +22,8 @@ return [
     'cannot_disable_self'    => '不能禁用自己',
     'unauthenticated'        => '未登录或登录已过期',
     'forbidden'              => '无权限访问',
+
+    // C 端会员（M5a）
+    'account_login_failed'   => '账号或密码错误',
+    'mobile_not_registered'  => '手机号未注册',
 ];

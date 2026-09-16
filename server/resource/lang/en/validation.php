@@ -331,6 +331,11 @@ return [
     'sms_scene_invalid'      => 'Unsupported SMS scene',
     'sms_code_invalid'       => 'The verification code is incorrect or has expired',
 
+    // Member (M5a)
+    'account_require'        => 'Please enter your account',
+    'sms_code_require'       => 'Please enter the verification code',
+    'password_confirmation_mismatch' => 'The two passwords you entered do not match',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

@@ -22,4 +22,8 @@ return [
     'cannot_disable_self'    => 'Cannot disable yourself',
     'unauthenticated'        => 'Not logged in or the login has expired',
     'forbidden'              => 'Access denied',
+
+    // Member (M5a)
+    'account_login_failed'   => 'Incorrect account or password',
+    'mobile_not_registered'  => 'This mobile number is not registered',
 ];

@@ -25,13 +25,14 @@ class UserRepository extends Repository
     }
 
     /**
-     * 按手机号查未删除的会员（登录账号目前只支持手机号，spec §4.3）。
+     * 按手机号查未删除的会员（登录账号目前只支持手机号，spec §4.3；含 password，仅供登录校验——
+     * 模型 $hidden 挡了 toArray() 里的 password，这里显式 makeVisible 找回，同 AdminRepository::findByUsername()）。
      *
      * @return array<string, mixed>|null
      */
     public function findByAccount(string $account): ?array
     {
-        return $this->query()->where($this->qualify('mobile'), $account)->first()?->toArray();
+        return $this->query()->where($this->qualify('mobile'), $account)->first()?->makeVisible('password')->toArray();
     }
 
     /**

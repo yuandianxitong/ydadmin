@@ -90,6 +90,9 @@ return [
     // 实时通道（M4）
     'realtime_force_logout'      => '您已被管理员强制下线，请重新登录',
 
+    // 会员（M5a）
+    'mobile_registered'          => '手机号已注册',
+
     // 会员资产（M5a）
     'balance_log_type_1' => '充值',
     'balance_log_type_2' => '消费',

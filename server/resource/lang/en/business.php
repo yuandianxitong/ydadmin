@@ -90,6 +90,9 @@ return [
     // Realtime channel (M4)
     'realtime_force_logout'       => 'You have been signed out by an administrator. Please log in again',
 
+    // Member (M5a)
+    'mobile_registered'           => 'This mobile number is already registered',
+
     // Member assets (M5a)
     'balance_log_type_1' => 'Recharge',
     'balance_log_type_2' => 'Consumption',

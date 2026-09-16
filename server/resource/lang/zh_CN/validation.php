@@ -237,6 +237,11 @@ return [
     'sms_scene_invalid'      => '短信场景不支持',
     'sms_code_invalid'       => '验证码错误或已过期',
 
+    // C 端会员（M5a）
+    'account_require'        => '请输入账号',
+    'sms_code_require'       => '请输入验证码',
+    'password_confirmation_mismatch' => '两次输入的密码不一致',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

@@ -1,6 +1,7 @@
 <?php
 
 use app\adminapi\controller\auth\AuthController;
+use app\api\controller\auth\AuthController as ApiAuthController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
@@ -222,11 +223,17 @@ Route::group('/adminapi', function () use ($adminAuth) {
 // 认证段按子组挂 $apiAuth（与 /adminapi 下各子组挂 $adminAuth 同一写法），不预先建一个空的无前缀组。
 Route::group('/api', function () use ($apiAuth) {
     // ---- 公开段（不挂认证）
-    // Task 6 往这里加：POST /auth/login、POST /auth/register、POST /auth/sms-login
     Route::post('/common/sms-code', [CommonController::class, 'smsCode']);
+    Route::post('/auth/login', [ApiAuthController::class, 'login']);
+    Route::post('/auth/register', [ApiAuthController::class, 'register']);
+    Route::post('/auth/sms-login', [ApiAuthController::class, 'smsLogin']);
 
     // ---- 认证段（挂 $apiAuth，逐请求比对 token 里的 ver）
-    // Task 6 往这里加：Route::group('/auth', …)->middleware($apiAuth)（info / logout / refresh-token）
+    Route::group('/auth', function () {
+        Route::post('/refresh-token', [ApiAuthController::class, 'refreshToken']);
+        Route::get('/info', [ApiAuthController::class, 'info']);
+        Route::post('/logout', [ApiAuthController::class, 'logout']);
+    })->middleware($apiAuth);
     // Task 8 往这里加：Route::group('/user', …)->middleware($apiAuth)（profile / change-password / balance / points / 两个流水列表）
 })->middleware($apiOuter);
 
