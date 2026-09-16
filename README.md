@@ -194,6 +194,8 @@ location /storage/ {
 
 C 端新增 `/api` 路由组：`auth/{login,register,sms-login,refresh-token,info,logout}`、`common/sms-code`、`user/{profile,change-password,balance,points,balance-logs,points-logs}`。除登录、注册、短信登录与短信验证码四条公开接口外，其余都要求 `Authorization: Bearer <user token>`——user scope 的 token 与管理端 admin scope 相互独立、互不通用，载荷是 `{user_id, ver}`。管理端把某会员状态改为禁用、会员自己改密码，都会让该会员名下已签发的 token 立即失效（下一次请求即 401），不用等 token 自然过期。
 
+**升级到 M5a 时要先执行开发库补丁 SQL（建 `users`/`balance_logs`/`points_logs` 三表与菜单、`sms` 配置），再部署代码**；仪表盘统计接口直接查 `users` 表、不做缺表兜底（部署脚本必然建表，缺表就该报错而不是悄悄显示一堆 0 掩盖破损的部署），顺序反了会导致管理端仪表盘报错。
+
 **短信验证码**：在「系统管理 → 系统配置」维护 `sms` 分组的七个键：
 
 | 配置键 | 说明 |
