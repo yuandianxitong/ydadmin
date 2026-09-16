@@ -291,6 +291,79 @@ class PaymentService extends Service
     }
 
     /**
+     * 关单任务（spec §5.5）。只扫 expires_at 早于「$now - 宽限」的待支付单，按过期时间升序，至多一批。
+     * 每单独立 try/catch：一单出任何问题都只让它本轮跳过，下一轮再来；本方法不因单个订单抛出。
+     *
+     * @return array{scanned:int, paid:int, closed:int, skipped:int}
+     */
+    public function closeExpired(\DateTimeImmutable $now): array
+    {
+        $grace = max(0, (int) config('payment.close_grace_seconds', 60));
+        $batch = max(1, (int) config('payment.close_batch', 100));
+        $orders = $this->orders->findExpiredPending($now->sub(new \DateInterval("PT{$grace}S")), $batch);
+
+        $counts = ['scanned' => count($orders), 'paid' => 0, 'closed' => 0, 'skipped' => 0];
+        foreach ($orders as $order) {
+            try {
+                $counts[$this->closeOne($order, $now)]++;
+            } catch (\Throwable $e) {
+                $counts['skipped']++;
+                Log::warning('关单：订单本轮跳过', [
+                    'order_no'  => $order['order_no'] ?? null,
+                    'exception' => $e::class,
+                    'reason'    => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * 单个过期单：先问渠道。已支付 → 走 markPaid 补记入账（绝不关）；渠道侧已关 → 直接本地关；
+     * 待支付或渠道无此单 → 先在渠道侧关掉（确保之后付不了）再本地关。
+     *
+     * @param array<string, mixed> $order
+     * @return 'paid'|'closed'|'skipped'
+     */
+    private function closeOne(array $order, \DateTimeImmutable $now): string
+    {
+        $orderNo = (string) $order['order_no'];
+        $channel = (string) $order['channel'];
+        $gateway = $this->gateways->gateway($channel);
+        $result = $gateway->query($orderNo);
+
+        if ($result->state === TradeQueryResult::PAID) {
+            $outcome = $this->markPaid($orderNo, $channel, $result->tradeNo, $result->paidCents ?? -1, $result->raw);
+
+            return $outcome === MarkPaidOutcome::PAID ? 'paid' : 'skipped';
+        }
+
+        if ($result->state !== TradeQueryResult::CLOSED) {
+            $gateway->close($orderNo);
+        }
+
+        return $this->closeLocally((int) $order['id'], $now) ? 'closed' : 'skipped';
+    }
+
+    /** 锁行后仍是 pending 才置 closed：关单请求在途时回调可能已经把它置成 paid，不能覆盖。 */
+    private function closeLocally(int $orderId, \DateTimeImmutable $now): bool
+    {
+        return $this->runInTransaction(function () use ($orderId, $now): bool {
+            $order = $this->orders->findForUpdate($orderId);
+            if ($order === null || ($order['status'] ?? null) !== PaymentOrderRepository::STATUS_PENDING) {
+                return false;
+            }
+            $this->orders->update($orderId, [
+                'status'    => PaymentOrderRepository::STATUS_CLOSED,
+                'closed_at' => $now->format('Y-m-d H:i:s'),
+            ]);
+
+            return true;
+        });
+    }
+
+    /**
      * @param array<string, mixed> $attributes 不含 order_no
      * @return array<string, mixed>
      */

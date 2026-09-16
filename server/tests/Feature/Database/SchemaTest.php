@@ -217,6 +217,16 @@ final class SchemaTest extends TestCase
         $this->assertSame(3, (int) $menus[1]->type);
     }
 
+    public function test_m5b_payment_cron_seeds(): void
+    {
+        $seed = Db::table('cron_jobs')->where('command', 'payment:close-expired')->first();
+        $this->assertNotNull($seed, 'M5b 关单定时任务种子');
+        $this->assertSame('支付订单超时关闭', $seed->name);
+        $this->assertSame('*/5 * * * *', $seed->expression);
+        $this->assertSame(1, (int) $seed->status);
+        $this->assertSame(0, Db::table('cron_jobs')->where('command', 'like', 'payment:refund%')->count(), '退款命令永远不进定时任务');
+    }
+
     public function test_m5a_user_menu_seeds(): void
     {
         $menus = Db::table('menus')->whereIn('id', [9, 900, 901, 902, 903, 904, 910, 920])->orderBy('id')->get()->all();

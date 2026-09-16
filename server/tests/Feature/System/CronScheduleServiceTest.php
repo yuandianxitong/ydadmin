@@ -32,7 +32,8 @@ final class LockFailingScheduleService extends CronScheduleService
  * spec §8.1：调度判定。cron-job 队列的消费者被 ConfigOverride 顶替成 RecordingConsumer，
  * sync 驱动（tests/bootstrap.php 强制）投递即调用它的 handle()，于是 RecordingConsumer::$handled
  * 就是「本次 tick 投递出去的载荷」。时间一律用固定时钟，不依赖测试运行的真实时刻。
- * 种子里的示例任务（0 3 * * *）只在 03:00 到点，本测试的时刻都避开 03 点，且断言只看本用例建的任务。
+ * 种子里有示例任务（0 3 * * *）与 M5b 的关单任务（*∕5 * * * *，10:00 这类整 5 分钟会一并投递给 RecordingConsumer），
+ * 所以断言一律只看本用例建的任务（dispatched() 按 jobIds 过滤），不假设同一分钟只有自己的任务到点。
  */
 final class CronScheduleServiceTest extends ApiTestCase
 {
