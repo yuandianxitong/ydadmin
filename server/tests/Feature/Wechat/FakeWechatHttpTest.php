@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace tests\Feature\Wechat;
 
+use core\wechat\MiniProgramApi;
+use core\wechat\WechatAppConfig;
 use core\wechat\WechatHttpClient;
 use support\Container;
 use tests\Support\Wechat\FakeWechatHttp;
@@ -60,5 +62,17 @@ final class FakeWechatHttpTest extends TestCase
         $this->fakeWechatHttp([self::wechatJson(['b' => 2])]);
 
         $this->assertSame([], $this->wechatRequests());
+    }
+
+    public function test_dependents_resolved_from_the_container_use_the_fake_client(): void
+    {
+        // 先解析一次，模拟「别的用例已经让容器建过它」：没有重建的话后面的假客户端对它无效
+        Container::get(MiniProgramApi::class);
+        $this->fakeWechatHttp([self::wechatJson(['openid' => 'o-container'])]);
+
+        $result = Container::get(MiniProgramApi::class)->code2Session(new WechatAppConfig('wxcontainer', 'secret'), 'code');
+
+        $this->assertSame('o-container', $result['openid']);
+        $this->assertCount(1, $this->wechatRequests());
     }
 }
