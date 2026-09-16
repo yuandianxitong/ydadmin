@@ -2,6 +2,7 @@
 
 use app\adminapi\controller\auth\AuthController;
 use app\api\controller\auth\AuthController as ApiAuthController;
+use app\api\controller\auth\WechatAuthController;
 use app\api\controller\payment\PaymentController;
 use app\api\controller\payment\PaymentNotifyController;
 use app\api\controller\user\UserController;
@@ -244,6 +245,10 @@ Route::group('/api', function () use ($apiAuth) {
     Route::post('/auth/login', [ApiAuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);
     Route::post('/auth/register', [ApiAuthController::class, 'register']);
     Route::post('/auth/sms-login', [ApiAuthController::class, 'smsLogin']);
+
+    // M6a：C 端微信登录（spec §4）。公开——换 token 的就是这些端点本身，没有会员 token 可带。
+    Route::post('/auth/wechat-web-login', [WechatAuthController::class, 'webLogin']);
+    Route::post('/auth/wechat-login', [WechatAuthController::class, 'miniLogin']);
 
     // M5b：支付回调（spec §5.3）。公开、不挂 $apiAuth——渠道服务器没有会员 token，凭签名证明身份。
     // 应答不走统一响应体，由 PaymentNotifyController 按渠道原样返回。
