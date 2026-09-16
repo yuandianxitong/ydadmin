@@ -161,6 +161,10 @@ final class UserManageApiTest extends ApiTestCase
         $resp = $this->post(self::BASE . '/adjust-balance', ['user_id' => $userId, 'amount' => 1.234], $admin->token)->assertCode(422);
         $this->assertSame(lang('validation.amount_invalid'), $resp->data()['errors']['amount']);
         $this->assertSame('100.00', (string) Db::table('users')->where('id', $userId)->value('balance'), '三位小数被拒绝，不应静默取整');
+
+        $negative = $this->post(self::BASE . '/adjust-balance', ['user_id' => $userId, 'amount' => -1.234], $admin->token)->assertCode(422);
+        $this->assertSame(lang('validation.amount_invalid'), $negative->data()['errors']['amount'], 'decimal:0,2 对负数同样生效');
+        $this->assertSame('100.00', (string) Db::table('users')->where('id', $userId)->value('balance'));
     }
 
     public function test_adjust_points_goes_through_the_single_entry(): void
@@ -245,5 +249,34 @@ final class UserManageApiTest extends ApiTestCase
         $this->assertSame($nickname, $rows[0]['user_nickname']);
         $this->assertSame(lang('business.points_log_type_1'), $rows[0]['type_text']);
         $this->assertSame($admin->id, $rows[0]['operator_id']);
+    }
+
+    /**
+     * 覆盖 UserManageService::withOperatorNames() 里 operator_id 缺失/为 0 的分支：
+     * 该行不是经 adjust-balance 产生（那样必然带 operator_id），而是直接造夹具——
+     * 系统自动产生的流水（如 M5b 的充值回调）operator_id 为 NULL，前端要显示「-」。
+     * 不这样测，isset($admins[$operatorId]) 键取错、或 0/null 混淆都不会被任何用例发现。
+     */
+    public function test_balance_logs_show_null_operator_name_when_there_is_no_operator(): void
+    {
+        $admin = $this->actingAsAdmin(['user.balance-logs']);
+        $userId = $this->createUser(['nickname' => '无操作人探针' . bin2hex(random_bytes(2))]);
+        $nickname = (string) Db::table('users')->where('id', $userId)->value('nickname');
+        Db::table('balance_logs')->insert([
+            'user_id'        => $userId,
+            'amount'         => '10.00',
+            'before_balance' => '100.00',
+            'after_balance'  => '110.00',
+            'type'           => BalanceLog::TYPE_RECHARGE,
+            'source'         => 'recharge',
+            'remark'         => '',
+            'operator_id'    => null,
+            'created_at'     => date('Y-m-d H:i:s'),
+        ]);
+
+        $rows = $this->get(self::BASE . '/balance-logs', ['keyword' => $nickname], $admin->token)->assertOk()->data()['list'];
+        $this->assertCount(1, $rows);
+        $this->assertNull($rows[0]['operator_id']);
+        $this->assertNull($rows[0]['operator_name'], '没有操作人时 operator_name 必须是 null，前端按此显示「-」');
     }
 }
