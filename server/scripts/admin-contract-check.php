@@ -12,6 +12,8 @@
  *   脚本自己在临时目录造的源文件，以及为验证「限制读配置」临时改过的 storage_* 配置，退出时一并清理并写回原值。
  * M3 起：操作日志经队列异步落库，读日志与清理前先等 operation-log 队列排空（需要 queue 进程在运行）；定时任务段只读，
  *   开发库还没有 cron_jobs 表（补丁 SQL 未执行）时整段跳过。
+ * M5b 起：支付段只打写库前即失败的请求（非法参数、端类型、未启用渠道、不存在订单、未注册接口、无签名回调），
+ *   开发库没有 payment_orders 表或没有会员时整段跳过。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -92,6 +94,37 @@ function httpUpload(string $url, array $headers, string $localPath, string $clie
     $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
     return ['status' => $status, 'headers' => $responseHeaders, 'body' => $body, 'json' => json_decode($body, true)];
+}
+
+/**
+ * 原样发送请求体（不做 JSON 编码）。支付回调专用：微信按请求体原文验签，支付宝回调是表单。
+ *
+ * @param list<string> $headers 需自带 Content-Type
+ * @return array{status: int, headers: array<string, string>, body: string, json: mixed}
+ */
+function httpRaw(string $method, string $url, array $headers, string $body): array
+{
+    $responseHeaders = [];
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_POSTFIELDS     => $body,
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
+            $parts = explode(':', $line, 2);
+            if (count($parts) === 2) {
+                $responseHeaders[strtolower(trim($parts[0]))] = trim($parts[1]);
+            }
+            return strlen($line);
+        },
+    ]);
+    $responseBody = (string) curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    return ['status' => $status, 'headers' => $responseHeaders, 'body' => $responseBody, 'json' => json_decode($responseBody, true)];
 }
 
 function check(string $label, bool $ok, string $detail = ''): void
@@ -1505,6 +1538,79 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('users')) {
 
         $r = http('GET', "{$base}/adminapi/user/points-logs?page=1&limit=10", $auth);
         check('管理端 points-logs：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+    }
+}
+
+// ---------------------------------------------------------------- M5b
+echo "\n=== M5b：支付（写库前即失败） ===\n";
+// 只打「在任何数据库写入之前就失败」的请求（M5b spec §10.4）：不产生订单、流水、退款单。
+// 唯一的写入是 recharge 限流计数（Redis，60 秒过期，每分钟 10 次）：缺端类型、小程序选支付宝、渠道未启用三条
+// 各计一次（参数校验失败的不计），所以一分钟内连跑本脚本第 4 次时这几条会得到 429——那是限流生效，不是回归。
+// 开发库没有 payment_orders 表（M5b 补丁未执行）或没有会员时整段跳过。
+$schema = support\Db::connection()->getSchemaBuilder();
+if (!$schema->hasTable('payment_orders') || !$schema->hasTable('users')) {
+    echo "  （开发库还没有 payment_orders 表：M5b 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $payUserId = (int) support\Db::table('users')->orderBy('id')->value('id');
+    if ($payUserId <= 0) {
+        echo "  （开发库 users 表里没有数据，本段跳过——C 端断言需要一个真实会员签发 token）\n";
+    } else {
+        // 只读 SELECT 取会员 id，服务端同一套 TokenManager 签发 user token；不写任何行，token 不输出
+        $payToken = core\auth\TokenManager::scope('user')->generate([
+            'user_id' => $payUserId,
+            'ver'     => core\auth\TokenVersion::current($payUserId, 'user'),
+        ]);
+        $payApi = [...$api, "Authorization: Bearer {$payToken}"];
+
+        // ---- recharge
+        $r = http('POST', "{$base}/api/user/recharge", $api, ['amount' => '10', 'channel' => 'wechat']);
+        check('recharge：未登录 → code 401', respCode($r) === 401, $r['body']);
+
+        $r = http('POST', "{$base}/api/user/recharge", [...$payApi, 'X-Client-Type: pc'], ['amount' => '1.234', 'channel' => 'wechat']);
+        check('recharge：三位小数 → code 422，errors.amount', respCode($r) === 422 && isset((respData($r))['errors']['amount']), $r['body']);
+
+        $r = http('POST', "{$base}/api/user/recharge", [...$payApi, 'X-Client-Type: pc'], ['amount' => '10', 'channel' => 'unionpay']);
+        check('recharge：未知渠道 → code 422，errors.channel', respCode($r) === 422 && isset((respData($r))['errors']['channel']), $r['body']);
+
+        $r = http('POST', "{$base}/api/user/recharge", $payApi, ['amount' => '10', 'channel' => 'wechat']);
+        check('recharge：缺 X-Client-Type → code 400（不回退为 pc）', respCode($r) === 400, $r['body']);
+
+        $r = http('POST', "{$base}/api/user/recharge", [...$payApi, 'X-Client-Type: miniapp'], ['amount' => '10', 'channel' => 'alipay']);
+        check('recharge：小程序选支付宝 → code 400', respCode($r) === 400, $r['body']);
+
+        // 渠道未启用：只读查开关，挑一个未启用的渠道断言；两个都启用了就跳过这一条
+        $disabledChannel = null;
+        foreach (['alipay', 'wechat'] as $channel) {
+            if ((string) support\Db::table('system_configs')->where('config_key', "pay_{$channel}_enabled")->value('config_value') !== '1') {
+                $disabledChannel = $channel;
+                break;
+            }
+        }
+        if ($disabledChannel === null) {
+            echo "  （两个支付渠道都已启用，跳过「渠道未启用」断言）\n";
+        } else {
+            $before = (int) support\Db::table('payment_orders')->count();
+            $r = http('POST', "{$base}/api/user/recharge", [...$payApi, 'X-Client-Type: pc'], ['amount' => '10', 'channel' => $disabledChannel]);
+            check("recharge：{$disabledChannel} 未启用 → code 400，且没有插入订单", respCode($r) === 400 && (int) support\Db::table('payment_orders')->count() === $before, $r['body']);
+        }
+
+        // ---- query
+        $r = http('GET', "{$base}/api/payment/query?order_no=R20000101000000000000", $api);
+        check('payment/query：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/api/payment/query?order_no=R20000101000000000000", $payApi);
+        check('payment/query：不存在的订单 → code 404', respCode($r) === 404, $r['body']);
+
+        // ---- 不注册的接口
+        foreach (['/api/payment/create', '/api/payment/refund'] as $path) {
+            $r = http('POST', "{$base}{$path}", $payApi, ['order_no' => 'R20000101000000000000', 'amount' => '1']);
+            check("{$path}：未注册 → HTTP 404", $r['status'] === 404 && respCode($r) === 404, $r['body']);
+        }
+
+        // ---- 回调：无签名一律失败，应答形状按渠道（与凭据是否配置无关）
+        $r = httpRaw('POST', "{$base}/api/payment/notify/wechat", ['Content-Type: application/json'], '{}');
+        check('notify/wechat：无签名 → HTTP 500 + {"code":"FAIL"}', $r['status'] === 500 && is_array($r['json']) && ($r['json']['code'] ?? null) === 'FAIL', $r['status'] . ' ' . $r['body']);
+        $r = httpRaw('POST', "{$base}/api/payment/notify/alipay", ['Content-Type: application/x-www-form-urlencoded'], 'out_trade_no=R20000101000000000000&trade_status=TRADE_SUCCESS');
+        check('notify/alipay：无签名 → HTTP 200 + fail', $r['status'] === 200 && trim($r['body']) === 'fail', $r['status'] . ' ' . $r['body']);
     }
 }
 

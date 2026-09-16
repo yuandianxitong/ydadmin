@@ -596,6 +596,7 @@ export default {
             sms_template_notify: 'Notification Template',
             // payment
             pay_alipay_enabled: 'Enable Alipay',
+            pay_alipay_sandbox: 'Alipay Sandbox',
             pay_alipay_app_id: 'Alipay AppID',
             pay_alipay_private_key: 'Private Key',
             pay_alipay_public_key: 'Alipay Public Key',
@@ -607,6 +608,8 @@ export default {
             pay_wechat_api_v3_key: 'API v3 Key',
             pay_wechat_serial_no: 'Certificate Serial No.',
             pay_wechat_private_key_path: 'Private Key File',
+            pay_wechat_public_key_id: 'WeChat Pay Public Key ID',
+            pay_wechat_public_key: 'WeChat Pay Public Key',
             pay_wechat_cert_path: 'Certificate File',
             pay_wechat_notify_url: 'Notify URL',
             // storage
@@ -681,6 +684,8 @@ export default {
             sms_template_code: 'SMS verification code template ID',
             sms_template_notify: 'SMS notification template ID',
             pay_alipay_enabled: 'Enable Alipay payment',
+            pay_alipay_sandbox:
+                'Send requests to the Alipay sandbox gateway. For integration testing only; turn it off in production',
             pay_alipay_app_id: 'Alipay open platform App ID',
             pay_alipay_private_key: 'Alipay application private key (RSA2)',
             pay_alipay_public_key: 'Alipay public key',
@@ -690,8 +695,12 @@ export default {
             pay_wechat_mch_id: 'WeChat Pay merchant ID',
             pay_wechat_api_key: 'WeChat Pay API v3 key',
             pay_wechat_api_v3_key: 'WeChat Pay API v3 key (for v3 API)',
-            pay_wechat_serial_no: 'WeChat Pay platform certificate serial no.',
+            pay_wechat_serial_no: 'Merchant API certificate serial no.',
             pay_wechat_private_key_path: 'Merchant API private key file path (apiclient_key.pem)',
+            pay_wechat_public_key_id:
+                'WeChat Pay public key ID (starts with PUB_KEY_ID_). Fill in together with the public key; leave both empty to download platform certificates automatically',
+            pay_wechat_public_key:
+                'WeChat Pay public key in PEM format. Fill in together with the public key ID',
             pay_wechat_cert_path: 'Merchant API certificate file path (apiclient_cert.pem)',
             pay_wechat_notify_url: 'WeChat Pay async callback URL',
             storage_driver: 'Select file storage method',
@@ -1548,5 +1557,4 @@ export default {
         updatedAt: 'Updated {time}',
         decorate: 'Decorate'
     }
-
 }

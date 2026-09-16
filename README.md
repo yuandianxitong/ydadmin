@@ -214,9 +214,78 @@ M5a 只开放 `login`、`register` 两个验证码场景，改密码、绑定/�
 
 IP 闸门取客户端 IP 的方式与登录限流完全同源：**只有直连地址属于 `TRUSTED_PROXIES` 时才读 `X-Forwarded-For`**。所以**部署在 nginx 等反向代理后面却没有正确配置 `TRUSTED_PROXIES` 时，所有真实用户都会被解析成同一个代理 IP、共用同一个「每小时 20 次」的桶**：第 21 位用户开始就再也发不出验证码，而前端只会看到一句「当前网络请求验证码过于频繁」，日志里也没有别的线索，极难诊断。反向代理后面务必按上面「nginx 反向代理」一节把这一项配对。
 
-**边界**：微信登录（微信网页、公众号、小程序、H5 四种）与绑定手机号留给 M6，与 easywechat、公众号配置一起交付；`/api/payment/*`、`/api/user/recharge` 留给 M5b，M5a 没有注册这些路由，请求一律 404。
+**边界**：微信登录（微信网页、公众号、小程序、H5 四种）与绑定手机号留给 M6，与 easywechat、公众号配置一起交付；余额充值与支付见下一节「支付（M5b）」。
 
 **并发测试的硬依赖**：`AssetConcurrencyTest`（余额/积分行锁并发用例）需要 PHP 的 `pcntl` 与 `posix` 扩展，缺扩展的 CI 镜像跑到这个测试会直接报错——这是有意的失败模式，不要把它改成跳过。
+
+### 支付（M5b）
+
+C 端余额充值：`POST /api/user/recharge`（`amount` 元、`channel` 为 `wechat` / `alipay`，端类型由请求头 `X-Client-Type` 决定）与 `GET /api/payment/query?order_no=`；支付回调 `POST /api/payment/notify/wechat`、`POST /api/payment/notify/alipay` 公开、不要求 token。C 端**没有**通用下单接口，也**没有**退款接口——退款只能在服务器上用命令行执行（见下）。
+
+**升级到 M5b 时先执行开发库补丁 SQL**（`payment_orders`、`refund_orders` 两张表，`payment` 分组 15 个配置键，两条定时任务），再部署代码。
+
+**各端能用的支付方式**：
+
+| `X-Client-Type` | 微信支付 | 支付宝 |
+|---|---|---|
+| `pc` | Native（二维码） | 电脑网站支付（表单跳转） |
+| `h5` | H5 支付 | 手机网站支付 |
+| `app` | APP 支付 | APP 支付 |
+| `wechat_h5` | JSAPI（公众号内） | 不支持 |
+| `miniapp` | JSAPI（小程序） | 不支持 |
+
+JSAPI 需要会员的 openid（`users.oa_openid` / `users.mini_openid`），由 M6 的微信登录写入；此前这两端选微信支付会提示「请先完成微信授权后再支付」。H5 支付上报的用户 IP 与登录限流同源，**反向代理后面必须配好 `TRUSTED_PROXIES`**（见「nginx 反向代理」）。
+
+**配置**：「系统管理 → 系统配置 → 支付配置」。改完**立即生效，不需要 reload**（每次下单、查单、回调都现读配置、现建驱动；这点与短信不同）。
+
+| 配置键 | 说明 |
+|---|---|
+| `pay_alipay_enabled` | 开启支付宝（只控制新下单；查单、关单、退款、回调不看开关） |
+| `pay_alipay_sandbox` | 请求支付宝沙箱网关，仅联调用，生产务必关闭 |
+| `pay_alipay_app_id` | 开放平台应用 AppID |
+| `pay_alipay_private_key` | 应用私钥（RSA2）正文，可带或不带 PEM 头尾行 |
+| `pay_alipay_public_key` | 支付宝公钥（公钥模式；不支持公钥证书模式） |
+| `pay_alipay_notify_url` | 回调地址，留空则用 `site_url` + `/api/payment/notify/alipay` |
+| `pay_wechat_enabled` | 开启微信支付（同上，只控制新下单） |
+| `pay_wechat_app_id` | 与商户号绑定的 AppID |
+| `pay_wechat_mch_id` | 商户号 |
+| `pay_wechat_api_v3_key` | APIv3 密钥（32 字节） |
+| `pay_wechat_serial_no` | **商户** API 证书序列号（不是平台证书序列号） |
+| `pay_wechat_private_key_path` | 商户私钥文件 `apiclient_key.pem` 的路径，相对路径按 `server/` 解析 |
+| `pay_wechat_public_key_id` / `pay_wechat_public_key` | 微信支付公钥模式的公钥 ID（`PUB_KEY_ID_` 开头）与公钥正文，两项同填或同空 |
+| `pay_wechat_notify_url` | 回调地址，留空则用 `site_url` + `/api/payment/notify/wechat` |
+
+**回调地址**：渠道服务器要能从公网访问到它，微信要求 `https`。留空时拼接用的是「基础配置」里的 `site_url`，**不看请求的 Host 头**（Host 头可被伪造）；`site_url` 还是默认的 `http://localhost` 时回调必然收不到——此时订单仍会由 `GET /api/payment/query` 的补查（同一订单每 10 秒最多查一次网关）或关单任务确认入账，但到账会变慢。回调验签失败时微信得到 HTTP 500、支付宝得到 `fail`，渠道会按自己的策略重试。
+
+**微信的两种验签模式**：
+
+- **微信支付公钥模式**（新商户默认）：填 `pay_wechat_public_key_id` 与 `pay_wechat_public_key`。回调的 `Wechatpay-Serial` 必须等于公钥 ID，否则直接拒绝；不下载任何证书。
+- **平台证书模式**：两项都留空。首次需要验签时调用 `GET /v3/certificates` 下载平台证书，缓存在 `server/runtime/cert/wechatpay/{商户号}/`（按商户号隔离，运行 webman 的用户需要写权限）。遇到未知序列号时最多每 60 秒重新下载一次，仍对不上就拒绝回调。
+
+**入账**：回调、查单补查、关单任务三处只经同一个入口把订单置为已支付，锁订单行、核对渠道与金额（分）后，在同一个事务里给会员加余额并写一条「充值」流水（来源 `payment:{订单号}`）。同一订单重复回调只入账一次；金额或渠道对不上时不改库、应答失败并记 `error` 日志。
+
+**定时任务**（随补丁 SQL 写入，可在「系统管理 → 定时任务」里查看）：
+
+| 任务 | 命令 | 表达式 | 作用 |
+|---|---|---|---|
+| 支付订单超时关闭 | `payment:close-expired` | `*/5 * * * *` | 订单下单 30 分钟未支付即过期；过期超过 1 分钟的，先查网关（已支付的补记入账），否则调网关关单再本地置为已关闭；单轮至多 100 单 |
+| 退款结果对账 | `payment:reconcile-refunds` | `*/10 * * * *` | 查询创建超过 2 分钟仍在处理中的退款并结算；网关查不到的退款超过 30 分钟判失败并把余额加回；处理中超过 24 小时记 `error` 日志，需人工到商户后台核对 |
+
+两条都需要 scheduler 与队列进程常驻（见「定时任务与队列」）。
+
+**退款（仅命令行）**：
+
+```bash
+cd server
+php webman payment:refund R20260916120000123456 10.00 --reason="用户申请退款"
+```
+
+- 金额单位是元，允许部分退款，累计不超过实付金额；同一订单有退款在处理中时拒绝再退。
+- 充值订单退款会**先扣会员余额**（余额不足直接拒绝，什么都不写），再调网关；网关明确失败时写一条「退款失败冲正」流水把余额加回，结果不确定时保持「处理中」交给对账任务。
+- 退出码：`0` 退款成功、`1` 失败（含前置校验失败）、`2` 处理中。执行人按系统用户名记为 `cli:{用户名}`。
+- `payment:refund` **不在** `server/config/cron.php` 白名单里，不能配成定时任务——这是有意的，不要加进去。
+
+**支付宝沙箱联调**：在开放平台「沙箱应用」取 AppID、配置应用公私钥并拿到支付宝公钥，填进上面几项并打开 `pay_alipay_sandbox`，用沙箱买家账号付款。本地开发时回调到不了本机，充值结果靠 pc 端轮询 `payment/query` 的补查确认。微信支付没有可用的沙箱，只有离线测试覆盖。
 
 ### 升级
 
@@ -274,7 +343,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M2 | 代码生成器 + API 文档 | ✅（按表生成 CRUD 模块与 `make:crud`，由路由与校验规则推导的 OpenAPI 文档） |
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
-| M5 | 会员与支付 | |
+| M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
 | M6 | 消息与微信 | |
 | M7 | 内容与装修 | |
 | M8 | 安装与发布 | |

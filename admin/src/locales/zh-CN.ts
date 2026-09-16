@@ -588,6 +588,7 @@ export default {
             sms_template_notify: '通知模板',
             // payment
             pay_alipay_enabled: '启用支付宝',
+            pay_alipay_sandbox: '沙箱环境',
             pay_alipay_app_id: '支付宝AppID',
             pay_alipay_private_key: '应用私钥',
             pay_alipay_public_key: '支付宝公钥',
@@ -599,6 +600,8 @@ export default {
             pay_wechat_api_v3_key: '微信APIv3密钥',
             pay_wechat_serial_no: '微信证书序列号',
             pay_wechat_private_key_path: '微信私钥文件',
+            pay_wechat_public_key_id: '微信支付公钥ID',
+            pay_wechat_public_key: '微信支付公钥',
             pay_wechat_cert_path: '微信证书文件',
             pay_wechat_notify_url: '异步通知地址',
             // storage
@@ -673,6 +676,7 @@ export default {
             sms_template_code: '短信验证码模板编号',
             sms_template_notify: '短信通知模板编号',
             pay_alipay_enabled: '是否开启支付宝支付',
+            pay_alipay_sandbox: '开启后请求支付宝沙箱网关，仅用于联调，生产环境务必关闭',
             pay_alipay_app_id: '支付宝开放平台应用AppID',
             pay_alipay_private_key: '支付宝应用私钥(RSA2)',
             pay_alipay_public_key: '支付宝公钥',
@@ -682,8 +686,11 @@ export default {
             pay_wechat_mch_id: '微信支付商户号',
             pay_wechat_api_key: '微信支付APIv3密钥',
             pay_wechat_api_v3_key: '微信支付APIv3密钥（用于V3接口）',
-            pay_wechat_serial_no: '微信支付平台证书序列号',
+            pay_wechat_serial_no: '商户API证书序列号',
             pay_wechat_private_key_path: '商户API私钥文件路径（apiclient_key.pem）',
+            pay_wechat_public_key_id:
+                '微信支付公钥ID（PUB_KEY_ID_ 开头），与微信支付公钥同时填写；两项都留空则自动下载平台证书',
+            pay_wechat_public_key: '微信支付公钥 PEM 正文，与公钥ID同时填写',
             pay_wechat_cert_path: '商户API证书文件路径（apiclient_cert.pem）',
             pay_wechat_notify_url: '微信支付异步回调通知URL',
             storage_driver: '选择文件存储方式',
@@ -1542,5 +1549,4 @@ export default {
         updatedAt: '更新于 {time}',
         decorate: '去装修'
     }
-
 }
