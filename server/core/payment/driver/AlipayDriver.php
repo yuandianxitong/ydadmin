@@ -32,7 +32,7 @@ use GuzzleHttp\HandlerStack;
  * - page / wap / app 三种下单只在本地签名生成表单或订单串，不发网络请求；
  * - 查单、关单、退款、退款查询是一次表单 POST，应答按「原文截取 + 顶层 sign」验签；
  * - 失败分类（计划设计决定 3–6）：连接/超时/非 200/验签不过/无签名 → 结果不确定；
- *   code 以 4 开头的业务错误（ACQ.SYSTEM_ERROR 除外）→ 明确失败；其余 → 不确定。
+ *   code 以 4 开头的业务错误（sub_code 以 ACQ.SYSTEM_ERROR 结尾的除外）→ 明确失败；其余 → 不确定。
  *
  * 实例不缓存、不持有请求态：PaymentManager 每次现读配置现 new（计划设计决定 2）。
  */
@@ -50,7 +50,7 @@ final class AlipayDriver implements PaymentGatewayInterface
 
     private const TRADE_NOT_EXIST = 'ACQ.TRADE_NOT_EXIST';
 
-    /** 文档要求「使用相同参数再次调用」，结果未知 */
+    /** 文档要求「使用相同参数再次调用」，结果未知；按后缀匹配，兼容 aop.ACQ.SYSTEM_ERROR 等带前缀的形式 */
     private const SYSTEM_ERROR = 'ACQ.SYSTEM_ERROR';
 
     /** 网关层拒绝（业务未执行）的公共错误码：未签名时也按明确失败处理 */
@@ -145,7 +145,9 @@ final class AlipayDriver implements PaymentGatewayInterface
                 'refund_reason'  => $request->reason,
             ]);
         } catch (GatewayException $e) {
-            // 只可能是本地签名或编码失败：请求确定没有发出
+            // 两种来源，都代表退款业务确定没有执行：
+            // 1) 本地签名或编码失败，请求没有发出；
+            // 2) 网关在进入业务前拒绝的未签名 error_response（code 40001/40002/40006，见 verifiedNode()）
             return new RefundResult(RefundResult::FAILED, null, $e->getMessage());
         }
 
@@ -183,7 +185,9 @@ final class AlipayDriver implements PaymentGatewayInterface
             throw new GatewayResultUnknownException(self::businessError('alipay.trade.fastpay.refund.query', $node)->getMessage());
         }
 
-        // 支付宝文档：返回了查询数据，且 refund_status 为空或为 REFUND_SUCCESS，即代表退款成功；查不到数据代表未退款
+        // 支付宝文档：返回了查询数据，且 refund_status 为空或为 REFUND_SUCCESS，即代表退款成功；查不到数据代表未退款。
+        // 「查询数据」只认非空的 refund_amount：退款不存在时应答仍可能回显请求里的 out_request_no，
+        // 若据此判成功，结算会让用户余额扣着而钱没有退出去。
         $status = (string) ($node['refund_status'] ?? '');
         if ($status === 'REFUND_SUCCESS') {
             return new RefundResult(RefundResult::SUCCESS, self::stringField($node, 'trade_no'));
@@ -191,7 +195,7 @@ final class AlipayDriver implements PaymentGatewayInterface
         if ($status !== '') {
             return new RefundResult(RefundResult::PROCESSING, self::stringField($node, 'trade_no'));
         }
-        if (self::stringField($node, 'out_request_no') !== null || self::stringField($node, 'refund_amount') !== null) {
+        if (self::stringField($node, 'refund_amount') !== null) {
             return new RefundResult(RefundResult::SUCCESS, self::stringField($node, 'trade_no'));
         }
 
@@ -399,7 +403,9 @@ final class AlipayDriver implements PaymentGatewayInterface
     }
 
     /**
-     * 请求签名原文：去掉 sign，丢弃空值，按键升序拼 k=v&k=v（值不做 URL 编码）。
+     * 请求签名原文：去掉 sign，丢弃 trim 后为空的值，按键升序拼 k=v&k=v（值不做 URL 编码）。
+     * 与 alipaysdk/easysdk 2.2.3 `EasySDKKernel::getSignContent()`（checkEmpty 用 trim 判空）一致；
+     * SDK 另跳过以「@」开头的值（旧版 curl 文件上传约定），本驱动发出的参数不会以「@」开头，不照搬。
      *
      * @param array<string, string> $params
      */
@@ -409,7 +415,7 @@ final class AlipayDriver implements PaymentGatewayInterface
         ksort($params);
         $pairs = [];
         foreach ($params as $key => $value) {
-            if ($value !== '') {
+            if (trim($value) !== '') {
                 $pairs[] = $key . '=' . $value;
             }
         }
@@ -419,6 +425,9 @@ final class AlipayDriver implements PaymentGatewayInterface
 
     /**
      * 回调验签原文：去掉 sign、sign_type，按键升序拼 k=v&…，空值保留（支付宝文档：其余参数皆参与验签）。
+     * 与 alipaysdk/easysdk 2.2.3 `Kernel/Util/Signer::getSignContent()`（verifyNotify 所用，不判空）一致。
+     * SDK 另会跳过以「@」开头的值；这里刻意不跳过：被跳过的字段不受签名保护，宁可让这种回调验签失败（fail closed，
+     * 订单仍由查单兜底），也不接受未经签名的字段。
      *
      * @param array<string, string> $params
      */
@@ -469,7 +478,7 @@ final class AlipayDriver implements PaymentGatewayInterface
         $subCode = self::subCode($node);
         $message = trim("支付宝 {$method} 失败：{$code} {$subCode} " . (string) ($node['sub_msg'] ?? $node['msg'] ?? ''));
 
-        return str_starts_with($code, '4') && $subCode !== self::SYSTEM_ERROR
+        return str_starts_with($code, '4') && !str_ends_with($subCode, self::SYSTEM_ERROR)
             ? new GatewayException($message)
             : new GatewayResultUnknownException($message);
     }

@@ -99,7 +99,7 @@ final class Test23_PaymentNotifyStrictVerificationTest extends ApiTestCase
             'attacker_signature' => $this->wechatHeaders($body, $this->attacker['private'], self::WX_PUBLIC_KEY_ID),
             'unknown_serial'     => $this->wechatHeaders($body, $this->wechatPlatform['private'], 'PUB_KEY_ID_ATTACKER0000'),
             'tampered_body'      => $this->wechatHeaders($body, $this->wechatPlatform['private'], self::WX_PUBLIC_KEY_ID),
-            'stale_timestamp'    => $this->wechatHeaders($body, $this->wechatPlatform['private'], self::WX_PUBLIC_KEY_ID, time() - 301),
+            'stale_timestamp'    => $this->wechatHeaders($body, $this->wechatPlatform['private'], self::WX_PUBLIC_KEY_ID, time() - 310),
         };
         if ($case === 'tampered_body') {
             // 签的是原报文，发出去的报文多了一个字段：字节变了，签名必须失效

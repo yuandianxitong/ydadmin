@@ -76,7 +76,8 @@ final class AlipayDriverCreateTest extends TestCase
         ksort($params);
         $pairs = [];
         foreach ($params as $key => $value) {
-            if ($value !== '') {
+            // 与 alipaysdk/easysdk 2.2.3 EasySDKKernel::getSignContent() 一致：trim 后为空的值不参与签名
+            if (trim($value) !== '') {
                 $pairs[] = $key . '=' . $value;
             }
         }
@@ -119,6 +120,23 @@ final class AlipayDriverCreateTest extends TestCase
         $this->assertArrayNotHasKey('return_url', $params);
         $this->assertSignedByApp($params);
         $this->assertSame([], $history, '支付宝下单是本地生成，不得发请求');
+    }
+
+    public function test_blank_values_are_left_out_of_request_signature_like_the_official_sdk(): void
+    {
+        $request = new CreateOrderRequest(
+            'R20260916120000123456',
+            TradeType::PAGE,
+            '余额充值',
+            1230,
+            new \DateTimeImmutable('2026-09-16 12:30:00', new \DateTimeZone('UTC')),
+            '   ',
+        );
+
+        $params = $this->parseForm($this->driver()->create($request)->data['body'])['params'];
+
+        $this->assertSame('   ', $params['notify_url']);
+        $this->assertSignedByApp($params);
     }
 
     public function test_wap_pay_uses_quick_wap_way_and_sandbox_gateway(): void

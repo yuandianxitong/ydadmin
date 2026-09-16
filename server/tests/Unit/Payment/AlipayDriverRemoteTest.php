@@ -185,9 +185,17 @@ final class AlipayDriverRemoteTest extends TestCase
         yield 'unsigned 20000 error_response' => [static fn (): Response => new Response(200, [], '{"error_response":{"code":"20000","msg":"Service Currently Unavailable","sub_code":"isp.unknow-error"}}')];
     }
 
-    public function test_unsigned_gateway_rejection_is_a_definite_failure(): void
+    /** @return iterable<string, array{string}> */
+    public static function unsignedGatewayRejections(): iterable
     {
-        $body = '{"error_response":{"code":"40002","msg":"Invalid Arguments","sub_code":"isv.invalid-signature"}}';
+        yield '40001 missing parameter' => ['{"error_response":{"code":"40001","msg":"Missing Required Arguments","sub_code":"isv.missing-app-id"}}'];
+        yield '40002 invalid signature' => ['{"error_response":{"code":"40002","msg":"Invalid Arguments","sub_code":"isv.invalid-signature"}}'];
+        yield '40006 insufficient permissions' => ['{"error_response":{"code":"40006","msg":"Insufficient Permissions","sub_code":"isv.insufficient-isv-permissions"}}'];
+    }
+
+    #[DataProvider('unsignedGatewayRejections')]
+    public function test_unsigned_gateway_rejection_is_a_definite_failure(string $body): void
+    {
 
         $refund = $this->driver([new Response(200, [], $body)])->refund(new RefundRequest('R1', 'F1', 100, 1000, '测试'));
         $this->assertSame(RefundResult::FAILED, $refund->status, '凭据配错被网关拒绝的退款业务未执行，必须明确失败以便冲正');
@@ -338,9 +346,10 @@ final class AlipayDriverRemoteTest extends TestCase
             $this->bizError('alipay.trade.refund', '20000', 'isp.unknow-error'),
             $this->bizError('alipay.trade.refund', '40004', 'ACQ.SYSTEM_ERROR'),
             new Response(504, [], ''),
+            $this->bizError('alipay.trade.refund', '40004', 'aop.ACQ.SYSTEM_ERROR'),
         ]);
 
-        foreach ([1, 2, 3, 4] as $round) {
+        foreach ([1, 2, 3, 4, 5] as $round) {
             try {
                 $driver->refund($this->refundRequest());
                 $this->fail("第 {$round} 次必须抛 GatewayResultUnknownException");
@@ -366,6 +375,9 @@ final class AlipayDriverRemoteTest extends TestCase
     {
         yield 'refund_status REFUND_SUCCESS' => [['refund_status' => 'REFUND_SUCCESS', 'out_request_no' => 'F1', 'refund_amount' => '5.00', 'trade_no' => 'T1'], RefundResult::SUCCESS];
         yield 'empty refund_status but data returned' => [['out_request_no' => 'F1', 'refund_amount' => '5.00', 'trade_no' => 'T1'], RefundResult::SUCCESS];
+        yield 'empty refund_status with refund_amount only' => [['refund_amount' => '5.00'], RefundResult::SUCCESS];
+        yield 'echoed out_request_no only is not a refund' => [['out_trade_no' => 'R1', 'out_request_no' => 'F1', 'trade_no' => 'T1'], RefundResult::NOT_FOUND];
+        yield 'empty refund_amount is not a refund' => [['out_request_no' => 'F1', 'refund_amount' => ''], RefundResult::NOT_FOUND];
         yield 'other refund_status' => [['refund_status' => 'REFUND_PROCESSING', 'out_request_no' => 'F1'], RefundResult::PROCESSING];
         yield 'no data at all' => [[], RefundResult::NOT_FOUND];
     }

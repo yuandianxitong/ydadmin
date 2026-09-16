@@ -91,6 +91,10 @@ final class AlipayDriverNotifyTest extends TestCase
         $this->assertSame('R20260916120000123456', $result->orderNo);
     }
 
+    /**
+     * 回调验签不丢空值：alipaysdk/easysdk 2.2.3 的 verifyNotify 走 Kernel/Util/Signer::getSignContent()，
+     * 只去 sign、sign_type，不判空（与请求侧 EasySDKKernel::getSignContent() 丢弃空值不同）。
+     */
     public function test_empty_values_take_part_in_signature(): void
     {
         $signed = AlipayStub::signNotify($this->params(), self::$alipay['private']);

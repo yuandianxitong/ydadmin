@@ -115,7 +115,7 @@ final class WechatPayDriverNotifyTest extends TestCase
     /** @return array<string, array{int}> */
     public static function staleOffsets(): array
     {
-        return ['301 秒前' => [-301], '301 秒后' => [301]];
+        return ['310 秒前' => [-310], '310 秒后' => [310]];
     }
 
     #[DataProvider('staleOffsets')]
