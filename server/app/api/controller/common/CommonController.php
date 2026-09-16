@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\api\controller\common;
 
+use app\service\common\CommonConfigService;
 use app\service\user\SmsCodeService;
 use core\base\Controller;
 use core\http\ClientIp;
@@ -13,9 +14,10 @@ use support\Response;
 use Webman\Http\Request;
 
 /**
- * C 端公共接口（契约 §6.2）。M5a 只有一条：
+ * C 端公共接口（契约 §6.2）。M5a 只有一条，M6a 新增一条：
  *
  *   POST /api/common/sms-code   smsCode   公开（不挂 ApiAuthMiddleware）
+ *   GET  /api/common/config     config    公开
  *
  * C 端控制器一律 #[PermissionSkip]（计划「设计决定」第 2 条）：权限点体系是管理端的，
  * C 端的准入由路由组挂不挂 ApiAuthMiddleware 决定。也不经 AdminLogMiddleware，不登记操作日志文案。
@@ -24,6 +26,9 @@ class CommonController extends Controller
 {
     #[Inject]
     protected SmsCodeService $smsCodeService;
+
+    #[Inject]
+    protected CommonConfigService $commonConfigService;
 
     #[PermissionSkip]
     public function smsCode(Request $request): Response
@@ -38,6 +43,12 @@ class CommonController extends Controller
         $this->smsCodeService->send((string) $data['mobile'], $scene, ClientIp::resolve($request));
 
         return $this->success([], lang('messages.sms_code_sent'));
+    }
+
+    #[PermissionSkip]
+    public function config(): Response
+    {
+        return $this->success($this->commonConfigService->publicConfig(), lang('messages.get_success'));
     }
 
     /**
