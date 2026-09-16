@@ -10,6 +10,7 @@ use app\repository\system\AdminRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use app\repository\system\SystemConfigRepository;
+use app\repository\user\UserRepository;
 use core\base\Service;
 use core\context\RequestContext;
 use core\datascope\DataScope;
@@ -24,7 +25,9 @@ use support\Cache;
  * - 每个接口的结果按管理员缓存 5 分钟，键为 dashboard.{接口}.{管理员 id}[.{参数}]。
  *   TP8 按 days 全站共用一份；接入数据权限后不同管理员的数字不同，必须分开。
  * - 缓存里只放与语言无关的数据：「最近动态」的文案与相对时间在取出缓存后按本次请求的语言生成。
- * - C 端用户字段（totalUsers、activeUsers、todayNewUsers 及其趋势、registerTrend）在 M5 会员模块接入前为 0 / []。
+ * - C 端用户字段（totalUsers、activeUsers、todayNewUsers 及其趋势、registerTrend）取自 users 表（M5a 接入）。
+ *   users 不受数据权限约束（spec §8）：会员归运营整体看，不按部门切分，因此这几个数字对所有管理员一致；
+ *   管理员、登录日志、操作日志那几项仍然按各自的数据范围统计。
  */
 class DashboardService extends Service
 {
@@ -42,6 +45,9 @@ class DashboardService extends Service
     private const ACTIVITY_LIMIT = 8;
 
     private const RANKING_LIMIT = 10;
+
+    /** 活跃会员的判定窗口（天）：last_login_time 在最近这么多天内（TP8 口径）。 */
+    private const ACTIVE_DAYS = 7;
 
     #[Inject]
     protected AdminRepository $adminRepository;
@@ -61,6 +67,9 @@ class DashboardService extends Service
     #[Inject]
     protected AdminOperationLogRepository $operationLogRepository;
 
+    #[Inject]
+    protected UserRepository $userRepository;
+
     /**
      * 统计卡片与趋势。$days 截断到 1..90。
      *
@@ -71,12 +80,26 @@ class DashboardService extends Service
         $days = max(1, min(self::MAX_DAYS, $days));
 
         return $this->remember('stats', (string) $days, function () use ($days): array {
-            // C 端用户（M5 接入前为 0）。保留与 TP8 相同的环比公式，M5 只需替换这几个变量的取值来源。
-            $totalUsers = 0;
-            $activeUsers = 0;
-            $todayNewUsers = 0;
-            $lastWeekNewUsers = 0;
-            $lastWeekActiveUsers = 0;
+            // C 端用户（M5a 接入 users 表）。环比公式与 TP8 一致，这里只提供取值。
+            $today = new \DateTimeImmutable('today');
+            $oneDay = new \DateInterval('P1D');
+            $lastWeekDay = $today->sub(new \DateInterval('P7D'));
+            // 活跃窗口 [-7 天, 今) 与上一个窗口 [-14 天, -7 天)：last_login_time 是单列，
+            // 两个「自某时刻起」的计数相减就是左闭右开的区间数，与 TP8 的两条 where 等价
+            $activeSince = $today->sub(new \DateInterval('P' . self::ACTIVE_DAYS . 'D'))->format('Y-m-d H:i:s');
+            $previousActiveSince = $today->sub(new \DateInterval('P' . (2 * self::ACTIVE_DAYS) . 'D'))->format('Y-m-d H:i:s');
+
+            $totalUsers = $this->userRepository->countAll();
+            $activeUsers = $this->userRepository->countActiveSince($activeSince);
+            $todayNewUsers = $this->userRepository->countCreatedBetween(
+                $today->format('Y-m-d H:i:s'),
+                $today->add($oneDay)->format('Y-m-d H:i:s')
+            );
+            $lastWeekNewUsers = $this->userRepository->countCreatedBetween(
+                $lastWeekDay->format('Y-m-d H:i:s'),
+                $lastWeekDay->add($oneDay)->format('Y-m-d H:i:s')
+            );
+            $lastWeekActiveUsers = max(0, $this->userRepository->countActiveSince($previousActiveSince) - $activeUsers);
 
             $todayLoginCount = $this->loginLogRepository->getTodaySuccessCount();
             $lastWeekLoginCount = $this->loginLogRepository->getLastWeekSameDaySuccessCount();
@@ -98,7 +121,7 @@ class DashboardService extends Service
                 ],
                 'operationLogCount' => $this->operationLogRepository->getTodayCount(),
                 'loginTrend'        => $this->loginLogRepository->getRecentTrend($days),
-                'registerTrend'     => [],
+                'registerTrend'     => $this->userRepository->registerTrend($days),
             ];
         });
     }

@@ -105,11 +105,12 @@ final class DashboardApiTest extends ApiTestCase
             $this->assertIsInt($data[$key], $key);
         }
 
-        // C 端用户字段：M5 接入前为 0 / []
-        $this->assertSame(0, $data['totalUsers']);
-        $this->assertSame(0, $data['activeUsers']);
-        $this->assertSame(0, $data['todayNewUsers']);
-        $this->assertSame([], $data['registerTrend']);
+        // C 端用户字段：M5a 起是真实值（全表口径，users 不受数据权限约束，spec §8）
+        $this->assertIsInt($data['totalUsers']);
+        $this->assertIsInt($data['activeUsers']);
+        $this->assertIsInt($data['todayNewUsers']);
+        $this->assertCount(7, $data['registerTrend'], '注册趋势默认 7 天，含今天，补零');
+        $this->assertSame(['date', 'count'], array_keys($data['registerTrend'][0]));
         $this->assertSame(['totalUsers', 'activeUsers', 'todayNewUsers', 'todayLoginCount'], array_keys($data['trends']));
         $this->assertSame(['value' => 0, 'type' => 'up'], $data['trends']['totalUsers']);
         $this->assertSame(['value' => 0, 'type' => 'up', 'unit' => 'percent'], $data['trends']['activeUsers']);
@@ -295,5 +296,60 @@ final class DashboardApiTest extends ApiTestCase
             $this->assertArrayHasKey('period', $response->data()['errors']);
             $this->assertSame(lang('validation.dashboard_period_invalid'), $response->message());
         }
+    }
+
+    /** 建一个 C 端用户；行经 track() 登记，tearDown 自动删。 */
+    private function createUser(string $createdAt, ?string $lastLoginTime = null): int
+    {
+        $suffix = bin2hex(random_bytes(4));
+        $id = (int) Db::table('users')->insertGetId([
+            'nickname'        => "u_{$suffix}",
+            'mobile'          => '19' . str_pad((string) random_int(0, 999_999_999), 9, '0', STR_PAD_LEFT),
+            'password'        => password_hash('Passw0rd!', PASSWORD_DEFAULT),
+            'status'          => 1,
+            'balance'         => '0.00',
+            'points'          => 0,
+            'last_login_time' => $lastLoginTime,
+            'login_count'     => $lastLoginTime === null ? 0 : 1,
+            'created_at'      => $createdAt,
+            'updated_at'      => $createdAt,
+        ]);
+        $this->track('users', $id);
+
+        return $id;
+    }
+
+    public function test_user_stats_come_from_the_users_table(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $before = $this->get(self::BASE . '/stats', [], $admin->token)->assertOk()->data();
+        Cache::delete($this->statsKey($admin->id));
+
+        $this->createUser(date('Y-m-d H:i:s'), date('Y-m-d H:i:s'));                                  // 今天注册、今天登录
+        $this->createUser(date('Y-m-d H:i:s', strtotime('-3 days')), date('Y-m-d H:i:s', strtotime('-2 days')));  // 3 天前注册、2 天前登录：算活跃
+        $this->createUser(date('Y-m-d H:i:s', strtotime('-30 days')), date('Y-m-d H:i:s', strtotime('-20 days'))); // 30 天前注册、20 天前登录：不算活跃
+
+        $after = $this->get(self::BASE . '/stats', [], $admin->token)->assertOk()->data();
+        $this->assertSame($before['totalUsers'] + 3, $after['totalUsers']);
+        $this->assertSame($before['todayNewUsers'] + 1, $after['todayNewUsers']);
+        $this->assertSame($before['activeUsers'] + 2, $after['activeUsers'], '活跃 = 最近 7 天有登录');
+    }
+
+    public function test_register_trend_is_a_zero_filled_series(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $this->createUser(date('Y-m-d H:i:s'));
+        $this->createUser(date('Y-m-d H:i:s'));
+        $this->createUser(date('Y-m-d H:i:s', strtotime('-2 days')));
+
+        $trend = $this->get(self::BASE . '/stats', ['days' => 5], $admin->token)->assertOk()->data()['registerTrend'];
+        $this->assertCount(5, $trend, '补零：每一天都要有一行，否则前端趋势图断轴');
+        $this->assertSame(array_map(
+            static fn (int $i): string => date('m-d', strtotime("-{$i} days")),
+            [4, 3, 2, 1, 0]
+        ), array_column($trend, 'date'), '日期升序，最后一行是今天');
+        $this->assertGreaterThanOrEqual(2, $trend[4]['count']);
+        $this->assertGreaterThanOrEqual(1, $trend[2]['count']);
+        $this->assertIsInt($trend[0]['count']);
     }
 }
