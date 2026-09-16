@@ -214,7 +214,7 @@ M5a 只开放 `login`、`register` 两个验证码场景，改密码、绑定/�
 
 IP 闸门取客户端 IP 的方式与登录限流完全同源：**只有直连地址属于 `TRUSTED_PROXIES` 时才读 `X-Forwarded-For`**。所以**部署在 nginx 等反向代理后面却没有正确配置 `TRUSTED_PROXIES` 时，所有真实用户都会被解析成同一个代理 IP、共用同一个「每小时 20 次」的桶**：第 21 位用户开始就再也发不出验证码，而前端只会看到一句「当前网络请求验证码过于频繁」，日志里也没有别的线索，极难诊断。反向代理后面务必按上面「nginx 反向代理」一节把这一项配对。
 
-**边界**：微信登录（微信网页、公众号、小程序、H5 四种）与绑定手机号留给 M6，与 easywechat、公众号配置一起交付；余额充值与支付见下一节「支付（M5b）」。
+**边界**：微信登录（网页扫码、小程序、小程序手机号快捷登录、公众号 H5）与绑定手机号见「微信登录（M6a）」一节；余额充值与支付见「支付（M5b）」。
 
 **并发测试的硬依赖**：`AssetConcurrencyTest`（余额/积分行锁并发用例）需要 PHP 的 `pcntl` 与 `posix` 扩展，缺扩展的 CI 镜像跑到这个测试会直接报错——这是有意的失败模式，不要把它改成跳过。
 
@@ -234,7 +234,7 @@ C 端余额充值：`POST /api/user/recharge`（`amount` 元、`channel` 为 `we
 | `wechat_h5` | JSAPI（公众号内） | 不支持 |
 | `miniapp` | JSAPI（小程序） | 不支持 |
 
-JSAPI 需要会员的 openid（`users.oa_openid` / `users.mini_openid`），由 M6 的微信登录写入；此前这两端选微信支付会提示「请先完成微信授权后再支付」。H5 支付上报的用户 IP 与登录限流同源，**反向代理后面必须配好 `TRUSTED_PROXIES`**（见「nginx 反向代理」）。
+JSAPI 需要会员的 openid（`users.oa_openid` / `users.mini_openid`），由微信登录写入（见「微信登录（M6a）」）；没有对应 openid 时这两端选微信支付会提示「请先完成微信授权后再支付」。各端下单使用各自的 appid（小程序 `wechat_mini_app_id`、公众号 H5 `wechat_official_app_id`、pc `wechat_open_app_id`，为空时回退 `pay_wechat_app_id`），这些 appid 都要在微信支付商户后台与商户号绑定；回调里的 appid 按该订单下单时实际使用的 appid 核对。H5 支付上报的用户 IP 与登录限流同源，**反向代理后面必须配好 `TRUSTED_PROXIES`**（见「nginx 反向代理」）。
 
 **配置**：「系统管理 → 系统配置 → 支付配置」。改完**立即生效，不需要 reload**（每次下单、查单、回调都现读配置、现建驱动；这点与短信不同）。
 
@@ -286,6 +286,55 @@ php webman payment:refund R20260916120000123456 10.00 --reason="用户申请退�
 - `payment:refund` **不在** `server/config/cron.php` 白名单里，不能配成定时任务——这是有意的，不要加进去。
 
 **支付宝沙箱联调**：在开放平台「沙箱应用」取 AppID、配置应用公私钥并拿到支付宝公钥，填进上面几项并打开 `pay_alipay_sandbox`，用沙箱买家账号付款。本地开发时回调到不了本机，充值结果靠 pc 端轮询 `payment/query` 的补查确认。微信支付没有可用的沙箱，只有离线测试覆盖。
+
+### 微信登录（M6a）
+
+C 端微信登录与绑定，全部为 `/api` 下的公开接口（`bind-oa-openid` 除外）。**不依赖任何微信 SDK**：后端直接调用 `api.weixin.qq.com`，access_token 缓存在 Redis（`wechat:access_token:{appid}`，按 appid 隔离，多个 worker 同时过期时只有一个去刷新）。
+
+| 接口 | 场景 | 未匹配到已有账号时 |
+|---|---|---|
+| `POST /api/auth/wechat-web-login {code}` | pc 端开放平台扫码 | 自动注册（无手机号，昵称/头像尽力取自微信） |
+| `POST /api/auth/wechat-login {code}` | 小程序静默登录 | 自动注册（无手机号） |
+| `POST /api/auth/wechat-quick-login {code}` | 小程序快捷登录 | 返回 `need_bindphone` 与一次性 `temp_token`（5 分钟） |
+| `POST /api/auth/wechat-bindphone {temp_token, phone_code}` | 小程序授权手机号 | 手机号已有账号则绑定到该账号，否则注册 |
+| `POST /api/auth/wechat-h5-login {code}` | 微信内 H5（公众号静默授权） | 返回 `need_login`，**不注册**；用户登录后再绑定 |
+| `GET /api/wechat/oauth-url?redirect_url&scope` | H5 发起公众号授权 | —— |
+| `POST /api/user/bind-oa-openid {oa_openid}`（需 user token） | H5 登录后绑定公众号 openid | —— |
+| `GET /api/common/config` | 前端公开配置（含 `wechat_open_app_id`） | —— |
+
+**升级到 M6a 时先执行开发库补丁 SQL**（`wechat_official` / `wechat_mini` / `wechat_open` 三组 19 个配置键、「渠道」目录与三个配置页菜单、`payment_orders.app_id` 列），再部署代码。
+
+**配置**：管理端「渠道 → 公众号 / 小程序 / 开放平台 → 配置」（页面保存走系统配置接口，权限是 `system.config.list` / `system.config.update`）。改完**立即生效，不需要 reload**。
+
+| 配置键 | 用于 |
+|---|---|
+| `wechat_open_app_id` / `wechat_open_app_secret` | pc 扫码登录（开放平台「网站应用」）；`wechat_open_app_id` 会经 `common/config` 公开给 pc |
+| `wechat_mini_app_id` / `wechat_mini_app_secret` | 小程序静默登录、快捷登录、手机号解密 |
+| `wechat_official_app_id` / `wechat_official_app_secret` | 公众号 H5 授权 |
+| `wechat_official_token` / `_aes_key` / `_encrypt_type`、`wechat_mini_msg_token` / `_msg_aes_key` / `_msg_format` / `_encrypt_type` | 服务器消息推送，M6c 才使用；M6a 只保存 |
+
+**账号匹配**：先按本端 openid 列（网页 `openid`、小程序 `mini_openid`、公众号 `oa_openid`）找；找不到且微信返回了 unionid，再按 unionid 找——只有该账号本端列**为空**时才补写，已有别的值时**不覆盖**、视为未匹配。同一 openid 的首次登录/注册有 Redis 锁，双击不会注册出两个账号。被禁用的账号返回「账户已被禁用」。
+
+**公众号 openid 绑定为什么要 cookie**：`wechat-h5-login` 未匹配时，在同一响应里下发签名的 HttpOnly cookie `yd_oa_bind`（HMAC-SHA256，密钥派生自 `JWT_USER_SECRET`，有效 7 天，`Path=/api; SameSite=Lax`，`site_url` 为 https 时加 `Secure`）。`bind-oa-openid` 只在 cookie 有效且其中的 openid 与请求一致时才绑定，且不覆盖已有绑定、不抢占别的账号已绑的 openid。1.x 直接信任客户端传来的 openid，任何人都能把别人的 openid 绑到自己账号上。
+
+**报错对外只说三类**：「微信登录未配置」「微信授权失败，请重试」「微信服务暂不可用，请稍后重试」；微信的 errcode / errmsg 只写 `warning` 日志。响应里不会出现 session_key、access_token 与原始手机号报文。
+
+**已知限制**：
+
+- **OAuth `state` 不校验**：pc 端由前端自己拼授权链接（固定 `state=pc_login`），uniapp 回跳后先剥掉 `state` 再调后端，不改前端就无法校验，存在登录 CSRF 风险。
+- **H5 与 API 必须同域部署**：绑定 cookie 靠浏览器随请求自动携带；H5 与 API 分属不同域名时 cookie 不会被带上，绑定一律失败（fail closed，JSAPI 支付会继续提示授权）。
+- **cookie 过期后需要清本地存储**：uniapp 把 openid 存在本地存储后不再重新授权；用户超过 7 天才登录时绑定会失败，需清除该 H5 的本地存储（或微信内「清除缓存」）后重新进入。
+- **同一 unionid 从两个不同客户端并发首登可能产生两个账号**：登录锁是按「本端列 + openid」加的（如小程序按 `mini_openid`、pc 按 `openid`），不是按 unionid 加锁；小程序与 pc 同一微信账号在同一时刻各自首次登录时，两把锁互不冲突，会各自按本端 openid 注册一个账号，都补写同一个 unionid（不冲突，因为各自是各自账号的首次补写）。
+- pc 扫码登录回跳后会丢失 `?redirect=` 参数（前端行为）。
+- `wechat_open_app_id` 未配置时 `common/config` 不返回该键，pc 登录页据此显示「未配置」。
+
+**真实环境自测**（本地无法端到端验证：微信回调域名必须是公网已备案域名；仓库只有离线测试，没有 Mock 网关——调试开关误开到生产会让任何人冒充任意 openid 登录）：
+
+1. 部署到公网 https 域名，「基础配置」`site_url` 填该域名。
+2. **pc 扫码**：开放平台创建网站应用、授权回调域填该域名，填 `wechat_open_*`；打开 `/pc/login` 点微信登录，扫码后应直接登录。
+3. **小程序**：小程序后台配置服务器域名，填 `wechat_mini_*`；真机上快捷登录 → 授权手机号 → 登录；再用同一微信静默登录应直接进入同一账号。
+4. **公众号 H5**：认证服务号设置网页授权域名，填 `wechat_official_*`；在微信里打开 `/mobile/`，首次应静默授权后跳到登录页，短信登录后在库里核对 `users.oa_openid` 已写入；随后在该 H5 发起微信支付应能调起 JSAPI。
+5. 检查日志里没有 appsecret、code、access_token、手机号明文。
 
 ### 升级
 
@@ -344,6 +393,6 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
-| M6 | 消息与微信 | |
+| M6 | 消息与微信 | 进行中（M6a ✅ 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系、M6c 公众号运营待做） |
 | M7 | 内容与装修 | |
 | M8 | 安装与发布 | |

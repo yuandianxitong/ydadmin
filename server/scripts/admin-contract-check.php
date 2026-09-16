@@ -14,6 +14,8 @@
  *   开发库还没有 cron_jobs 表（补丁 SQL 未执行）时整段跳过。
  * M5b 起：支付段只打写库前即失败的请求（非法参数、端类型、未启用渠道、不存在订单、未注册接口、无签名回调），
  *   开发库没有 payment_orders 表或没有会员时整段跳过。
+ * M6a 起：微信登录段只打写库与调用微信之前即失败的请求（未配置、非法 scope 与外域回调、编造的 temp_token、
+ *   无 cookie 的绑定、公开配置白名单）；开发库没有 wechat_* 配置键时整段跳过，某端已配置时跳过该端断言。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1611,6 +1613,86 @@ if (!$schema->hasTable('payment_orders') || !$schema->hasTable('users')) {
         check('notify/wechat：无签名 → HTTP 500 + {"code":"FAIL"}', $r['status'] === 500 && is_array($r['json']) && ($r['json']['code'] ?? null) === 'FAIL', $r['status'] . ' ' . $r['body']);
         $r = httpRaw('POST', "{$base}/api/payment/notify/alipay", ['Content-Type: application/x-www-form-urlencoded'], 'out_trade_no=R20000101000000000000&trade_status=TRADE_SUCCESS');
         check('notify/alipay：无签名 → HTTP 200 + fail', $r['status'] === 200 && trim($r['body']) === 'fail', $r['status'] . ' ' . $r['body']);
+    }
+}
+
+// ---------------------------------------------------------------- M6a
+echo "\n=== M6a：微信登录（写库与调微信前即失败） ===\n";
+// 只打「写库与调用微信之前就失败」的请求（M6a spec §9.3）：不注册用户、不绑定 openid、不向 api.weixin.qq.com 发请求。
+// 开发库没有 wechat_* 配置键（M6a 补丁未执行）时整段跳过；某端 appid/secret 已填时跳过该端的「未配置」断言。
+$wechatKeys = support\Db::table('system_configs')->where('config_key', 'like', 'wechat\_%')->pluck('config_value', 'config_key')->all();
+if (!array_key_exists('wechat_mini_app_id', $wechatKeys)) {
+    echo "  （开发库还没有 wechat_* 配置键：M6a 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $sideConfigured = static fn (string $side): bool => trim((string) ($wechatKeys["wechat_{$side}_app_id"] ?? '')) !== ''
+        && trim((string) ($wechatKeys["wechat_{$side}_app_secret"] ?? '')) !== '';
+
+    // ---- 五个登录端点：未配置 → 400「微信登录未配置」
+    $loginProbes = [
+        'wechat-web-login'   => ['open', ['code' => 'contract-probe']],
+        'wechat-login'       => ['mini', ['code' => 'contract-probe']],
+        'wechat-quick-login' => ['mini', ['code' => 'contract-probe']],
+        'wechat-h5-login'    => ['official', ['code' => 'contract-probe']],
+    ];
+    foreach ($loginProbes as $endpoint => [$side, $payload]) {
+        if ($sideConfigured($side)) {
+            echo "  （wechat_{$side} 已配置，跳过 {$endpoint} 的「未配置」断言——不拿假 code 去打真实微信）\n";
+            continue;
+        }
+        $r = http('POST', "{$base}/api/auth/{$endpoint}", $api, $payload);
+        check("{$endpoint}：wechat_{$side} 未配置 → code 400「微信登录未配置」", respCode($r) === 400 && (($r['json']['message'] ?? '') === lang('wechat.not_configured')), $r['body']);
+    }
+
+    $r = http('POST', "{$base}/api/auth/wechat-login", $api, []);
+    check('wechat-login：缺 code → code 422，errors.code', respCode($r) === 422 && isset((respData($r))['errors']['code']), $r['body']);
+
+    // bindphone：编造的 temp_token 在 GETDEL 取不到值时即失败（不读配置、不调微信、不写库）
+    $r = http('POST', "{$base}/api/auth/wechat-bindphone", $api, ['temp_token' => bin2hex(random_bytes(16)), 'phone_code' => 'contract-probe']);
+    check('wechat-bindphone：编造的 temp_token → code 400「登录已过期」', respCode($r) === 400 && (($r['json']['message'] ?? '') === lang('wechat.quick_expired')), $r['body']);
+
+    // ---- oauth-url：scope 白名单与本站域名校验（先于读公众号配置，spec §4.7）
+    $r = http('GET', "{$base}/api/wechat/oauth-url?" . http_build_query(['redirect_url' => 'https://evil.example.org/cb', 'scope' => 'snsapi_base']), $api);
+    check('oauth-url：外域回调 → code 422，errors.redirect_url', respCode($r) === 422 && isset((respData($r))['errors']['redirect_url']) && !str_contains($r['body'], 'open.weixin.qq.com'), $r['body']);
+    $r = http('GET', "{$base}/api/wechat/oauth-url?" . http_build_query(['redirect_url' => 'https://evil.example.org/cb', 'scope' => 'snsapi_login']), $api);
+    check('oauth-url：scope 不在白名单 → code 422，errors.scope', respCode($r) === 422 && isset((respData($r))['errors']['scope']), $r['body']);
+
+    // ---- common/config：公开、键集合是白名单子集、不含任何凭据类键
+    $r = http('GET', "{$base}/api/common/config", $api);
+    $commonKeys = is_array(respData($r)) ? array_keys((array) respData($r)) : null;
+    $whitelist = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'wechat_open_app_id'];
+    check(
+        'common/config：code 200，键集合 ⊆ 白名单，不含 secret/token/aes_key/_key 类键',
+        respCode($r) === 200
+            && is_array($commonKeys)
+            && array_diff($commonKeys, $whitelist) === []
+            && preg_grep('/secret|token|aes_key|_key$|password/i', $commonKeys) === [],
+        $r['body']
+    );
+
+    // ---- bind-oa-openid：未登录 401；登录但无 cookie → 400「微信授权已失效」且不写库
+    $r = http('POST', "{$base}/api/user/bind-oa-openid", $api, ['oa_openid' => 'contract-probe-openid']);
+    check('bind-oa-openid：未登录 → code 401', respCode($r) === 401, $r['body']);
+
+    $wxUserId = support\Db::connection()->getSchemaBuilder()->hasTable('users')
+        ? (int) support\Db::table('users')->orderBy('id')->value('id')
+        : 0;
+    if ($wxUserId <= 0) {
+        echo "  （开发库 users 表里没有数据，跳过「无 cookie 绑定被拒」断言——需要一个真实会员签发 token）\n";
+    } else {
+        // 只读 SELECT 取会员 id 与当前 oa_openid，服务端同一套 TokenManager 签发 user token；token 不输出
+        $wxToken = core\auth\TokenManager::scope('user')->generate([
+            'user_id' => $wxUserId,
+            'ver'     => core\auth\TokenVersion::current($wxUserId, 'user'),
+        ]);
+        $oaBefore = support\Db::table('users')->where('id', $wxUserId)->value('oa_openid');
+        $r = http('POST', "{$base}/api/user/bind-oa-openid", [...$api, "Authorization: Bearer {$wxToken}"], ['oa_openid' => 'contract-probe-openid']);
+        check(
+            'bind-oa-openid：无 cookie → code 400「微信授权已失效」，且 oa_openid 未变',
+            respCode($r) === 400
+                && (($r['json']['message'] ?? '') === lang('wechat.oa_bind_invalid'))
+                && support\Db::table('users')->where('id', $wxUserId)->value('oa_openid') === $oaBefore,
+            $r['body']
+        );
     }
 }
 
