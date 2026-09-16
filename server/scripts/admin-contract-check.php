@@ -911,11 +911,18 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('users')) {
         'adminCount', 'roleCount', 'menuCount', 'configCount', 'todayLoginCount', 'todayNewUsers', 'activeUsers', 'totalUsers',
         'trends', 'operationLogCount', 'loginTrend', 'registerTrend',
     ], $r['body']);
+    // M5a 起 registerTrend 不再是空数组：Task 10 把它接上了真实的 users 表，与 loginTrend 同为 7 天补零序列。
+    // 两条趋势铺在工作台同一条横轴上，所以行形状与 date 格式（m-d）必须一致——这里一并钉住，
+    // 退回空数组、天数不对、或 date 变回 Y-m-d 都会让这条红。
+    $registerTrend = (array) ($stats['registerTrend'] ?? []);
     check(
-        'dashboard/stats：trends 四个键，loginTrend 默认 7 天，registerTrend 为 []',
+        'dashboard/stats：trends 四个键，loginTrend 与 registerTrend 均为 7 天 {date(m-d), count} 序列',
         array_keys((array) ($stats['trends'] ?? [])) === ['totalUsers', 'activeUsers', 'todayNewUsers', 'todayLoginCount']
             && count((array) ($stats['loginTrend'] ?? [])) === 7
-            && ($stats['registerTrend'] ?? null) === []
+            && count($registerTrend) === 7
+            && array_keys((array) ($registerTrend[0] ?? [])) === ['date', 'count']
+            && 1 === preg_match('/^\d{2}-\d{2}$/', (string) ($registerTrend[0]['date'] ?? '')),
+        $r['body']
     );
     $r = http('GET', "{$base}/adminapi/dashboard/stats?days=1000", $auth);
     check('dashboard/stats：days 截断到 90', count((array) (respData($r)['loginTrend'] ?? [])) === 90, $r['body']);
