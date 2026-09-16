@@ -8,6 +8,7 @@ use app\model\user\User;
 use core\base\Model;
 use core\base\Repository;
 use core\support\Like;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 /**
  * 会员仓储（users 表，spec §8）：不设 $dataScoped——users 没有 created_by 也没有部门列，一旦声明
@@ -84,6 +85,23 @@ class UserRepository extends Repository
     public function mobileExists(string $mobile): bool
     {
         return $this->query()->where($this->qualify('mobile'), $mobile)->exists();
+    }
+
+    /**
+     * 手机号是否已被占用，含软删行（M6a Task 6 修复：`users` 有 `uk_mobile` 唯一键但没有把
+     * `deleted_at` 编进索引，软删会员的手机号仍占着这个键；query() 的软删全局作用域会让
+     * findByAccount() 看不到这一行，注册前必须额外查一次，否则唯一键冲突会在 bindPhone 里变成
+     * 未捕获的 QueryException → HTTP 500，还把手机号明文带进错误日志）。
+     *
+     * 用 withoutGlobalScope(SoftDeletingScope::class)（同 AdminRepository::findByUsername()/RoleRepository
+     * 查重先例）而不是 SoftDeletes trait 的 withTrashed()：后者靠 Eloquent Builder 的魔术方法转发给模型
+     * 局部作用域，没装 larastan 的 phpstan level 6 认不出这个方法（method.notFound）；下面这行调用的
+     * 写法是 Builder 上真实声明的方法，也是 check:context 规则五明确放行的形式
+     * （只摘软删作用域，不碰数据权限作用域）。
+     */
+    public function mobileTakenIncludingTrashed(string $mobile): bool
+    {
+        return $this->query()->withoutGlobalScope(SoftDeletingScope::class)->where($this->qualify('mobile'), $mobile)->exists();
     }
 
     /**

@@ -10,4 +10,5 @@ return [
     'default_nickname' => 'WeChat user',
     'quick_expired'     => 'Login has expired, please authorize again',
     'phone_bound_other' => 'This mobile number is already bound to another WeChat account',
+    'phone_unavailable' => 'This mobile number is currently unavailable, please contact support',
 ];

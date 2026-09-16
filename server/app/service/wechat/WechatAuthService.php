@@ -16,6 +16,7 @@ use core\wechat\MiniProgramApi;
 use core\wechat\OAuthApi;
 use core\wechat\WechatConfigResolver;
 use DI\Attribute\Inject;
+use Illuminate\Database\UniqueConstraintViolationException;
 use support\Log;
 use support\Redis;
 
@@ -156,7 +157,11 @@ class WechatAuthService extends Service
      *
      * 手机号已有账号：mini_openid 为空 → 补写；等于本 openid → 直接登录；是别的值 → 拒绝（不覆盖）。
      * 若本 openid 在 quickLogin 之后已被另一个账号占用，同样拒绝，不让同一 mini_openid 挂到两个账号上。
-     * 手机号没有账号：锁内再按 mini_openid 查一次（防并发已注册），有则登录，无则带手机号注册。
+     * 手机号没有账号：锁内再按 mini_openid 查一次（防并发已注册），有则登录，无则带手机号注册——
+     * 但 users.mobile 有唯一键且不含 deleted_at，软删会员仍占着这个键，findByAccount() 经软删作用域看不到它，
+     * 注册前额外查一次含软删行（mobileTakenIncludingTrashed），命中就拒绝而不是让唯一键冲突捅穿到 HTTP 500
+     * （那样还会把手机号明文带进错误日志）；两个不同 openid 并发抢同一手机号时上面那次查询本身防不住竞态，
+     * 唯一键冲突兜底转成同一条业务错误，日志只记异常类名。
      *
      * @return array{status: 'logged_in', token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}
      * @throws BusinessException
@@ -175,8 +180,19 @@ class WechatAuthService extends Service
                 if ($existing !== null) {
                     return $this->activeUserId($existing);
                 }
+                if ($this->users->mobileTakenIncludingTrashed($mobile)) {
+                    throw new BusinessException(lang('wechat.phone_unavailable'));
+                }
 
-                return $this->register('mini_openid', $openid, $unionid, $this->defaultNickname(), null, $mobile);
+                try {
+                    return $this->register('mini_openid', $openid, $unionid, $this->defaultNickname(), null, $mobile);
+                } catch (UniqueConstraintViolationException $e) {
+                    // 两个不同 openid 并发绑同一手机号：上面那次查询挡不住竞态，唯一键冲突在这里兜底。
+                    // 只记异常类名，QueryException::getMessage() 会带 SQL 与绑定值（手机号明文）。
+                    Log::error('注册微信用户时手机号唯一键冲突', ['exception' => $e::class]);
+
+                    throw new BusinessException(lang('wechat.phone_unavailable'));
+                }
             }
 
             $userId = $this->activeUserId($user);

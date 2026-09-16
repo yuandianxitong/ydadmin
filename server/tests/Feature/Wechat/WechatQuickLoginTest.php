@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace tests\Feature\Wechat;
 
+use app\repository\user\UserRepository;
 use app\service\wechat\WechatAuthService;
 use core\exception\BusinessException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Monolog\Handler\TestHandler;
 use support\Container;
 use support\Db;
@@ -278,5 +280,75 @@ final class WechatQuickLoginTest extends ApiTestCase
         $this->assertStringNotContainsString($mobile, $dump);
         $this->assertStringNotContainsString('PHONE-CODE-SECRET', $dump);
         $this->assertStringNotContainsString('ACCESS-TOKEN-X', $dump);
+    }
+
+    // ---------------------------------------------------------------- bindPhone：软删占位 / 唯一键竞态（fix round 1）
+
+    /**
+     * users.mobile 有 uk_mobile 唯一键但不含 deleted_at：软删会员仍占着这个键。findByAccount() 经
+     * query() 的软删全局作用域看不到这一行，注册前必须额外查一次含软删行，否则唯一键冲突会在
+     * register() 里变成未捕获的 QueryException（HTTP 500），还把手机号明文带进异常处理器的错误日志
+     * （fix round 1 Important 1）。
+     */
+    public function test_bind_phone_rejects_a_mobile_held_by_a_soft_deleted_member(): void
+    {
+        $this->configureWechatApps();
+        $mobile = $this->fixtureMobile();
+        $userId = $this->insertWechatUser(['mobile' => $mobile]);
+        Db::table('users')->where('id', $userId)->update(['deleted_at' => date('Y-m-d H:i:s')]);
+        $temp = $this->needBindphone($this->fixtureOpenid());
+        $this->fakeWechatHttp(self::phone($mobile));
+
+        $this->assertBusinessError(fn () => $this->service()->bindPhone($temp, 'phone-code-10', '203.0.113.7'), '该手机号暂不可用，请联系客服');
+
+        $this->assertSame(1, Db::table('users')->where('mobile', $mobile)->count(), '不应注册出新用户（Db::table 不受软删作用域影响，1 就是原来那条软删行）');
+        $this->assertSame(0, Db::table('users')->where('mobile', $mobile)->whereNull('deleted_at')->count(), '没有未软删的同手机号用户');
+        $dump = (string) json_encode(array_map(static fn (array $r): array => [$r['message'], $r['context']], $this->logs->getRecords()), JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString($mobile, $dump, '日志不得带出手机号明文');
+    }
+
+    /**
+     * 两个不同 openid 并发绑同一手机号：各自的登录锁不同（锁按 mini_openid 分），
+     * mobileTakenIncludingTrashed() 的查空窗口防不住这种竞态——用仓储替身直接模拟 createWechatUser()
+     * 撞上 uk_mobile 唯一键（UniqueConstraintViolationException），验证 bindPhone 把它转成同一条业务
+     * 错误，且异常处理器不会记录 QueryException::getMessage()（带 SQL 绑定值＝手机号明文）。
+     */
+    public function test_bind_phone_converts_a_racing_unique_violation_into_a_business_error(): void
+    {
+        $this->configureWechatApps();
+        $mobile = $this->fixtureMobile();
+        $temp = $this->needBindphone($this->fixtureOpenid());
+        $this->fakeWechatHttp(self::phone($mobile));
+
+        $failing = new class ($mobile) extends UserRepository {
+            public function __construct(private readonly string $bound)
+            {
+                parent::__construct();
+            }
+
+            public function createWechatUser(string $column, string $openid, ?string $unionid, string $nickname, ?string $avatar, ?string $mobile = null): int
+            {
+                $pdo = new class ("SQLSTATE[23000]: Duplicate entry '{$this->bound}' for key 'uk_mobile'") extends \PDOException {
+                    /** @var string */
+                    protected $code = '23000';
+                };
+
+                throw new UniqueConstraintViolationException('mysql', 'insert into `users` (`mobile`) values (?)', [$this->bound], $pdo);
+            }
+        };
+
+        $original = Container::get(UserRepository::class);
+        Container::set(UserRepository::class, $failing);
+        Container::set(WechatAuthService::class, Container::make(WechatAuthService::class));
+        try {
+            $this->assertBusinessError(fn () => $this->service()->bindPhone($temp, 'phone-code-11', '203.0.113.7'), '该手机号暂不可用，请联系客服');
+        } finally {
+            Container::set(UserRepository::class, $original);
+            Container::set(WechatAuthService::class, Container::make(WechatAuthService::class));
+        }
+
+        $this->assertSame(0, Db::table('users')->where('mobile', $mobile)->count(), '竞态失败不应留下半成品用户');
+        $dump = (string) json_encode(array_map(static fn (array $r): array => [$r['message'], $r['context']], $this->logs->getRecords()), JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString($mobile, $dump, '日志不得带出手机号明文（QueryException::getMessage() 会带 SQL 绑定值）');
     }
 }
