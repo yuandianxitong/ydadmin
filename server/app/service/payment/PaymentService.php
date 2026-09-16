@@ -11,10 +11,14 @@ use core\base\Service;
 use core\contract\ConfigValueReader;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
+use core\payment\Channel;
 use core\payment\dto\CreateOrderRequest;
+use core\payment\dto\NotifyAck;
+use core\payment\dto\NotifyRequest;
 use core\payment\dto\TradeQueryResult;
 use core\payment\exception\GatewayException;
 use core\payment\exception\GatewayResultUnknownException;
+use core\payment\exception\NotifyVerificationException;
 use core\payment\exception\PaymentConfigException;
 use core\payment\exception\PaymentException;
 use core\payment\GatewayResolver;
@@ -187,6 +191,71 @@ class PaymentService extends Service
 
             return MarkPaidOutcome::PAID;
         });
+    }
+
+    /**
+     * 支付回调（spec §5.3）。永不抛出：任何失败都转成该渠道的失败应答，让渠道按自己的节奏重试。
+     *
+     * - 取网关不看开关（spec §5.8）：管理员关掉渠道后，在途订单的回调仍要入账。
+     * - 只有 markPaid 真正接受（PAID）或幂等命中（ALREADY）才应答成功；MISMATCH / NOT_FOUND / 入账异常一律失败。
+     * - 日志只记渠道、订单号、异常类名与消息，不记回调原文与请求头（含签名与密文）。
+     */
+    public function handleNotify(string $channel, NotifyRequest $request): NotifyAck
+    {
+        try {
+            $gateway = $this->gateways->gateway($channel);
+        } catch (\Throwable $e) {
+            Log::error('支付回调：网关不可用', ['channel' => $channel, 'exception' => $e::class, 'reason' => $e->getMessage()]);
+
+            return $this->notifyFailureAck($channel);
+        }
+
+        try {
+            $result = $gateway->verifyNotify($request);
+        } catch (NotifyVerificationException $e) {
+            Log::warning('支付回调：验签或核对失败', ['channel' => $channel, 'reason' => $e->getMessage()]);
+
+            return $gateway->notifyAck(false);
+        } catch (\Throwable $e) {
+            Log::error('支付回调：验签过程异常', ['channel' => $channel, 'exception' => $e::class, 'reason' => $e->getMessage()]);
+
+            return $gateway->notifyAck(false);
+        }
+
+        if (!$result->paid) {
+            Log::info('支付回调：非支付成功事件，已应答不处理', ['channel' => $channel, 'order_no' => $result->orderNo]);
+
+            return $gateway->notifyAck(true);
+        }
+
+        try {
+            // paidCents 缺失时传 -1：必然与订单金额不符，落到 MISMATCH，而不是含糊的 0
+            $outcome = $this->markPaid($result->orderNo, $channel, $result->tradeNo, $result->paidCents ?? -1, $result->raw);
+        } catch (\Throwable $e) {
+            Log::error('支付回调：置已支付或入账失败，已回滚', [
+                'channel'   => $channel,
+                'order_no'  => $result->orderNo,
+                'exception' => $e::class,
+                'reason'    => $e->getMessage(),
+            ]);
+
+            return $gateway->notifyAck(false);
+        }
+
+        return $gateway->notifyAck($outcome === MarkPaidOutcome::PAID || $outcome === MarkPaidOutcome::ALREADY);
+    }
+
+    /**
+     * 拿不到网关实例时的失败应答（凭据不全、私钥无效，或控制器兜底）。必须与各驱动 notifyAck(false) 逐字一致，
+     * PaymentNotifyServiceTest::test_fallback_failure_ack_matches_real_drivers 钉住。
+     */
+    public function notifyFailureAck(string $channel): NotifyAck
+    {
+        return match ($channel) {
+            Channel::WECHAT => new NotifyAck(500, 'application/json', '{"code":"FAIL","message":"失败"}'),
+            Channel::ALIPAY => new NotifyAck(200, 'text/plain', 'fail'),
+            default         => new NotifyAck(500, 'text/plain', 'fail'),
+        };
     }
 
     /**

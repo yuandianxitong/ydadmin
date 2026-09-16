@@ -3,6 +3,7 @@
 use app\adminapi\controller\auth\AuthController;
 use app\api\controller\auth\AuthController as ApiAuthController;
 use app\api\controller\payment\PaymentController;
+use app\api\controller\payment\PaymentNotifyController;
 use app\api\controller\user\UserController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
@@ -243,6 +244,11 @@ Route::group('/api', function () use ($apiAuth) {
     Route::post('/auth/login', [ApiAuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);
     Route::post('/auth/register', [ApiAuthController::class, 'register']);
     Route::post('/auth/sms-login', [ApiAuthController::class, 'smsLogin']);
+
+    // M5b：支付回调（spec §5.3）。公开、不挂 $apiAuth——渠道服务器没有会员 token，凭签名证明身份。
+    // 应答不走统一响应体，由 PaymentNotifyController 按渠道原样返回。
+    Route::post('/payment/notify/wechat', [PaymentNotifyController::class, 'wechat']);
+    Route::post('/payment/notify/alipay', [PaymentNotifyController::class, 'alipay']);
 
     // ---- 认证段（挂 $apiAuth，逐请求比对 token 里的 ver）
     Route::group('/auth', function () {

@@ -371,10 +371,28 @@ abstract class ApiTestCase extends TestCase
             $headers['Content-Type'] = 'application/json';
         }
 
-        $headers += ['Host' => 'localhost', 'Accept' => 'application/json'];
         if ($token !== null) {
             $headers['Authorization'] = 'Bearer ' . $token;
         }
+
+        return $this->dispatchRaw($method, $uri, $body, $headers);
+    }
+
+    /**
+     * 原样 POST 一段 body（M5b 支付回调）：不做 JSON 编码、不改 Content-Type——支付宝回调是表单编码，
+     * 微信回调验签覆盖原始 body 字节，任何重新编码都会让签名失效。Content-Type 由调用方自己给。
+     *
+     * @param array<string, string> $headers
+     */
+    protected function postRaw(string $uri, string $body, array $headers = []): TestResponse
+    {
+        return $this->dispatchRaw('POST', $uri, $body, $headers);
+    }
+
+    /** @param array<string, string> $headers */
+    private function dispatchRaw(string $method, string $uri, string $body, array $headers): TestResponse
+    {
+        $headers += ['Host' => 'localhost', 'Accept' => 'application/json'];
         $headers['Content-Length'] = (string) strlen($body);
 
         $raw = "{$method} {$uri} HTTP/1.1\r\n";
