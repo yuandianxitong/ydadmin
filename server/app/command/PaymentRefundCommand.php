@@ -38,7 +38,8 @@ final class PaymentRefundCommand extends Command
     {
         $orderNo = trim((string) $input->getArgument('order_no'));
         $amount = trim((string) $input->getArgument('amount'));
-        if (preg_match('/^(0|[1-9]\d*)(\.\d{1,2})?$/', $amount) !== 1 || Money::toCents($amount) <= 0) {
+        // 整数部分至多 13 位：保证 Money::toCents() 不会因超长抛 InvalidArgumentException
+        if (preg_match('/^(0|[1-9]\d{0,12})(\.\d{1,2})?$/D', $amount) !== 1 || Money::toCents($amount) <= 0) {
             $output->writeln('<error>退款金额必须是大于 0、最多两位小数的元金额</error>');
 
             return self::FAILURE;
@@ -48,6 +49,14 @@ final class PaymentRefundCommand extends Command
             $result = Container::get(RefundService::class)->refund($orderNo, $amount, (string) $input->getOption('reason'), self::operator());
         } catch (BusinessException $e) {
             $output->writeln('<error>退款未发起：' . $e->getMessage() . '</error>');
+
+            return self::FAILURE;
+        } catch (\Throwable $e) {
+            // 命令边界兜底：只输出异常类名。数据库异常的消息带 SQL 与绑定值，不能打到终端或定时任务日志
+            $output->writeln(sprintf(
+                '<error>退款命令异常中止（%s）。退款单可能已创建，请核对 refund_orders，处理中的单由 payment:reconcile-refunds 对账</error>',
+                $e::class
+            ));
 
             return self::FAILURE;
         }
