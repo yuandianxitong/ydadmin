@@ -6,6 +6,7 @@ use app\api\controller\auth\WechatAuthController;
 use app\api\controller\payment\PaymentController;
 use app\api\controller\payment\PaymentNotifyController;
 use app\api\controller\user\UserController;
+use app\api\controller\wechat\WechatController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
@@ -252,6 +253,10 @@ Route::group('/api', function () use ($apiAuth) {
     Route::post('/auth/wechat-quick-login', [WechatAuthController::class, 'quickLogin']);
     Route::post('/auth/wechat-bindphone', [WechatAuthController::class, 'bindPhone']);
 
+    // M6a：公众号静默登录与网页授权地址（spec §4.6、§4.7）。公开：用户此时还没有会员 token。
+    Route::post('/auth/wechat-h5-login', [WechatAuthController::class, 'h5Login']);
+    Route::get('/wechat/oauth-url', [WechatController::class, 'oauthUrl']);
+
     // M5b：支付回调（spec §5.3）。公开、不挂 $apiAuth——渠道服务器没有会员 token，凭签名证明身份。
     // 应答不走统一响应体，由 PaymentNotifyController 按渠道原样返回。
     Route::post('/payment/notify/wechat', [PaymentNotifyController::class, 'wechat']);
@@ -273,6 +278,7 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/points', [UserController::class, 'points']);
         Route::get('/points-logs', [UserController::class, 'pointsLogs']);
         Route::post('/recharge', [UserController::class, 'recharge']);
+        Route::post('/bind-oa-openid', [UserController::class, 'bindOaOpenid']);
     })->middleware($apiAuth);
 
     // M5b：支付订单查询（回调在公开段，由 Task 9 注册）

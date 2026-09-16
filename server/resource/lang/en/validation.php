@@ -360,6 +360,9 @@ return [
     'wechat_code_require'     => 'WeChat authorization code is required',
     'temp_token_invalid'      => 'Invalid login credential',
     'phone_code_require'      => 'Phone number authorization code is required',
+    'oauth_redirect_url_require' => 'Redirect URL is required',
+    'oauth_scope_invalid'        => 'Invalid authorization scope',
+    'oa_openid_require'          => 'Official account openid is required',
     'points_invalid'         => 'Invalid points value',
     'points_zero'            => 'The adjustment points may not be 0',
 

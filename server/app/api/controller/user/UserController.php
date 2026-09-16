@@ -6,6 +6,8 @@ namespace app\api\controller\user;
 
 use app\service\payment\RechargeService;
 use app\service\user\UserService;
+use app\service\wechat\WechatAuthService;
+use app\service\wechat\WechatOaBindCookie;
 use core\base\Controller;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
@@ -25,6 +27,12 @@ class UserController extends Controller
 
     #[Inject]
     protected RechargeService $rechargeService;
+
+    #[Inject]
+    protected WechatAuthService $wechatAuthService;
+
+    #[Inject]
+    protected WechatOaBindCookie $oaBindCookie;
 
     #[PermissionSkip]
     public function profile(Request $request): Response
@@ -96,6 +104,19 @@ class UserController extends Controller
         );
 
         return $this->success($result, lang('messages.success'));
+    }
+
+    /**
+     * POST /api/user/bind-oa-openid（spec §4.8）。openid 的可信来源是 HttpOnly cookie，不是请求体。
+     */
+    #[PermissionSkip]
+    public function bindOaOpenid(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->bindOaOpenidRules(), $this->bindOaOpenidMessages());
+        $proof = $this->oaBindCookie->verify((string) $request->cookie(WechatOaBindCookie::NAME, ''));
+        $this->wechatAuthService->bindOaOpenid((int) $request->userId, (string) $data['oa_openid'], $proof);
+
+        return $this->oaBindCookie->forget($this->success([], lang('messages.success')));
     }
 
     /** @return array<string, string> */
@@ -174,6 +195,22 @@ class UserController extends Controller
             'channel.required' => 'validation.payment_channel_invalid',
             'channel.string'   => 'validation.payment_channel_invalid',
             'channel.in'       => 'validation.payment_channel_invalid',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function bindOaOpenidRules(): array
+    {
+        return ['oa_openid' => 'required|string|max:128'];
+    }
+
+    /** @return array<string, string> */
+    private function bindOaOpenidMessages(): array
+    {
+        return [
+            'oa_openid.required' => 'validation.oa_openid_require',
+            'oa_openid.string'   => 'validation.oa_openid_require',
+            'oa_openid.max'      => 'validation.oa_openid_require',
         ];
     }
 }

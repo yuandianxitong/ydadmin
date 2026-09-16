@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace app\api\controller\auth;
 
 use app\service\wechat\WechatAuthService;
+use app\service\wechat\WechatOaBindCookie;
 use core\base\Controller;
+use core\exception\BusinessException;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
+use core\wechat\exception\WechatNotConfiguredException;
 use DI\Attribute\Inject;
 use support\Response;
 use Webman\Http\Request;
@@ -20,11 +23,15 @@ use Webman\Http\Request;
  *   POST /api/auth/wechat-login       miniLogin   小程序静默登录
  *   POST /api/auth/wechat-quick-login quickLogin  小程序快捷登录（未命中返回 need_bindphone + temp_token）
  *   POST /api/auth/wechat-bindphone   bindPhone   用 temp_token + 手机号授权码完成登录
+ *   POST /api/auth/wechat-h5-login    h5Login     公众号静默登录（未绑定返回 need_login，并下发绑定证明 cookie）
  */
 class WechatAuthController extends Controller
 {
     #[Inject]
     protected WechatAuthService $wechatAuthService;
+
+    #[Inject]
+    protected WechatOaBindCookie $oaBindCookie;
 
     #[PermissionSkip]
     public function webLogin(Request $request): Response
@@ -70,6 +77,27 @@ class WechatAuthController extends Controller
         );
     }
 
+    /**
+     * 未绑定时在同一响应下发绑定证明 cookie（spec §5）。用户 JWT 密钥为空签不出证明：回「微信登录未配置」，
+     * 不让 WechatNotConfiguredException 漏成 HTTP 500，也不下发 cookie。
+     */
+    #[PermissionSkip]
+    public function h5Login(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->h5LoginRules(), $this->codeMessages());
+        $result = $this->wechatAuthService->h5Login((string) $data['code'], ClientIp::resolve($request));
+        $response = $this->success($result, lang('messages.login_success'));
+        if ($result['status'] !== 'need_login') {
+            return $response;
+        }
+
+        try {
+            return $this->oaBindCookie->attach($response, $result['openid']);
+        } catch (WechatNotConfiguredException) {
+            throw new BusinessException(lang('wechat.not_configured'));
+        }
+    }
+
     /** @return array<string, string> */
     private function webLoginRules(): array
     {
@@ -84,6 +112,12 @@ class WechatAuthController extends Controller
 
     /** @return array<string, string> */
     private function quickLoginRules(): array
+    {
+        return ['code' => 'required|string|max:128'];
+    }
+
+    /** @return array<string, string> */
+    private function h5LoginRules(): array
     {
         return ['code' => 'required|string|max:128'];
     }

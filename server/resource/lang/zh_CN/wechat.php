@@ -11,4 +11,8 @@ return [
     'quick_expired'     => '登录已过期，请重新授权',
     'phone_bound_other' => '该手机号已绑定其他微信',
     'phone_unavailable' => '该手机号暂不可用，请联系客服',
+    'oa_bind_invalid'            => '微信授权已失效，请重新进入',
+    'account_bound_other_wechat' => '当前账号已绑定其他微信',
+    'wechat_bound_other_account' => '该微信已绑定其他账号',
+    'redirect_not_allowed'       => '回调地址不在本站域名下',
 ];

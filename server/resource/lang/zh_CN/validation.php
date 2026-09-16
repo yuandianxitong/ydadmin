@@ -266,6 +266,9 @@ return [
     'wechat_code_require'     => '缺少微信授权码',
     'temp_token_invalid'      => '登录凭证无效',
     'phone_code_require'      => '缺少手机号授权码',
+    'oauth_redirect_url_require' => '回调地址不能为空',
+    'oauth_scope_invalid'        => '授权作用域不正确',
+    'oa_openid_require'          => '公众号 openid 不能为空',
     'points_invalid'         => '积分格式不正确',
     'points_zero'            => '调整积分不能为 0',
 

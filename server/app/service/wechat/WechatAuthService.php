@@ -7,7 +7,9 @@ namespace app\service\wechat;
 use app\repository\user\UserRepository;
 use app\service\user\UserSessionIssuer;
 use core\base\Service;
+use core\contract\ConfigValueReader;
 use core\exception\BusinessException;
+use core\exception\ValidationException;
 use core\wechat\exception\WechatApiException;
 use core\wechat\exception\WechatException;
 use core\wechat\exception\WechatNotConfiguredException;
@@ -69,6 +71,9 @@ class WechatAuthService extends Service
 
     #[Inject]
     protected UserSessionIssuer $sessions;
+
+    #[Inject]
+    protected ConfigValueReader $config;
 
     /**
      * PC 扫码登录（spec §4.2）：开放平台换 code → 按 openid 列匹配 → 未命中尽力取昵称头像后注册。
@@ -218,6 +223,101 @@ class WechatAuthService extends Service
         });
 
         return ['status' => 'logged_in'] + $this->sessions->issue($userId, $ip);
+    }
+
+    /**
+     * 公众号静默登录（spec §4.6）。已绑定 → 登录；未绑定 → need_login（不注册），绑定证明 cookie 由控制器下发。
+     *
+     * @return array{status: 'logged_in', openid: string, unionid: ?string, token: string, user_info: array<string, mixed>}|array{status: 'need_login', openid: string, unionid: ?string}
+     */
+    public function h5Login(string $code, string $ip): array
+    {
+        $identity = $this->wechat('sns/oauth2/access_token', fn (): array => $this->oauth->exchangeCode($this->wechatConfig->official(), $code));
+        $openid = $identity['openid'];
+        $unionid = $identity['unionid'];
+
+        $user = $this->withLoginLock('oa_openid', $openid, fn (): ?array => $this->matchOrBind('oa_openid', $openid, $unionid));
+        if ($user === null) {
+            return ['status' => 'need_login', 'openid' => $openid, 'unionid' => $unionid];
+        }
+        $userId = $this->activeUserId($user);
+
+        return ['status' => 'logged_in', 'openid' => $openid, 'unionid' => $unionid] + $this->sessions->issue($userId, $ip);
+    }
+
+    /**
+     * 公众号网页授权地址（spec §4.7）。scope 白名单由控制器校验；回调地址必须与 site_url 同 scheme、host、port。
+     *
+     * @throws ValidationException redirect_url 不在本站
+     * @throws BusinessException   公众号未配置
+     */
+    public function oauthUrl(string $redirectUrl, string $scope): string
+    {
+        if (!$this->isSameSite($redirectUrl)) {
+            throw new ValidationException(['redirect_url' => lang('wechat.redirect_not_allowed')]);
+        }
+        $appId = $this->wechat('oauth-url', fn (): string => $this->wechatConfig->official()->appId);
+
+        return $this->oauth->authorizeUrl($appId, $redirectUrl, $scope);
+    }
+
+    /**
+     * 登录后绑定公众号 openid（spec §4.8）。$proofOpenid 是控制器从 HttpOnly cookie 校验出的 openid——
+     * 请求体里的 openid 只有与它相等才可信；无证明一律拒绝。锁内判定，不覆盖任何已有绑定。
+     */
+    public function bindOaOpenid(int $userId, string $openid, ?string $proofOpenid): void
+    {
+        if ($proofOpenid === null || $openid === '' || !hash_equals($proofOpenid, $openid)) {
+            throw new BusinessException(lang('wechat.oa_bind_invalid'));
+        }
+
+        $this->withLoginLock('oa_openid', $openid, function () use ($userId, $openid): void {
+            $me = $this->users->find($userId) ?? throw new BusinessException(lang('wechat.oa_bind_invalid'));
+            $current = (string) ($me['oa_openid'] ?? '');
+            if ($current === $openid) {
+                return;
+            }
+            if ($current !== '') {
+                throw new BusinessException(lang('wechat.account_bound_other_wechat'));
+            }
+            $owner = $this->users->findByWechatColumn('oa_openid', $openid);
+            if ($owner !== null && (int) $owner['id'] !== $userId) {
+                throw new BusinessException(lang('wechat.wechat_bound_other_account'));
+            }
+            if (!$this->users->bindWechatColumnIfEmpty($userId, 'oa_openid', $openid)) {
+                // 锁外被别的请求抢先写了本账号的列：按「当前账号已绑定」处理，不覆盖
+                throw new BusinessException(lang('wechat.account_bound_other_wechat'));
+            }
+        });
+    }
+
+    /** 同 scheme、同 host（忽略大小写）、同 port（缺省按 scheme 补 80/443）；site_url 为空或解析失败一律拒绝。拒绝 userinfo 伪装 */
+    private function isSameSite(string $url): bool
+    {
+        $target = self::origin($url);
+        $site = self::origin(trim((string) $this->config->getConfigValue('site_url', '')));
+
+        return $target !== null && $site !== null && $target === $site;
+    }
+
+    /** @return ?string "scheme://host:port"；非绝对 http(s) 地址、带 user/pass 返回 null */
+    private static function origin(string $url): ?string
+    {
+        if ($url === '') {
+            return null;
+        }
+        $parts = parse_url($url);
+        if (!is_array($parts) || isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+        $port = (int) ($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
+
+        return "{$scheme}://{$host}:{$port}";
     }
 
     /**
