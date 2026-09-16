@@ -181,4 +181,135 @@ final class UserRepositoryTest extends TestCase
             ]
         );
     }
+
+    public function test_find_by_wechat_column_matches_each_whitelisted_column_and_ignores_soft_deleted(): void
+    {
+        $repo = new UserRepository();
+        foreach (UserRepository::WECHAT_COLUMNS as $column) {
+            $openid = "o_{$column}_" . bin2hex(random_bytes(6));
+            $id = $this->user([$column => $openid]);
+            $deletedOpenid = "o_{$column}_del_" . bin2hex(random_bytes(6));
+            $this->user([$column => $deletedOpenid, 'deleted_at' => date('Y-m-d H:i:s')]);
+
+            $found = $repo->findByWechatColumn($column, $openid);
+            $this->assertNotNull($found, $column);
+            $this->assertSame($id, (int) $found['id'], $column);
+            $this->assertArrayNotHasKey('password', $found, '普通查询不带口令哈希（模型 $hidden）');
+
+            $this->assertNull($repo->findByWechatColumn($column, $deletedOpenid), "{$column}：软删会员不可被找到");
+            $this->assertNull($repo->findByWechatColumn($column, 'o_missing_' . bin2hex(random_bytes(6))), $column);
+        }
+    }
+
+    public function test_find_by_wechat_column_and_unionid_return_the_smallest_id_when_duplicated(): void
+    {
+        $openid = 'o_dup_' . bin2hex(random_bytes(6));
+        $unionid = 'u_dup_' . bin2hex(random_bytes(6));
+        $first = $this->user(['mini_openid' => $openid, 'unionid' => $unionid]);
+        $this->user(['mini_openid' => $openid, 'unionid' => $unionid]);
+        $repo = new UserRepository();
+
+        $this->assertSame($first, (int) $repo->findByWechatColumn('mini_openid', $openid)['id']);
+        $this->assertSame($first, (int) $repo->findByUnionid($unionid)['id']);
+    }
+
+    public function test_find_by_unionid_ignores_soft_deleted(): void
+    {
+        $unionid = 'u_' . bin2hex(random_bytes(6));
+        $this->user(['unionid' => $unionid, 'deleted_at' => date('Y-m-d H:i:s')]);
+        $repo = new UserRepository();
+
+        $this->assertNull($repo->findByUnionid($unionid));
+
+        $id = $this->user(['unionid' => $unionid]);
+        $this->assertSame($id, (int) $repo->findByUnionid($unionid)['id']);
+    }
+
+    public function test_bind_wechat_column_if_empty_never_overwrites(): void
+    {
+        $repo = new UserRepository();
+        $emptyId = $this->user();
+        $boundId = $this->user(['oa_openid' => 'o_existing']);
+
+        $this->assertTrue($repo->bindWechatColumnIfEmpty($emptyId, 'oa_openid', 'o_new'));
+        $this->assertSame('o_new', Db::table('users')->where('id', $emptyId)->value('oa_openid'));
+
+        $this->assertFalse($repo->bindWechatColumnIfEmpty($boundId, 'oa_openid', 'o_other'), '已有值时不覆盖');
+        $this->assertSame('o_existing', Db::table('users')->where('id', $boundId)->value('oa_openid'));
+
+        $this->assertFalse($repo->bindWechatColumnIfEmpty($emptyId, 'oa_openid', 'o_again'), '刚写入的值同样不被覆盖');
+        $this->assertSame('o_new', Db::table('users')->where('id', $emptyId)->value('oa_openid'));
+    }
+
+    public function test_bind_wechat_column_if_empty_skips_soft_deleted_users(): void
+    {
+        $id = $this->user(['deleted_at' => date('Y-m-d H:i:s')]);
+
+        $this->assertFalse((new UserRepository())->bindWechatColumnIfEmpty($id, 'mini_openid', 'o_x'));
+        $this->assertNull(Db::table('users')->where('id', $id)->value('mini_openid'));
+    }
+
+    public function test_fill_unionid_if_empty_never_overwrites(): void
+    {
+        $repo = new UserRepository();
+        $emptyId = $this->user();
+        $boundId = $this->user(['unionid' => 'u_existing']);
+
+        $this->assertTrue($repo->fillUnionidIfEmpty($emptyId, 'u_new'));
+        $this->assertSame('u_new', Db::table('users')->where('id', $emptyId)->value('unionid'));
+        $this->assertFalse($repo->fillUnionidIfEmpty($boundId, 'u_other'));
+        $this->assertSame('u_existing', Db::table('users')->where('id', $boundId)->value('unionid'));
+    }
+
+    public function test_create_wechat_user_writes_the_given_column_and_returns_id(): void
+    {
+        $repo = new UserRepository();
+        $openid = 'o_create_' . bin2hex(random_bytes(6));
+
+        $id = $repo->createWechatUser('openid', $openid, 'u_create', '微信用户', 'https://thirdwx.qlogo.cn/a.png');
+        $this->userIds[] = $id;
+
+        $row = Db::table('users')->where('id', $id)->first();
+        $this->assertNotNull($row);
+        $this->assertSame($openid, $row->openid);
+        $this->assertSame('u_create', $row->unionid);
+        $this->assertNull($row->mini_openid);
+        $this->assertNull($row->oa_openid);
+        $this->assertSame('微信用户', $row->nickname);
+        $this->assertSame('https://thirdwx.qlogo.cn/a.png', $row->avatar);
+        $this->assertNull($row->mobile);
+        $this->assertNull($row->password, '微信注册的会员没有口令');
+        $this->assertSame(1, (int) $row->status);
+        $this->assertNotNull($row->created_at);
+        $this->assertNotNull($row->updated_at);
+
+        $mobile = '1' . str_pad((string) random_int(0, 9999999999), 10, '0', STR_PAD_LEFT);
+        $withPhone = $repo->createWechatUser('mini_openid', 'o_mini_' . bin2hex(random_bytes(6)), null, '微信用户', null, $mobile);
+        $this->userIds[] = $withPhone;
+        $this->assertSame($mobile, Db::table('users')->where('id', $withPhone)->value('mobile'));
+        $this->assertNull(Db::table('users')->where('id', $withPhone)->value('unionid'));
+    }
+
+    /** @return iterable<string, array{\Closure(UserRepository): mixed}> */
+    public static function invalidWechatArguments(): iterable
+    {
+        yield 'find: column not whitelisted' => [static fn (UserRepository $r): mixed => $r->findByWechatColumn('mobile', 'x')];
+        yield 'find: empty openid' => [static fn (UserRepository $r): mixed => $r->findByWechatColumn('openid', '')];
+        yield 'bind: column not whitelisted' => [static fn (UserRepository $r): mixed => $r->bindWechatColumnIfEmpty(1, 'unionid', 'x')];
+        yield 'bind: empty openid' => [static fn (UserRepository $r): mixed => $r->bindWechatColumnIfEmpty(1, 'openid', '')];
+        yield 'unionid: empty' => [static fn (UserRepository $r): mixed => $r->findByUnionid('')];
+        yield 'fill unionid: empty' => [static fn (UserRepository $r): mixed => $r->fillUnionidIfEmpty(1, '')];
+        yield 'create: column not whitelisted' => [static fn (UserRepository $r): mixed => $r->createWechatUser('password', 'x', null, '微信用户', null)];
+        yield 'create: empty openid' => [static fn (UserRepository $r): mixed => $r->createWechatUser('openid', '', null, '微信用户', null)];
+        yield 'create: empty unionid string' => [static fn (UserRepository $r): mixed => $r->createWechatUser('openid', 'x', '', '微信用户', null)];
+    }
+
+    /** @param \Closure(UserRepository): mixed $call */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidWechatArguments')]
+    public function test_wechat_methods_reject_non_whitelisted_columns_and_empty_identifiers(\Closure $call): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $call(new UserRepository());
+    }
 }

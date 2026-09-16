@@ -16,6 +16,12 @@ use core\support\Like;
  */
 class UserRepository extends Repository
 {
+    /**
+     * 会员表上可按 openid 登录的三列（M6a 设计决定 6）：openid=开放平台/PC 扫码、mini_openid=小程序、
+     * oa_openid=公众号。列名会拼进 SQL，只认这三个，调用方传别的一律 \InvalidArgumentException。
+     */
+    public const WECHAT_COLUMNS = ['openid', 'mini_openid', 'oa_openid'];
+
     /** @var list<string> */
     protected array $sortable = ['id', 'created_at', 'login_count'];
 
@@ -78,6 +84,102 @@ class UserRepository extends Repository
     public function mobileExists(string $mobile): bool
     {
         return $this->query()->where($this->qualify('mobile'), $mobile)->exists();
+    }
+
+    /**
+     * 按本端 openid 列查未软删会员（M6a spec §4.1 第 1 步）。重复时取 id 最小的一条——openid 列只有普通索引，
+     * 历史脏数据可能重复，取最早注册的那个保证结果稳定。
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByWechatColumn(string $column, string $openid): ?array
+    {
+        $this->assertWechatColumn($column);
+        $this->assertIdentifier($openid, 'openid');
+
+        $query = $this->query()->where($this->qualify($column), $openid);
+        $query->orderBy($this->qualify('id'));
+
+        return $query->first()?->toArray();
+    }
+
+    /**
+     * 按 unionid 查未软删会员（spec §4.1 第 2 步），重复时取 id 最小。
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByUnionid(string $unionid): ?array
+    {
+        $this->assertIdentifier($unionid, 'unionid');
+
+        $query = $this->query()->where($this->qualify('unionid'), $unionid);
+        $query->orderBy($this->qualify('id'));
+
+        return $query->first()?->toArray();
+    }
+
+    /**
+     * 只在该列为空时写入（设计决定 6「匹配不覆盖」）：条件更新把「查空 + 写入」合成一条 SQL，
+     * 并发下不会把别人刚写进去的值覆盖掉。软删会员经 query() 的全局作用域自动排除。
+     */
+    public function bindWechatColumnIfEmpty(int $userId, string $column, string $openid): bool
+    {
+        $this->assertWechatColumn($column);
+        $this->assertIdentifier($openid, 'openid');
+
+        return $this->query()
+            ->where($this->qualify('id'), $userId)
+            ->whereNull($this->qualify($column))
+            ->update([$column => $openid]) > 0;
+    }
+
+    /** unionid 同理：只补空列，不覆盖。 */
+    public function fillUnionidIfEmpty(int $userId, string $unionid): bool
+    {
+        $this->assertIdentifier($unionid, 'unionid');
+
+        return $this->query()
+            ->where($this->qualify('id'), $userId)
+            ->whereNull($this->qualify('unionid'))
+            ->update(['unionid' => $unionid]) > 0;
+    }
+
+    /**
+     * 微信登录注册（spec §4.2–4.5）：只写本端 openid 列，其余两列留空；没有口令（password 为 NULL，
+     * 这类会员不能走账号密码登录，loginByPassword 的 password_verify 对 NULL 哈希恒为 false）。
+     */
+    public function createWechatUser(string $column, string $openid, ?string $unionid, string $nickname, ?string $avatar, ?string $mobile = null): int
+    {
+        $this->assertWechatColumn($column);
+        $this->assertIdentifier($openid, 'openid');
+        if ($unionid !== null) {
+            $this->assertIdentifier($unionid, 'unionid');
+        }
+
+        $created = $this->create([
+            $column    => $openid,
+            'unionid'  => $unionid,
+            'nickname' => $nickname,
+            'avatar'   => $avatar,
+            'mobile'   => $mobile,
+            'status'   => 1,
+        ]);
+
+        return (int) $created['id'];
+    }
+
+    private function assertWechatColumn(string $column): void
+    {
+        if (!in_array($column, self::WECHAT_COLUMNS, true)) {
+            throw new \InvalidArgumentException("不支持的微信身份列：{$column}");
+        }
+    }
+
+    private function assertIdentifier(string $value, string $name): void
+    {
+        if ($value === '') {
+            throw new \InvalidArgumentException("{$name} 不能为空");
+        }
     }
 
     /**

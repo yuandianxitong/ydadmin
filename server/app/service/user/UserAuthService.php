@@ -11,7 +11,6 @@ use core\base\Service;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
 use DI\Attribute\Inject;
-use support\Log;
 
 /**
  * C 端认证（spec §4.3）：account+password 登录、mobile+code 短信登录、注册、刷新、登出。
@@ -32,6 +31,9 @@ class UserAuthService extends Service
     #[Inject]
     protected SmsCodeService $smsCodeService;
 
+    #[Inject]
+    protected UserSessionIssuer $userSessionIssuer;
+
     /** @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}} */
     public function loginByPassword(string $account, string $password, string $ip): array
     {
@@ -47,7 +49,7 @@ class UserAuthService extends Service
             throw new BusinessException(lang('auth.account_login_failed'));
         }
 
-        return $this->loginSuccess((int) $user['id'], $ip);
+        return $this->userSessionIssuer->issue((int) $user['id'], $ip);
     }
 
     /** @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}} */
@@ -62,7 +64,7 @@ class UserAuthService extends Service
             throw new BusinessException(lang('auth.account_disabled'));
         }
 
-        return $this->loginSuccess((int) $user['id'], $ip);
+        return $this->userSessionIssuer->issue((int) $user['id'], $ip);
     }
 
     /**
@@ -86,7 +88,7 @@ class UserAuthService extends Service
             'status'   => 1,
         ]);
 
-        return $this->loginSuccess((int) $created['id'], $ip);
+        return $this->userSessionIssuer->issue((int) $created['id'], $ip);
     }
 
     public function refresh(string $token): string
@@ -113,33 +115,6 @@ class UserAuthService extends Service
         $user = $this->userRepository->find($userId) ?? throw new NotFoundException();
 
         return $this->narrowRow($user);
-    }
-
-    /**
-     * @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}
-     */
-    private function loginSuccess(int $userId, string $ip): array
-    {
-        try {
-            $this->userRepository->updateLastLogin($userId, $ip);
-        } catch (\Throwable $e) {
-            Log::warning('更新会员最后登录信息失败：' . $e->getMessage());
-        }
-        $user = $this->userRepository->find($userId) ?? throw new NotFoundException();
-        $token = TokenManager::scope('user')->generate([
-            'user_id' => $userId,
-            'ver'     => TokenVersion::current($userId, 'user'),
-        ]);
-
-        return [
-            'token'     => $token,
-            'user_info' => [
-                'id'       => $userId,
-                'nickname' => (string) $user['nickname'],
-                'avatar'   => $user['avatar'] !== null ? (string) $user['avatar'] : null,
-                'mobile'   => $user['mobile'] !== null ? (string) $user['mobile'] : null,
-            ],
-        ];
     }
 
     /**
