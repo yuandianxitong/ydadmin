@@ -32,6 +32,9 @@ abstract class ApiTestCase extends TestCase
     /** @var list<int> 本用例创建的管理员（tearDown 时连同关联行、缓存一起清） */
     private array $createdAdminIds = [];
 
+    /** @var list<int> 本用例创建的 C 端会员（tearDown 时清它们的 token 版本号） */
+    private array $createdUserIds = [];
+
     /** @var array<string, string> 被本用例改过的配置的原值 */
     private array $originalConfigs = [];
 
@@ -116,6 +119,47 @@ abstract class ApiTestCase extends TestCase
         ]);
 
         return new TestAdmin($adminId, $username, $password, $token);
+    }
+
+    /**
+     * 当场创建一个 C 端会员并签发带 ver 的 user scope token（M5a spec §4）。与 actingAsAdmin() 同理：
+     * 不靠事务回滚隔离（afterCommit 回调不会触发），夹具登记自己创建的行，tearDown 时删除。
+     *
+     * @param array<string, mixed> $user 覆盖 users 列，如 ['mobile' => '13800138000', 'status' => 0, 'balance' => '10.00']
+     */
+    protected function actingAsUser(array $user = []): TestUser
+    {
+        $now = date('Y-m-d H:i:s');
+        $suffix = bin2hex(random_bytes(4));
+        // users.mobile 是唯一索引：没显式指定就随机一个 11 位号，夹具之间不会撞
+        $mobile = (string) ($user['mobile'] ?? '13' . random_int(100_000_000, 999_999_999));
+        $password = 'Passw0rd!';
+        $userId = (int) Db::table('users')->insertGetId(array_merge([
+            'nickname'   => "u_{$suffix}",
+            'password'   => password_hash($password, PASSWORD_DEFAULT),
+            'status'     => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $user, ['mobile' => $mobile]));
+        $this->trackUser($userId);
+
+        $token = TokenManager::scope('user')->generate([
+            'user_id' => $userId,
+            'ver'     => TokenVersion::current($userId, 'user'),
+        ]);
+
+        return new TestUser($userId, $mobile, $password, $token);
+    }
+
+    /**
+     * 登记会员：除删行外，还清它在 Redis 里的 token 版本号。这里就先清一次——测试库重建后自增 id 会复用，
+     * 不先清的话新会员会继承上一轮那个 id 的版本号（下一行 generate() 就把它签进 token 了）。
+     */
+    protected function trackUser(int $id): void
+    {
+        $this->track('users', $id);
+        $this->createdUserIds[] = $id;
+        Redis::del("user_token_ver:{$id}");
     }
 
     /** @param array<string, mixed> $attributes */
@@ -298,6 +342,10 @@ abstract class ApiTestCase extends TestCase
         foreach ($adminIds as $id) {
             $this->forgetAdminCaches($id);
         }
+        foreach ($this->createdUserIds as $id) {
+            Redis::del("user_token_ver:{$id}");
+        }
+        $this->createdUserIds = [];
         // 夹具建的角色、菜单会影响别人的权限集合
         Container::get(Permission::class)->clearAllCache();
         // 夹具建的部门、角色会改变别人的数据范围
