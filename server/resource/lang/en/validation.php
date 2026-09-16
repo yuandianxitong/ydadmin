@@ -336,6 +336,10 @@ return [
     'sms_code_require'       => 'Please enter the verification code',
     'password_confirmation_mismatch' => 'The two passwords you entered do not match',
 
+    // Member assets (M5a)
+    'balance_not_enough'     => 'Insufficient balance: the resulting balance may not be negative',
+    'points_not_enough'      => 'Insufficient points: the resulting points may not be negative',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

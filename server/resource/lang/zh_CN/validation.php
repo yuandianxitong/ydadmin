@@ -242,6 +242,10 @@ return [
     'sms_code_require'       => '请输入验证码',
     'password_confirmation_mismatch' => '两次输入的密码不一致',
 
+    // 会员资产（M5a）
+    'balance_not_enough'     => '余额不足，扣减后余额不能为负数',
+    'points_not_enough'      => '积分不足，扣减后积分不能为负数',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',
