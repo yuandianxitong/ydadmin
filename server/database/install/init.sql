@@ -181,3 +181,18 @@ INSERT INTO `cron_jobs` (`name`, `command`, `expression`, `description`, `status
 INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
   (120, 2, 2, '在线管理员', 'SystemOnline', '/system/online', '/system/online/index', NULL, 'i-svg:users-round', 'system.online.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 12, NOW(), NOW()),
   (121, 120, 3, '强制下线', NULL, NULL, NULL, NULL, NULL, 'system.online.logout', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M5a：短信配置
+
+-- sms 分组 7 项（spec §7.1）。access_key/access_secret 两家共用（腾讯云那边叫 SecretId/SecretKey），
+-- sdk_app_id 只有腾讯云用，所以给它挂 config_depends 让管理端按 sms_driver 联动显示（与 storage 分组同一写法）。
+-- is_public 全部为 0：短信配置里没有任何一项是前端要读的；凭据类键名另有
+-- SystemConfigService::isSensitiveKey() 黑名单兜底（红线 Test13 在守）。
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
+  ('sms_driver', 'aliyun', 'sms', 'select', '短信服务商', '选择短信发送服务商', '{"aliyun":"阿里云","tencent":"腾讯云"}', NULL, 1, 1, 0, NOW(), NOW()),
+  ('sms_access_key', '', 'sms', 'string', 'AccessKey', '阿里云 AccessKey ID / 腾讯云 SecretId', NULL, NULL, 2, 1, 0, NOW(), NOW()),
+  ('sms_access_secret', '', 'sms', 'string', 'AccessSecret', '阿里云 AccessKey Secret / 腾讯云 SecretKey', NULL, NULL, 3, 1, 0, NOW(), NOW()),
+  ('sms_sign_name', '', 'sms', 'string', '短信签名', '已在服务商控制台审核通过的签名，如「元点科技」', NULL, NULL, 4, 1, 0, NOW(), NOW()),
+  ('sms_sdk_app_id', '', 'sms', 'string', '短信应用ID', '腾讯云短信应用 SdkAppId（阿里云不需要）', NULL, '{"field":"sms_driver","value":"tencent"}', 5, 1, 0, NOW(), NOW()),
+  ('sms_template_login', '', 'sms', 'string', '登录模板ID', '登录 / 短信登录场景的模板 id（阿里云 TemplateCode，腾讯云 TemplateId）', NULL, NULL, 10, 1, 0, NOW(), NOW()),
+  ('sms_template_register', '', 'sms', 'string', '注册模板ID', '注册场景的模板 id', NULL, NULL, 11, 1, 0, NOW(), NOW());

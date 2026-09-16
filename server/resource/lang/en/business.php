@@ -100,4 +100,12 @@ return [
     'points_log_type_3'  => 'Daily check-in',
     'points_log_type_4'  => 'Consumption bonus',
     'points_log_type_5'  => 'Consumption deduction',
+
+    // SMS (M5a)
+    'sms_driver_unsupported'        => 'Unsupported SMS provider: :driver',
+    'sms_config_incomplete_aliyun'  => 'Aliyun SMS is not fully configured. Fill in the AccessKey, AccessSecret and signature under System Settings - SMS',
+    'sms_config_incomplete_tencent' => 'Tencent Cloud SMS is not fully configured. Fill in the SecretId, SecretKey, signature and SDK app id under System Settings - SMS',
+    'sms_tencent_sdk_missing'       => 'The Tencent Cloud SMS SDK is not installed. Run composer require tencentcloud/sms first',
+    'sms_template_missing'          => 'The SMS template is not configured. Fill in the template id for this scene under System Settings - SMS',
+    'sms_send_failed'               => 'Failed to send the SMS, please try again later',
 ];

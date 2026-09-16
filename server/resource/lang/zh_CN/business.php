@@ -100,4 +100,12 @@ return [
     'points_log_type_3'  => '签到',
     'points_log_type_4'  => '消费赠送',
     'points_log_type_5'  => '消费扣减',
+
+    // 短信（M5a）
+    'sms_driver_unsupported'        => '不支持的短信服务商：:driver',
+    'sms_config_incomplete_aliyun'  => '阿里云短信配置不完整，请在「系统配置 - 短信配置」里填写 AccessKey、AccessSecret 与短信签名',
+    'sms_config_incomplete_tencent' => '腾讯云短信配置不完整，请在「系统配置 - 短信配置」里填写 SecretId、SecretKey、短信签名与短信应用ID',
+    'sms_tencent_sdk_missing'       => '腾讯云短信 SDK 未安装，请先执行 composer require tencentcloud/sms',
+    'sms_template_missing'          => '短信模板未配置，请在「系统配置 - 短信配置」里填写对应场景的模板ID',
+    'sms_send_failed'               => '短信发送失败，请稍后重试',
 ];
