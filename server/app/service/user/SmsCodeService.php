@@ -17,14 +17,22 @@ use support\Redis;
 /**
  * 短信验证码（spec §7.2）。生成、缓存、校验、限流都是业务，不进 core/sms——core 只管把一条短信交给网关。
  *
- * 键：验证码 `sms_code:{scene}:{mobile}`（TTL 300 秒）；限流 `sms_rate:minute:{mobile}`（1 次 / 60 秒）
- * 与 `sms_rate:day:{mobile}`（10 次 / 86400 秒），超出一律 BusinessException code 429
- * （HTTP 200 + code 429，与 LoginRateLimitMiddleware、WsTicketService 同一先例，不照 TP8 的 HTTP 429）。
- * 计数的 INCR 与 EXPIRE 走一段 Lua 原子执行：分成两条命令时，worker 在两条之间退出会留下不过期的计数，
- * 那个手机号就再也发不出验证码了。
+ * 键：验证码 `sms_code:{scene}:{mobile}`（TTL 300 秒）；限流 `sms_rate:minute:{mobile}`（1 次 / 60 秒）、
+ * `sms_rate:day:{mobile}`（10 次 / 86400 秒）与 `sms_rate:ip:` . md5($ip)（20 次 / 3600 秒，按 IP，
+ * 修复轮第 2 条），超出一律 BusinessException code 429（HTTP 200 + code 429，与 LoginRateLimitMiddleware、
+ * WsTicketService 同一先例，不照 TP8 的 HTTP 429）。计数的 INCR 与 EXPIRE 走一段 Lua 原子执行：分成两条命令时，
+ * worker 在两条之间退出会留下不过期的计数，那个手机号/IP 就再也发不出验证码了。
  *
- * 限流计数在**发送之前**记：网关坏掉、配置没填全的时候更不能让同一个号码每秒重试。代价是配置没配好时，
- * 用户要等 60 秒才能再试一次——这正确，因为重试也不会成功。
+ * IP 闸门单独存在的理由：`/api/common/sms-code` 是公开路由，只按手机号限流的话，换个号就能绕过——
+ * 直接代价是运营方的短信费。20 次/小时是有意放宽的阈值：企业 NAT 出口大量真实用户共用一个公网 IP，
+ * 定得太严会连带误伤这些正常用户；20 次仍然把单 IP 轰炸的成本压得很低。
+ *
+ * 限流计数（IP 与手机号）都在**存在性校验与发送之前**记：
+ * 1) 网关坏掉、配置没填全的时候更不能让同一个号码每秒重试。代价是配置没配好时，用户要等 60 秒才能
+ *    再试一次——这正确，因为重试也不会成功。
+ * 2) 存在性校验（手机号是否已注册）不消耗限流配额的话，攻击者可以用任意号码换 login/register 场景
+ *    无限速探测号码是否注册，一次都不占用配额（修复轮第 1 条）——所以限流必须排在
+ *    assertMobileFitsScene() 之前，让探测请求本身也计一次数。
  *
  * 容器单例，无状态（请求态一律经参数传递）。
  */
@@ -42,6 +50,11 @@ class SmsCodeService extends Service
     public const DAY_LIMIT = 10;
 
     public const DAY_WINDOW = 86400;
+
+    /** 按 IP 的闸门（修复轮第 2 条）：理由见类注释。 */
+    public const IP_LIMIT = 20;
+
+    public const IP_WINDOW = 3600;
 
     /** 计数 +1 并保证带过期时间，一段 Lua 原子执行（与 LoginRateLimitMiddleware 同一写法）。 */
     private const INCR_WITH_TTL = "local n = redis.call('INCR', KEYS[1]) if n == 1 or redis.call('TTL', KEYS[1]) == -1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return n";
@@ -73,14 +86,19 @@ class SmsCodeService extends Service
     protected SystemConfigRepository $systemConfigRepository;
 
     /**
+     * @param string $ip 由控制器经 core\http\ClientIp::resolve() 取得，服务层不接 Request（分层约定）
+     *
      * @throws ValidationException scene 不在白名单（errors.scene）
-     * @throws BusinessException   手机号与场景不符、限流（code 429）、短信配置不全或网关失败
+     * @throws BusinessException   限流（IP 或手机号，code 429）、手机号与场景不符、短信配置不全或网关失败
      */
-    public function send(string $mobile, string $scene): void
+    public function send(string $mobile, string $scene, string $ip): void
     {
         $this->assertScene($scene);
-        $this->assertMobileFitsScene($mobile, $scene);
+        // 限流排在存在性校验之前（修复轮第 1 条）：未注册号码走 login 场景的探测请求也必须计入配额，
+        // 否则攻击者可以无限速探测任意号码是否已注册。IP 闸门排最前——探测请求同样要消耗它。
+        $this->assertWithinIpRateLimit($ip);
         $this->assertWithinRateLimit($mobile);
+        $this->assertMobileFitsScene($mobile, $scene);
 
         $code = str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
         Redis::setEx(self::codeKey($mobile, $scene), self::CODE_TTL, $code);
@@ -144,6 +162,19 @@ class SmsCodeService extends Service
         }
     }
 
+    /**
+     * 按 IP 的闸门（修复轮第 2 条）：`/api/common/sms-code` 是公开路由，只按手机号限流的话换个号就能
+     * 绕过——直接代价是运营方的短信费。20 次/小时是有意放宽的阈值：企业 NAT 出口大量真实用户共用一个
+     * 公网 IP，定得太严会连带误伤这些正常用户；20 次仍然把单 IP 轰炸的成本压得很低。
+     */
+    private function assertWithinIpRateLimit(string $ip): void
+    {
+        $perHour = (int) Redis::eval(self::INCR_WITH_TTL, 1, 'sms_rate:ip:' . md5($ip), self::IP_WINDOW);
+        if ($perHour > self::IP_LIMIT) {
+            throw new BusinessException(lang('business.sms_rate_limited_ip', ['limit' => (string) self::IP_LIMIT]), 429);
+        }
+    }
+
     /** 模板 id 按 scene 取自系统配置；没配就按「配置不全」处理，不把空模板送去网关。 */
     private function templateId(string $scene): string
     {
@@ -161,11 +192,11 @@ class SmsCodeService extends Service
     }
 
     /**
-     * 懒解析短信驱动（见 $smsDriver 属性上的注释）：第一次真正调用才向容器要一个，之后缓存在
-     * 属性里（同一次请求内 SmsCodeService 是容器单例，但下一次请求想要「刚换的服务商」仍然生效——
-     * 容器侧的 core\sms\SmsInterface 绑定本身就是每个 worker 进程解析一次并共享，
-     * 这条代价已经写在 config/container.php 的绑定注释里，这里只是把同一个共享实例存下来复用，
-     * 不是又加了一层缓存）。
+     * 懒解析短信驱动（见 $smsDriver 属性上的注释）：第一次真正调用才向容器要一个，之后缓存在属性里。
+     * 这不是又加了一层「热切换」缓存——容器侧的 core\sms\SmsInterface 绑定本身就是每个 worker 进程
+     * 只解析一次、往后共享同一个实例（config/container.php 的绑定注释已写明代价）：管理员换了短信
+     * 服务商或凭据后，这个进程仍然会一直用旧驱动，要 `php start.php reload` 才生效。这里只是把
+     * 那个（未必是最新配置的）共享实例存下来复用，没有让配置变更提前或延后生效。
      */
     private function driver(): SmsInterface
     {

@@ -39,7 +39,12 @@ final class SmsCodeApiTest extends ApiTestCase
             'sms_code:login:' . self::MOBILE,
             'sms_code:register:' . self::MOBILE,
             'sms_rate:minute:' . self::MOBILE,
-            'sms_rate:day:' . self::MOBILE
+            'sms_rate:day:' . self::MOBILE,
+            // tests\Support\FakeConnection::getRemoteIp() 对全套件的每个请求都固定返回 127.0.0.1：
+            // 这个类里的用例共用同一个 IP 闸门计数，不清掉的话上一条用例的请求次数会带进下一条，
+            // 修复轮第 2 条加的 20 次/小时阈值本身够宽松、目前不会被本文件累计的调用次数意外触发，
+            // 但显式清零才不依赖「累计次数恰好不到 20」这个脆弱前提。
+            'sms_rate:ip:' . md5('127.0.0.1')
         );
     }
 

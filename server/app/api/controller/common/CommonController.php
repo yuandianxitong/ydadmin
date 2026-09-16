@@ -6,6 +6,7 @@ namespace app\api\controller\common;
 
 use app\service\user\SmsCodeService;
 use core\base\Controller;
+use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\Response;
@@ -32,7 +33,9 @@ class CommonController extends Controller
         // TP8 原实现也是 param('scene', 'login')。默认值在控制器归一——服务层只认白名单内的显式 scene。
         $scene = (string) ($data['scene'] ?? 'login');
 
-        $this->smsCodeService->send((string) $data['mobile'], $scene);
+        // IP 由控制器取（它手上才有 Request）再传给服务：core\http\ClientIp::resolve() 只在直连地址是
+        // 可信代理时才信任 X-Forwarded-For，避免伪造该头绕过按 IP 的限流（与 LoginRateLimitMiddleware 同一先例）。
+        $this->smsCodeService->send((string) $data['mobile'], $scene, ClientIp::resolve($request));
 
         return $this->success([], lang('messages.sms_code_sent'));
     }

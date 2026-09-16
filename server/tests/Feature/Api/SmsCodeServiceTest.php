@@ -38,6 +38,9 @@ final class SmsCodeServiceTest extends ApiTestCase
 {
     private const MOBILE = '13900001111';
 
+    /** 除专门测「换 IP 绕不过」那条外，本文件所有用例共用这一个 IP（RFC 5737 文档用地址段）。 */
+    private const IP = '203.0.113.10';
+
     private RecordingSmsDriver $driver;
 
     protected function setUp(): void
@@ -61,7 +64,8 @@ final class SmsCodeServiceTest extends ApiTestCase
             "sms_code:login:{$mobile}",
             "sms_code:register:{$mobile}",
             "sms_rate:minute:{$mobile}",
-            "sms_rate:day:{$mobile}"
+            "sms_rate:day:{$mobile}",
+            'sms_rate:ip:' . md5(self::IP)
         );
     }
 
@@ -87,7 +91,7 @@ final class SmsCodeServiceTest extends ApiTestCase
 
     public function test_register_scene_caches_a_six_digit_code_for_five_minutes(): void
     {
-        $this->service()->send(self::MOBILE, 'register');
+        $this->service()->send(self::MOBILE, 'register', self::IP);
 
         $cached = (string) Redis::get('sms_code:register:' . self::MOBILE);
         $this->assertMatchesRegularExpression('/^\d{6}$/', $cached);
@@ -108,7 +112,7 @@ final class SmsCodeServiceTest extends ApiTestCase
 
         foreach (['reset_password', 'bind_mobile', 'change_mobile', ''] as $scene) {
             try {
-                $this->service()->send(self::MOBILE, $scene);
+                $this->service()->send(self::MOBILE, $scene, self::IP);
                 $this->fail("scene={$scene} 必须被拒绝");
             } catch (ValidationException $e) {
                 $this->assertSame(['scene' => lang('validation.sms_scene_invalid')], $e->errors(), $scene);
@@ -117,12 +121,13 @@ final class SmsCodeServiceTest extends ApiTestCase
         }
         $this->assertSame([], $this->driver->sent, '场景不合法时一条都不该发出去');
         $this->assertSame(0, (int) Redis::exists('sms_rate:minute:' . self::MOBILE), '也不该白白吃掉一次限流额度');
+        $this->assertSame(0, (int) Redis::exists('sms_rate:ip:' . md5(self::IP)), 'IP 闸门同样不该被场景校验失败吃掉额度');
     }
 
     public function test_login_scene_requires_a_registered_mobile_and_register_scene_requires_a_new_one(): void
     {
         try {
-            $this->service()->send(self::MOBILE, 'login');
+            $this->service()->send(self::MOBILE, 'login', self::IP);
             $this->fail('未注册的手机号不能发登录验证码');
         } catch (BusinessException $e) {
             $this->assertSame(lang('business.sms_mobile_not_registered'), $e->getMessage());
@@ -133,23 +138,51 @@ final class SmsCodeServiceTest extends ApiTestCase
         $this->forgetSmsKeys(self::MOBILE);
 
         try {
-            $this->service()->send(self::MOBILE, 'register');
+            $this->service()->send(self::MOBILE, 'register', self::IP);
             $this->fail('已注册的手机号不能发注册验证码');
         } catch (BusinessException $e) {
             $this->assertSame(lang('business.sms_mobile_registered'), $e->getMessage());
         }
 
         $this->forgetSmsKeys(self::MOBILE);
-        $this->service()->send(self::MOBILE, 'login');
+        $this->service()->send(self::MOBILE, 'login', self::IP);
         $this->assertCount(1, $this->driver->sent);
+    }
+
+    /**
+     * 修复轮第 1 条（安全）：限流必须排在存在性校验之前。同一个未注册号码连续两次探测 login 场景，
+     * 第一次报「未注册」在预期之内；第二次如果还报「未注册」，说明探测请求完全没有计入限流配额——
+     * 攻击者可以无限速、免费探测任意号码是否已注册。第二次必须直接被手机号限流拦下（code 429）。
+     */
+    public function test_the_minute_rate_limit_still_counts_a_probe_against_an_unregistered_mobile(): void
+    {
+        try {
+            $this->service()->send(self::MOBILE, 'login', self::IP);
+            $this->fail('第一次：未注册的手机号必须报「未注册」');
+        } catch (BusinessException $e) {
+            $this->assertSame(lang('business.sms_mobile_not_registered'), $e->getMessage());
+            $this->assertNotSame(429, $e->getCode(), '第一次不该被限流——这一次探测本身才是「消耗配额」的那一次');
+        }
+
+        try {
+            $this->service()->send(self::MOBILE, 'login', self::IP);
+            $this->fail('第二次探测必须被限流拦下，而不是又报一次「未注册」');
+        } catch (BusinessException $e) {
+            $this->assertSame(429, $e->getCode(), '限流判断必须先于存在性校验执行，探测请求才会真的消耗配额');
+            $this->assertSame(
+                lang('business.sms_rate_limited_minute', ['seconds' => (string) SmsCodeService::MINUTE_WINDOW]),
+                $e->getMessage()
+            );
+        }
+        $this->assertSame([], $this->driver->sent, '两次探测全程没有一条真的该发出去');
     }
 
     public function test_second_request_within_a_minute_is_rate_limited_with_code_429(): void
     {
-        $this->service()->send(self::MOBILE, 'register');
+        $this->service()->send(self::MOBILE, 'register', self::IP);
 
         try {
-            $this->service()->send(self::MOBILE, 'register');
+            $this->service()->send(self::MOBILE, 'register', self::IP);
             $this->fail('60 秒内第二次必须被限流');
         } catch (BusinessException $e) {
             $this->assertSame(429, $e->getCode(), '限流是 HTTP 200 + code 429（本仓库既有先例）');
@@ -164,7 +197,7 @@ final class SmsCodeServiceTest extends ApiTestCase
         Redis::setEx('sms_rate:day:' . self::MOBILE, SmsCodeService::DAY_WINDOW, (string) SmsCodeService::DAY_LIMIT);
 
         try {
-            $this->service()->send(self::MOBILE, 'register');
+            $this->service()->send(self::MOBILE, 'register', self::IP);
             $this->fail('超过每日上限必须被限流');
         } catch (BusinessException $e) {
             $this->assertSame(429, $e->getCode());
@@ -173,9 +206,46 @@ final class SmsCodeServiceTest extends ApiTestCase
         $this->assertSame([], $this->driver->sent);
     }
 
+    /**
+     * 修复轮第 2 条（安全）：`/api/common/sms-code` 是公开路由，只按手机号限流的话换个号就能绕过——
+     * 直接代价是运营方的短信费。这里用 IP_LIMIT 个互不相同、事先都不存在的手机号轮流走 register 场景：
+     * 前 IP_LIMIT 次都应该正常发出去，第 IP_LIMIT+1 次必须被同一个 IP 的闸门拦下，不管换了哪个新手机号。
+     */
+    public function test_the_ip_rate_limit_blocks_a_new_mobile_after_the_hourly_cap_is_reached(): void
+    {
+        $ip = '198.51.100.77'; // 另一段 RFC 5737 文档用地址，避免和本文件其它用例共用的 self::IP 互相影响
+        Redis::del('sms_rate:ip:' . md5($ip));
+        $base = random_int(1000, 8000);
+        $mobileAt = static fn (int $i): string => '138' . str_pad((string) ($base + $i), 8, '0', STR_PAD_LEFT);
+
+        try {
+            for ($i = 0; $i < SmsCodeService::IP_LIMIT; ++$i) {
+                $this->service()->send($mobileAt($i), 'register', $ip);
+            }
+            $this->assertCount(SmsCodeService::IP_LIMIT, $this->driver->sent, '前 IP_LIMIT 次、每次都是新手机号，理应全部正常发出');
+
+            try {
+                $this->service()->send($mobileAt(SmsCodeService::IP_LIMIT), 'register', $ip);
+                $this->fail('第 IP_LIMIT+1 次必须被 IP 限流拦下，即使换了一个全新的手机号');
+            } catch (BusinessException $e) {
+                $this->assertSame(429, $e->getCode());
+                $this->assertSame(
+                    lang('business.sms_rate_limited_ip', ['limit' => (string) SmsCodeService::IP_LIMIT]),
+                    $e->getMessage()
+                );
+            }
+            $this->assertCount(SmsCodeService::IP_LIMIT, $this->driver->sent, '被 IP 限流拦下的那次不能真发出去');
+        } finally {
+            Redis::del('sms_rate:ip:' . md5($ip));
+            for ($i = 0; $i <= SmsCodeService::IP_LIMIT; ++$i) {
+                $this->forgetSmsKeys($mobileAt($i));
+            }
+        }
+    }
+
     public function test_verify_deletes_the_code_so_it_cannot_be_replayed(): void
     {
-        $this->service()->send(self::MOBILE, 'register');
+        $this->service()->send(self::MOBILE, 'register', self::IP);
         $code = (string) Redis::get('sms_code:register:' . self::MOBILE);
 
         $this->service()->verify(self::MOBILE, 'register', $code);
@@ -192,7 +262,7 @@ final class SmsCodeServiceTest extends ApiTestCase
 
     public function test_a_wrong_code_fails_without_consuming_the_cached_one(): void
     {
-        $this->service()->send(self::MOBILE, 'register');
+        $this->service()->send(self::MOBILE, 'register', self::IP);
         $code = (string) Redis::get('sms_code:register:' . self::MOBILE);
 
         try {
@@ -212,7 +282,7 @@ final class SmsCodeServiceTest extends ApiTestCase
         $this->driver->failWith = new BusinessException(lang('business.sms_send_failed'));
 
         try {
-            $this->service()->send(self::MOBILE, 'register');
+            $this->service()->send(self::MOBILE, 'register', self::IP);
             $this->fail('网关失败必须抛出去');
         } catch (BusinessException $e) {
             $this->assertSame(lang('business.sms_send_failed'), $e->getMessage());
