@@ -340,6 +340,16 @@ return [
     'balance_not_enough'     => 'Insufficient balance: the resulting balance may not be negative',
     'points_not_enough'      => 'Insufficient points: the resulting points may not be negative',
 
+    // Member self-service (M5a Task 8)
+    'nickname_require'       => 'Please enter a nickname',
+    'nickname_max'           => 'Nickname may not exceed 50 characters',
+    'avatar_require'         => 'Please enter an avatar URL',
+    'avatar_max'             => 'Avatar URL may not exceed 255 characters',
+    'gender_invalid'         => 'Invalid gender value',
+    'birthday_invalid'       => 'Invalid birthday format',
+    'old_password_require'   => 'Please enter your current password',
+    'new_password_require'   => 'Please enter a new password',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

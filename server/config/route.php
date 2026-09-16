@@ -2,6 +2,7 @@
 
 use app\adminapi\controller\auth\AuthController;
 use app\api\controller\auth\AuthController as ApiAuthController;
+use app\api\controller\user\UserController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\AdminController;
@@ -234,7 +235,16 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/info', [ApiAuthController::class, 'info']);
         Route::post('/logout', [ApiAuthController::class, 'logout']);
     })->middleware($apiAuth);
-    // Task 8 往这里加：Route::group('/user', …)->middleware($apiAuth)（profile / change-password / balance / points / 两个流水列表）
+
+    Route::group('/user', function () {
+        Route::get('/profile', [UserController::class, 'profile']);
+        Route::put('/profile', [UserController::class, 'updateProfile']);
+        Route::put('/change-password', [UserController::class, 'changePassword']);
+        Route::get('/balance', [UserController::class, 'balance']);
+        Route::get('/balance-logs', [UserController::class, 'balanceLogs']);
+        Route::get('/points', [UserController::class, 'points']);
+        Route::get('/points-logs', [UserController::class, 'pointsLogs']);
+    })->middleware($apiAuth);
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径

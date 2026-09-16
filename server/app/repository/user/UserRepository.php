@@ -36,6 +36,17 @@ class UserRepository extends Repository
     }
 
     /**
+     * 按 id 查找（含 password，仅供修改密码时校验旧密码）。users 不受数据权限约束（spec §8），
+     * 不需要像 AdminRepository::findWithPassword() 那样包一层 DataScope::bypass()。
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findWithPassword(int $id): ?array
+    {
+        return $this->query()->where($this->qualify('id'), $id)->first()?->makeVisible('password')->toArray();
+    }
+
+    /**
      * 事务内行锁读——封在 Repository 层，Service 不碰 Builder（spec §5.2）。
      *
      * 注：lockForUpdate() 未在 Eloquent\Builder 上原生声明（经 @mixin 转发给底层

@@ -246,6 +246,16 @@ return [
     'balance_not_enough'     => '余额不足，扣减后余额不能为负数',
     'points_not_enough'      => '积分不足，扣减后积分不能为负数',
 
+    // 会员自助（M5a Task 8）
+    'nickname_require'       => '请输入昵称',
+    'nickname_max'           => '昵称最多50个字符',
+    'avatar_require'         => '请输入头像地址',
+    'avatar_max'             => '头像地址最多255个字符',
+    'gender_invalid'         => '性别参数无效',
+    'birthday_invalid'       => '生日格式不正确',
+    'old_password_require'   => '请输入原密码',
+    'new_password_require'   => '请输入新密码',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',
