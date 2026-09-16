@@ -7,12 +7,17 @@ namespace core\payment\driver;
 use core\payment\config\WechatPayConfig;
 use core\payment\dto\CreateOrderRequest;
 use core\payment\dto\CreateOrderResult;
+use core\payment\dto\NotifyAck;
+use core\payment\dto\NotifyRequest;
+use core\payment\dto\NotifyResult;
 use core\payment\dto\RefundRequest;
 use core\payment\dto\RefundResult;
 use core\payment\dto\TradeQueryResult;
 use core\payment\exception\GatewayException;
 use core\payment\exception\GatewayResultUnknownException;
+use core\payment\exception\NotifyVerificationException;
 use core\payment\exception\PaymentConfigException;
+use core\payment\PaymentGatewayInterface;
 use core\payment\TradeType;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
@@ -46,7 +51,7 @@ use WeChatPay\Formatter;
  *
  * 异常消息只含渠道错误码、配置项与路径，不含私钥、APIv3 key、证书正文。
  */
-final class WechatPayDriver
+final class WechatPayDriver implements PaymentGatewayInterface
 {
     private const CURRENCY = 'CNY';
 
@@ -55,6 +60,9 @@ final class WechatPayDriver
     private const REFRESH_MARKER = '.refreshed_at';
 
     private const TIMEZONE = 'Asia/Shanghai';
+
+    /** 回调时间戳允许的最大偏差（秒），与 SDK 对应答的 MAXIMUM_CLOCK_OFFSET 一致 */
+    private const NOTIFY_CLOCK_SKEW = 300;
 
     private readonly \OpenSSLAsymmetricKey $merchantKey;
 
@@ -215,6 +223,142 @@ final class WechatPayDriver
         }
 
         return self::mapRefund($result['body']);
+    }
+
+    /**
+     * 严格验证微信支付回调（spec §5.3）。任何一步不通过都抛 NotifyVerificationException，让网关重试。
+     *
+     * 只信任已验签的原始 body：$request->form（GET 与表单参数合并的结果）一律不读——否则攻击者可以带一段
+     * 合法签名的 body，再用 query 参数替换 resource（SaaS 的缺陷）。
+     */
+    public function verifyNotify(NotifyRequest $request): NotifyResult
+    {
+        $timestamp = self::header($request, 'wechatpay-timestamp');
+        $nonce = self::header($request, 'wechatpay-nonce');
+        $signature = self::header($request, 'wechatpay-signature');
+        $serial = self::header($request, 'wechatpay-serial');
+        if ($timestamp === '' || $nonce === '' || $signature === '' || $serial === '') {
+            throw new NotifyVerificationException('微信支付回调缺少签名头');
+        }
+        if (preg_match('/^\d{1,12}$/', $timestamp) !== 1 || abs(time() - (int) $timestamp) > self::NOTIFY_CLOCK_SKEW) {
+            throw new NotifyVerificationException('微信支付回调时间戳超出允许范围');
+        }
+
+        $key = $this->notifyKey($serial);
+        try {
+            $verified = Rsa::verify(Formatter::response($timestamp, $nonce, $request->rawBody), $signature, $key);
+        } catch (\Throwable) {
+            $verified = false;
+        }
+        if (!$verified) {
+            throw new NotifyVerificationException('微信支付回调验签失败');
+        }
+
+        $envelope = json_decode($request->rawBody, true);
+        $resource = is_array($envelope) ? ($envelope['resource'] ?? null) : null;
+        if (!is_array($resource) || ($resource['algorithm'] ?? null) !== 'AEAD_AES_256_GCM') {
+            throw new NotifyVerificationException('微信支付回调报文结构不正确');
+        }
+        $ciphertext = is_string($resource['ciphertext'] ?? null) ? $resource['ciphertext'] : '';
+        $resourceNonce = is_string($resource['nonce'] ?? null) ? $resource['nonce'] : '';
+        $aad = is_string($resource['associated_data'] ?? null) ? $resource['associated_data'] : '';
+        // nonce 为空时 openssl_decrypt 会发 Warning，先挡掉
+        if ($ciphertext === '' || $resourceNonce === '') {
+            throw new NotifyVerificationException('微信支付回调报文结构不正确');
+        }
+        try {
+            $data = json_decode(AesGcm::decrypt($ciphertext, $this->config->apiV3Key, $resourceNonce, $aad), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            throw new NotifyVerificationException('微信支付回调解密失败');
+        }
+        if (!is_array($data)) {
+            throw new NotifyVerificationException('微信支付回调解密结果不是对象');
+        }
+
+        if (!is_string($data['mchid'] ?? null) || $data['mchid'] !== $this->config->mchId) {
+            throw new NotifyVerificationException('微信支付回调商户号不符');
+        }
+        $orderNo = is_string($data['out_trade_no'] ?? null) ? $data['out_trade_no'] : '';
+        // 非支付成功事件（例如退款事件，资源里没有 appid）：已验签，应答成功、不处理
+        if (($envelope['event_type'] ?? null) !== 'TRANSACTION.SUCCESS') {
+            return new NotifyResult(false, $orderNo, raw: $data);
+        }
+        if (!is_string($data['appid'] ?? null) || $data['appid'] !== $this->config->appId) {
+            throw new NotifyVerificationException('微信支付回调 appid 不符');
+        }
+        if (($data['trade_state'] ?? null) !== 'SUCCESS') {
+            return new NotifyResult(false, $orderNo, raw: $data);
+        }
+
+        $tradeNo = $data['transaction_id'] ?? null;
+        $total = $data['amount']['total'] ?? null;
+        if ($orderNo === '' || !is_string($tradeNo) || $tradeNo === '' || !is_int($total)) {
+            throw new NotifyVerificationException('微信支付回调缺少订单号、交易号或金额');
+        }
+
+        return new NotifyResult(true, $orderNo, $tradeNo, $total, $data);
+    }
+
+    public function notifyAck(bool $success): NotifyAck
+    {
+        return $success
+            ? new NotifyAck(200, 'application/json', '{"code":"SUCCESS","message":"成功"}')
+            : new NotifyAck(500, 'application/json', '{"code":"FAIL","message":"失败"}');
+    }
+
+    /**
+     * 按回调头的序列号取验签公钥。公钥模式只认 publicKeyId、永不下载；证书模式缓存未命中且限频允许时
+     * 重新下载一次（平台证书轮换），仍未命中即拒绝。
+     *
+     * downloadCerts() 只返回本次下载到的证书：回调序列号要么在其中，要么就是未知序列号，无需与旧缓存合并。
+     *
+     * @throws NotifyVerificationException
+     */
+    private function notifyKey(string $serial): \OpenSSLAsymmetricKey
+    {
+        if ($this->publicKey !== null) {
+            if ($serial !== $this->config->publicKeyId) {
+                throw new NotifyVerificationException('微信支付回调公钥 ID 不符');
+            }
+
+            return $this->publicKey;
+        }
+
+        $key = self::keyForSerial($this->loadCachedCerts(), $serial);
+        if ($key === null && $this->refreshAllowed()) {
+            try {
+                $key = self::keyForSerial($this->downloadCerts(), $serial);
+                // 缓存已更新：丢弃本实例可能已建的客户端，下次调用用新映射重建
+                $this->client = null;
+                $this->clientSerials = [];
+            } catch (GatewayException) {
+                $key = null;
+            }
+        }
+        if ($key === null) {
+            throw new NotifyVerificationException('微信支付回调证书序列号未知');
+        }
+
+        return $key;
+    }
+
+    /** @param array<string, \OpenSSLAsymmetricKey> $certs */
+    private static function keyForSerial(array $certs, string $serial): ?\OpenSSLAsymmetricKey
+    {
+        foreach ($certs as $known => $key) {
+            if (self::sameSerial((string) $known, $serial)) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    private static function header(NotifyRequest $request, string $name): string
+    {
+        $value = $request->headers[$name] ?? '';
+
+        return is_string($value) ? trim($value) : '';
     }
 
     // ------------------------------------------------------------------ HTTP

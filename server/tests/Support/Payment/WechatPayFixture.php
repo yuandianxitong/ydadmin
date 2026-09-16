@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Support\Payment;
 
 use core\payment\config\WechatPayConfig;
+use core\payment\dto\NotifyRequest;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -188,6 +189,83 @@ final class WechatPayFixture
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         return $this->signedResponse(200, $body, $serial, $signingPrivatePem ?? $this->platformPrivatePem);
+    }
+
+    /**
+     * 一笔支付成功的交易（解密后的 resource 明文）。
+     *
+     * @param array<string, mixed> $overrides 递归覆盖
+     * @return array<string, mixed>
+     */
+    public function transaction(array $overrides = []): array
+    {
+        return array_replace_recursive([
+            'appid'            => self::APP_ID,
+            'mchid'            => $this->mchId,
+            'out_trade_no'     => 'R20260916120000' . random_int(10000000, 99999999),
+            'transaction_id'   => '4200001234202609160000000001',
+            'trade_type'       => 'NATIVE',
+            'trade_state'      => 'SUCCESS',
+            'trade_state_desc' => '支付成功',
+            'bank_type'        => 'OTHERS',
+            'success_time'     => '2026-09-16T12:01:02+08:00',
+            'payer'            => ['openid' => 'oUpF8uMuAJO_M2pxb1Q9zNjWeS6o'],
+            'amount'           => ['total' => 1234, 'payer_total' => 1234, 'currency' => 'CNY', 'payer_currency' => 'CNY'],
+        ], $overrides);
+    }
+
+    /**
+     * 一条真实形态的微信支付回调：resource 用 APIv3 key 加密，整个 body 用平台私钥签名。
+     *
+     * @param array<string, mixed> $transaction
+     */
+    public function notification(
+        array $transaction,
+        string $eventType = 'TRANSACTION.SUCCESS',
+        bool $publicKeyMode = false,
+        ?int $timestamp = null,
+        ?string $serial = null,
+        ?string $signingPrivatePem = null,
+        ?string $apiV3Key = null,
+    ): NotifyRequest {
+        $resourceNonce = Formatter::nonce(12);
+        $aad = 'transaction';
+        $body = json_encode([
+            'id'            => 'EV-2026091612' . bin2hex(random_bytes(6)),
+            'create_time'   => '2026-09-16T12:01:03+08:00',
+            'resource_type' => 'encrypt-resource',
+            'event_type'    => $eventType,
+            'summary'       => '支付成功',
+            'resource'      => [
+                'original_type'   => 'transaction',
+                'algorithm'       => 'AEAD_AES_256_GCM',
+                'ciphertext'      => AesGcm::encrypt(
+                    json_encode($transaction, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                    $apiV3Key ?? $this->apiV3Key,
+                    $resourceNonce,
+                    $aad,
+                ),
+                'associated_data' => $aad,
+                'nonce'           => $resourceNonce,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $ts = (string) ($timestamp ?? time());
+        $nonce = Formatter::nonce();
+
+        return new NotifyRequest([
+            'wechatpay-timestamp' => $ts,
+            'wechatpay-nonce'     => $nonce,
+            'wechatpay-signature' => Rsa::sign(Formatter::response($ts, $nonce, $body), $signingPrivatePem ?? $this->platformPrivatePem),
+            'wechatpay-serial'    => $serial ?? ($publicKeyMode ? self::PUBLIC_KEY_ID : $this->platformSerial),
+            'content-type'        => 'application/json',
+        ], $body, []);
+    }
+
+    /** 保留签名头、替换 body（用于篡改测试） */
+    public function withBody(NotifyRequest $request, string $rawBody): NotifyRequest
+    {
+        return new NotifyRequest($request->headers, $rawBody, $request->form);
     }
 
     public function cleanup(): void
