@@ -395,3 +395,49 @@ CREATE TABLE `points_logs` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='积分变动记录';
+
+CREATE TABLE `payment_orders` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL COMMENT '会员ID',
+  `biz_type` varchar(30) NOT NULL COMMENT '业务类型：recharge',
+  `client_type` varchar(20) NOT NULL COMMENT '客户端：pc/h5/app/wechat_h5/miniapp',
+  `order_no` varchar(32) NOT NULL COMMENT '商户订单号',
+  `trade_no` varchar(64) DEFAULT NULL COMMENT '渠道交易号',
+  `channel` varchar(20) NOT NULL COMMENT '支付渠道：wechat/alipay',
+  `trade_type` varchar(20) NOT NULL COMMENT '交易类型：native/h5/app/jsapi/page/wap',
+  `subject` varchar(128) NOT NULL COMMENT '订单标题',
+  `amount_cents` int unsigned NOT NULL COMMENT '应付金额（分）',
+  `refunded_cents` int unsigned NOT NULL DEFAULT 0 COMMENT '累计退款成功金额（分）',
+  `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT '状态：pending/paid/closed/refunded',
+  `error_msg` varchar(255) DEFAULT NULL COMMENT '下单明确失败的原因',
+  `expires_at` datetime NOT NULL COMMENT '支付截止时间',
+  `paid_at` datetime DEFAULT NULL COMMENT '支付完成时间',
+  `closed_at` datetime DEFAULT NULL COMMENT '关闭时间',
+  `notify_data` json DEFAULT NULL COMMENT '置已支付时的渠道原始数据（解密后）',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_no` (`order_no`),
+  KEY `idx_user_created` (`user_id`,`created_at`),
+  KEY `idx_status_expires` (`status`,`expires_at`),
+  KEY `idx_trade_no` (`trade_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='支付订单';
+
+CREATE TABLE `refund_orders` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `refund_no` varchar(32) NOT NULL COMMENT '商户退款单号（微信 out_refund_no / 支付宝 out_request_no）',
+  `payment_order_id` bigint unsigned NOT NULL COMMENT '支付订单ID',
+  `amount_cents` int unsigned NOT NULL COMMENT '退款金额（分）',
+  `reason` varchar(80) NOT NULL DEFAULT '' COMMENT '退款原因',
+  `status` varchar(20) NOT NULL COMMENT '状态：processing/success/failed',
+  `channel_refund_no` varchar(64) DEFAULT NULL COMMENT '渠道退款单号',
+  `error_msg` varchar(255) DEFAULT NULL COMMENT '失败原因',
+  `operator` varchar(64) NOT NULL COMMENT '执行者，命令行为 cli:{系统用户名}',
+  `refunded_at` datetime DEFAULT NULL COMMENT '退款成功时间',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_refund_no` (`refund_no`),
+  KEY `idx_payment_order` (`payment_order_id`),
+  KEY `idx_status_created` (`status`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='退款单';

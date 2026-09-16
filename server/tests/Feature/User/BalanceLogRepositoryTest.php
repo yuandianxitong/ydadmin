@@ -131,4 +131,11 @@ final class BalanceLogRepositoryTest extends TestCase
         $this->assertSame([$matchedLog], $ids);
         unset($unmatchedLog);
     }
+
+    public function test_forwards_recharge_and_refund_types_for_payment_services(): void
+    {
+        $this->assertSame(\app\model\user\BalanceLog::TYPE_RECHARGE, BalanceLogRepository::TYPE_RECHARGE);
+        $this->assertSame(\app\model\user\BalanceLog::TYPE_REFUND, BalanceLogRepository::TYPE_REFUND);
+        $this->assertSame([1, 3], [BalanceLogRepository::TYPE_RECHARGE, BalanceLogRepository::TYPE_REFUND]);
+    }
 }

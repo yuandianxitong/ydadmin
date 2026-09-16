@@ -246,4 +246,85 @@ final class SchemaTest extends TestCase
             Db::table('users')->where('mobile', '13800009999')->delete();
         }
     }
+
+    public function test_m5b_payment_tables_exist_with_expected_columns_and_indexes(): void
+    {
+        foreach (['payment_orders', 'refund_orders'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
+        }
+
+        foreach ([
+            'id', 'user_id', 'biz_type', 'client_type', 'order_no', 'trade_no', 'channel', 'trade_type', 'subject',
+            'amount_cents', 'refunded_cents', 'status', 'error_msg', 'expires_at', 'paid_at', 'closed_at',
+            'notify_data', 'created_at', 'updated_at',
+        ] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('payment_orders', $column), "payment_orders 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('payment_orders', 'deleted_at'), 'payment_orders 不软删');
+
+        foreach ([
+            'id', 'refund_no', 'payment_order_id', 'amount_cents', 'reason', 'status', 'channel_refund_no',
+            'error_msg', 'operator', 'refunded_at', 'created_at', 'updated_at',
+        ] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('refund_orders', $column), "refund_orders 缺列 {$column}");
+        }
+        $this->assertFalse(Db::schema()->hasColumn('refund_orders', 'deleted_at'), 'refund_orders 不软删');
+
+        $indexes = static function (string $table): array {
+            $result = [];
+            foreach (Db::select("SHOW INDEX FROM `{$table}`") as $row) {
+                $result[$row->Key_name][(int) $row->Seq_in_index] = $row->Column_name;
+            }
+
+            return array_map(static function (array $columns): array {
+                ksort($columns);
+
+                return array_values($columns);
+            }, $result);
+        };
+
+        $this->assertSame([
+            'PRIMARY'            => ['id'],
+            'uk_order_no'        => ['order_no'],
+            'idx_user_created'   => ['user_id', 'created_at'],
+            'idx_status_expires' => ['status', 'expires_at'],
+            'idx_trade_no'       => ['trade_no'],
+        ], $indexes('payment_orders'));
+
+        $this->assertSame([
+            'PRIMARY'             => ['id'],
+            'uk_refund_no'        => ['refund_no'],
+            'idx_payment_order'   => ['payment_order_id'],
+            'idx_status_created'  => ['status', 'created_at'],
+        ], $indexes('refund_orders'));
+
+        // uk_order_no：重复订单号必须抛 UniqueConstraintViolationException（Task 7 的单号重试靠它识别）
+        $now = date('Y-m-d H:i:s');
+        $orderNo = 'RSCHEMA' . bin2hex(random_bytes(6));
+        $row = [
+            'user_id' => 1, 'biz_type' => 'recharge', 'client_type' => 'pc', 'order_no' => $orderNo,
+            'channel' => 'wechat', 'trade_type' => 'native', 'subject' => '余额充值', 'amount_cents' => 100,
+            'expires_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+        ];
+        Db::table('payment_orders')->insert($row);
+        try {
+            Db::table('payment_orders')->insert($row);
+            $this->fail('uk_order_no 唯一索引未生效');
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            $this->assertStringContainsString('uk_order_no', $e->getMessage());
+        } finally {
+            Db::table('payment_orders')->where('order_no', $orderNo)->delete();
+        }
+
+        // 默认值：refunded_cents=0、status=pending
+        $this->assertSame(0, Db::table('payment_orders')->where('order_no', $orderNo)->count());
+        Db::table('payment_orders')->insert($row);
+        try {
+            $saved = Db::table('payment_orders')->where('order_no', $orderNo)->first();
+            $this->assertSame(0, (int) $saved->refunded_cents);
+            $this->assertSame('pending', $saved->status);
+        } finally {
+            Db::table('payment_orders')->where('order_no', $orderNo)->delete();
+        }
+    }
 }
