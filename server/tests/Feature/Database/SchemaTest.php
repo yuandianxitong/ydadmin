@@ -30,9 +30,9 @@ final class SchemaTest extends TestCase
 
     public function test_menu_seeds_keep_tp8_ids_without_the_permission_page(): void
     {
-        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间
+        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录（TP8 id 沿用）。
         $ids = array_map('intval', Db::table('menus')->where('id', '<=', 53)->orderBy('id')->pluck('id')->all());
-        $this->assertSame([1, 2, 3, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
+        $this->assertSame([1, 2, 3, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
         $this->assertSame('system.role.permission', Db::table('menus')->where('id', 24)->value('permission'));
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }
@@ -172,6 +172,27 @@ final class SchemaTest extends TestCase
         $this->assertSame('i-svg:users-round', $menus[0]->icon);
         $this->assertSame(12, (int) $menus[0]->sort);
         $this->assertSame(3, (int) $menus[1]->type);
+    }
+
+    public function test_m5a_user_menu_seeds(): void
+    {
+        $menus = Db::table('menus')->whereIn('id', [9, 900, 901, 902, 903, 904, 910, 920])->orderBy('id')->get()->all();
+        $this->assertCount(8, $menus);
+        $this->assertSame([0, 9, 900, 900, 900, 900, 9, 9], array_map(static fn (object $m): int => (int) $m->parent_id, $menus));
+        $this->assertSame([1, 2, 3, 3, 3, 3, 2, 2], array_map(static fn (object $m): int => (int) $m->type, $menus));
+        $this->assertSame(
+            ['user', 'user.list', 'user.detail', 'user.adjust-balance', 'user.adjust-points', 'user.status', 'user.balance-logs', 'user.points-logs'],
+            array_map(static fn (object $m): string => (string) $m->permission, $menus),
+            '权限点逐字沿用 TP8'
+        );
+        $this->assertSame('LAYOUT', $menus[0]->component);
+        $this->assertSame('/user', $menus[0]->path);
+        $this->assertSame('/user/user', $menus[0]->redirect);
+        $this->assertSame('i-svg:users', $menus[0]->icon);
+        $this->assertSame('UserList', $menus[1]->name);
+        $this->assertSame('/user/user/index', $menus[1]->component);
+        $this->assertSame('/user/balance-log/index', $menus[6]->component);
+        $this->assertSame('/user/points-log/index', $menus[7]->component);
     }
 
     public function test_init_sql_contains_no_admin_account(): void

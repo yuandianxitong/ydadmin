@@ -132,4 +132,11 @@ return [
 
     'online_logout'                => '强制下线',
     'online_logout_desc'           => '强制指定管理员下线并吊销其全部会话',
+
+    'user_adjust_balance'          => '调整会员余额',
+    'user_adjust_balance_desc'     => '为指定会员增加或扣减余额并记录流水',
+    'user_adjust_points'           => '调整会员积分',
+    'user_adjust_points_desc'      => '为指定会员增加或扣减积分并记录流水',
+    'user_status'                  => '修改会员状态',
+    'user_status_desc'             => '启用或禁用会员账号（禁用即时失效）',
 ];

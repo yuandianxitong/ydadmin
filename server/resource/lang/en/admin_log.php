@@ -132,4 +132,11 @@ return [
 
     'online_logout'                => 'Force logout',
     'online_logout_desc'           => 'Force an admin offline and revoke all of their sessions',
+
+    'user_adjust_balance'          => 'Adjust member balance',
+    'user_adjust_balance_desc'     => 'Add to or deduct from a member balance and record the ledger entry',
+    'user_adjust_points'           => 'Adjust member points',
+    'user_adjust_points_desc'      => 'Add to or deduct from member points and record the ledger entry',
+    'user_status'                  => 'Change member status',
+    'user_status_desc'             => 'Enable or disable a member account (disabling takes effect immediately)',
 ];

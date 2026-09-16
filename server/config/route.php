@@ -20,6 +20,7 @@ use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
+use app\adminapi\controller\user\UserManageController;
 use app\api\controller\common\CommonController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
@@ -210,6 +211,17 @@ Route::group('/adminapi', function () use ($adminAuth) {
     Route::group('/upload', function () {
         Route::post('/image', [UploadController::class, 'image']);
         Route::post('/file', [UploadController::class, 'file']);
+    })->middleware($adminAuth);
+
+    // ---- M5a：管理端会员管理。具名路由写在 {id} 通配路由之前
+    Route::group('/user', function () {
+        Route::get('/list', [UserManageController::class, 'index']);
+        Route::get('/balance-logs', [UserManageController::class, 'balanceLogs']);
+        Route::get('/points-logs', [UserManageController::class, 'pointsLogs']);
+        Route::post('/adjust-balance', [UserManageController::class, 'adjustBalance']);
+        Route::post('/adjust-points', [UserManageController::class, 'adjustPoints']);
+        Route::get('/detail/{id:\d+}', [UserManageController::class, 'detail']);
+        Route::put('/{id:\d+}/status', [UserManageController::class, 'updateStatus']);
     })->middleware($adminAuth);
 
     // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。

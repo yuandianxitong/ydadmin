@@ -16,6 +16,12 @@ use core\support\Like;
  */
 class BalanceLogRepository extends Repository
 {
+    /**
+     * 转发 BalanceLog::TYPE_ADMIN_ADJUST：Service/Controller 层禁止对 app\model\* 做静态调用
+     * （check:context 规则三），管理端调整走这里取「后台调整」类型值，不直接 use Model。
+     */
+    public const TYPE_ADMIN_ADJUST = BalanceLog::TYPE_ADMIN_ADJUST;
+
     /** @var list<string> */
     protected array $sortable = ['id', 'created_at'];
 

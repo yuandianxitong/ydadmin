@@ -96,6 +96,11 @@ return [
 
         // 在线管理员（M4）
         'OnlineController@logout' => ['admin_log.online_logout', 'admin_log.online_logout_desc'],
+
+        // 会员管理（M5a）。三条写动作都要留审计痕迹：调余额、调积分改的是钱，改状态会让人立刻登不上
+        'UserManageController@adjustBalance' => ['admin_log.user_adjust_balance', 'admin_log.user_adjust_balance_desc'],
+        'UserManageController@adjustPoints'  => ['admin_log.user_adjust_points', 'admin_log.user_adjust_points_desc'],
+        'UserManageController@updateStatus'  => ['admin_log.user_status', 'admin_log.user_status_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

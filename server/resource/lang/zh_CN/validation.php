@@ -256,6 +256,13 @@ return [
     'old_password_require'   => '请输入原密码',
     'new_password_require'   => '请输入新密码',
 
+    // 管理端会员管理（M5a Task 9）
+    'user_id_require'        => '请选择会员',
+    'amount_invalid'         => '金额格式不正确',
+    'amount_zero'            => '调整金额不能为 0',
+    'points_invalid'         => '积分格式不正确',
+    'points_zero'            => '调整积分不能为 0',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

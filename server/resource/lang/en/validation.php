@@ -350,6 +350,13 @@ return [
     'old_password_require'   => 'Please enter your current password',
     'new_password_require'   => 'Please enter a new password',
 
+    // Admin member management (M5a Task 9)
+    'user_id_require'        => 'Please select a member',
+    'amount_invalid'         => 'Invalid amount',
+    'amount_zero'            => 'The adjustment amount may not be 0',
+    'points_invalid'         => 'Invalid points value',
+    'points_zero'            => 'The adjustment points may not be 0',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

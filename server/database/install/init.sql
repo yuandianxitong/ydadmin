@@ -196,3 +196,16 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('sms_sdk_app_id', '', 'sms', 'string', '短信应用ID', '腾讯云短信应用 SdkAppId（阿里云不需要）', NULL, '{"field":"sms_driver","value":"tencent"}', 5, 1, 0, NOW(), NOW()),
   ('sms_template_login', '', 'sms', 'string', '登录模板ID', '登录 / 短信登录场景的模板 id（阿里云 TemplateCode，腾讯云 TemplateId）', NULL, NULL, 10, 1, 0, NOW(), NOW()),
   ('sms_template_register', '', 'sms', 'string', '注册模板ID', '注册场景的模板 id', NULL, NULL, 11, 1, 0, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M5a：会员管理
+
+-- 菜单：沿用 TP8 id（9 用户管理目录，900 用户列表，901–904 按钮，910 余额记录，920 积分记录）
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (9, 0, 1, '用户管理', 'User', '/user', 'LAYOUT', '/user/user', 'i-svg:users', 'user', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 500, NOW(), NOW()),
+  (900, 9, 2, '用户列表', 'UserList', '/user/user', '/user/user/index', NULL, 'i-svg:user', 'user.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (901, 900, 3, '查看详情', NULL, NULL, NULL, NULL, NULL, 'user.detail', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (902, 900, 3, '调整余额', NULL, NULL, NULL, NULL, NULL, 'user.adjust-balance', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (903, 900, 3, '调整积分', NULL, NULL, NULL, NULL, NULL, 'user.adjust-points', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (904, 900, 3, '更新状态', NULL, NULL, NULL, NULL, NULL, 'user.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (910, 9, 2, '余额记录', 'UserBalanceLog', '/user/balance-log', '/user/balance-log/index', NULL, 'i-svg:wallet', 'user.balance-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (920, 9, 2, '积分记录', 'UserPointsLog', '/user/points-log', '/user/points-log/index', NULL, 'i-svg:star', 'user.points-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
