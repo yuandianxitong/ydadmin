@@ -20,6 +20,8 @@ use support\Log;
  * 里加 ignoreErrors（那种忽略项在装上 SDK 之后反而会变成「未匹配的忽略」报错）。
  *
  * 失败分类与阿里云驱动一致（spec §7.3）：配置不全给固定文案、网关报错写日志 + 统一文案、手机号打码。
+ * 网关拒绝时的日志载荷只取 Code/Message（见 gatewayRejectionLogContext()），绝不落原始响应体——
+ * 腾讯云 SendStatusSet 里的 PhoneNumber 是未打码的完整手机号，落原始响应等于让 mobile 字段的打码形同虚设。
  */
 final class TencentSmsDriver implements SmsInterface
 {
@@ -101,14 +103,36 @@ final class TencentSmsDriver implements SmsInterface
         $status = is_array($decoded) ? ($decoded['SendStatusSet'][0] ?? null) : null;
         // 腾讯云的逐号发送结果在 SendStatusSet 里，Code 为 'Ok' 才算成功
         if (!is_array($status) || (string) ($status['Code'] ?? '') !== 'Ok') {
-            Log::error('腾讯云短信发送失败（网关拒绝）', [
-                'mobile'   => self::mask($mobile),
-                'template' => $templateId,
-                'response' => is_string($raw) ? $raw : '',
-            ]);
+            Log::error(
+                '腾讯云短信发送失败（网关拒绝）',
+                self::gatewayRejectionLogContext($mobile, $templateId, $status)
+            );
 
             throw new BusinessException(lang('business.sms_send_failed'));
         }
+    }
+
+    /**
+     * 网关拒绝日志的载荷：只取 Code/Message，绝不整条落 SendStatusSet 或原始响应体——
+     * SendStatusSet 里的 PhoneNumber 是未打码的完整 E.164 手机号，落进日志就等于把
+     * 已经打码的 `mobile` 字段白打了码（与 AliyunSmsDriver 只记 code/message/bizId、
+     * 从不落原始响应体同一条纪律）。
+     *
+     * 抽成独立的纯函数（不直接调用 Log::error）是为了能在腾讯云 SDK 未安装、
+     * send() 整条网络路径不可达时，仍能单独反射调用它验证日志载荷不泄漏手机号
+     * （见 SmsDriverConfigTest::test_gateway_rejection_log_context_never_leaks_the_raw_phone_number）。
+     *
+     * @param array<string, mixed>|null $status 腾讯云 SendStatusSet 的单条记录，取不到时传 null
+     * @return array<string, string>
+     */
+    private static function gatewayRejectionLogContext(string $mobile, string $templateId, ?array $status): array
+    {
+        return [
+            'mobile'   => self::mask($mobile),
+            'template' => $templateId,
+            'code'     => (string) ($status['Code'] ?? ''),
+            'message'  => (string) ($status['Message'] ?? ''),
+        ];
     }
 
     /** SDK 不在依赖树里，只能按类名字符串动态构造；返回值故意是 object。 */
