@@ -16,6 +16,8 @@ use core\payment\exception\PaymentConfigException;
 use core\payment\GatewayResolver;
 use core\payment\PaymentGatewayInterface;
 use support\Container;
+use support\Context;
+use support\Db;
 use tests\Support\ApiTestCase;
 use tests\Support\Payment\RefundFixtures;
 
@@ -174,6 +176,27 @@ final class RefundServiceTest extends ApiTestCase
         $orderRow = $this->orderRow($order['id']);
         $this->assertSame('paid', $orderRow->status);
         $this->assertSame(0, (int) $orderRow->refunded_cents);
+    }
+
+    public function test_balance_log_remarks_are_chinese_regardless_of_request_locale(): void
+    {
+        $userId = $this->createMember('100.00');
+        $order = $this->createPaidOrder($userId, 5000);
+        $this->wechatGateway->queue('refund', new RefundResult(RefundResult::FAILED, null, 'NOT_ENOUGH'));
+
+        Context::set('locale', 'en');
+        try {
+            $result = $this->refundService()->refund($order['order_no'], '20.00', '', 'cli:tester');
+        } finally {
+            Context::set('locale', null);
+        }
+
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame(
+            ['充值退款', '退款失败冲正'],
+            Db::table('balance_logs')->where('user_id', $userId)->orderBy('id')->pluck('remark')->all(),
+            '余额流水备注是落库数据，不随请求语言变化'
+        );
     }
 
     public function test_unknown_gateway_result_keeps_processing_without_revert(): void

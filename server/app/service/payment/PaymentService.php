@@ -21,6 +21,7 @@ use core\payment\exception\GatewayResultUnknownException;
 use core\payment\exception\NotifyVerificationException;
 use core\payment\exception\PaymentConfigException;
 use core\payment\exception\PaymentException;
+use core\payment\ExceptionLogContext;
 use core\payment\GatewayResolver;
 use core\payment\Money;
 use DI\Attribute\Inject;
@@ -185,7 +186,8 @@ class PaymentService extends Service
                     (float) Money::toYuan((int) $order['amount_cents']),
                     BalanceLogRepository::TYPE_RECHARGE,
                     'payment:' . $orderNo,
-                    lang('payment.recharge_remark')
+                    // 落库数据固定用中文，不随请求语言变化
+                    lang('payment.recharge_remark', [], 'zh_CN')
                 );
             }
 
@@ -198,14 +200,14 @@ class PaymentService extends Service
      *
      * - 取网关不看开关（spec §5.8）：管理员关掉渠道后，在途订单的回调仍要入账。
      * - 只有 markPaid 真正接受（PAID）或幂等命中（ALREADY）才应答成功；MISMATCH / NOT_FOUND / 入账异常一律失败。
-     * - 日志只记渠道、订单号、异常类名与消息，不记回调原文与请求头（含签名与密文）。
+     * - 日志只记渠道、订单号与 ExceptionLogContext（非支付异常只记类名与异常码），不记回调原文与请求头（含签名与密文）。
      */
     public function handleNotify(string $channel, NotifyRequest $request): NotifyAck
     {
         try {
             $gateway = $this->gateways->gateway($channel);
         } catch (\Throwable $e) {
-            Log::error('支付回调：网关不可用', ['channel' => $channel, 'exception' => $e::class, 'reason' => $e->getMessage()]);
+            Log::error('支付回调：网关不可用', ['channel' => $channel] + ExceptionLogContext::of($e));
 
             return $this->notifyFailureAck($channel);
         }
@@ -217,7 +219,7 @@ class PaymentService extends Service
 
             return $gateway->notifyAck(false);
         } catch (\Throwable $e) {
-            Log::error('支付回调：验签过程异常', ['channel' => $channel, 'exception' => $e::class, 'reason' => $e->getMessage()]);
+            Log::error('支付回调：验签过程异常', ['channel' => $channel] + ExceptionLogContext::of($e));
 
             return $gateway->notifyAck(false);
         }
@@ -232,12 +234,11 @@ class PaymentService extends Service
             // paidCents 缺失时传 -1：必然与订单金额不符，落到 MISMATCH，而不是含糊的 0
             $outcome = $this->markPaid($result->orderNo, $channel, $result->tradeNo, $result->paidCents ?? -1, $result->raw);
         } catch (\Throwable $e) {
+            // 数据库异常的消息带 SQL 绑定值（回调原文）：经 ExceptionLogContext 只记类名与 SQLSTATE
             Log::error('支付回调：置已支付或入账失败，已回滚', [
-                'channel'   => $channel,
-                'order_no'  => $result->orderNo,
-                'exception' => $e::class,
-                'reason'    => $e->getMessage(),
-            ]);
+                'channel'  => $channel,
+                'order_no' => $result->orderNo,
+            ] + ExceptionLogContext::of($e));
 
             return $gateway->notifyAck(false);
         }
@@ -308,11 +309,7 @@ class PaymentService extends Service
                 $counts[$this->closeOne($order, $now)]++;
             } catch (\Throwable $e) {
                 $counts['skipped']++;
-                Log::warning('关单：订单本轮跳过', [
-                    'order_no'  => $order['order_no'] ?? null,
-                    'exception' => $e::class,
-                    'reason'    => $e->getMessage(),
-                ]);
+                Log::warning('关单：订单本轮跳过', ['order_no' => $order['order_no'] ?? null] + ExceptionLogContext::of($e));
             }
         }
 

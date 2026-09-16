@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Feature\Payment;
 
 use app\service\payment\PaymentService;
+use app\service\user\BalanceService;
 use core\payment\config\AlipayConfig;
 use core\payment\config\WechatPayConfig;
 use core\payment\driver\AlipayDriver;
@@ -17,8 +18,12 @@ use core\payment\exception\PaymentConfigException;
 use core\payment\GatewayResolver;
 use core\payment\PaymentGatewayInterface;
 use core\payment\PaymentManager;
+use Illuminate\Database\QueryException;
+use Monolog\Handler\TestHandler;
 use support\Container;
+use support\Context;
 use support\Db;
+use support\Log;
 use tests\Support\ApiTestCase;
 use tests\Support\Payment\FakeGateway;
 use tests\Support\Payment\FakeGatewayResolver;
@@ -243,6 +248,67 @@ final class PaymentNotifyServiceTest extends ApiTestCase
 
         $this->assertEquals($this->wechat->notifyAck(false), $ack, '入账失败必须让渠道重试');
         $this->assertSame('pending', $this->orderRow($order['id'])->status, '入账失败时订单不能停在 paid');
+    }
+
+    public function test_database_failure_while_marking_paid_does_not_log_the_bound_payload(): void
+    {
+        $order = $this->createOrder();
+        $openid = 'o-SECRET-openid-' . bin2hex(random_bytes(4));
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T8', 1000, ['payer' => ['openid' => $openid]]));
+
+        // 模拟写库失败：QueryException 的消息里带着 SQL 与绑定值（绑定值就是回调原文）
+        $failing = new class ($openid) extends BalanceService {
+            public function __construct(private readonly string $bound)
+            {
+            }
+
+            public function change(int $userId, float $amount, int $type, string $source, string $remark = '', ?int $operatorId = null): array
+            {
+                $pdo = new class ('SQLSTATE[22001]: String data, right truncated') extends \PDOException {
+                    /** @var string */
+                    protected $code = '22001';
+                };
+
+                throw new QueryException('mysql', 'update `payment_orders` set `notify_data` = ?', [$this->bound], $pdo);
+            }
+        };
+
+        $logs = new TestHandler();
+        $original = Container::get(BalanceService::class);
+        Container::set(BalanceService::class, $failing);
+        Container::set(PaymentService::class, Container::make(PaymentService::class, []));
+        Log::channel()->pushHandler($logs);
+        try {
+            $ack = $this->service()->handleNotify('wechat', $this->request());
+        } finally {
+            Log::channel()->popHandler();
+            Container::set(BalanceService::class, $original);
+        }
+
+        $this->assertEquals($this->wechat->notifyAck(false), $ack);
+        $this->assertTrue($logs->hasErrorThatContains('置已支付或入账失败'));
+        foreach ($logs->getRecords() as $record) {
+            $this->assertStringNotContainsString($openid, json_encode([$record['message'], $record['context']], JSON_THROW_ON_ERROR), '日志不得带出 SQL 绑定的回调原文');
+        }
+        $record = $logs->getRecords()[array_key_last($logs->getRecords())];
+        $this->assertSame(QueryException::class, $record['context']['exception']);
+        $this->assertSame('22001', $record['context']['code'], '只记 SQLSTATE');
+        $this->assertArrayNotHasKey('reason', $record['context']);
+    }
+
+    public function test_balance_log_remark_is_chinese_regardless_of_request_locale(): void
+    {
+        $order = $this->createOrder();
+        $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-T9', 1000, []));
+
+        Context::set('locale', 'en');
+        try {
+            $this->service()->handleNotify('wechat', $this->request());
+        } finally {
+            Context::set('locale', null);
+        }
+
+        $this->assertSame('在线充值', Db::table('balance_logs')->where('source', 'payment:' . $order['order_no'])->value('remark'));
     }
 
     public function test_gateway_unavailable_falls_back_to_channel_failure_ack(): void

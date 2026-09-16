@@ -10,6 +10,7 @@ return [
     'client_not_supported' => 'This payment method is not supported in the current environment',
     'wechat_auth_required' => 'Please complete WeChat authorization before paying',
     'rate_limited'         => 'Too many attempts, please try again later',
+    'too_many_pending'     => 'Too many unpaid orders, please complete them or wait for them to expire and try again',
     'recharge_subject'     => 'Balance recharge',
     'refund_remark'               => 'Recharge refund',
     'refund_revert_remark'        => 'Refund failure reversal',

@@ -11,6 +11,9 @@ return [
     'query_throttle_seconds'        => 10,
     // 同一会员每分钟最多下单次数，超出 code 429
     'recharge_per_minute'           => 10,
+    // 同一会员同时持有的未过期待支付订单上限，达到后再下单 code 429。
+    // 支付宝下单只在本地签名、不耗渠道额度，不设上限时可无限堆积待支付单，并成倍放大 query 的渠道补查
+    'max_pending_orders'            => 5,
     // 渠道 HTTP 连接超时 / 读超时（秒）。必须大于 0：Guzzle 的 0 表示无限等待，常驻 worker 会被永久占住
     'connect_timeout'               => 5.0,
     'timeout'                       => 10.0,

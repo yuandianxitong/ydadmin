@@ -80,6 +80,16 @@ class PaymentOrderRepository extends Repository
             ->first()?->toArray();
     }
 
+    /** 会员名下未过期的待支付订单数（下单前的堆积上限，spec §5.1）。 */
+    public function countUnexpiredPendingForUser(int $userId, \DateTimeImmutable $now): int
+    {
+        return $this->query()
+            ->where($this->qualify('user_id'), $userId)
+            ->where($this->qualify('status'), self::STATUS_PENDING)
+            ->where($this->qualify('expires_at'), '>', $now->format('Y-m-d H:i:s'))
+            ->count();
+    }
+
     /**
      * 关单任务：截止时间早于 $before 的待支付订单，按截止时间升序（最早过期的先处理）。
      *

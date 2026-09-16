@@ -18,7 +18,7 @@ use support\Redis;
 /**
  * 余额充值 → 支付订单（M5b spec §4、§5.1）。
  *
- * 顺序：限流 → 端 × 渠道矩阵（含 JSAPI openid）→ 渠道开关 → PaymentService::createOrder()。
+ * 顺序：限流 → 端 × 渠道矩阵（含 JSAPI openid）→ 渠道开关 → 未过期待支付单上限 → PaymentService::createOrder()。
  * X-Client-Type 缺省或不在矩阵里一律拒绝，不回退为 pc。
  *
  * appid：M5b 只用 pay_wechat_app_id（由 PaymentManager 放进 WechatPayConfig）。M6 接入各端 appid 时，
@@ -57,11 +57,14 @@ class RechargeService extends Service
     #[Inject]
     protected UserRepository $userRepository;
 
+    #[Inject]
+    protected PaymentOrderRepository $orders;
+
     /**
      * @param string $amount     校验后的元字符串（最多两位小数，1–10000）
      * @param string $clientType 原始 X-Client-Type，可能为空串
      * @return array{order_no: string, payment_id: int, payment_data: array{trade_type: string, data: array<string, mixed>}}
-     * @throws BusinessException 限流 429；环境不支持、缺 openid、渠道不可用、下单失败 400
+     * @throws BusinessException 限流或待支付单过多 429；环境不支持、缺 openid、渠道不可用、下单失败 400
      */
     public function recharge(int $userId, string $amount, string $channel, string $clientType, string $clientIp): array
     {
@@ -78,13 +81,16 @@ class RechargeService extends Service
             throw new BusinessException(lang('payment.unavailable'));
         }
 
+        $this->assertPendingOrdersWithinLimit($userId);
+
         return $this->paymentService->createOrder(
             $userId,
             PaymentOrderRepository::BIZ_RECHARGE,
             $clientType,
             $channel,
             $tradeType,
-            lang('payment.recharge_subject'),
+            // 订单标题既落库又送给渠道（用户在支付页看到），固定中文，不随请求语言变化
+            lang('payment.recharge_subject', [], 'zh_CN'),
             Money::toCents($amount),
             $openid,
             $clientIp,
@@ -100,6 +106,18 @@ class RechargeService extends Service
         }
 
         return $openid;
+    }
+
+    /**
+     * 未过期的待支付单达到上限即拒绝。先数后插不加锁：并发下单至多多出限流窗口内的几张，
+     * 目的是挡住无限堆积，不需要精确。已过期未关的单不计，免得关单任务滞后时误伤正常用户。
+     */
+    private function assertPendingOrdersWithinLimit(int $userId): void
+    {
+        $limit = max(1, (int) config('payment.max_pending_orders', 5));
+        if ($this->orders->countUnexpiredPendingForUser($userId, new \DateTimeImmutable()) >= $limit) {
+            throw new BusinessException(lang('payment.too_many_pending'), 429);
+        }
     }
 
     private function assertWithinRateLimit(int $userId): void

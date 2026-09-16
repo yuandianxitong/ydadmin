@@ -16,6 +16,7 @@ use core\payment\dto\RefundRequest;
 use core\payment\dto\RefundResult;
 use core\payment\exception\GatewayResultUnknownException;
 use core\payment\exception\PaymentConfigException;
+use core\payment\ExceptionLogContext;
 use core\payment\GatewayResolver;
 use core\payment\Money;
 use core\payment\PaymentGatewayInterface;
@@ -180,7 +181,7 @@ class RefundService extends Service
                     (float) Money::toYuan((int) $locked['amount_cents']),
                     BalanceLogRepository::TYPE_REFUND,
                     self::SOURCE_REVERT . $locked['refund_no'],
-                    lang('payment.refund_revert_remark'),
+                    lang('payment.refund_revert_remark', [], 'zh_CN'),
                 );
             }
         });
@@ -207,7 +208,7 @@ class RefundService extends Service
             try {
                 $outcome = $this->reconcileOne($refund, $age);
             } catch (\Throwable $e) {
-                Log::warning('退款对账单条失败，下轮重试', ['refund_no' => $refund['refund_no'], 'error' => $e->getMessage()]);
+                Log::warning('退款对账单条失败，下轮重试', ['refund_no' => $refund['refund_no']] + ExceptionLogContext::of($e));
                 $outcome = self::OUTCOME_SKIPPED;
             }
             $counts[$outcome]++;
@@ -296,7 +297,7 @@ class RefundService extends Service
                                 -(float) Money::toYuan($refundCents),
                                 BalanceLogRepository::TYPE_REFUND,
                                 self::SOURCE_REFUND . $refundNo,
-                                lang('payment.refund_remark'),
+                                lang('payment.refund_remark', [], 'zh_CN'),
                             );
                         } catch (ValidationException) {
                             // BalanceService 结果为负抛 422（errors.amount）；命令行场景换成明确文案，整个事务回滚
@@ -342,7 +343,7 @@ class RefundService extends Service
         } catch (GatewayResultUnknownException $e) {
             Log::warning('退款结果不确定，等待对账', ['refund_no' => $request->refundNo, 'error' => $e->getMessage()]);
         } catch (\Throwable $e) {
-            Log::error('退款网关调用异常，按结果不确定处理', ['refund_no' => $request->refundNo, 'error' => $e->getMessage()]);
+            Log::error('退款网关调用异常，按结果不确定处理', ['refund_no' => $request->refundNo] + ExceptionLogContext::of($e));
         }
 
         return null;

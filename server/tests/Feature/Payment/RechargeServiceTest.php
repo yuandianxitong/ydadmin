@@ -10,6 +10,7 @@ use core\payment\dto\CreateOrderRequest;
 use core\payment\dto\CreateOrderResult;
 use core\payment\GatewayResolver;
 use support\Container;
+use support\Context;
 use support\Db;
 use support\Redis;
 use tests\Support\ApiTestCase;
@@ -206,5 +207,82 @@ final class RechargeServiceTest extends ApiTestCase
         $other = $this->user();
         $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
         $this->assertSame('page', $this->service()->recharge($other, '10', 'alipay', 'pc', '127.0.0.1')['payment_data']['trade_type'], '限流按用户计数');
+    }
+
+    /** 直接插一张订单（不经服务，不计限流） */
+    private function insertOrder(int $userId, string $status, string $expiresAt): void
+    {
+        $now = date('Y-m-d H:i:s');
+        Db::table('payment_orders')->insert([
+            'order_no'     => 'RP' . bin2hex(random_bytes(8)),
+            'user_id'      => $userId,
+            'biz_type'     => 'recharge',
+            'client_type'  => 'pc',
+            'channel'      => 'alipay',
+            'trade_type'   => 'page',
+            'subject'      => '余额充值',
+            'amount_cents' => 1000,
+            'status'       => $status,
+            'expires_at'   => $expiresAt,
+            'created_at'   => $now,
+            'updated_at'   => $now,
+        ]);
+    }
+
+    public function test_too_many_unexpired_pending_orders_are_refused_before_touching_gateway(): void
+    {
+        $this->assertSame(5, config('payment.max_pending_orders'));
+        $userId = $this->user();
+        for ($i = 0; $i < 5; $i++) {
+            $this->insertOrder($userId, 'pending', date('Y-m-d H:i:s', time() + 600));
+        }
+
+        try {
+            $this->service()->recharge($userId, '10', 'alipay', 'pc', '127.0.0.1');
+            $this->fail('已有 5 张未过期的待支付单时必须拒绝');
+        } catch (BusinessException $e) {
+            $this->assertSame(429, $e->getCode());
+            $this->assertSame(lang('payment.too_many_pending'), $e->getMessage());
+        }
+        $this->assertSame(5, Db::table('payment_orders')->where('user_id', $userId)->count(), '不得插单');
+        $this->assertSame([], $this->alipay->calls(), '不得调网关');
+    }
+
+    public function test_expired_paid_and_closed_orders_do_not_count_towards_the_pending_limit(): void
+    {
+        $userId = $this->user();
+        for ($i = 0; $i < 4; $i++) {
+            $this->insertOrder($userId, 'pending', date('Y-m-d H:i:s', time() + 600));
+        }
+        $this->insertOrder($userId, 'pending', date('Y-m-d H:i:s', time() - 60));
+        $this->insertOrder($userId, 'pending', date('Y-m-d H:i:s', time() - 3600));
+        $this->insertOrder($userId, 'paid', date('Y-m-d H:i:s', time() + 600));
+        $this->insertOrder($userId, 'closed', date('Y-m-d H:i:s', time() + 600));
+        $other = $this->user();
+        for ($i = 0; $i < 5; $i++) {
+            $this->insertOrder($other, 'pending', date('Y-m-d H:i:s', time() + 600));
+        }
+        $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
+
+        $result = $this->service()->recharge($userId, '10', 'alipay', 'pc', '127.0.0.1');
+
+        $this->assertSame('page', $result['payment_data']['trade_type'], '过期、已支付、已关闭与他人的订单都不计数');
+    }
+
+    public function test_order_subject_is_chinese_regardless_of_request_locale(): void
+    {
+        $userId = $this->user();
+        $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
+
+        Context::set('locale', 'en');
+        try {
+            $result = $this->service()->recharge($userId, '10', 'alipay', 'pc', '127.0.0.1');
+        } finally {
+            Context::set('locale', null);
+        }
+
+        [$args] = $this->alipay->callsTo('create');
+        $this->assertSame('余额充值', $args[0]->subject, '送给渠道的商品描述不随请求语言变化');
+        $this->assertSame('余额充值', Db::table('payment_orders')->where('order_no', $result['order_no'])->value('subject'));
     }
 }
