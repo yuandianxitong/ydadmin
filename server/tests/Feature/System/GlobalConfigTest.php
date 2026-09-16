@@ -21,9 +21,10 @@ final class GlobalConfigTest extends ApiTestCase
     {
         $now = date('Y-m-d H:i:s');
         // storage_oss_access_key / storage_oss_access_secret 已是 M1c 种子的真实配置键（唯一索引），
-        // pay_wechat_api_v3_key / pay_alipay_private_key 是 M5b 种子的真实配置键，同样会撞 uk_key——
-        // 这里全部换成不会与种子冲突的 fixture 键名，规则命中的子串（access_key / secret / api_v3_key / private）不变
-        $keys = ['storage_fixture_access_key', 'storage_fixture_access_secret', 'smtp_pass', 'pay_fixture_api_v3_key', 'wechat_official_aes_key', 'third_party_token', 'pay_fixture_private_key', 'pay_wechat_mch_key'];
+        // pay_wechat_api_v3_key / pay_alipay_private_key 是 M5b 种子的真实配置键，wechat_official_aes_key 是
+        // M6a 种子的真实配置键，同样会撞 uk_key——这里全部换成不会与种子冲突的 fixture 键名，
+        // 规则命中的子串（access_key / secret / api_v3_key / private / aes_key）不变
+        $keys = ['storage_fixture_access_key', 'storage_fixture_access_secret', 'smtp_pass', 'pay_fixture_api_v3_key', 'wechat_fixture_aes_key', 'third_party_token', 'pay_fixture_private_key', 'pay_wechat_mch_key'];
         foreach ($keys as $i => $key) {
             // 故意标成公开：白名单放行后，必须由键名黑名单拦下
             $this->track('system_configs', (int) Db::table('system_configs')->insertGetId([

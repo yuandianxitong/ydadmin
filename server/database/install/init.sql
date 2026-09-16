@@ -234,3 +234,44 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (904, 900, 3, '更新状态', NULL, NULL, NULL, NULL, NULL, 'user.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
   (910, 9, 2, '余额记录', 'UserBalanceLog', '/user/balance-log', '/user/balance-log/index', NULL, 'i-svg:wallet', 'user.balance-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (920, 9, 2, '积分记录', 'UserPointsLog', '/user/points-log', '/user/points-log/index', NULL, 'i-svg:star', 'user.points-logs', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+
+-- ---------------------------------------------------------------- M6a：微信渠道
+
+-- 渠道配置 19 项（M6a spec §6.1）：键名、值、名称、说明、config_options、sort_order 逐字沿用 1.x
+-- init.sql（wechat_official / wechat_mini）与 database/updates/v1.3.0/update.sql（wechat_open）。
+-- is_public 全部为 0；secret / token / aes_key 类键名另有 SystemConfigService::isSensitiveKey() 黑名单兜底。
+-- token、aes_key、encrypt_type、msg_* 在 M6a 只存不用（M6c 服务器消息端点使用）：种入是因为渠道配置页
+-- 批量保存遇到未知键会整批失败。这三组不进 SystemConfigService::GROUPS（那是「系统配置」页的 tab 列表）。
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
+  ('wechat_official_name', '', 'wechat_official', 'string', '公众号名称', '微信公众号名称', NULL, NULL, 1, 1, 0, NOW(), NOW()),
+  ('wechat_official_original_id', '', 'wechat_official', 'string', '原始ID', '公众号原始ID，如 gh_xxxxxxxx', NULL, NULL, 2, 1, 0, NOW(), NOW()),
+  ('wechat_official_qrcode', '', 'wechat_official', 'file', '公众号二维码', '公众号二维码图片，建议 200x200', NULL, NULL, 3, 1, 0, NOW(), NOW()),
+  ('wechat_official_app_id', '', 'wechat_official', 'string', 'AppID', '微信公众号AppID（开发者ID）', NULL, NULL, 10, 1, 0, NOW(), NOW()),
+  ('wechat_official_app_secret', '', 'wechat_official', 'string', 'AppSecret', '微信公众号AppSecret（开发者密码）', NULL, NULL, 11, 1, 0, NOW(), NOW()),
+  ('wechat_official_token', '', 'wechat_official', 'string', 'Token', '微信公众号消息校验Token', NULL, NULL, 20, 1, 0, NOW(), NOW()),
+  ('wechat_official_aes_key', '', 'wechat_official', 'string', 'EncodingAESKey', '微信公众号消息加解密密钥（43位字符）', NULL, NULL, 21, 1, 0, NOW(), NOW()),
+  ('wechat_official_encrypt_type', '1', 'wechat_official', 'select', '消息加密方式', '1=明文模式 2=兼容模式 3=安全模式，需与微信后台保持一致', '{"1":"明文模式","2":"兼容模式","3":"安全模式"}', NULL, 22, 1, 0, NOW(), NOW()),
+  ('wechat_mini_name', '', 'wechat_mini', 'string', '小程序名称', '微信小程序名称', NULL, NULL, 1, 1, 0, NOW(), NOW()),
+  ('wechat_mini_original_id', '', 'wechat_mini', 'string', '原始ID', '小程序原始ID，如 gh_xxxxxxxx', NULL, NULL, 2, 1, 0, NOW(), NOW()),
+  ('wechat_mini_qrcode', '', 'wechat_mini', 'file', '小程序二维码', '小程序二维码图片，建议 200x200', NULL, NULL, 3, 1, 0, NOW(), NOW()),
+  ('wechat_mini_app_id', '', 'wechat_mini', 'string', 'AppID', '微信小程序AppID', NULL, NULL, 10, 1, 0, NOW(), NOW()),
+  ('wechat_mini_app_secret', '', 'wechat_mini', 'string', 'AppSecret', '微信小程序AppSecret', NULL, NULL, 11, 1, 0, NOW(), NOW()),
+  ('wechat_mini_msg_token', '', 'wechat_mini', 'string', 'Token', '消息推送校验Token', NULL, NULL, 20, 1, 0, NOW(), NOW()),
+  ('wechat_mini_msg_aes_key', '', 'wechat_mini', 'string', 'EncodingAESKey', '消息推送加解密密钥（43位字符）', NULL, NULL, 21, 1, 0, NOW(), NOW()),
+  ('wechat_mini_msg_format', 'JSON', 'wechat_mini', 'select', '数据格式', '消息推送数据格式', '{"JSON":"JSON","XML":"XML"}', NULL, 22, 1, 0, NOW(), NOW()),
+  ('wechat_mini_encrypt_type', '1', 'wechat_mini', 'select', '消息加密方式', '1=明文模式 2=兼容模式 3=安全模式，需与微信后台保持一致', '{"1":"明文模式","2":"兼容模式","3":"安全模式"}', NULL, 23, 1, 0, NOW(), NOW()),
+  ('wechat_open_app_id', '', 'wechat_open', 'string', 'AppID', '微信开放平台网站应用AppID', NULL, NULL, 1, 1, 0, NOW(), NOW()),
+  ('wechat_open_app_secret', '', 'wechat_open', 'string', 'AppSecret', '微信开放平台网站应用AppSecret', NULL, NULL, 2, 1, 0, NOW(), NOW());
+
+-- 菜单：沿用 TP8 id（4 渠道管理目录，5 公众号/400 公众号配置，6 小程序/500 小程序配置，15 开放平台/550 开放平台配置），
+-- 各列逐字沿用 1.x。配置页实际调用 /adminapi/system/config*，受 system.config.list/update 保护；这里的
+-- channel.* 权限码只作菜单可见性标识。按钮 401、菜单 410/420 及其按钮属于 M6c，不在此种入。
+-- 注：i-svg:globe 在 admin/src/assets/icons 里没有对应文件（1.x 同样缺），侧栏只是不显示图标，照抄不改。
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (4, 0, 1, '渠道管理', 'Channel', '/channel', 'LAYOUT', '/channel/official/config', 'i-svg:send', 'channel', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 700, NOW(), NOW()),
+  (5, 4, 1, '公众号', 'ChannelOfficial', '/channel/official', 'LAYOUT', '/channel/official/config', 'i-svg:compass', 'channel.official', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (400, 5, 2, '公众号配置', 'ChannelOfficialConfig', '/channel/official/config', '/channel/official/config', NULL, 'el-icon-Setting', 'channel.official.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (6, 4, 1, '小程序', 'ChannelMiniApp', '/channel/miniapp', 'LAYOUT', '/channel/miniapp/config', 'i-svg:smartphone', 'channel.miniapp', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (500, 6, 2, '小程序配置', 'ChannelMiniAppConfig', '/channel/miniapp/config', '/channel/miniapp/config', NULL, 'el-icon-Setting', 'channel.miniapp.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (15, 4, 1, '开放平台', 'ChannelOpen', '/channel/open', 'LAYOUT', '/channel/open/config', 'i-svg:globe', 'channel.open', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (550, 15, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
