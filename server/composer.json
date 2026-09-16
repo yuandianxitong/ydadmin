@@ -35,7 +35,8 @@
     "qcloud/cos-sdk-v5": "^2.6",
     "webman/redis-queue": "^2.1",
     "dragonmantank/cron-expression": "^3.6",
-    "alibabacloud/dysmsapi-20170525": "^4.6"
+    "alibabacloud/dysmsapi-20170525": "^4.6",
+    "wechatpay/wechatpay": "^1.4"
   },
   "suggest": {
     "ext-event": "For better performance. "
