@@ -1,0 +1,65 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\api\controller\common;
+
+use app\service\user\SmsCodeService;
+use core\base\Controller;
+use core\permission\PermissionSkip;
+use DI\Attribute\Inject;
+use support\Response;
+use Webman\Http\Request;
+
+/**
+ * C 端公共接口（契约 §6.2）。M5a 只有一条：
+ *
+ *   POST /api/common/sms-code   smsCode   公开（不挂 ApiAuthMiddleware）
+ *
+ * C 端控制器一律 #[PermissionSkip]（计划「设计决定」第 2 条）：权限点体系是管理端的，
+ * C 端的准入由路由组挂不挂 ApiAuthMiddleware 决定。也不经 AdminLogMiddleware，不登记操作日志文案。
+ */
+class CommonController extends Controller
+{
+    #[Inject]
+    protected SmsCodeService $smsCodeService;
+
+    #[PermissionSkip]
+    public function smsCode(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->smsCodeRules(), $this->smsCodeMessages());
+        // scene 可选，缺省 login：两个 C 端前端的类型都是 scene?（uniapp/src/api/auth.ts、pc 同形），
+        // TP8 原实现也是 param('scene', 'login')。默认值在控制器归一——服务层只认白名单内的显式 scene。
+        $scene = (string) ($data['scene'] ?? 'login');
+
+        $this->smsCodeService->send((string) $data['mobile'], $scene);
+
+        return $this->success([], lang('messages.sms_code_sent'));
+    }
+
+    /**
+     * scene 的白名单直接取自服务的常量：白名单只有一处定义，扩场景时不会漏改文档与校验
+     * （API 文档按 {action}Rules() 反射求值，看到的就是这份实时规则）。
+     *
+     * @return array<string, string>
+     */
+    private function smsCodeRules(): array
+    {
+        return [
+            'mobile' => 'required|regex:/^1[3-9]\d{9}$/',
+            // sometimes 而不是 required：不传就走默认的 login；传了（哪怕是空串）就必须在白名单里
+            'scene'  => 'sometimes|string|in:' . implode(',', SmsCodeService::SCENES),
+        ];
+    }
+
+    /** @return array<string, string> 值即 lang key（ValidatorFactory 会翻译） */
+    private function smsCodeMessages(): array
+    {
+        return [
+            'mobile.required' => 'validation.mobile_require',
+            'mobile.regex'    => 'validation.mobile_format',
+            'scene.string'    => 'validation.sms_scene_invalid',
+            'scene.in'        => 'validation.sms_scene_invalid',
+        ];
+    }
+}

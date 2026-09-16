@@ -50,4 +50,5 @@ return [
     'move_success'            => 'Moved successfully',
     'rename_success'          => 'Renamed successfully',
     'file_delete_count'       => 'Deleted %d files successfully',
+    'sms_code_sent'           => 'Verification code sent',
 ];

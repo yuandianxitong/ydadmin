@@ -108,4 +108,10 @@ return [
     'sms_tencent_sdk_missing'       => '腾讯云短信 SDK 未安装，请先执行 composer require tencentcloud/sms',
     'sms_template_missing'          => '短信模板未配置，请在「系统配置 - 短信配置」里填写对应场景的模板ID',
     'sms_send_failed'               => '短信发送失败，请稍后重试',
+
+    // 短信验证码（M5a）
+    'sms_mobile_not_registered'     => '该手机号尚未注册',
+    'sms_mobile_registered'         => '该手机号已注册',
+    'sms_rate_limited_minute'       => '验证码发送过于频繁，请 :seconds 秒后再试',
+    'sms_rate_limited_day'          => '今日验证码发送次数已达上限（:limit 次），请明天再试',
 ];

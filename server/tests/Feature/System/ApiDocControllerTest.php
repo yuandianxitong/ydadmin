@@ -40,20 +40,20 @@ final class ApiDocControllerTest extends ApiTestCase
      * 用它判断不出编码层面是不是合法 OpenAPI——必须直接看原始 body 字符串，
      * 再用 json_decode(..., false) 复核顶层 paths 解出来是 stdClass 而不是 list。
      */
-    public function test_openapi_json_with_no_routes_encodes_empty_paths_as_an_object_not_an_array(): void
+    public function test_api_openapi_json_contains_only_api_endpoints_and_keeps_paths_an_object(): void
     {
         foreach (['api', 'bogus-type-does-not-exist'] as $type) {
             $response = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => $type]);
 
             $this->assertSame(200, $response->status(), "type={$type}");
-            $this->assertMatchesRegularExpression(
-                '/"paths":\s*\{\}/',
-                $response->body(),
-                "type={$type}：本仓库没有 /api 路由，空 paths 编码必须是 JSON 对象 {} 而不是数组 []，原始 body：" . $response->body()
-            );
 
             $decoded = json_decode($response->body(), false);
             $this->assertInstanceOf(\stdClass::class, $decoded->paths, "type={$type}：paths 解码回来必须是对象");
+            $paths = array_keys((array) $decoded->paths);
+            $this->assertContains('/api/common/sms-code', $paths, "type={$type}");
+            foreach ($paths as $path) {
+                $this->assertStringStartsWith('/api/', (string) $path, "type={$type}：混进了非 /api 端点 {$path}");
+            }
         }
     }
 
@@ -95,7 +95,8 @@ final class ApiDocControllerTest extends ApiTestCase
     {
         $openapi = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => 'bogus']);
         $this->assertSame(200, $openapi->status());
-        $this->assertMatchesRegularExpression('/"paths":\s*\{\}/', $openapi->body(), '未知 type 归一为 api：空文档');
+        $this->assertStringContainsString('/api/common/sms-code', $openapi->body(), '未知 type 归一为 api：拿到的是 C 端文档');
+        $this->assertStringNotContainsString('/adminapi/', $openapi->body(), '未知 type 不能被猜成 admin');
 
         $index = $this->get('/adminapi/system/api-doc', ['type' => 'bogus']);
         $this->assertSame(200, $index->status());

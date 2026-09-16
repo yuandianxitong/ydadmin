@@ -106,14 +106,20 @@ final class ApiDocServiceTest extends TestCase
         }
     }
 
-    public function test_unknown_type_falls_back_to_a_legal_empty_document(): void
+    public function test_unknown_type_falls_back_to_the_api_document(): void
     {
         $document = Container::get(ApiDocService::class)->document('does-not-exist');
 
         $this->assertSame('3.0.3', $document['openapi']);
         $this->assertIsArray($document['info']);
         $this->assertIsArray($document['servers']);
-        $this->assertSame([], $document['paths'], "未知 type 按 'api' 处理：本仓库当前没有 /api 路由，必须是合法空文档");
+        // M5a 起 /api 真的有路由了：未知 type 归一为 'api'，拿到的必须是 C 端那一份，
+        // 而不是管理端文档（把拼错的 type 猜成 admin 会让人对着错的文档写调用）
+        $this->assertNotSame([], $document['paths'], 'M5a 起 /api 至少有 common/sms-code');
+        $this->assertArrayHasKey('/api/common/sms-code', $document['paths']);
+        foreach (array_keys($document['paths']) as $path) {
+            $this->assertStringStartsWith('/api/', (string) $path, "未知 type 的文档里混进了非 /api 端点：{$path}");
+        }
     }
 
     /**

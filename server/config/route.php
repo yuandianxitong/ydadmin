@@ -18,10 +18,12 @@ use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
+use app\api\controller\common\CommonController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
+use app\middleware\ApiAuthMiddleware;
 use app\middleware\CorsMiddleware;
 use app\middleware\LocaleMiddleware;
 use app\middleware\LoginRateLimitMiddleware;
@@ -35,6 +37,10 @@ $apiOuter = [RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddl
 // 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝），最内层记操作日志（只记写请求）。
 // 除下方三个公开路由外，/adminapi 下的路由都必须挂在这个组里——Test6 会逐条检查。
 $adminAuth = [AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class];
+
+// C 端认证（M5a）：只有这一层。权限点体系是管理端的，C 端控制器一律 #[PermissionSkip]；
+// C 端也不记管理端操作日志，所以不挂 AdminLogMiddleware（config/admin_log.php 里不登记 C 端动作）。
+$apiAuth = [ApiAuthMiddleware::class];
 
 Route::group('/adminapi', function () use ($adminAuth) {
     // ---- 公开路由（与 Test6 的白名单保持一致）
@@ -210,6 +216,18 @@ Route::group('/adminapi', function () use ($adminAuth) {
     foreach (glob(config_path() . '/route/*.php') ?: [] as $moduleRoute) {
         require $moduleRoute;
     }
+})->middleware($apiOuter);
+
+// ---- M5a：C 端 /api。与 /adminapi 并列，外层中间件相同；公开段与认证段分开写。
+// 认证段按子组挂 $apiAuth（与 /adminapi 下各子组挂 $adminAuth 同一写法），不预先建一个空的无前缀组。
+Route::group('/api', function () use ($apiAuth) {
+    // ---- 公开段（不挂认证）
+    // Task 6 往这里加：POST /auth/login、POST /auth/register、POST /auth/sms-login
+    Route::post('/common/sms-code', [CommonController::class, 'smsCode']);
+
+    // ---- 认证段（挂 $apiAuth，逐请求比对 token 里的 ver）
+    // Task 6 往这里加：Route::group('/auth', …)->middleware($apiAuth)（info / logout / refresh-token）
+    // Task 8 往这里加：Route::group('/user', …)->middleware($apiAuth)（profile / change-password / balance / points / 两个流水列表）
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径

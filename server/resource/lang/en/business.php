@@ -108,4 +108,10 @@ return [
     'sms_tencent_sdk_missing'       => 'The Tencent Cloud SMS SDK is not installed. Run composer require tencentcloud/sms first',
     'sms_template_missing'          => 'The SMS template is not configured. Fill in the template id for this scene under System Settings - SMS',
     'sms_send_failed'               => 'Failed to send the SMS, please try again later',
+
+    // SMS verification code (M5a)
+    'sms_mobile_not_registered'     => 'This mobile number is not registered yet',
+    'sms_mobile_registered'         => 'This mobile number is already registered',
+    'sms_rate_limited_minute'       => 'Verification codes are being requested too often, please retry in :seconds seconds',
+    'sms_rate_limited_day'          => 'Daily verification code limit reached (:limit), please try again tomorrow',
 ];

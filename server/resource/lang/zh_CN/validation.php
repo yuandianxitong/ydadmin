@@ -233,6 +233,10 @@ return [
     'online_kick_self'       => '不能强制自己下线',
     'online_kick_super'      => '不能强制超级管理员下线',
 
+    'mobile_require'         => '请输入手机号',
+    'sms_scene_invalid'      => '短信场景不支持',
+    'sms_code_invalid'       => '验证码错误或已过期',
+
     'attributes' => [
         'password'     => '密码',
         'new_password' => '新密码',

@@ -50,4 +50,5 @@ return [
     'move_success'            => '移动成功',
     'rename_success'          => '重命名成功',
     'file_delete_count'       => '成功删除 %d 个文件',
+    'sms_code_sent'           => '验证码已发送',
 ];

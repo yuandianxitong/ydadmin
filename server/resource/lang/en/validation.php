@@ -327,6 +327,10 @@ return [
     'online_kick_self'       => 'You cannot force yourself offline',
     'online_kick_super'      => 'A super administrator cannot be forced offline',
 
+    'mobile_require'         => 'Mobile number is required',
+    'sms_scene_invalid'      => 'Unsupported SMS scene',
+    'sms_code_invalid'       => 'The verification code is incorrect or has expired',
+
     'attributes' => [
         'password'     => 'password',
         'new_password' => 'new password',

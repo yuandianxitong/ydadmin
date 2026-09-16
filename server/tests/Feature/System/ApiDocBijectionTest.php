@@ -14,8 +14,8 @@ use Webman\Route;
  * spec §10.1（最强的一条）：路由表里每条 /adminapi 路由在文档 paths 里恰好出现一次，反之亦然。
  * TP8 的 path: 是手敲字符串、从不与路由表比对——这条测试真正守的是「过滤器别漏掉谁、也别凭空多出谁」。
  *
- * 只比对 type=admin：type=api 当前恒为空文档（本仓库没有 /api 路由），双射对它永远平凡成立，
- * 不构成测试价值，等 pc/uniapp 的 /api 路由出现后再补——spec §12 已经把这条记在延续清单里。
+ * 只比对 type=admin：M5a 起 /api 才刚有路由（先是 common/sms-code），C 端文档的双射等 M5a
+ * 全部 C 端接口落地后再补——M2b spec §12 的延续清单里记着这条。
  *
  * 两条 M2b 自己的路由（/adminapi/system/api-doc、/adminapi/system/api-doc/openapi.json）
  * 故意不特判掉：它们和其它路由一样从路由表被 RouteHarvester 收进来，也应该出现在文档里，
