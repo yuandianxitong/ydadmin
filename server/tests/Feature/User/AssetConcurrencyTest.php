@@ -31,6 +31,10 @@ use tests\Support\ApiTestCase;
  *   3. 子进程内不做断言。断言计数留在子进程里父进程看不到，断言一律在父进程按落盘的结果做。
  *
  * 并发的「同时」靠墙钟对齐：父进程定一个 0.5 秒后的起跑时刻，所有子进程忙等到那一刻再开跑。
+ * 但对齐只让重叠「几乎必然」，本身不是保证：CI 上子进程启动被拉开、或调度把两者串行化时，
+ * 一个把 findForUpdate() 换成普通读的坏实现也可能蒙混过绿（只会假绿、不会假红，但假绿更危险——
+ * M5b 的支付回调押的就是这条不变量）。所以每个子进程另外写回自己干活那段的首末时间戳，
+ * 父进程断言各区间两两相交（assertWorkersOverlapped()）：不相交就说明这一跑压根没并发上，必须红。
  */
 final class AssetConcurrencyTest extends ApiTestCase
 {
@@ -44,6 +48,15 @@ final class AssetConcurrencyTest extends ApiTestCase
             Db::table('points_logs')->whereIn('user_id', $this->userIds)->delete();
         }
         $this->userIds = [];
+        // 兜底清掉结果文件与目录：runConcurrently() 里的 unlink() 排在断言之后，某个子进程缺文件时
+        // 后面几个的结果文件会留下；目录本身也只建不删。/runtime/ 虽已 gitignore，但不留垃圾。
+        $dir = base_path() . '/runtime/tests-concurrency';
+        if (is_dir($dir)) {
+            foreach (glob($dir . '/*.json') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($dir);
+        }
         parent::tearDown();
     }
 
@@ -100,7 +113,13 @@ final class AssetConcurrencyTest extends ApiTestCase
                     while (microtime(true) < $startAt) {  // 2. 等到同一个墙钟时刻再开跑
                         usleep(1000);
                     }
+                    // 首末时间戳只夹住真正干活的那段（忙等不算）：父进程靠它断言重叠是真的发生了。
+                    // 用 hrtime() 而不是 microtime()：它是全系统单调时钟，同一台机上跨进程可比，
+                    // 且不受 NTP 回拨影响——墙钟回拨会让区间比较得出假结论。
+                    $startedAt = hrtime(true);
                     $result = $worker($i);
+                    $result['started_at'] = $startedAt;
+                    $result['ended_at'] = hrtime(true);
                 } catch (\Throwable $e) {
                     $result = ['fatal' => $e::class . ': ' . $e->getMessage()];
                 }
@@ -126,6 +145,43 @@ final class AssetConcurrencyTest extends ApiTestCase
         return $results;
     }
 
+    /**
+     * 断言所有子进程「干活」的时间区间两两相交——即这一跑真的并发上了。
+     *
+     * N 个区间存在公共交集的充要条件是 max(起) < min(止)；两个 worker 时就是区间相交。
+     * 这条断言必须能真判别：区间不相交时 max(起) >= min(止)，assertLessThan 直接红。
+     * 它红的含义不是「实现错了」，而是「这一跑没并发上，本用例这次什么也没验证到」——
+     * 同样不能放过，否则并发正确性就只剩一个没人守的假设。
+     *
+     * @param list<array<string, mixed>> $results
+     */
+    private function assertWorkersOverlapped(array $results): void
+    {
+        $starts = array_map(intval(...), array_column($results, 'started_at'));
+        $ends = array_map(intval(...), array_column($results, 'ended_at'));
+        $this->assertCount(count($results), $starts, '每个子进程都要写回 started_at');
+        $this->assertCount(count($results), $ends, '每个子进程都要写回 ended_at');
+
+        $latestStart = max($starts);
+        $earliestEnd = min($ends);
+        $overlapMs = ($earliestEnd - $latestStart) / 1_000_000;
+        $spans = [];
+        foreach ($results as $i => $_) {
+            $spans[] = sprintf('w%d 持续 %.1fms', $i, ($ends[$i] - $starts[$i]) / 1_000_000);
+        }
+
+        $this->assertLessThan(
+            $earliestEnd,
+            $latestStart,
+            sprintf(
+                '两个子进程的执行区间没有重叠（重叠 %.1fms，%s）：这一跑是串行的，并发正确性没有被验证到。'
+                . '不是实现错了，但也不能放过——串行跑下去，一个去掉行锁的实现同样会绿。',
+                $overlapMs,
+                implode('，', $spans),
+            ),
+        );
+    }
+
     public function test_two_connections_deducting_the_same_balance_lose_no_updates(): void
     {
         // 100.00 元，两个连接各扣 10 次 × 5.00 元，合计恰好 100.00：全部应当成功
@@ -146,6 +202,7 @@ final class AssetConcurrencyTest extends ApiTestCase
             return ['ok' => $ok, 'rejected' => $rejected];
         });
 
+        $this->assertWorkersOverlapped($results);
         $this->assertSame([10, 10], array_column($results, 'ok'), '20 次扣减刚好扣完，不该有被拒的');
         $this->assertSame([0, 0], array_column($results, 'rejected'));
 
@@ -182,6 +239,7 @@ final class AssetConcurrencyTest extends ApiTestCase
             return ['ok' => $ok, 'rejected' => $rejected];
         });
 
+        $this->assertWorkersOverlapped($results);
         $this->assertSame(10, array_sum(array_column($results, 'ok')), '够扣的只有 10 次');
         $this->assertSame(10, array_sum(array_column($results, 'rejected')), '其余 10 次都要被 422 挡住');
 
@@ -213,6 +271,7 @@ final class AssetConcurrencyTest extends ApiTestCase
             return ['ok' => $ok, 'rejected' => $rejected];
         });
 
+        $this->assertWorkersOverlapped($results);
         $this->assertSame([10, 10], array_column($results, 'ok'));
         $this->assertSame([0, 0], array_column($results, 'rejected'));
 
