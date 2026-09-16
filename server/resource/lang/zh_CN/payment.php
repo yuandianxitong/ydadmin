@@ -12,4 +12,10 @@ return [
     'wechat_auth_required' => '请先完成微信授权后再支付',
     'rate_limited'         => '操作过于频繁，请稍后再试',
     'recharge_subject'     => '余额充值',
+    'refund_remark'               => '充值退款',
+    'refund_revert_remark'        => '退款失败冲正',
+    'refund_status_invalid'       => '订单状态不允许退款',
+    'refund_in_progress'          => '该订单有退款正在处理',
+    'refund_exceeds'              => '退款金额超过可退金额',
+    'refund_balance_insufficient' => '用户余额不足，无法退回充值',
 ];

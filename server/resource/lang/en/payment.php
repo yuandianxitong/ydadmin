@@ -11,4 +11,10 @@ return [
     'wechat_auth_required' => 'Please complete WeChat authorization before paying',
     'rate_limited'         => 'Too many attempts, please try again later',
     'recharge_subject'     => 'Balance recharge',
+    'refund_remark'               => 'Recharge refund',
+    'refund_revert_remark'        => 'Refund failure reversal',
+    'refund_status_invalid'       => 'The order status does not allow a refund',
+    'refund_in_progress'          => 'A refund for this order is already being processed',
+    'refund_exceeds'              => 'The refund amount exceeds the refundable amount',
+    'refund_balance_insufficient' => "The user's balance is insufficient to take back this recharge",
 ];
