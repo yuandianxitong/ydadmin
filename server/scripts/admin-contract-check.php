@@ -1419,6 +1419,77 @@ $optionShapeOk = is_array($options) && array_is_list($options) && count($options
 check('notification admin-options：code 200，[{id, username, nickname}] 且不超过 50 条', respCode($r) === 200 && $optionShapeOk, $r['body']);
 check('notification admin-options：按关键字能找到契约账号自己', in_array($contractAdminId, array_map(static fn (array $row): int => (int) $row['id'], (array) $options), true), $r['body']);
 
+// ---------------------------------------------------------------- M5a
+echo "\n=== M5a：会员与资产（只读） ===\n";
+// 开发库还没有 users 表（M5a 开发库补丁 SQL 未执行）或表里还没有会员数据时，
+// 三张表、8 行菜单、sms 配置种子是同一份补丁一次写入的：以 users 表是否有数据作为整段的跳过依据。
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('users')) {
+    echo "  （开发库还没有 users 表：M5a 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $sampleUserId = (int) support\Db::table('users')->orderBy('id')->value('id');
+    if ($sampleUserId <= 0) {
+        echo "  （开发库 users 表里没有数据，本段跳过——C 端断言需要一个真实用户签发 token）\n";
+    } else {
+        // 只读 SELECT 取一个已存在会员的 id，用服务端同一套 TokenManager 签发一枚 user scope token：
+        // 不新增、不修改任何行。token 只保存在变量里传作请求头，不输出到任何日志或终端。
+        $userToken = core\auth\TokenManager::scope('user')->generate([
+            'user_id' => $sampleUserId,
+            'ver'     => core\auth\TokenVersion::current($sampleUserId, 'user'),
+        ]);
+        $userApi = [...$api, "Authorization: Bearer {$userToken}"];
+        $m5aPageOk = static fn (mixed $data): bool => is_array($data)
+            && array_keys($data) === ['list', 'pagination']
+            && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys((array) $data['pagination'])) === [];
+
+        // ---- C 端 /api（全部只读 GET；login/register/sms-login/refresh-token/logout/change-password 是写接口，由 tests/Feature 覆盖） ----
+        $r = http('GET', "{$base}/api/auth/info", $api);
+        check('C 端 auth/info：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/api/auth/info", $userApi);
+        check('C 端 auth/info：code 200，data 不含 password', respCode($r) === 200 && is_array(respData($r)) && !array_key_exists('password', (array) respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/api/user/profile", $api);
+        check('C 端 user/profile：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/api/user/profile", $userApi);
+        check('C 端 user/profile：code 200，data 不含 password', respCode($r) === 200 && is_array(respData($r)) && !array_key_exists('password', (array) respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/api/user/balance", $api);
+        check('C 端 user/balance：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/api/user/balance", $userApi);
+        check('C 端 user/balance：code 200，{balance} 为字符串', respCode($r) === 200 && is_string((respData($r))['balance'] ?? null), $r['body']);
+
+        $r = http('GET', "{$base}/api/user/points", $userApi);
+        check('C 端 user/points：code 200，{points} 为整数', respCode($r) === 200 && is_int((respData($r))['points'] ?? null), $r['body']);
+
+        $r = http('GET', "{$base}/api/user/balance-logs?page_no=1&page_size=10", $api);
+        check('C 端 balance-logs：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/api/user/balance-logs?page_no=1&page_size=10", $userApi);
+        check('C 端 balance-logs：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/api/user/points-logs?page_no=1&page_size=10", $userApi);
+        check('C 端 points-logs：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+
+        // ---- 管理端 /adminapi/user（只做 GET；adjust-balance/adjust-points/status 是写接口，由 tests/Feature 覆盖）----
+        // 契约账号挂超管角色（权限点 '*'），菜单 9/900-904/910/920 是否已随本补丁插入不影响它的访问权限。
+        $r = http('GET', "{$base}/adminapi/user/list?page=1&limit=10", $api);
+        check('管理端 user/list：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/adminapi/user/list?page=1&limit=10", $auth);
+        check('管理端 user/list：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/adminapi/user/detail/{$sampleUserId}", $api);
+        check('管理端 user/detail：未登录 → code 401', respCode($r) === 401, $r['body']);
+        $r = http('GET', "{$base}/adminapi/user/detail/{$sampleUserId}", $auth);
+        check('管理端 user/detail：code 200，data 不含 password', respCode($r) === 200 && is_array(respData($r)) && !array_key_exists('password', (array) respData($r)), $r['body']);
+        $r = http('GET', "{$base}/adminapi/user/detail/999999999", $auth);
+        check('管理端 user/detail：不存在的 id → code 404', respCode($r) === 404, $r['body']);
+
+        $r = http('GET', "{$base}/adminapi/user/balance-logs?page=1&limit=10", $auth);
+        check('管理端 balance-logs：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+
+        $r = http('GET', "{$base}/adminapi/user/points-logs?page=1&limit=10", $auth);
+        check('管理端 points-logs：code 200，{list, pagination} 标准分页形状', respCode($r) === 200 && $m5aPageOk(respData($r)), $r['body']);
+    }
+}
+
 echo "\n=== M1a：刷新与登出 ===\n";
 $r = http('POST', "{$base}/adminapi/auth/refresh", $auth);
 $newToken = (string) (respData($r)['token'] ?? '');

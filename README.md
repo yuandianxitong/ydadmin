@@ -190,6 +190,28 @@ location /storage/ {
 
 **大小与扩展名**：`storage_image_max_size`（MB，图片接口）、`storage_upload_max_size`（MB，文件接口）、`storage_upload_allowed_ext`（逗号分隔白名单）三项配置实时生效。系统配置页会拒绝把这两个大小配置改到服务器 `max_package_size`（`server/config/server.php`）都装不下的值——那样的话请求在应用代码跑之前就会被 Workerman 断开连接，管理员看到的是一片诊断不出原因的上传失败，而不是本地化的错误文案。另有一份危险扩展名黑名单（`server/core/helper/UploadExtensionGuard.php`，含可执行脚本与 `svg` 等）**优先于白名单**：种子里的 `storage_upload_allowed_ext` 含 `svg`，它同样传不上去，这是有意为之。
 
+### 会员与资产（M5a）
+
+C 端新增 `/api` 路由组：`auth/{login,register,sms-login,refresh-token,info,logout}`、`common/sms-code`、`user/{profile,change-password,balance,points,balance-logs,points-logs}`。除登录、注册、短信登录与短信验证码四条公开接口外，其余都要求 `Authorization: Bearer <user token>`——user scope 的 token 与管理端 admin scope 相互独立、互不通用，载荷是 `{user_id, ver}`。管理端把某会员状态改为禁用、会员自己改密码，都会让该会员名下已签发的 token 立即失效（下一次请求即 401），不用等 token 自然过期。
+
+**短信验证码**：在「系统管理 → 系统配置」维护 `sms` 分组的七个键：
+
+| 配置键 | 说明 |
+|---|---|
+| `sms_driver` | `aliyun`（阿里云）或 `tencent`（腾讯云） |
+| `sms_access_key` / `sms_access_secret` | 短信服务商的 AccessKey / AccessSecret（腾讯云对应 SecretId / SecretKey） |
+| `sms_sign_name` | 短信签名，需在服务商后台报备 |
+| `sms_sdk_app_id` | 仅 `sms_driver=tencent` 时需要 |
+| `sms_template_login` / `sms_template_register` | 登录、注册两个场景各自的短信模板 ID |
+
+**改完短信配置需要 `php start.php reload` 才生效**：短信驱动经容器绑定注入，php-di 的定义默认共享，一个 worker 进程内只解析一次。这与存储不同——存储改 `storage_driver` 是即时生效的（`StorageManagerTest::test_disk_follows_storage_driver_config_without_restart` 钉住了这一点）。换服务商或换凭据后记得 reload，否则会以为改了没用。
+
+M5a 只开放 `login`、`register` 两个验证码场景，改密码、绑定/换绑手机号留给 M6 接消息模板体系时再开。任意一项配置缺失时，接口返回统一文案而不是把服务商报错原文透给前端；服务商网关报错的原文只写日志、不对外展示（错误信息里常带 AccessKey 片段与签名细节）。composer 只装了阿里云 SDK（`alibabacloud/dysmsapi-20170525`）；把 `sms_driver` 切到 `tencent` 前需要先手动装 `tencentcloud/sms`，SDK 缺失时驱动会直接抛业务错误提示先装包，不会静默失败。
+
+**边界**：微信登录（微信网页、公众号、小程序、H5 四种）与绑定手机号留给 M6，与 easywechat、公众号配置一起交付；`/api/payment/*`、`/api/user/recharge` 留给 M5b，M5a 没有注册这些路由，请求一律 404。
+
+**并发测试的硬依赖**：`AssetConcurrencyTest`（余额/积分行锁并发用例）需要 PHP 的 `pcntl` 与 `posix` 扩展，缺扩展的 CI 镜像跑到这个测试会直接报错——这是有意的失败模式，不要把它改成跳过。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
