@@ -158,14 +158,20 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
             default => throw new \LogicException($case),
         };
 
+        $smsCallCount = null;
         if ($responses === null) {
-            Container::set(SmsInterface::class, new class ($user['mobile']) implements SmsInterface {
-                public function __construct(private readonly string $mobile)
+            // 非静态计数器：靠构造注入捕获，证明假通道确实被调到，而不只是从未执行就通过断言
+            $smsCallCount = new class () {
+                public int $calls = 0;
+            };
+            Container::set(SmsInterface::class, new class ($user['mobile'], $smsCallCount) implements SmsInterface {
+                public function __construct(private readonly string $mobile, private readonly object $callCount)
                 {
                 }
 
                 public function send(string $mobile, string $templateId, array $vars): void
                 {
+                    $this->callCount->calls++;
                     throw new BusinessException("短信网关拒绝：手机号 {$this->mobile} 与签名不匹配");
                 }
             });
@@ -184,6 +190,8 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
         $this->assertNotSame('', (string) $rows[0]['error_msg'], '失败必须留下可排查的 error_msg');
         if ($responses !== null) {
             $this->assertCount(count($responses), $this->wechatRequests(), '通道必须真的调到（假）微信，否则本用例什么也没验证');
+        } else {
+            $this->assertSame(1, $smsCallCount->calls, '假 SmsInterface 必须被真正调用一次，否则本用例什么也没验证泄漏路径');
         }
 
         $secrets = [$user['mobile'], $user['oa'], $user['mini'], $token, $token2];

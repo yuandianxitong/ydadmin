@@ -77,7 +77,9 @@ token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 R
 
 **为什么分两个进程组**：定时任务的命令、短信与微信网关调用单次可能要几秒到几十秒（网关超时），与操作日志挤在同一组进程里时会把操作日志堵在后面。慢队列单独一组，互不阻塞；消息量大时调大 `QUEUE_SLOW_PROCESS_COUNT`。
 
-**从 M6b 之前的版本升级**：`CronJobConsumer` 从 `server/app/queue/redis/` 迁到了 `server/app/queue/redis_slow/`，队列名 `cron-job` 不变，Redis 里尚未消费的任务不受影响。新增的 `consumer_slow` 进程组**必须 `php start.php stop` 再 `php start.php start -d`（或 `restart`）才会拉起**——`reload` 只重启已有进程，不会新增进程组；只 `reload` 的话定时任务与外发消息都没人消费。
+`cron-job` 与 `message-send` 共用同一组 `consumer_slow` 进程（不是各一组）：一条耗时很久的定时任务命令会挤占外发消息的投递，反过来一条卡住的微信调用也会拖慢定时任务。两类负载有一类偏重时，调大 `QUEUE_SLOW_PROCESS_COUNT`。
+
+**从 M6b 之前的版本升级**：`CronJobConsumer` 从 `server/app/queue/redis/` 迁到了 `server/app/queue/redis_slow/`，队列名 `cron-job` 不变，Redis 里尚未消费的任务不受影响。新增的 `consumer_slow` 进程组**必须 `php start.php stop` 再 `php start.php start -d`（或 `restart`）才会拉起**——`reload` 只重启已有进程，不会新增进程组；只 `reload` 的话定时任务与外发消息都没人消费。部署方式如果不会先删掉旧文件再铺新代码（如直接覆盖发布、不清目录的 rsync），必须手动删除旧文件 `server/app/queue/redis/CronJobConsumer.php`：留着它的话，`consumer`（快队列）与 `consumer_slow`（慢队列）两个进程组会同时订阅 `cron-job`，同一条定时任务可能被重复执行。
 
 **操作日志**：请求内投递到 `operation-log` 队列，由队列进程写库；投递失败（如 Redis 不可用）时退回同步写库，日志不丢。写库失败最多重试 3 次（间隔 10、20、30 秒），仍失败进 `failed_jobs`。
 
@@ -390,7 +392,8 @@ WHERE code = 'payment_success';
 - **确定失败不重试**：公众号 43004（未关注）、小程序 43101（未订阅）、40003 / 40037 / 47003 等参数类错误、通道未配置、模板中途停用或通道被关、会员接收人被清空。
 - **暂时失败重试**：微信 `-1`（系统繁忙）、`45009`（调用超限）、网络故障与超时；access_token 失效（40001 / 40014 / 42001）先刷新 token 立即重试一次。重试由队列完成，**最多 3 次**，间隔为 `server/config/plugin/webman/redis-queue/redis.php` 的全局 `retry_seconds`；仍失败时日志置失败（「重试耗尽」），并写进 `failed_jobs`。
 - **短信一律不重试**：`core/sms` 的两个驱动把配置缺失、网关拒绝、网络异常都包成同一种异常，分不清；而且网络异常时短信可能已经送达网关，重试会让会员重复收到短信。
-- 同一条日志被重复投递时只会发送一次：消费时先锁读日志行，已不是「待发」就跳过。所以对 `message-send` 执行 `php webman queue:retry` **不会重发**（那条日志已置失败）；确需重发，请让业务重新触发。
+- 并发或重复投递同一条**已处理完**的日志时只会发送一次：消费时先锁读日志行，已不是「待发」就跳过。所以对 `message-send` 执行 `php webman queue:retry` **不会重发**（那条日志已置失败）；确需重发，请让业务重新触发。但这不是严格的「至多一次」：结果用 `WHERE status=0` 条件写回，若网关已经发送成功、写回这一步又失败（如数据库瞬断），日志会留在「待发」被队列重试，导致会员在这个窄窗口内收到重复消息（至少一次投递）。
+- 慢队列进程在外发过程中被杀掉（如 `stop` 时正卡在一次慢微信调用上、`kill -9`、OOM）时，那条日志已经加过 `attempts` 但停在「待发」（`status=0`），既不会被同一次消费重试，也没有自动巡检把它捞回来，会一直停在「待发」。这类日志需要人工核实：「消息管理 → 消息日志」按状态筛「待发送」找出来，确认是否已经送达，再决定是否让业务重新触发。
 
 **消息日志**：「系统管理 → 消息管理 → 消息日志」。`receiver` 是遮蔽后的展示值（手机号 `138****1234`，openid 前 6 位加 `…`，站内信为 `user#会员id`）；`error_msg` 只含 errcode、固定短语与异常类名。**日志与应用日志里不会出现完整手机号、openid、access_token**。
 
