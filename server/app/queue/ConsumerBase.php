@@ -12,9 +12,10 @@ use support\Log;
 use Webman\RedisQueue\Consumer;
 
 /**
- * 队列消费者基类（M3，计划设计决定 2–5）。子类声明 $queue 并实现 handle()，放在 app/queue/redis/ 下。
+ * 队列消费者基类（M3，计划设计决定 2–5）。子类声明 $queue 并实现 handle()，放在 app/queue/redis/ 或 app/queue/redis_slow/ 下
+ * （按耗时分组，见 config/plugin/webman/redis-queue/process.php）。
  *
- * 本类是抽象类，必须留在 app/queue/，不能放进 app/queue/redis/：消费进程会对那个目录里每个实现了
+ * 本类是抽象类，必须留在 app/queue/，不能放进这两个子目录：消费进程会对目录里每个实现了
  * Webman\RedisQueue\Consumer 的类 Container::get()，抽象类会让进程启动即崩。
  *
  * - consume()：redis-queue 消费进程的入口。每个任务结束（成功或抛异常）都 Context::destroy()——自定义进程不像

@@ -70,7 +70,8 @@ token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 R
 | 进程 | 数量 | 作用 |
 |---|---|---|
 | `scheduler` | 1 | 每分钟判定哪些定时任务到点，投递到 `cron-job` 队列；自己不执行任务 |
-| `plugin.webman.redis-queue.consumer` | `QUEUE_PROCESS_COUNT`（默认 2） | 消费队列：执行定时任务、写操作日志 |
+| `plugin.webman.redis-queue.consumer` | `QUEUE_PROCESS_COUNT`（默认 2） | 消费队列：写操作日志 |
+| `plugin.webman.redis-queue.consumer_slow` | `QUEUE_SLOW_PROCESS_COUNT`（默认 1） | 消费慢队列：执行定时任务、发送短信与微信消息 |
 
 **生产环境必须让它们常驻**（`php start.php start -d`，或交给 systemd / supervisor 守护）。只起 HTTP、不起队列进程时：操作日志会堆在 Redis 里不落库，定时任务不会执行，后台点「执行」永远等到超时。
 
