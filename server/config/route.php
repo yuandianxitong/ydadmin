@@ -9,6 +9,8 @@ use app\api\controller\user\UserController;
 use app\api\controller\wechat\WechatController;
 use app\adminapi\controller\dashboard\DashboardController;
 use app\adminapi\controller\HealthController;
+use app\adminapi\controller\message\MessageLogController;
+use app\adminapi\controller\message\MessageTemplateController;
 use app\adminapi\controller\system\AdminController;
 use app\adminapi\controller\system\ApiDocController;
 use app\adminapi\controller\system\CronJobController;
@@ -226,6 +228,16 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('/adjust-points', [UserManageController::class, 'adjustPoints']);
         Route::get('/detail/{id:\d+}', [UserManageController::class, 'detail']);
         Route::put('/{id:\d+}/status', [UserManageController::class, 'updateStatus']);
+    })->middleware($adminAuth);
+
+    // ---- M6b：消息模板与消息日志（spec §4.1、§4.2）。具名路由写在 {id} 通配路由之前
+    Route::group('/message', function () {
+        Route::get('/template', [MessageTemplateController::class, 'index']);
+        Route::get('/template/{id:\d+}', [MessageTemplateController::class, 'show']);
+        Route::post('/template', [MessageTemplateController::class, 'store']);
+        Route::put('/template/{id:\d+}', [MessageTemplateController::class, 'update']);
+        Route::delete('/template/{id:\d+}', [MessageTemplateController::class, 'delete']);
+        Route::get('/log', [MessageLogController::class, 'index']);
     })->middleware($adminAuth);
 
     // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。

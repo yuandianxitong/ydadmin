@@ -355,6 +355,39 @@ final class SchemaTest extends TestCase
         $this->assertSame(0, Db::table('menus')->whereIn('id', [401, 410, 411, 412, 420, 421, 422, 423])->count());
     }
 
+    public function test_m6b_message_menu_seeds(): void
+    {
+        $menus = Db::table('menus')->whereBetween('id', [130, 135])->orderBy('id')->get()->all();
+        $this->assertCount(6, $menus);
+
+        $expected = [
+            // id => [parent, type, title, name, path, component, redirect, icon, permission, sort]
+            130 => [2, 1, '消息管理', 'SystemMessage', '/system/message', 'LAYOUT', '/system/message/template', 'i-svg:message-circle-more', 'system.message', 13],
+            131 => [130, 2, '消息模板', 'SystemMessageTemplate', '/system/message/template', '/system/message/template/index', null, 'el-icon-Tickets', 'system.message.template.list', 1],
+            132 => [130, 2, '消息日志', 'SystemMessageLog', '/system/message/log', '/system/message/log/index', null, 'el-icon-List', 'system.message.log.list', 2],
+            133 => [131, 3, '新增', null, null, null, null, null, 'system.message.template.create', 1],
+            134 => [131, 3, '编辑', null, null, null, null, null, 'system.message.template.update', 2],
+            135 => [131, 3, '删除', null, null, null, null, null, 'system.message.template.delete', 3],
+        ];
+        foreach ($menus as $menu) {
+            $id = (int) $menu->id;
+            $this->assertSame($expected[$id], [
+                (int) $menu->parent_id, (int) $menu->type, $menu->title, $menu->name, $menu->path,
+                $menu->component, $menu->redirect, $menu->icon, $menu->permission, (int) $menu->sort,
+            ], "菜单 {$id}");
+            $this->assertSame(1, (int) $menu->status, "菜单 {$id}");
+        }
+
+        // 130 与 M4 在线管理员（120，sort 12）同属系统管理目录，sort 不得撞车
+        $this->assertSame(1, Db::table('menus')->where('parent_id', 2)->where('sort', 13)->count());
+        // 1.x 的「发送测试」按钮不种（spec §1.2：test-send 不做）
+        $this->assertSame(0, Db::table('menus')->where('permission', 'system.message.template.send')->count());
+
+        foreach (['template/index.vue', 'log/index.vue'] as $view) {
+            $this->assertFileExists(base_path() . "/../admin/src/views/system/message/{$view}");
+        }
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');

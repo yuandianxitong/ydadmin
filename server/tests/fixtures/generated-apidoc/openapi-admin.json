@@ -557,6 +557,572 @@
                 }
             }
         },
+        "/adminapi/message/log": {
+            "get": {
+                "operationId": "MessageLogController::index",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageLogController::index",
+                "description": "需登录，且需权限 `system.message.log.list`",
+                "x-permission": "system.message.log.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "channel",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                                "sms",
+                                "wechat_official",
+                                "wechat_mini",
+                                "site"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "nullable": true,
+                            "enum": [
+                                "0",
+                                "1",
+                                "2"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "receiver",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "template_code",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "maxLength": 50
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/message/template": {
+            "get": {
+                "operationId": "MessageTemplateController::index",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageTemplateController::index",
+                "description": "需登录，且需权限 `system.message.template.list`",
+                "x-permission": "system.message.template.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "nullable": true,
+                            "maxLength": 100
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "nullable": true,
+                            "enum": [
+                                "0",
+                                "1"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "MessageTemplateController::store",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageTemplateController::store",
+                "description": "需登录，且需权限 `system.message.template.create`",
+                "x-permission": "system.message.template.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "maxLength": 50,
+                                        "pattern": "^[a-z][a-z0-9_]*$",
+                                        "description": "regex:/^[a-z][a-z0-9_]*$/"
+                                    },
+                                    "remark": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sms_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sms_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "sms_content": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "wechat_official_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "wechat_official_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "wechat_official_url": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "wechat_mini_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "wechat_mini_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "wechat_mini_page": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 200
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "code"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/message/template/{id}": {
+            "delete": {
+                "operationId": "MessageTemplateController::delete",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageTemplateController::delete",
+                "description": "需登录，且需权限 `system.message.template.delete`",
+                "x-permission": "system.message.template.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "get": {
+                "operationId": "MessageTemplateController::show",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageTemplateController::show",
+                "description": "需登录，且需权限 `system.message.template.list`",
+                "x-permission": "system.message.template.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "MessageTemplateController::update",
+                "tags": [
+                    "message"
+                ],
+                "summary": "MessageTemplateController::update",
+                "description": "需登录，且需权限 `system.message.template.update`",
+                "x-permission": "system.message.template.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "remark": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sms_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sms_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "sms_content": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "wechat_official_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "wechat_official_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "wechat_official_url": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    },
+                                    "wechat_mini_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "wechat_mini_template_id": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100
+                                    },
+                                    "wechat_mini_page": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 200
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/system/admin": {
             "get": {
                 "operationId": "AdminController::index",
@@ -8284,6 +8850,7 @@
         }
     ],
     "x-doc-warnings": [
+        "MessageTemplateController::store 字段 code:regex:/^[a-z][a-z0-9_]*$/",
         "AdminController::store 字段 mobile:regex:/^1[3-9]\\d{9}$/",
         "AdminController::changePassword 字段 new_password:different:old_password",
         "AdminController::update 字段 mobile:regex:/^1[3-9]\\d{9}$/",

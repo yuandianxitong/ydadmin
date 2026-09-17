@@ -139,4 +139,11 @@ return [
     'user_adjust_points_desc'      => 'Add to or deduct from member points and record the ledger entry',
     'user_status'                  => 'Change member status',
     'user_status_desc'             => 'Enable or disable a member account (disabling takes effect immediately)',
+
+    'message_template_create'      => 'Create message template',
+    'message_template_create_desc' => 'Create a new message template',
+    'message_template_update'      => 'Update message template',
+    'message_template_update_desc' => 'Update message template basics and channel settings',
+    'message_template_delete'      => 'Delete message template',
+    'message_template_delete_desc' => 'Delete a custom message template (soft delete)',
 ];

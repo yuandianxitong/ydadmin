@@ -139,4 +139,11 @@ return [
     'user_adjust_points_desc'      => '为指定会员增加或扣减积分并记录流水',
     'user_status'                  => '修改会员状态',
     'user_status_desc'             => '启用或禁用会员账号（禁用即时失效）',
+
+    'message_template_create'      => '创建消息模板',
+    'message_template_create_desc' => '创建新的消息模板',
+    'message_template_update'      => '更新消息模板',
+    'message_template_update_desc' => '更新消息模板的基础信息与通道配置',
+    'message_template_delete'      => '删除消息模板',
+    'message_template_delete_desc' => '删除自定义消息模板（软删除）',
 ];

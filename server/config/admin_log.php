@@ -101,6 +101,11 @@ return [
         'UserManageController@adjustBalance' => ['admin_log.user_adjust_balance', 'admin_log.user_adjust_balance_desc'],
         'UserManageController@adjustPoints'  => ['admin_log.user_adjust_points', 'admin_log.user_adjust_points_desc'],
         'UserManageController@updateStatus'  => ['admin_log.user_status', 'admin_log.user_status_desc'],
+
+        // 消息模板（M6b）
+        'MessageTemplateController@store'  => ['admin_log.message_template_create', 'admin_log.message_template_create_desc'],
+        'MessageTemplateController@update' => ['admin_log.message_template_update', 'admin_log.message_template_update_desc'],
+        'MessageTemplateController@delete' => ['admin_log.message_template_delete', 'admin_log.message_template_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。
