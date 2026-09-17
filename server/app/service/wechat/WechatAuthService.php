@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\service\wechat;
 
 use app\repository\user\UserRepository;
+use app\service\message\MessageService;
 use app\service\user\UserSessionIssuer;
 use core\base\Service;
 use core\contract\ConfigValueReader;
@@ -74,6 +75,9 @@ class WechatAuthService extends Service
 
     #[Inject]
     protected ConfigValueReader $config;
+
+    #[Inject]
+    protected MessageService $messageService;
 
     /**
      * PC 扫码登录（spec §4.2）：开放平台换 code → 按 openid 列匹配 → 未命中尽力取昵称头像后注册。
@@ -462,7 +466,12 @@ class WechatAuthService extends Service
             $unionid = null;
         }
 
-        return $this->users->createWechatUser($column, $openid, $unionid, $nickname, $avatar, $mobile);
+        $userId = $this->users->createWechatUser($column, $openid, $unionid, $nickname, $avatar, $mobile);
+        // M6b spec §4.8：PC 网页登录、小程序静默登录、bindPhone 新注册都经这里。不在 DB 事务里，afterCommit 立即执行
+        // （仍在登录锁内，sendToUser 只写库、投递队列，不调外部接口）；它不抛异常，bindPhone 的唯一键兜底 catch 不受影响
+        $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'user_register', ['nickname' => $nickname]));
+
+        return $userId;
     }
 
     /** 落库文案固定中文，不随请求语言变化（沿用 M5b 最终修复的裁定）。 */

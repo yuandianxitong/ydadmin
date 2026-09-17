@@ -339,6 +339,14 @@ abstract class ApiTestCase extends TestCase
         foreach (array_reverse($this->created, true) as $table => $ids) {
             Db::table($table)->whereIn('id', array_values(array_unique($ids)))->delete();
         }
+
+        // M6b：注册、充值到账会经 afterCommit 同步写站内信与消息日志（测试进程队列是 sync）。被测代码自己注册的会员
+        // 用例未必拿得到 id，这里按「会员已不存在」兜底删掉孤儿行，不给后续用例留残留；仍存在的会员（含软删）不动
+        $memberIds = Db::table('users')->select('id');
+        Db::table('user_notification_reads')->whereNotIn('user_id', $memberIds)->delete();
+        Db::table('user_notifications')->whereNotIn('user_id', $memberIds)->delete();
+        Db::table('message_logs')->whereNotNull('user_id')->whereNotIn('user_id', $memberIds)->delete();
+
         foreach ($adminIds as $id) {
             $this->forgetAdminCaches($id);
         }

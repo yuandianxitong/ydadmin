@@ -6,6 +6,7 @@ namespace app\service\payment;
 
 use app\repository\payment\PaymentOrderRepository;
 use app\repository\user\BalanceLogRepository;
+use app\service\message\MessageService;
 use app\service\user\BalanceService;
 use core\base\Service;
 use core\contract\ConfigValueReader;
@@ -61,6 +62,9 @@ class PaymentService extends Service
 
     #[Inject]
     protected OrderNoGenerator $orderNoGenerator;
+
+    #[Inject]
+    protected MessageService $messageService;
 
     /**
      * 插入 pending 订单 → 事务外调网关下单（spec §5.1 步骤 4–7）。渠道开关由调用方判断（RechargeService）。
@@ -177,14 +181,21 @@ class PaymentService extends Service
             }
 
             // Repository::update() 走 Builder，模型 casts 不生效，JSON 列要自己编码
+            $paidAt = date('Y-m-d H:i:s');
             $this->orders->update((int) $order['id'], [
                 'status'      => PaymentOrderRepository::STATUS_PAID,
                 'trade_no'    => $tradeNo,
-                'paid_at'     => date('Y-m-d H:i:s'),
+                'paid_at'     => $paidAt,
                 'notify_data' => json_encode($raw, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
             ]);
 
             if ((string) $order['biz_type'] === PaymentOrderRepository::BIZ_RECHARGE) {
+                // M6b spec §4.8：先登记再入账——入账失败整笔回滚，登记的回调随之丢弃，不会发出「已到账」。
+                // sendToUser 自己吞掉一切异常，不会从 runInTransaction() 调用点抛出（Service::afterCommit() 对资金事务回调的要求）
+                $userId = (int) $order['user_id'];
+                $vars = ['order_no' => $orderNo, 'amount' => Money::toYuan((int) $order['amount_cents']), 'paid_at' => $paidAt];
+                $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'payment_success', $vars, $orderNo));
+
                 $this->balanceService->change(
                     (int) $order['user_id'],
                     (float) Money::toYuan((int) $order['amount_cents']),

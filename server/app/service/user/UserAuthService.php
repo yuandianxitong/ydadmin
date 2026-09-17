@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\service\user;
 
 use app\repository\user\UserRepository;
+use app\service\message\MessageService;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
@@ -33,6 +34,9 @@ class UserAuthService extends Service
 
     #[Inject]
     protected UserSessionIssuer $userSessionIssuer;
+
+    #[Inject]
+    protected MessageService $messageService;
 
     /** @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}} */
     public function loginByPassword(string $account, string $password, string $ip): array
@@ -87,8 +91,12 @@ class UserAuthService extends Service
             'nickname' => '用户' . substr($mobile, -4),
             'status'   => 1,
         ]);
+        $userId = (int) $created['id'];
+        $nickname = (string) $created['nickname'];
+        // M6b spec §4.8：不在事务里，afterCommit 立即执行；sendToUser 自己吞掉一切异常，不影响注册响应
+        $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'user_register', ['nickname' => $nickname]));
 
-        return $this->userSessionIssuer->issue((int) $created['id'], $ip);
+        return $this->userSessionIssuer->issue($userId, $ip);
     }
 
     public function refresh(string $token): string
