@@ -27,11 +27,13 @@ trait FakeWechatHttp
     /** @var array<int, array<string, mixed>> Guzzle history 记录（每项含 request / response / error / options） */
     private array $wechatHistory = [];
 
-    /** 依赖 WechatHttpClient 的容器单例，按依赖顺序（MiniProgramApi 依赖 AccessTokenProvider，WechatAuthService 依赖前三者） */
+    /** 依赖 WechatHttpClient 的容器单例，按依赖顺序（MiniProgramApi 与消息通道依赖 AccessTokenProvider，WechatAuthService 依赖前三者） */
     private const WECHAT_DEPENDENT_CLASSES = [
         'core\wechat\AccessTokenProvider',
         'core\wechat\MiniProgramApi',
         'core\wechat\OAuthApi',
+        'core\message\channel\WechatOfficialChannel',
+        'core\message\channel\WechatMiniChannel',
         'app\service\wechat\WechatAuthService',
     ];
 
