@@ -308,23 +308,50 @@ final class WechatChannelTest extends TestCase
         $this->cacheToken('TOKEN-cached');
         $channel = $this->channel($class, $side, [self::wechatJson(['errcode' => 0], 500)]);
 
-        $this->expectException(MessageTransientFailure::class);
-        $this->expectExceptionMessage('wechat unavailable');
-
-        $channel->send($this->message());
+        try {
+            $channel->send($this->message());
+            $this->fail('应抛 MessageTransientFailure');
+        } catch (MessageTransientFailure $e) {
+            $this->assertSame('wechat unavailable', $e->getMessage());
+            $this->assertNull($e->getPrevious());
+        }
     }
 
-    /** @param class-string<AbstractWechatChannel> $class */
-    #[DataProvider('channels')]
-    public function test_token_endpoint_rejection_is_definite(string $class, string $side): void
+    /** @return iterable<string, array{class-string<AbstractWechatChannel>, string, int, class-string<\Throwable>}> */
+    public static function tokenEndpointErrcodes(): iterable
     {
-        // 没有缓存 token；cgi-bin/token 返回 40125（appsecret 错）：配置问题，重试无用
-        $channel = $this->channel($class, $side, [self::wechatJson(['errcode' => 40125, 'errmsg' => 'invalid appsecret'])]);
+        foreach (self::channels() as $name => [$class, $side]) {
+            yield "{$name} 40125 appsecret" => [$class, $side, 40125, MessageDefiniteFailure::class];
+            yield "{$name} 40001 expired-token-code" => [$class, $side, 40001, MessageDefiniteFailure::class];
+            yield "{$name} 40014 expired-token-code" => [$class, $side, 40014, MessageDefiniteFailure::class];
+            yield "{$name} 42001 expired-token-code" => [$class, $side, 42001, MessageDefiniteFailure::class];
+            yield "{$name} -1 busy" => [$class, $side, -1, MessageTransientFailure::class];
+            yield "{$name} 45009 quota" => [$class, $side, 45009, MessageTransientFailure::class];
+        }
+    }
 
-        $this->expectException(MessageDefiniteFailure::class);
-        $this->expectExceptionMessage('wechat errcode 40125');
+    /**
+     * cgi-bin/token 自身返回的 errcode 一律不触发失效重试（哪怕是 40001/40014/42001）：
+     * 那是 appid/appsecret 配置问题或微信侧频控，重试只会原样再错一次、白白多打一次每日限额的 cgi-bin/token。
+     *
+     * @param class-string<AbstractWechatChannel> $class
+     * @param class-string<\Throwable> $expected
+     */
+    #[DataProvider('tokenEndpointErrcodes')]
+    public function test_token_endpoint_errcode_is_classified_without_retry(string $class, string $side, int $errcode, string $expected): void
+    {
+        // 没有缓存 token，cgi-bin/token 直接返回错误 errcode
+        $channel = $this->channel($class, $side, [self::wechatJson(['errcode' => $errcode, 'errmsg' => 'invalid credential'])]);
 
-        $channel->send($this->message());
+        try {
+            $channel->send($this->message());
+            $this->fail('应抛 ' . $expected);
+        } catch (MessageDefiniteFailure | MessageTransientFailure $e) {
+            $this->assertInstanceOf($expected, $e);
+            $this->assertSame("wechat errcode {$errcode}", $e->getMessage());
+            $this->assertNull($e->getPrevious());
+        }
+        $this->assertCount(1, $this->wechatRequests(), 'cgi-bin/token 自身的 errcode 不触发失效重试，只打一次');
     }
 
     /** @param class-string<AbstractWechatChannel> $class */
