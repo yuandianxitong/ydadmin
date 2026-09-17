@@ -70,10 +70,14 @@ token 吊销（版本号、黑名单）与权限、数据范围缓存都存在 R
 | 进程 | 数量 | 作用 |
 |---|---|---|
 | `scheduler` | 1 | 每分钟判定哪些定时任务到点，投递到 `cron-job` 队列；自己不执行任务 |
-| `plugin.webman.redis-queue.consumer` | `QUEUE_PROCESS_COUNT`（默认 2） | 消费队列：写操作日志 |
-| `plugin.webman.redis-queue.consumer_slow` | `QUEUE_SLOW_PROCESS_COUNT`（默认 1） | 消费慢队列：执行定时任务、发送短信与微信消息 |
+| `plugin.webman.redis-queue.consumer` | `QUEUE_PROCESS_COUNT`（默认 2） | 消费 `server/app/queue/redis/` 下的快队列：写操作日志（`operation-log`） |
+| `plugin.webman.redis-queue.consumer_slow` | `QUEUE_SLOW_PROCESS_COUNT`（默认 1） | 消费 `server/app/queue/redis_slow/` 下的慢队列：执行定时任务（`cron-job`）、外发短信与微信消息（`message-send`） |
 
-**生产环境必须让它们常驻**（`php start.php start -d`，或交给 systemd / supervisor 守护）。只起 HTTP、不起队列进程时：操作日志会堆在 Redis 里不落库，定时任务不会执行，后台点「执行」永远等到超时。
+**生产环境必须让它们常驻**（`php start.php start -d`，或交给 systemd / supervisor 守护）。只起 HTTP、不起队列进程时：操作日志会堆在 Redis 里不落库，定时任务不会执行，后台点「执行」永远等到超时，短信与微信消息不会发出（站内信同步写入，不受影响）。
+
+**为什么分两个进程组**：定时任务的命令、短信与微信网关调用单次可能要几秒到几十秒（网关超时），与操作日志挤在同一组进程里时会把操作日志堵在后面。慢队列单独一组，互不阻塞；消息量大时调大 `QUEUE_SLOW_PROCESS_COUNT`。
+
+**从 M6b 之前的版本升级**：`CronJobConsumer` 从 `server/app/queue/redis/` 迁到了 `server/app/queue/redis_slow/`，队列名 `cron-job` 不变，Redis 里尚未消费的任务不受影响。新增的 `consumer_slow` 进程组**必须 `php start.php stop` 再 `php start.php start -d`（或 `restart`）才会拉起**——`reload` 只重启已有进程，不会新增进程组；只 `reload` 的话定时任务与外发消息都没人消费。
 
 **操作日志**：请求内投递到 `operation-log` 队列，由队列进程写库；投递失败（如 Redis 不可用）时退回同步写库，日志不丢。写库失败最多重试 3 次（间隔 10、20、30 秒），仍失败进 `failed_jobs`。
 
@@ -337,6 +341,82 @@ C 端微信登录与绑定，全部为 `/api` 下的公开接口（`bind-oa-open
 4. **公众号 H5**：认证服务号设置网页授权域名，填 `wechat_official_*`；在微信里打开 `/mobile/`，首次应静默授权后跳到登录页，短信登录后在库里核对 `users.oa_openid` 已写入；随后在该 H5 发起微信支付应能调起 JSAPI。
 5. 检查日志里没有 appsecret、code、access_token、手机号明文。
 
+### 消息体系（M6b）
+
+会员注册与充值成功时，按**消息模板**向会员发送站内信、短信、公众号模板消息、小程序订阅消息。
+
+**升级到 M6b 时先执行开发库补丁 SQL**（`message_templates`、`message_logs`、`user_notifications`、`user_notification_reads` 四张表，2 个内置模板，「消息管理」菜单 130–135），再部署代码，并按上一节**重启**（不是 reload）拉起 `consumer_slow`。
+
+**触发点与变量**：
+
+| 模板 code | 何时发送 | 变量 |
+|---|---|---|
+| `user_register`（注册成功通知） | 手机号注册成功；pc 扫码、小程序静默登录、小程序授权手机号三条微信注册路径新建账号时 | `nickname` |
+| `payment_success`（充值成功通知） | 充值订单真正置为已支付时（重复回调不重复发） | `order_no`、`amount`（元，两位小数）、`paid_at`（`Y-m-d H:i:s`） |
+
+两个模板是内置的，不可删除；可以停用（状态关）或逐个通道关闭。发送在业务事务**提交之后**进行：事务回滚不会发消息；消息体系的任何故障（模板表不可用、Redis 不可用、网关报错）只写日志，**不影响注册响应与支付回调应答**。
+
+**四个通道**：
+
+| 通道 | 发送条件 | 接收人 | 发送方式 |
+|---|---|---|---|
+| 站内信 | 模板「站内信」启用 | 会员本人 | 同步写入，C 端「消息」页可见 |
+| 短信 | 启用、填了短信模板 id、会员有手机号 | `users.mobile` | 异步（`message-send` 队列），走「短信配置」里的网关 |
+| 公众号模板消息 | 启用、填了模板 id 与字段映射、会员有 `oa_openid` | 公众号 openid | 异步，用 `wechat_official_*` 配置 |
+| 小程序订阅消息 | 启用、填了模板 id 与字段映射、会员有 `mini_openid` | 小程序 openid | 异步，用 `wechat_mini_*` 配置 |
+
+通道启用但缺字段映射时，不发送，记一条失败日志「未配置字段映射」；会员没有对应接收人时直接跳过，不记日志。
+
+**模板维护**：管理端「系统管理 → 消息管理 → 消息模板」可以新增、编辑、停用模板，表单能改名称、状态、备注、三个外发通道的开关与模板 id、公众号跳转 URL、小程序跳转页面。以下几项**表单里没有，只能直接写库**（管理端前端未改，表单保存不会覆盖它们）：
+
+- `wechat_official_data` / `wechat_mini_data`：微信模板字段映射，JSON 对象，键是微信模板的字段名，值是带占位符的文本；
+- `site_enabled` / `site_title` / `site_content`：站内信开关与标题正文；
+- `variables`：变量说明 `[{"key", "name", "example"}]`，**短信参数按它的 key 顺序组装**（腾讯云按顺序取值）。
+
+内置模板的映射是示例值，**必须按你在微信后台实际选用的模板字段改**，例如：
+
+```sql
+UPDATE message_templates
+SET wechat_official_data = JSON_OBJECT('character_string1', '${order_no}', 'amount2', '${amount}元', 'time3', '${paid_at}'),
+    wechat_official_template_id = '你的公众号模板ID',
+    wechat_official_enabled = 1
+WHERE code = 'payment_success';
+```
+
+（`.env` 配了 `DB_PREFIX` 时表名带前缀。）占位符写作 `${变量名}`，变量名只能是小写字母、数字、下划线；渲染时缺变量按失败处理。微信字段值按字段名前缀截断：`thing` 20 字、`character_string` / `number` / `letter` 32、`symbol` / `phrase` 5、`amount` / `name` 10、`time` / `date` 30、`phone_number` 17、`car_number` 8，其它 20。
+
+**重试规则**：
+
+- **确定失败不重试**：公众号 43004（未关注）、小程序 43101（未订阅）、40003 / 40037 / 47003 等参数类错误、通道未配置、模板中途停用或通道被关、会员接收人被清空。
+- **暂时失败重试**：微信 `-1`（系统繁忙）、`45009`（调用超限）、网络故障与超时；access_token 失效（40001 / 40014 / 42001）先刷新 token 立即重试一次。重试由队列完成，**最多 3 次**，间隔为 `server/config/plugin/webman/redis-queue/redis.php` 的全局 `retry_seconds`；仍失败时日志置失败（「重试耗尽」），并写进 `failed_jobs`。
+- **短信一律不重试**：`core/sms` 的两个驱动把配置缺失、网关拒绝、网络异常都包成同一种异常，分不清；而且网络异常时短信可能已经送达网关，重试会让会员重复收到短信。
+- 同一条日志被重复投递时只会发送一次：消费时先锁读日志行，已不是「待发」就跳过。所以对 `message-send` 执行 `php webman queue:retry` **不会重发**（那条日志已置失败）；确需重发，请让业务重新触发。
+
+**消息日志**：「系统管理 → 消息管理 → 消息日志」。`receiver` 是遮蔽后的展示值（手机号 `138****1234`，openid 前 6 位加 `…`，站内信为 `user#会员id`）；`error_msg` 只含 errcode、固定短语与异常类名。**日志与应用日志里不会出现完整手机号、openid、access_token**。
+
+**C 端站内信接口**（需 user token）：
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/message/list?page_no&page_size` | 本人站内信，按时间倒序，行含 `is_read` |
+| `GET /api/message/unread-count` | `{count}` |
+| `POST /api/message/read {ids?}` | 不传或传空数组：本人全部标为已读；传 id：只处理属于本人的，其余静默忽略 |
+
+**已知限制**：
+
+- 管理端界面无法编辑微信字段映射、站内信文案与变量说明（前端未改），自定义模板需要直接写库。
+- 小程序订阅消息需要用户在小程序里逐次授权订阅；当前 uniapp 没有发起订阅请求，该通道会以 43101 失败并记日志。
+- 公众号模板消息只能发给已关注公众号的用户，未关注时以 43004 失败。
+- 管理端日志页的「渠道」筛选只有短信、公众号、小程序三项（前端未改）：站内信日志能列出，但不能按渠道单独筛选，渠道列显示原始值 `site`。
+- 不支持向全体会员广播站内信，也没有管理端「测试发送」。
+- 短信验证码不走消息模板，仍用「短信配置」里的 `sms_template_login` / `sms_template_register`。
+
+**真实环境自测**（需要真实凭据，仓库只有离线测试）：
+
+1. 「短信配置」填好网关与签名；把 `user_register` 的短信通道打开、填短信模板 id（模板变量须与 `variables` 的 key 一致），手机号注册一个新会员，应收到短信，日志状态为成功。
+2. 公众号：按上文 SQL 为 `payment_success` 填映射与模板 id 并启用；用已关注公众号且已绑定 `oa_openid` 的会员充值，应收到模板消息。
+3. 在「消息日志」核对状态与失败原因；在应用日志里确认没有完整手机号、openid、access_token。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
@@ -394,6 +474,6 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
-| M6 | 消息与微信 | 进行中（M6a ✅ 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系、M6c 公众号运营待做） |
+| M6 | 消息与微信 | 进行中（M6a ✅ 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b ✅ 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号运营待做） |
 | M7 | 内容与装修 | |
 | M8 | 安装与发布 | |

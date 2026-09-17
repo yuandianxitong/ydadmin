@@ -16,6 +16,8 @@
  *   开发库没有 payment_orders 表或没有会员时整段跳过。
  * M6a 起：微信登录段只打写库与调用微信之前即失败的请求（未配置、非法 scope 与外域回调、编造的 temp_token、
  *   无 cookie 的绑定、公开配置白名单）；开发库没有 wechat_* 配置键时整段跳过，某端已配置时跳过该端断言。
+ * M6b 起：消息段管理端只打 GET（模板列表与详情、日志列表与遮蔽检查）；C 端 read 只传不存在的 id，断言静默忽略、
+ *   不写已读表。开发库没有 message_templates 表时整段跳过，没有会员时跳过 C 端断言。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1691,6 +1693,103 @@ if (!array_key_exists('wechat_mini_app_id', $wechatKeys)) {
             respCode($r) === 400
                 && (($r['json']['message'] ?? '') === lang('wechat.oa_bind_invalid'))
                 && support\Db::table('users')->where('id', $wxUserId)->value('oa_openid') === $oaBefore,
+            $r['body']
+        );
+    }
+}
+
+// ---------------------------------------------------------------- M6b
+echo "\n=== M6b：消息体系（只读） ===\n";
+// 开发库没有 message_templates 表（M6b 补丁未执行）时整段跳过。管理端只打 GET；C 端 read 只传一个不存在的 id，
+// 断言「不属于本人的 id 静默忽略、不写已读表」——不去把真实会员的站内信标成已读。
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('message_templates')) {
+    echo "  （开发库还没有 message_templates 表：M6b 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $m6bPageOk = static fn (mixed $data): bool => is_array($data)
+        && array_keys($data) === ['list', 'pagination']
+        && is_array($data['list']) && array_is_list($data['list'])
+        && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys((array) $data['pagination'])) === [];
+    $m6bRowsHave = static fn (array $rows, array $keys): bool => array_filter(
+        $rows,
+        static fn (mixed $row): bool => !is_array($row) || array_diff($keys, array_keys($row)) !== []
+    ) === [];
+    $m6bList = static fn (array $r): array => (array) (((array) respData($r))['list'] ?? []);
+
+    // ---- 管理端：模板
+    $r = http('GET', "{$base}/adminapi/message/template?page=1&limit=10", $api);
+    check('message/template：未登录 → code 401', respCode($r) === 401, $r['body']);
+    $r = http('GET', "{$base}/adminapi/message/template?page=1&limit=10", $auth);
+    $templateKeys = ['id', 'name', 'code', 'status', 'sms_enabled', 'sms_template_id', 'wechat_official_enabled', 'wechat_official_template_id', 'wechat_mini_enabled', 'wechat_mini_template_id'];
+    check('message/template：code 200，标准分页，行含表单字段', respCode($r) === 200 && $m6bPageOk(respData($r)) && $m6bRowsHave($m6bList($r), $templateKeys), $r['body']);
+
+    $builtinId = (int) support\Db::table('message_templates')->where('code', 'user_register')->whereNull('deleted_at')->value('id');
+    if ($builtinId <= 0) {
+        echo "  （开发库没有内置模板 user_register：补丁的模板种子未执行，跳过关键字与详情断言）\n";
+    } else {
+        $r = http('GET', "{$base}/adminapi/message/template?" . http_build_query(['keyword' => 'user_register', 'page' => 1, 'limit' => 10]), $auth);
+        check('message/template：keyword=user_register 能找到内置模板', respCode($r) === 200 && in_array('user_register', array_column($m6bList($r), 'code'), true), $r['body']);
+        $r = http('GET', "{$base}/adminapi/message/template/{$builtinId}", $auth);
+        check('message/template/{id}：code 200，code 为 user_register', respCode($r) === 200 && (((array) respData($r))['code'] ?? null) === 'user_register', $r['body']);
+    }
+    $r = http('GET', "{$base}/adminapi/message/template/999999999", $auth);
+    check('message/template/{id}：不存在 → code 404', respCode($r) === 404, $r['body']);
+
+    // ---- 管理端：日志（receiver 必须是遮蔽后的值）
+    $r = http('GET', "{$base}/adminapi/message/log?page=1&limit=10", $api);
+    check('message/log：未登录 → code 401', respCode($r) === 401, $r['body']);
+    $r = http('GET', "{$base}/adminapi/message/log?page=1&limit=50", $auth);
+    $logRows = $m6bList($r);
+    check(
+        'message/log：code 200，标准分页，行含 channel/receiver/status/error_msg/template_code，receiver 无完整手机号',
+        respCode($r) === 200
+            && $m6bPageOk(respData($r))
+            && $m6bRowsHave($logRows, ['id', 'template_code', 'channel', 'receiver', 'status', 'error_msg', 'created_at'])
+            && preg_grep('/^1\d{10}$/', array_map('strval', array_column($logRows, 'receiver'))) === [],
+        $r['body']
+    );
+    $r = http('GET', "{$base}/adminapi/message/log?page=1&limit=10&channel=sms", $auth);
+    check('message/log：channel=sms 只返回 sms 行', respCode($r) === 200 && array_diff(array_column($m6bList($r), 'channel'), ['sms']) === [], $r['body']);
+
+    // ---- C 端：未登录一律 401
+    foreach ([['GET', 'list'], ['GET', 'unread-count'], ['POST', 'read']] as [$method, $endpoint]) {
+        $r = http($method, "{$base}/api/message/{$endpoint}", $api, $method === 'POST' ? ['ids' => [999999999]] : null);
+        check("api/message/{$endpoint}：未登录 → code 401", respCode($r) === 401, $r['body']);
+    }
+
+    $msgUserId = support\Db::connection()->getSchemaBuilder()->hasTable('users')
+        ? (int) support\Db::table('users')->orderBy('id')->value('id')
+        : 0;
+    if ($msgUserId <= 0) {
+        echo "  （开发库 users 表里没有数据，跳过 C 端站内信断言——需要一个真实会员签发 token）\n";
+    } else {
+        // 只读 SELECT 取会员 id，服务端同一套 TokenManager 签发 user token；token 不输出
+        $msgToken = core\auth\TokenManager::scope('user')->generate([
+            'user_id' => $msgUserId,
+            'ver'     => core\auth\TokenVersion::current($msgUserId, 'user'),
+        ]);
+        $msgApi = [...$api, "Authorization: Bearer {$msgToken}"];
+        $ownIds = array_map('intval', support\Db::table('user_notifications')->where('user_id', $msgUserId)->pluck('id')->all());
+
+        $r = http('GET', "{$base}/api/message/list?page_no=1&page_size=10", $msgApi);
+        $rows = $m6bList($r);
+        check(
+            'api/message/list：code 200，标准分页，行字段齐全、is_read 为 bool，且只含本人通知',
+            respCode($r) === 200
+                && $m6bPageOk(respData($r))
+                && $m6bRowsHave($rows, ['id', 'title', 'content', 'type', 'biz_id', 'extra', 'created_at', 'is_read'])
+                && array_filter($rows, static fn (array $row): bool => !is_bool($row['is_read']) || !in_array((int) $row['id'], $ownIds, true)) === [],
+            $r['body']
+        );
+
+        $readCount = $ownIds === [] ? 0 : (int) support\Db::table('user_notification_reads')->where('user_id', $msgUserId)->whereIn('notification_id', $ownIds)->count();
+        $r = http('GET', "{$base}/api/message/unread-count", $msgApi);
+        check('api/message/unread-count：code 200，{count} 等于本人通知数减本人已读数', respCode($r) === 200 && respData($r) === ['count' => count($ownIds) - $readCount], $r['body']);
+
+        $readsBefore = (int) support\Db::table('user_notification_reads')->count();
+        $r = http('POST', "{$base}/api/message/read", $msgApi, ['ids' => [999999999]]);
+        check(
+            'api/message/read：不属于本人的 id → code 200、data []，且不写已读表',
+            respCode($r) === 200 && respData($r) === [] && (int) support\Db::table('user_notification_reads')->count() === $readsBefore,
             $r['body']
         );
     }
