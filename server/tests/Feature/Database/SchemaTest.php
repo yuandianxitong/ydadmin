@@ -388,6 +388,47 @@ final class SchemaTest extends TestCase
         }
     }
 
+    public function test_m6b_builtin_message_template_seeds(): void
+    {
+        $this->assertSame(['user_register', 'payment_success'], \app\repository\message\MessageTemplateRepository::BUILTIN_CODES);
+
+        $rows = [];
+        foreach (Db::table('message_templates')->whereIn('code', ['user_register', 'payment_success'])->whereNull('deleted_at')->get()->all() as $row) {
+            $rows[(string) $row->code] = $row;
+        }
+        $this->assertCount(2, $rows);
+
+        $register = $rows['user_register'];
+        $this->assertSame('注册成功通知', $register->name);
+        $this->assertSame(1, (int) $register->status);
+        $this->assertSame(1, (int) $register->site_enabled);
+        $this->assertSame('注册成功', $register->site_title);
+        $this->assertSame('欢迎加入，${nickname}', $register->site_content);
+        // JSON 列取回时对象键序会变：assertEquals 比内容不比键序
+        $this->assertEquals([['key' => 'nickname', 'name' => '昵称', 'example' => '张三']], json_decode((string) $register->variables, true));
+        $this->assertEquals(['thing1' => '${nickname}'], json_decode((string) $register->wechat_official_data, true));
+        $this->assertEquals(['thing1' => '${nickname}'], json_decode((string) $register->wechat_mini_data, true));
+
+        $payment = $rows['payment_success'];
+        $this->assertSame('充值成功通知', $payment->name);
+        $this->assertSame(1, (int) $payment->status);
+        $this->assertSame(1, (int) $payment->site_enabled);
+        $this->assertSame('充值成功', $payment->site_title);
+        $this->assertSame('订单 ${order_no} 已到账 ${amount} 元', $payment->site_content);
+        $this->assertSame(['order_no', 'amount', 'paid_at'], array_column((array) json_decode((string) $payment->variables, true), 'key'));
+        $this->assertSame(['订单号', '金额', '支付时间'], array_column((array) json_decode((string) $payment->variables, true), 'name'));
+        $mapping = ['character_string1' => '${order_no}', 'amount2' => '${amount}元', 'time3' => '${paid_at}'];
+        $this->assertEquals($mapping, json_decode((string) $payment->wechat_official_data, true));
+        $this->assertEquals($mapping, json_decode((string) $payment->wechat_mini_data, true));
+
+        foreach ($rows as $code => $row) {
+            foreach (['sms', 'wechat_official', 'wechat_mini'] as $channel) {
+                $this->assertSame(0, (int) $row->{"{$channel}_enabled"}, "{$code} 的 {$channel} 种子必须停用");
+                $this->assertSame('', $row->{"{$channel}_template_id"}, "{$code} 的 {$channel} 种子不带模板 id");
+            }
+        }
+    }
+
     public function test_init_sql_contains_no_admin_account(): void
     {
         $init = (string) file_get_contents(base_path() . '/database/install/init.sql');

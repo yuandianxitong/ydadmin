@@ -288,3 +288,9 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (133, 131, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'system.message.template.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (134, 131, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'system.message.template.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (135, 131, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'system.message.template.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+
+-- 内置消息模板（M6b spec §6）：code 在 MessageTemplateRepository::BUILTIN_CODES 里登记，不可删除。
+-- 只开站内信；短信、公众号、小程序全部停用且不带模板 id。字段映射只是示例，启用微信通道前须按实际选用的微信模板字段修改。
+INSERT INTO `message_templates` (`name`, `code`, `remark`, `status`, `sms_enabled`, `sms_template_id`, `sms_content`, `wechat_official_enabled`, `wechat_official_template_id`, `wechat_official_url`, `wechat_official_data`, `wechat_mini_enabled`, `wechat_mini_template_id`, `wechat_mini_page`, `wechat_mini_data`, `site_enabled`, `site_title`, `site_content`, `variables`, `created_at`, `updated_at`) VALUES
+  ('注册成功通知', 'user_register', NULL, 1, 0, '', '', 0, '', '', '{"thing1":"${nickname}"}', 0, '', '', '{"thing1":"${nickname}"}', 1, '注册成功', '欢迎加入，${nickname}', '[{"key":"nickname","name":"昵称","example":"张三"}]', NOW(), NOW()),
+  ('充值成功通知', 'payment_success', NULL, 1, 0, '', '', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 1, '充值成功', '订单 ${order_no} 已到账 ${amount} 元', '[{"key":"order_no","name":"订单号","example":"R2026091712000000000001"},{"key":"amount","name":"金额","example":"100.00"},{"key":"paid_at","name":"支付时间","example":"2026-09-17 12:00:00"}]', NOW(), NOW());

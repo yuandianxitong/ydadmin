@@ -14,5 +14,7 @@ return [
     'queues' => [
         'operation-log' => ['consumer' => app\queue\redis\OperationLogConsumer::class, 'max_attempts' => 3],
         'cron-job'      => ['consumer' => app\queue\redis\CronJobConsumer::class, 'max_attempts' => 0],
+        // 发送短信与微信消息（M6b spec §4.4）：确定失败不重试、暂时失败至多 3 次；消费者在 Task 6 落到 app/queue/redis_slow/
+        'message-send'  => ['consumer' => app\queue\redis_slow\MessageSendConsumer::class, 'max_attempts' => 3],
     ],
 ];
