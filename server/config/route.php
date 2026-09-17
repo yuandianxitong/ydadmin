@@ -28,6 +28,7 @@ use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
 use app\adminapi\controller\user\UserManageController;
 use app\api\controller\common\CommonController;
+use app\api\controller\message\MessageController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
@@ -298,6 +299,13 @@ Route::group('/api', function () use ($apiAuth) {
     // M5b：支付订单查询（回调在公开段，由 Task 9 注册）
     Route::group('/payment', function () {
         Route::get('/query', [PaymentController::class, 'query']);
+    })->middleware($apiAuth);
+
+    // M6b：C 端站内信（spec §4.7）。只读写本人的通知，身份取自 token
+    Route::group('/message', function () {
+        Route::get('/list', [MessageController::class, 'list']);
+        Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+        Route::post('/read', [MessageController::class, 'read']);
     })->middleware($apiAuth);
 })->middleware($apiOuter);
 
