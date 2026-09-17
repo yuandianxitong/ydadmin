@@ -378,11 +378,22 @@ final class PaymentNotifyServiceTest extends ApiTestCase
         $order = $this->createOrder();
         $this->wechat->queue('verifyNotify', new NotifyResult(true, $order['order_no'], 'WX-FOREIGN', 1000, [], appId: 'wx0000000000000000'));
 
-        $ack = $this->service()->handleNotify('wechat', $this->request());
+        $logs = new TestHandler();
+        Log::channel()->pushHandler($logs);
+        try {
+            $ack = $this->service()->handleNotify('wechat', $this->request());
+        } finally {
+            Log::channel()->popHandler();
+        }
 
         $this->assertEquals($this->wechat->notifyAck(false), $ack);
         $this->assertSame('pending', $this->orderRow($order['id'])->status);
         $this->assertSame(0, Db::table('balance_logs')->where('user_id', $order['user_id'])->count());
+        $this->assertTrue($logs->hasErrorThatContains('appid'));
+        $record = $logs->getRecords()[array_key_last($logs->getRecords())];
+        $this->assertSame('wx0000000000000000', $record['context']['appid']);
+        $this->assertSame(self::WX_APP_ID, $record['context']['expected_appid']);
+        $this->assertSame(['channel', 'order_no', 'appid', 'expected_appid'], array_keys($record['context']), '日志上下文不得带出敏感字段');
     }
 
     public function test_wechat_paid_notify_without_appid_is_refused(): void

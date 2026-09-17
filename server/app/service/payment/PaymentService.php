@@ -236,7 +236,13 @@ class PaymentService extends Service
 
         try {
             if ($channel === Channel::WECHAT && !$this->wechatAppIdMatchesOrder($result->orderNo, $result->appId)) {
-                Log::error('支付回调：appid 与订单下单时不符，拒绝入账', ['channel' => $channel, 'order_no' => $result->orderNo]);
+                // appid 不是密钥：记下收到的与预期的，便于排查是哪个端/配置的 appid 对不上
+                Log::error('支付回调：appid 与订单下单时不符，拒绝入账', [
+                    'channel'         => $channel,
+                    'order_no'        => $result->orderNo,
+                    'appid'           => $result->appId,
+                    'expected_appid'  => $this->wechatExpectedAppId($result->orderNo),
+                ]);
 
                 return $gateway->notifyAck(false);
             }
@@ -288,6 +294,21 @@ class PaymentService extends Service
     }
 
     /**
+     * 仅供不符日志使用：与 wechatAppIdMatchesOrder() 同样的「订单 app_id，空则回退 pay_wechat_app_id」口径，
+     * 重新查一次订单——只在拒绝入账这条冷路径上跑，appid 不是密钥，记下来便于定位是哪个端/配置的 appid 对不上。
+     */
+    private function wechatExpectedAppId(string $orderNo): string
+    {
+        $order = $this->orders->findByOrderNo($orderNo);
+        $expected = trim((string) ($order['app_id'] ?? ''));
+        if ($expected === '') {
+            $expected = trim((string) $this->config->getConfigValue('pay_wechat_app_id', ''));
+        }
+
+        return $expected;
+    }
+
+    /**
      * 查询本人订单（spec §5.4）。pending 时每单每个节流窗口最多补查一次网关；补查只吞网关层异常。
      *
      * @return array{order_no: string, status: string, amount: string, channel: string, paid_at: ?string}
@@ -301,6 +322,8 @@ class PaymentService extends Service
             try {
                 $result = $this->gateways->gateway((string) $order['channel'])->query($orderNo);
                 if ($result->state === TradeQueryResult::PAID) {
+                    // 这里不比 appid：查单是我们用 out_trade_no 在自己商户号下发起的已认证出站调用，结果不可能被伪造
+                    // （appid 核对只挡回调路径）；因此补查也顺带把因 appid 不符被回调拒收的订单捞回来入账。
                     $this->markPaid($orderNo, (string) $order['channel'], $result->tradeNo, $result->paidCents ?? -1, $result->raw);
                     // 归属已在上面核过，按单号重读即可（同参再调 findForUser() 会被 PHPStan 沿用首行的非 null 收窄）
                     $order = $this->orders->findByOrderNo($orderNo) ?? $order;
@@ -359,6 +382,8 @@ class PaymentService extends Service
         $result = $gateway->query($orderNo);
 
         if ($result->state === TradeQueryResult::PAID) {
+            // 同 queryForUser()：这是按我们的 out_trade_no、在我们商户号下发起的已认证出站查单，不可能被伪造，
+            // 所以不比 appid；关单任务因此也会顺带把因 appid 不符被回调拒收的订单捞回来入账。
             $outcome = $this->markPaid($orderNo, $channel, $result->tradeNo, $result->paidCents ?? -1, $result->raw);
 
             return $outcome === MarkPaidOutcome::PAID ? 'paid' : 'skipped';
