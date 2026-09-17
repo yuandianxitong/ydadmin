@@ -487,4 +487,94 @@ final class SchemaTest extends TestCase
             Db::table('payment_orders')->where('order_no', $orderNo)->delete();
         }
     }
+
+    public function test_m6b_message_tables_exist_with_expected_columns_and_indexes(): void
+    {
+        $columns = [
+            'message_templates' => [
+                'id', 'name', 'code', 'remark', 'status',
+                'sms_enabled', 'sms_template_id', 'sms_content',
+                'wechat_official_enabled', 'wechat_official_template_id', 'wechat_official_url', 'wechat_official_data',
+                'wechat_mini_enabled', 'wechat_mini_template_id', 'wechat_mini_page', 'wechat_mini_data',
+                'site_enabled', 'site_title', 'site_content', 'variables',
+                'created_at', 'updated_at', 'deleted_at',
+            ],
+            'message_logs' => [
+                'id', 'template_id', 'template_code', 'channel', 'user_id', 'receiver', 'variables', 'content',
+                'status', 'error_msg', 'attempts', 'sent_at', 'created_at', 'updated_at',
+            ],
+            'user_notifications' => ['id', 'user_id', 'title', 'content', 'type', 'biz_id', 'extra', 'created_at', 'updated_at'],
+            'user_notification_reads' => ['id', 'notification_id', 'user_id', 'read_at'],
+        ];
+        foreach ($columns as $table => $expected) {
+            $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
+            $this->assertSame($expected, Db::schema()->getColumnListing($table), "{$table} 列与 spec §2 不一致");
+        }
+
+        $indexes = static function (string $table): array {
+            $result = [];
+            foreach (Db::select("SHOW INDEX FROM `{$table}`") as $row) {
+                $result[$row->Key_name][(int) $row->Seq_in_index] = $row->Column_name;
+            }
+
+            return array_map(static function (array $columns): array {
+                ksort($columns);
+
+                return array_values($columns);
+            }, $result);
+        };
+
+        $this->assertSame([
+            'PRIMARY'    => ['id'],
+            'uk_code'    => ['code'],
+            'idx_status' => ['status'],
+        ], $indexes('message_templates'));
+        $this->assertSame([
+            'PRIMARY'             => ['id'],
+            'idx_status_created'  => ['status', 'created_at'],
+            'idx_channel_created' => ['channel', 'created_at'],
+            'idx_template_code'   => ['template_code'],
+            'idx_user'            => ['user_id'],
+        ], $indexes('message_logs'));
+        $this->assertSame([
+            'PRIMARY'     => ['id'],
+            'idx_user_id' => ['user_id', 'id'],
+        ], $indexes('user_notifications'));
+        $this->assertSame([
+            'PRIMARY'              => ['id'],
+            'uk_notification_user' => ['notification_id', 'user_id'],
+            'idx_user'             => ['user_id'],
+        ], $indexes('user_notification_reads'));
+
+        // 默认值：模板四通道默认关、status=1；日志 status=0、attempts=0、receiver/error_msg 空串
+        $now = date('Y-m-d H:i:s');
+        $code = 'schema_' . bin2hex(random_bytes(6));
+        $templateId = (int) Db::table('message_templates')->insertGetId(['name' => '建表自检', 'code' => $code, 'created_at' => $now, 'updated_at' => $now]);
+        $logId = (int) Db::table('message_logs')->insertGetId(['template_code' => $code, 'channel' => 'sms', 'created_at' => $now, 'updated_at' => $now]);
+        try {
+            $template = Db::table('message_templates')->where('id', $templateId)->first();
+            $this->assertSame(1, (int) $template->status);
+            foreach (['sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'site_enabled'] as $flag) {
+                $this->assertSame(0, (int) $template->{$flag}, "{$flag} 默认应为 0");
+            }
+            $this->assertSame('', $template->site_title);
+
+            $log = Db::table('message_logs')->where('id', $logId)->first();
+            $this->assertSame(0, (int) $log->status);
+            $this->assertSame(0, (int) $log->attempts);
+            $this->assertSame('', $log->receiver);
+            $this->assertSame('', $log->error_msg);
+
+            // uk_code：同编码第二次插入必须撞唯一键（软删行同样占用编码，spec §4.1）
+            try {
+                Db::table('message_templates')->insert(['name' => '重复', 'code' => $code, 'created_at' => $now, 'updated_at' => $now]);
+                $this->fail('uk_code 唯一索引未生效');
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $this->assertStringContainsString('uk_code', $e->getMessage());
+            }
+        } finally {
+            Db::table('message_templates')->where('id', $templateId)->delete();
+            Db::table('message_logs')->where('id', $logId)->delete();
+        }
+    }
 }

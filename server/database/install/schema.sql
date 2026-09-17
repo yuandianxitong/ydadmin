@@ -442,3 +442,78 @@ CREATE TABLE `refund_orders` (
   KEY `idx_payment_order` (`payment_order_id`),
   KEY `idx_status_created` (`status`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='退款单';
+
+CREATE TABLE `message_templates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '模板名称',
+  `code` varchar(50) NOT NULL COMMENT '模板编码（唯一，含软删行）',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：1启用 0停用',
+  `sms_enabled` tinyint NOT NULL DEFAULT 0 COMMENT '短信通道开关',
+  `sms_template_id` varchar(100) NOT NULL DEFAULT '' COMMENT '短信模板ID（阿里云 TemplateCode / 腾讯云 TemplateId）',
+  `sms_content` varchar(500) NOT NULL DEFAULT '' COMMENT '短信内容预览（不参与渲染）',
+  `wechat_official_enabled` tinyint NOT NULL DEFAULT 0 COMMENT '公众号模板消息开关',
+  `wechat_official_template_id` varchar(100) NOT NULL DEFAULT '' COMMENT '公众号模板ID',
+  `wechat_official_url` varchar(500) NOT NULL DEFAULT '' COMMENT '公众号跳转URL（可含变量）',
+  `wechat_official_data` json DEFAULT NULL COMMENT '公众号字段映射 {字段: 文本}',
+  `wechat_mini_enabled` tinyint NOT NULL DEFAULT 0 COMMENT '小程序订阅消息开关',
+  `wechat_mini_template_id` varchar(100) NOT NULL DEFAULT '' COMMENT '小程序模板ID',
+  `wechat_mini_page` varchar(200) NOT NULL DEFAULT '' COMMENT '小程序跳转页面（可含变量）',
+  `wechat_mini_data` json DEFAULT NULL COMMENT '小程序字段映射 {字段: 文本}',
+  `site_enabled` tinyint NOT NULL DEFAULT 0 COMMENT '站内信开关',
+  `site_title` varchar(100) NOT NULL DEFAULT '' COMMENT '站内信标题（可含变量）',
+  `site_content` varchar(500) NOT NULL DEFAULT '' COMMENT '站内信正文（可含变量）',
+  `variables` json DEFAULT NULL COMMENT '变量定义 [{key, name, example}]',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息模板';
+
+CREATE TABLE `message_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `template_id` bigint unsigned DEFAULT NULL COMMENT '模板ID',
+  `template_code` varchar(50) NOT NULL COMMENT '模板编码',
+  `channel` varchar(20) NOT NULL COMMENT '通道：sms/wechat_official/wechat_mini/site',
+  `user_id` bigint unsigned DEFAULT NULL COMMENT '会员ID（发送时据此重读接收人）',
+  `receiver` varchar(64) NOT NULL DEFAULT '' COMMENT '遮蔽后的接收人',
+  `variables` json DEFAULT NULL COMMENT '渲染变量',
+  `content` text COMMENT '渲染结果',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0待发 1成功 2失败',
+  `error_msg` varchar(255) NOT NULL DEFAULT '' COMMENT '失败原因（errcode/固定文案/异常类名）',
+  `attempts` int unsigned NOT NULL DEFAULT 0 COMMENT '发送尝试次数',
+  `sent_at` datetime DEFAULT NULL COMMENT '发送成功时间',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status_created` (`status`,`created_at`),
+  KEY `idx_channel_created` (`channel`,`created_at`),
+  KEY `idx_template_code` (`template_code`),
+  KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息发送日志';
+
+CREATE TABLE `user_notifications` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint unsigned NOT NULL COMMENT '会员ID',
+  `title` varchar(100) NOT NULL COMMENT '标题',
+  `content` varchar(500) NOT NULL COMMENT '正文',
+  `type` varchar(20) NOT NULL COMMENT '展示分类：system/order/payment/activity',
+  `biz_id` varchar(64) NOT NULL DEFAULT '' COMMENT '业务标识',
+  `extra` json DEFAULT NULL COMMENT '扩展信息',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='会员站内信';
+
+CREATE TABLE `user_notification_reads` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `notification_id` bigint unsigned NOT NULL COMMENT '站内信ID',
+  `user_id` bigint unsigned NOT NULL COMMENT '会员ID',
+  `read_at` datetime NOT NULL COMMENT '阅读时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_notification_user` (`notification_id`,`user_id`),
+  KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='会员站内信已读记录';
