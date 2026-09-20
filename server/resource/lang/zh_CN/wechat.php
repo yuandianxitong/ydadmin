@@ -18,4 +18,7 @@ return [
     'auto_reply_not_found'       => '自动回复规则不存在',
     'reply_exists_subscribe'     => '只能启用一条关注回复',
     'reply_exists_default'       => '只能启用一条默认回复',
+    'official_not_configured'    => '公众号未配置',
+    'api_error'                  => '微信接口错误：:errmsg',
+    'menu_invalid'               => '菜单内容不合法',
 ];

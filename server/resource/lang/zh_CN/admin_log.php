@@ -153,4 +153,8 @@ return [
     'auto_reply_update_desc'       => '更新公众号自动回复规则',
     'auto_reply_delete'            => '删除自动回复',
     'auto_reply_delete_desc'       => '删除公众号自动回复规则',
+    'official_menu_create'         => '发布公众号菜单',
+    'official_menu_create_desc'    => '创建或更新公众号自定义菜单',
+    'official_menu_delete'         => '删除公众号菜单',
+    'official_menu_delete_desc'    => '删除公众号自定义菜单',
 ];

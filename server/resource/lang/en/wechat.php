@@ -18,4 +18,7 @@ return [
     'auto_reply_not_found'       => 'The auto-reply rule does not exist',
     'reply_exists_subscribe'     => 'Only one subscribe reply can be enabled',
     'reply_exists_default'       => 'Only one default reply can be enabled',
+    'official_not_configured'    => 'Official account is not configured',
+    'api_error'                  => 'WeChat API error: :errmsg',
+    'menu_invalid'               => 'Invalid menu content',
 ];

@@ -28,6 +28,7 @@ use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
 use app\adminapi\controller\user\UserManageController;
 use app\adminapi\controller\wechat\AutoReplyController;
+use app\adminapi\controller\wechat\OfficialAccountController;
 use app\api\controller\common\CommonController;
 use app\api\controller\message\MessageController;
 use app\controller\SpaController;
@@ -248,6 +249,12 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('', [AutoReplyController::class, 'store']);
         Route::put('/{id:\d+}', [AutoReplyController::class, 'update']);
         Route::delete('/{id:\d+}', [AutoReplyController::class, 'delete']);
+    })->middleware($adminAuth);
+
+    Route::group('/wechat/official', function () {
+        Route::get('/menu', [OfficialAccountController::class, 'getMenu']);
+        Route::post('/menu', [OfficialAccountController::class, 'createMenu']);
+        Route::delete('/menu', [OfficialAccountController::class, 'deleteMenu']);
     })->middleware($adminAuth);
 
     // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。

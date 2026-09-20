@@ -51,4 +51,12 @@ final class WechatLangParityTest extends TestCase
             $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'en'), $key);
         }
     }
+
+    public function test_m6c_official_menu_keys_are_present(): void
+    {
+        foreach (['official_not_configured', 'api_error', 'menu_invalid'] as $key) {
+            $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'zh_CN'), $key);
+            $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'en'), $key);
+        }
+    }
 }

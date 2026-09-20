@@ -36,6 +36,7 @@ trait FakeWechatHttp
         'core\message\channel\WechatOfficialChannel',
         'core\message\channel\WechatMiniChannel',
         'app\service\wechat\WechatAuthService',
+        'app\service\wechat\OfficialAccountService',
     ];
 
     /** @param list<Response|\Throwable> $responses */

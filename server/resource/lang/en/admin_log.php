@@ -153,4 +153,8 @@ return [
     'auto_reply_update_desc'       => 'Update an official-account auto-reply rule',
     'auto_reply_delete'            => 'Delete auto reply',
     'auto_reply_delete_desc'       => 'Delete an official-account auto-reply rule',
+    'official_menu_create'         => 'Publish official account menu',
+    'official_menu_create_desc'    => 'Create or update the official account custom menu',
+    'official_menu_delete'         => 'Delete official account menu',
+    'official_menu_delete_desc'    => 'Delete the official account custom menu',
 ];
