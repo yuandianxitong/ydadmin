@@ -10,6 +10,1662 @@
         }
     ],
     "paths": {
+        "/adminapi/agreement": {
+            "post": {
+                "operationId": "AgreementController::store",
+                "tags": [
+                    "agreement"
+                ],
+                "summary": "AgreementController::store",
+                "description": "需登录，且需权限 `agreement.create`",
+                "x-permission": "agreement.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "maxLength": 50
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "code"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/agreement/detail/{id}": {
+            "get": {
+                "operationId": "AgreementController::show",
+                "tags": [
+                    "agreement"
+                ],
+                "summary": "AgreementController::show",
+                "description": "需登录，且需权限 `agreement.list`",
+                "x-permission": "agreement.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/agreement/list": {
+            "get": {
+                "operationId": "AgreementController::index",
+                "tags": [
+                    "agreement"
+                ],
+                "summary": "AgreementController::index",
+                "description": "需登录，且需权限 `agreement.list`",
+                "x-permission": "agreement.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/agreement/{id}": {
+            "delete": {
+                "operationId": "AgreementController::delete",
+                "tags": [
+                    "agreement"
+                ],
+                "summary": "AgreementController::delete",
+                "description": "需登录，且需权限 `agreement.delete`",
+                "x-permission": "agreement.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "AgreementController::update",
+                "tags": [
+                    "agreement"
+                ],
+                "summary": "AgreementController::update",
+                "description": "需登录，且需权限 `agreement.update`",
+                "x-permission": "agreement.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "maxLength": 50
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/announcement": {
+            "post": {
+                "operationId": "AnnouncementController::store",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::store",
+                "description": "需登录，且需权限 `announcement.create`",
+                "x-permission": "announcement.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "publish_at": {
+                                        "nullable": true,
+                                        "description": "date"
+                                    }
+                                },
+                                "required": [
+                                    "title"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/announcement/detail/{id}": {
+            "get": {
+                "operationId": "AnnouncementController::show",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::show",
+                "description": "需登录，且需权限 `announcement.list`",
+                "x-permission": "announcement.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/announcement/list": {
+            "get": {
+                "operationId": "AnnouncementController::index",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::index",
+                "description": "需登录，且需权限 `announcement.list`",
+                "x-permission": "announcement.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/announcement/{id}": {
+            "delete": {
+                "operationId": "AnnouncementController::delete",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::delete",
+                "description": "需登录，且需权限 `announcement.delete`",
+                "x-permission": "announcement.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "AnnouncementController::update",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::update",
+                "description": "需登录，且需权限 `announcement.update`",
+                "x-permission": "announcement.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "publish_at": {
+                                        "nullable": true,
+                                        "description": "date"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/announcement/{id}/status": {
+            "put": {
+                "operationId": "AnnouncementController::status",
+                "tags": [
+                    "announcement"
+                ],
+                "summary": "AnnouncementController::status",
+                "description": "需登录，且需权限 `announcement.status`",
+                "x-permission": "announcement.status",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article": {
+            "post": {
+                "operationId": "ArticleController::store",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::store",
+                "description": "需登录，且需权限 `article.create`",
+                "x-permission": "article.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "category_id": {
+                                        "type": "integer"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "cover": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "summary": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    },
+                                    "content": {
+                                        "type": "string"
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "nullable": true,
+                                        "items": {}
+                                    },
+                                    "author": {
+                                        "type": "string",
+                                        "maxLength": 50
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "publish_at": {
+                                        "nullable": true,
+                                        "description": "date"
+                                    }
+                                },
+                                "required": [
+                                    "category_id",
+                                    "title",
+                                    "content"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article-category": {
+            "post": {
+                "operationId": "ArticleCategoryController::store",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::store",
+                "description": "需登录，且需权限 `article_category.create`",
+                "x-permission": "article_category.create",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "parent_id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article-category/list": {
+            "get": {
+                "operationId": "ArticleCategoryController::index",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::index",
+                "description": "需登录，且需权限 `article_category.list`",
+                "x-permission": "article_category.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article-category/options": {
+            "get": {
+                "operationId": "ArticleCategoryController::options",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::options",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article-category/{id}": {
+            "delete": {
+                "operationId": "ArticleCategoryController::delete",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::delete",
+                "description": "需登录，且需权限 `article_category.delete`",
+                "x-permission": "article_category.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "ArticleCategoryController::update",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::update",
+                "description": "需登录，且需权限 `article_category.update`",
+                "x-permission": "article_category.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "parent_id": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "sort": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article-category/{id}/status": {
+            "put": {
+                "operationId": "ArticleCategoryController::status",
+                "tags": [
+                    "article-category"
+                ],
+                "summary": "ArticleCategoryController::status",
+                "description": "需登录，且需权限 `article_category.update`",
+                "x-permission": "article_category.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article/detail/{id}": {
+            "get": {
+                "operationId": "ArticleController::show",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::show",
+                "description": "需登录，且需权限 `article.list`",
+                "x-permission": "article.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/article/list": {
+            "get": {
+                "operationId": "ArticleController::index",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::index",
+                "description": "需登录，且需权限 `article.list`",
+                "x-permission": "article.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article/{id}": {
+            "delete": {
+                "operationId": "ArticleController::delete",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::delete",
+                "description": "需登录，且需权限 `article.delete`",
+                "x-permission": "article.delete",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "ArticleController::update",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::update",
+                "description": "需登录，且需权限 `article.update`",
+                "x-permission": "article.update",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "category_id": {
+                                        "type": "integer"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                    },
+                                    "cover": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "summary": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    },
+                                    "content": {
+                                        "type": "string"
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "nullable": true,
+                                        "items": {}
+                                    },
+                                    "author": {
+                                        "type": "string",
+                                        "maxLength": 50
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "publish_at": {
+                                        "nullable": true,
+                                        "description": "date"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/article/{id}/status": {
+            "put": {
+                "operationId": "ArticleController::status",
+                "tags": [
+                    "article"
+                ],
+                "summary": "ArticleController::status",
+                "description": "需登录，且需权限 `article.status`",
+                "x-permission": "article.status",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/auth/captcha": {
             "get": {
                 "operationId": "AuthController::captcha",
@@ -9402,6 +11058,10 @@
         }
     ],
     "x-doc-warnings": [
+        "AnnouncementController::store 字段 publish_at:date",
+        "AnnouncementController::update 字段 publish_at:date",
+        "ArticleController::store 字段 publish_at:date",
+        "ArticleController::update 字段 publish_at:date",
         "MessageTemplateController::store 字段 code:regex:/^[a-z][a-z0-9_]*$/",
         "AdminController::store 字段 mobile:regex:/^1[3-9]\\d{9}$/",
         "AdminController::changePassword 字段 new_password:different:old_password",

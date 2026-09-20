@@ -166,4 +166,13 @@ return [
     'article_category_delete_desc' => 'Delete an article category',
     'article_category_status'      => 'Change article category status',
     'article_category_status_desc' => 'Enable or disable an article category',
+
+    'article_create'               => 'Create article',
+    'article_create_desc'          => 'Create a new article',
+    'article_update'               => 'Update article',
+    'article_update_desc'          => 'Update article details',
+    'article_delete'               => 'Delete article',
+    'article_delete_desc'          => 'Delete an article',
+    'article_status'               => 'Change article status',
+    'article_status_desc'          => 'Publish or unpublish an article',
 ];

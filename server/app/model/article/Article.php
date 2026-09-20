@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\model\article;
 
 use core\base\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /** 文章（articles 表）。由代码生成器生成，可直接手改。 */
@@ -30,6 +31,14 @@ class Article extends Model
 
     /** @var list<string> */
     protected $appends = ['status_text'];
+
+    /**
+     * @return BelongsTo<ArticleCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ArticleCategory::class, 'category_id');
+    }
 
     /** status 的可读文案：1 正常，其余禁用（与 Dictionary 等手写模块一致）。 */
     public function getStatusTextAttribute(): string

@@ -166,4 +166,13 @@ return [
     'article_category_delete_desc' => '删除文章栏目',
     'article_category_status'      => '修改文章栏目状态',
     'article_category_status_desc' => '启用或禁用文章栏目',
+
+    'article_create'               => '创建文章',
+    'article_create_desc'          => '创建新的文章',
+    'article_update'               => '更新文章',
+    'article_update_desc'          => '更新文章信息',
+    'article_delete'               => '删除文章',
+    'article_delete_desc'          => '删除文章',
+    'article_status'               => '修改文章状态',
+    'article_status_desc'          => '发布或撤回文章',
 ];

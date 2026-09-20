@@ -169,7 +169,6 @@ class ArticleController extends Controller
             'content'     => "{$required}|string",
             'tags'        => 'nullable|array',
             'author'      => 'sometimes|required|string|max:50',
-            'view_count'  => 'sometimes|required|integer',
             'status'      => 'sometimes|required|integer|in:0,1',
             'publish_at'  => 'nullable|date',
         ];
@@ -195,8 +194,6 @@ class ArticleController extends Controller
             'tags.array'           => 'article.article_tags_array',
             'author.required'      => 'article.article_author_require',
             'author.max'           => 'article.article_author_length',
-            'view_count.required'  => 'article.article_view_count_require',
-            'view_count.integer'   => 'article.article_view_count_integer',
             'status.required'      => 'article.article_status_require',
             'status.integer'       => 'article.article_status_integer',
             'status.in'            => 'article.article_status_invalid',

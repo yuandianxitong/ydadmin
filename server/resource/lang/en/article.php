@@ -3,6 +3,8 @@
 // 由代码生成器生成（en）。business.php / validation.php 是手写模块共用文件，
 // 生成模块用独立分组 article.*，键统一加 article_ 前缀，同模块以后生成别的模型不会互相覆盖。
 return [
+    'not_found' => 'Article not found',
+    'category_invalid' => 'Category is invalid',
     'article_not_found' => 'Article not found',
     'article_category_id_require' => 'Category Id is required',
     'article_category_id_integer' => 'Category Id must be an integer',
