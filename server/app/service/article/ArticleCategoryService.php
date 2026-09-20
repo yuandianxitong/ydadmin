@@ -5,67 +5,92 @@ declare(strict_types=1);
 namespace app\service\article;
 
 use app\repository\article\ArticleCategoryRepository;
+use app\repository\article\ArticleRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 
 /**
- * 文章栏目（由代码生成器生成）。
+ * 文章栏目。
  *
- * 只调 Repository：查询条件与数据权限都在 ArticleCategoryRepository 里，这一层不直接调用数据库门面。
- * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
+ * 只调 Repository：查询条件在 ArticleCategoryRepository，文章占用计数走 ArticleRepository。
+ * 写操作一律包 runInTransaction()。
  */
 class ArticleCategoryService extends Service
 {
     #[Inject]
     protected ArticleCategoryRepository $articleCategoryRepository;
 
+    #[Inject]
+    protected ArticleRepository $articleRepository;
+
     /**
-     * 列表：keyword、区间等查询条件在 Repository 里按列类型展开。
+     * 管理端树：先按 keyword（name）/status 滤扁平行再组树。
      *
      * @param array<string, mixed> $params
      * @return list<array<string, mixed>>
      */
-    public function getArticleCategoryList(array $params): array
+    public function getTree(array $params): array
     {
-        return $this->articleCategoryRepository->getArticleCategoryList($params);
+        $keyword = trim((string) ($params['keyword'] ?? ''));
+        $status = $params['status'] ?? null;
+
+        return $this->articleCategoryRepository->getTree($keyword === '' ? null : $keyword, $status);
     }
 
     /**
-     * 下拉选项（本任务先返回已启用扁平行；exclude_id 留给后续任务）。
+     * 下拉树：仅启用；exclude_id 去掉自身及子孙。
      *
      * @return list<array<string, mixed>>
      */
-    public function getArticleCategoryOptions(): array
+    public function getOptions(int $excludeId = 0): array
     {
-        return $this->articleCategoryRepository->getEnabledOptions();
+        return $this->articleCategoryRepository->getOptions($excludeId);
     }
 
     /** @return array<string, mixed> */
-    public function getArticleCategoryDetail(int $id): array
+    public function getDetail(int $id): array
     {
-        return $this->findArticleCategoryOrFail($id);
+        return $this->findOrFail($id);
     }
 
     /**
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      * @return array<string, mixed>
      */
-    public function createArticleCategory(array $data): array
+    public function create(array $data): array
     {
-        $row = array_intersect_key($data, array_flip(['parent_id', 'name', 'icon', 'sort', 'status']));
+        $this->assertNameUnique((string) $data['name']);
+        $parentId = (int) ($data['parent_id'] ?? 0);
+        $this->assertParentValid($parentId);
+
+        $row = [
+            'parent_id' => $parentId,
+            'name'      => $data['name'],
+            'icon'      => $data['icon'] ?? '',
+            'sort'      => $data['sort'] ?? 0,
+            'status'    => $data['status'] ?? 1,
+        ];
 
         return $this->runInTransaction(fn (): array => $this->articleCategoryRepository->create($row));
     }
 
     /**
-     * 局部更新：只写传了的字段，值为 null 的丢弃；白名单与 create 一致。
+     * 局部更新：只写传了的字段，值为 null 的丢弃。
      *
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      */
-    public function updateArticleCategory(int $id, array $data): void
+    public function update(int $id, array $data): void
     {
-        $this->findArticleCategoryOrFail($id);
+        $this->findOrFail($id);
+        if (isset($data['name'])) {
+            $this->assertNameUnique((string) $data['name'], $id);
+        }
+        if (array_key_exists('parent_id', $data)) {
+            $this->assertParentValid((int) $data['parent_id'], $id);
+        }
+
         $update = array_filter(
             array_intersect_key($data, array_flip(['parent_id', 'name', 'icon', 'sort', 'status'])),
             static fn ($value) => $value !== null
@@ -79,9 +104,16 @@ class ArticleCategoryService extends Service
         });
     }
 
-    public function deleteArticleCategory(int $id): void
+    public function delete(int $id): void
     {
-        $this->findArticleCategoryOrFail($id);
+        $this->findOrFail($id);
+
+        if ($this->articleCategoryRepository->hasChildren($id)) {
+            throw new BusinessException(lang('article_category.has_children'));
+        }
+        if ($this->articleRepository->countByCategoryId($id) > 0) {
+            throw new BusinessException(lang('article_category.has_articles'));
+        }
 
         $this->runInTransaction(function () use ($id): void {
             $this->articleCategoryRepository->delete($id);
@@ -89,8 +121,7 @@ class ArticleCategoryService extends Service
     }
 
     /**
-     * 批量删除：同一事务内逐条删除，任一 id 不存在则整体回滚（与 M1 的角色、字典批量删除同语义）。
-     * 重复 id 先去重。
+     * 批量删除：同一事务内逐条删除，任一 id 不存在则整体回滚。
      *
      * @param list<int> $ids
      */
@@ -98,23 +129,47 @@ class ArticleCategoryService extends Service
     {
         $this->runInTransaction(function () use ($ids): void {
             foreach (array_values(array_unique($ids)) as $id) {
-                $this->deleteArticleCategory($id);
+                $this->delete($id);
             }
         });
     }
 
     public function updateStatus(int $id, int $status): void
     {
-        $this->findArticleCategoryOrFail($id);
+        $this->findOrFail($id);
 
         $this->runInTransaction(function () use ($id, $status): void {
             $this->articleCategoryRepository->update($id, ['status' => $status]);
         });
     }
 
-    /** @return array<string, mixed> */
-    private function findArticleCategoryOrFail(int $id): array
+    private function assertNameUnique(string $name, int $excludeId = 0): void
     {
-        return $this->articleCategoryRepository->find($id) ?? throw new BusinessException(lang('article_category.article_category_not_found'));
+        if ($this->articleCategoryRepository->existsName($name, $excludeId)) {
+            throw new BusinessException(lang('article_category.name_exists'));
+        }
+    }
+
+    private function assertParentValid(int $parentId, int $id = 0): void
+    {
+        if ($parentId <= 0) {
+            return;
+        }
+        if ($id > 0 && $parentId === $id) {
+            throw new BusinessException(lang('article_category.parent_invalid'));
+        }
+        if ($this->articleCategoryRepository->find($parentId) === null) {
+            throw new BusinessException(lang('article_category.parent_invalid'));
+        }
+        if ($id > 0 && in_array($parentId, $this->articleCategoryRepository->descendantIds($id), true)) {
+            throw new BusinessException(lang('article_category.parent_invalid'));
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function findOrFail(int $id): array
+    {
+        return $this->articleCategoryRepository->find($id)
+            ?? throw new NotFoundException(lang('article_category.not_found'));
     }
 }

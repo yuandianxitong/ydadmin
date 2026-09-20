@@ -157,4 +157,13 @@ return [
     'official_menu_create_desc'    => 'Create or update the official account custom menu',
     'official_menu_delete'         => 'Delete official account menu',
     'official_menu_delete_desc'    => 'Delete the official account custom menu',
+
+    'article_category_create'      => 'Create article category',
+    'article_category_create_desc' => 'Create a new article category',
+    'article_category_update'      => 'Update article category',
+    'article_category_update_desc' => 'Update article category details',
+    'article_category_delete'      => 'Delete article category',
+    'article_category_delete_desc' => 'Delete an article category',
+    'article_category_status'      => 'Change article category status',
+    'article_category_status_desc' => 'Enable or disable an article category',
 ];

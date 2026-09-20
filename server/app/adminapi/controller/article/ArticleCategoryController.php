@@ -39,21 +39,21 @@ class ArticleCategoryController extends Controller
     #[Permission('article_category.list')]
     public function index(Request $request): Response
     {
-        $rows = $this->articleCategoryService->getArticleCategoryList((array) $request->get());
+        $params = (array) $request->get();
 
-        return $this->success($rows);
+        return $this->success($this->articleCategoryService->getTree($params));
     }
 
     #[PermissionSkip]
-    public function options(): Response
+    public function options(Request $request): Response
     {
-        return $this->success($this->articleCategoryService->getArticleCategoryOptions(), lang('messages.get_success'));
+        return $this->success($this->articleCategoryService->getOptions((int) $request->get('exclude_id', 0)), lang('messages.get_success'));
     }
 
     #[Permission('article_category.list')]
     public function show(Request $request, string $id): Response
     {
-        return $this->success($this->articleCategoryService->getArticleCategoryDetail((int) $id), lang('messages.get_success'));
+        return $this->success($this->articleCategoryService->getDetail((int) $id), lang('messages.get_success'));
     }
 
     #[Permission('article_category.create')]
@@ -61,14 +61,14 @@ class ArticleCategoryController extends Controller
     {
         $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
-        return $this->success($this->articleCategoryService->createArticleCategory($data), lang('messages.create_success'));
+        return $this->success($this->articleCategoryService->create($data), lang('messages.create_success'));
     }
 
     #[Permission('article_category.update')]
     public function update(Request $request, string $id): Response
     {
         $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
-        $this->articleCategoryService->updateArticleCategory((int) $id, $data);
+        $this->articleCategoryService->update((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
     }
@@ -76,7 +76,7 @@ class ArticleCategoryController extends Controller
     #[Permission('article_category.delete')]
     public function delete(Request $request, string $id): Response
     {
-        $this->articleCategoryService->deleteArticleCategory((int) $id);
+        $this->articleCategoryService->delete((int) $id);
 
         return $this->success([], lang('messages.delete_success'));
     }

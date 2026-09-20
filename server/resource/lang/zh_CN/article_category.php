@@ -3,6 +3,11 @@
 // 由代码生成器生成（zh_CN）。business.php / validation.php 是手写模块共用文件，
 // 生成模块用独立分组 article_category.*，键统一加 article_category_ 前缀，同模块以后生成别的模型不会互相覆盖。
 return [
+    'not_found' => '文章栏目不存在',
+    'name_exists' => '栏目名称已存在',
+    'parent_invalid' => '上级栏目无效',
+    'has_children' => '该栏目下存在子栏目，无法删除',
+    'has_articles' => '该栏目下存在文章，无法删除',
     'article_category_not_found' => '文章栏目不存在',
     'article_category_parent_id_require' => '父栏目ID不能为空',
     'article_category_parent_id_integer' => '父栏目ID必须是整数',

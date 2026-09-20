@@ -157,4 +157,13 @@ return [
     'official_menu_create_desc'    => '创建或更新公众号自定义菜单',
     'official_menu_delete'         => '删除公众号菜单',
     'official_menu_delete_desc'    => '删除公众号自定义菜单',
+
+    'article_category_create'      => '创建文章栏目',
+    'article_category_create_desc' => '创建新的文章栏目',
+    'article_category_update'      => '更新文章栏目',
+    'article_category_update_desc' => '更新文章栏目信息',
+    'article_category_delete'      => '删除文章栏目',
+    'article_category_delete_desc' => '删除文章栏目',
+    'article_category_status'      => '修改文章栏目状态',
+    'article_category_status_desc' => '启用或禁用文章栏目',
 ];

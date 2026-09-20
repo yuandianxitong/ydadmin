@@ -115,6 +115,12 @@ return [
         // 公众号自定义菜单（M6c）
         'OfficialAccountController@createMenu' => ['admin_log.official_menu_create', 'admin_log.official_menu_create_desc'],
         'OfficialAccountController@deleteMenu' => ['admin_log.official_menu_delete', 'admin_log.official_menu_delete_desc'],
+
+        // 文章栏目（M7a）
+        'ArticleCategoryController@store'  => ['admin_log.article_category_create', 'admin_log.article_category_create_desc'],
+        'ArticleCategoryController@update' => ['admin_log.article_category_update', 'admin_log.article_category_update_desc'],
+        'ArticleCategoryController@delete' => ['admin_log.article_category_delete', 'admin_log.article_category_delete_desc'],
+        'ArticleCategoryController@status' => ['admin_log.article_category_status', 'admin_log.article_category_status_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

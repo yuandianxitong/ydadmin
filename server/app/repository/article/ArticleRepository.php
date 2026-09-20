@@ -54,4 +54,10 @@ class ArticleRepository extends Repository
 
         return $this->buildPagination($list, $page, $limit, $total);
     }
+
+    /** 未软删文章数（query() 已套 SoftDeletes）。 */
+    public function countByCategoryId(int $id): int
+    {
+        return $this->query()->where($this->qualify('category_id'), $id)->count();
+    }
 }
