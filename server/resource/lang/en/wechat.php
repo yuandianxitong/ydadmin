@@ -15,4 +15,7 @@ return [
     'account_bound_other_wechat' => 'This account is already bound to another WeChat',
     'wechat_bound_other_account' => 'This WeChat is already bound to another account',
     'redirect_not_allowed'       => 'The redirect URL is not on this site',
+    'auto_reply_not_found'       => 'The auto-reply rule does not exist',
+    'reply_exists_subscribe'     => 'Only one subscribe reply can be enabled',
+    'reply_exists_default'       => 'Only one default reply can be enabled',
 ];

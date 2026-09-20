@@ -146,4 +146,11 @@ return [
     'message_template_update_desc' => 'Update message template basics and channel settings',
     'message_template_delete'      => 'Delete message template',
     'message_template_delete_desc' => 'Delete a custom message template (soft delete)',
+
+    'auto_reply_create'            => 'Create auto reply',
+    'auto_reply_create_desc'       => 'Create an official-account auto-reply rule',
+    'auto_reply_update'            => 'Update auto reply',
+    'auto_reply_update_desc'       => 'Update an official-account auto-reply rule',
+    'auto_reply_delete'            => 'Delete auto reply',
+    'auto_reply_delete_desc'       => 'Delete an official-account auto-reply rule',
 ];

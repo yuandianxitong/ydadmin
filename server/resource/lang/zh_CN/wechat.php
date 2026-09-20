@@ -15,4 +15,7 @@ return [
     'account_bound_other_wechat' => '当前账号已绑定其他微信',
     'wechat_bound_other_account' => '该微信已绑定其他账号',
     'redirect_not_allowed'       => '回调地址不在本站域名下',
+    'auto_reply_not_found'       => '自动回复规则不存在',
+    'reply_exists_subscribe'     => '只能启用一条关注回复',
+    'reply_exists_default'       => '只能启用一条默认回复',
 ];

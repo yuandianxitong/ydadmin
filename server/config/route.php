@@ -27,6 +27,7 @@ use app\adminapi\controller\system\SystemConfigController;
 use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
 use app\adminapi\controller\user\UserManageController;
+use app\adminapi\controller\wechat\AutoReplyController;
 use app\api\controller\common\CommonController;
 use app\api\controller\message\MessageController;
 use app\controller\SpaController;
@@ -239,6 +240,14 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::put('/template/{id:\d+}', [MessageTemplateController::class, 'update']);
         Route::delete('/template/{id:\d+}', [MessageTemplateController::class, 'delete']);
         Route::get('/log', [MessageLogController::class, 'index']);
+    })->middleware($adminAuth);
+
+    Route::group('/wechat/auto-reply', function () {
+        Route::get('', [AutoReplyController::class, 'index']);
+        Route::get('/{id:\d+}', [AutoReplyController::class, 'show']);
+        Route::post('', [AutoReplyController::class, 'store']);
+        Route::put('/{id:\d+}', [AutoReplyController::class, 'update']);
+        Route::delete('/{id:\d+}', [AutoReplyController::class, 'delete']);
     })->middleware($adminAuth);
 
     // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。

@@ -146,4 +146,11 @@ return [
     'message_template_update_desc' => '更新消息模板的基础信息与通道配置',
     'message_template_delete'      => '删除消息模板',
     'message_template_delete_desc' => '删除自定义消息模板（软删除）',
+
+    'auto_reply_create'            => '创建自动回复',
+    'auto_reply_create_desc'       => '创建公众号自动回复规则',
+    'auto_reply_update'            => '更新自动回复',
+    'auto_reply_update_desc'       => '更新公众号自动回复规则',
+    'auto_reply_delete'            => '删除自动回复',
+    'auto_reply_delete_desc'       => '删除公众号自动回复规则',
 ];

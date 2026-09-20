@@ -106,6 +106,11 @@ return [
         'MessageTemplateController@store'  => ['admin_log.message_template_create', 'admin_log.message_template_create_desc'],
         'MessageTemplateController@update' => ['admin_log.message_template_update', 'admin_log.message_template_update_desc'],
         'MessageTemplateController@delete' => ['admin_log.message_template_delete', 'admin_log.message_template_delete_desc'],
+
+        // 公众号自动回复（M6c）
+        'AutoReplyController@store'  => ['admin_log.auto_reply_create', 'admin_log.auto_reply_create_desc'],
+        'AutoReplyController@update' => ['admin_log.auto_reply_update', 'admin_log.auto_reply_update_desc'],
+        'AutoReplyController@delete' => ['admin_log.auto_reply_delete', 'admin_log.auto_reply_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

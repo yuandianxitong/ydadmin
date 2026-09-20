@@ -43,4 +43,12 @@ final class WechatLangParityTest extends TestCase
         }
         $this->assertSame('微信登录未配置', lang('wechat.not_configured', [], 'zh_CN'));
     }
+
+    public function test_m6c_auto_reply_keys_are_present(): void
+    {
+        foreach (['auto_reply_not_found', 'reply_exists_subscribe', 'reply_exists_default'] as $key) {
+            $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'zh_CN'), $key);
+            $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'en'), $key);
+        }
+    }
 }
