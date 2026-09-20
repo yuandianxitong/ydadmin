@@ -30,24 +30,31 @@ final class WechatAutoReplyRepositoryTest extends TestCase
             'type'       => WechatAutoReplyRepository::TYPE_KEYWORD,
             'keyword'    => 'hello',
             'match_type' => WechatAutoReplyRepository::MATCH_EXACT,
-            'reply_type' => WechatAutoReplyRepository::REPLY_TEXT,
+            'reply_type' => 'news',
             'content'    => 'hi',
             'status'     => WechatAutoReplyRepository::STATUS_ENABLED,
             'sort_order' => 0,
         ]);
         $this->assertSame('text', $row['reply_type']);
         $this->assertArrayNotHasKey('created_by', $row);
+
+        $this->assertTrue($this->repo->update((int) $row['id'], ['reply_type' => 'news', 'content' => 'updated']));
+        $updated = $this->repo->findById((int) $row['id']);
+        $this->assertSame('text', $updated['reply_type'] ?? null);
+        $this->assertSame('updated', $updated['content'] ?? null);
     }
 
     public function test_exact_match_ignores_disabled_and_soft_deleted(): void
     {
-        $this->repo->create($this->kw('hello', 'A', 1, 0));
+        $winner = $this->repo->create($this->kw('hello', 'A', 1, 0));
+        $this->repo->create($this->kw('hello', 'same-sort-loser', 1, 0));
         $disabled = $this->repo->create($this->kw('hello', 'B', 1, 0, WechatAutoReplyRepository::STATUS_DISABLED));
         $deleted = $this->repo->create($this->kw('hello', 'C', 0, 0));
         $this->repo->delete((int) $deleted['id']);
 
         $hit = $this->repo->findExactKeyword('hello');
         $this->assertSame('A', $hit['content'] ?? null);
+        $this->assertSame($winner['id'], $hit['id'] ?? null);
         $this->assertNotSame($disabled['id'], $hit['id'] ?? null);
     }
 
@@ -56,8 +63,10 @@ final class WechatAutoReplyRepositoryTest extends TestCase
         $this->repo->create($this->kw('ab', 'second', 2, 1));
         $this->repo->create($this->kw('a', 'first', 1, 1));
         $this->repo->create($this->kw('', 'empty', 0, 1));
+        $this->repo->create($this->kw('late', 'tie-late', 5, 1));
+        $this->repo->create($this->kw('early', 'tie-early', 5, 1));
         $rules = $this->repo->fuzzyRules();
-        $this->assertSame(['first', 'second'], array_column($rules, 'content'));
+        $this->assertSame(['first', 'second', 'tie-late', 'tie-early'], array_column($rules, 'content'));
     }
 
     public function test_exists_enabled_by_type_respects_except_id(): void

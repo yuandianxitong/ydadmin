@@ -38,6 +38,25 @@ class WechatAutoReplyRepository extends Repository
     }
 
     /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function create(array $data): array
+    {
+        $data['reply_type'] = self::REPLY_TEXT;
+
+        return parent::create($data);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function update(int|string $id, array $data): bool
+    {
+        $data['reply_type'] = self::REPLY_TEXT;
+
+        return parent::update($id, $data);
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findById(int $id): ?array
@@ -95,6 +114,7 @@ class WechatAutoReplyRepository extends Repository
             ->where($this->qualify('keyword'), $keyword)
             ->where($this->qualify('status'), self::STATUS_ENABLED)
             ->orderBy($this->qualify('sort_order'), 'asc')
+            ->orderBy($this->qualify('id'), 'asc')
             ->first();
 
         /** @var \core\base\Model|null $row */
@@ -102,7 +122,7 @@ class WechatAutoReplyRepository extends Repository
     }
 
     /**
-     * 启用的模糊关键词规则（跳过空 keyword），sort_order asc。
+     * 启用的模糊关键词规则（跳过空 keyword），sort_order asc, id asc。
      *
      * @return array<int, array<string, mixed>>
      */
@@ -114,6 +134,7 @@ class WechatAutoReplyRepository extends Repository
             ->where($this->qualify('status'), self::STATUS_ENABLED)
             ->where($this->qualify('keyword'), '<>', '')
             ->orderBy($this->qualify('sort_order'), 'asc')
+            ->orderBy($this->qualify('id'), 'asc')
             ->get()
             ->toArray();
     }
