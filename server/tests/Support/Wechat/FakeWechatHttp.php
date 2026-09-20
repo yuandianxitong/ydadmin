@@ -31,6 +31,7 @@ trait FakeWechatHttp
     private const WECHAT_DEPENDENT_CLASSES = [
         'core\wechat\AccessTokenProvider',
         'core\wechat\MiniProgramApi',
+        'core\wechat\OfficialAccountApi',
         'core\wechat\OAuthApi',
         'core\message\channel\WechatOfficialChannel',
         'core\message\channel\WechatMiniChannel',
