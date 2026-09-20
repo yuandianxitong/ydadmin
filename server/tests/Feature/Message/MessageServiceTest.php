@@ -106,7 +106,7 @@ final class MessageServiceTest extends ApiTestCase
         $this->assertSame(['欢迎加入，用户5678', '订单 R001 已到账 50.50 元'], array_column($notifications, 'content'));
         $this->assertSame(['system', 'payment'], array_column($notifications, 'type'));
         $this->assertSame(['', 'R001'], array_column($notifications, 'biz_id'));
-        $this->assertSame(MessageService::SITE_TYPES, ['payment_success' => 'payment']);
+        $this->assertSame(['payment_success' => 'payment', 'feedback_received' => 'feedback'], MessageService::SITE_TYPES);
     }
 
     public function test_site_title_and_content_are_cut_to_column_length(): void
