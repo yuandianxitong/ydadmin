@@ -127,6 +127,12 @@ return [
         'ArticleController@update' => ['admin_log.article_update', 'admin_log.article_update_desc'],
         'ArticleController@delete' => ['admin_log.article_delete', 'admin_log.article_delete_desc'],
         'ArticleController@status' => ['admin_log.article_status', 'admin_log.article_status_desc'],
+
+        // 公告（M7a）
+        'AnnouncementController@store'  => ['admin_log.announcement_create', 'admin_log.announcement_create_desc'],
+        'AnnouncementController@update' => ['admin_log.announcement_update', 'admin_log.announcement_update_desc'],
+        'AnnouncementController@delete' => ['admin_log.announcement_delete', 'admin_log.announcement_delete_desc'],
+        'AnnouncementController@status' => ['admin_log.announcement_status', 'admin_log.announcement_status_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

@@ -164,7 +164,7 @@ class AnnouncementController extends Controller
         return [
             'title'      => "{$required}|string|max:200",
             'content'    => 'nullable|string',
-            'type'       => 'sometimes|required|integer',
+            'type'       => "{$required}|integer|in:1,2,3",
             'status'     => 'sometimes|required|integer|in:0,1',
             'sort'       => 'sometimes|required|integer|min:0',
             'publish_at' => 'nullable|date',
@@ -183,6 +183,7 @@ class AnnouncementController extends Controller
             'title.max'       => 'announcement.announcement_title_length',
             'type.required'   => 'announcement.announcement_type_require',
             'type.integer'    => 'announcement.announcement_type_integer',
+            'type.in'         => 'announcement.announcement_type_invalid',
             'status.required' => 'announcement.announcement_status_require',
             'status.integer'  => 'announcement.announcement_status_integer',
             'status.in'       => 'announcement.announcement_status_invalid',

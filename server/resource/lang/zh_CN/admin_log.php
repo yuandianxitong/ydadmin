@@ -175,4 +175,13 @@ return [
     'article_delete_desc'          => '删除文章',
     'article_status'               => '修改文章状态',
     'article_status_desc'          => '发布或撤回文章',
+
+    'announcement_create'          => '创建公告',
+    'announcement_create_desc'     => '创建新的公告',
+    'announcement_update'          => '更新公告',
+    'announcement_update_desc'     => '更新公告信息',
+    'announcement_delete'          => '删除公告',
+    'announcement_delete_desc'     => '删除公告',
+    'announcement_status'          => '修改公告状态',
+    'announcement_status_desc'     => '发布或撤回公告',
 ];

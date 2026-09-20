@@ -415,7 +415,12 @@
                                         "nullable": true
                                     },
                                     "type": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "enum": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
                                     },
                                     "status": {
                                         "type": "integer",
@@ -434,7 +439,8 @@
                                     }
                                 },
                                 "required": [
-                                    "title"
+                                    "title",
+                                    "type"
                                 ]
                             }
                         }
@@ -679,7 +685,12 @@
                                         "nullable": true
                                     },
                                     "type": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "enum": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
                                     },
                                     "status": {
                                         "type": "integer",

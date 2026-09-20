@@ -6,22 +6,26 @@ namespace app\service\announcement;
 
 use app\repository\announcement\AnnouncementRepository;
 use core\base\Service;
-use core\exception\BusinessException;
+use core\context\RequestContext;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 
 /**
- * 公告（由代码生成器生成）。
+ * 公告。
  *
- * 只调 Repository：查询条件与数据权限都在 AnnouncementRepository 里，这一层不直接调用数据库门面。
- * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
+ * 只调 Repository：查询条件在 AnnouncementRepository。
+ * 写操作一律包 runInTransaction()。created_by 不接收请求体；$dataScoped=false 时由本层写入。
  */
 class AnnouncementService extends Service
 {
+    /** @var list<string> */
+    private const WRITE_FIELDS = ['title', 'content', 'type', 'status', 'sort', 'publish_at'];
+
     #[Inject]
     protected AnnouncementRepository $announcementRepository;
 
     /**
-     * 列表：keyword、区间等查询条件在 Repository 里按列类型展开。
+     * 管理端列表：keyword、type、status。
      *
      * @param array<string, mixed> $params
      * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
@@ -38,28 +42,58 @@ class AnnouncementService extends Service
     }
 
     /**
+     * C 端已发布列表：只认 status=PUBLISHED，不过滤 publish_at。
+     *
+     * @param array<string, mixed> $params
+     * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
+     */
+    public function getPublishedList(array $params, int $page, int $limit): array
+    {
+        return $this->announcementRepository->getPublishedList($params, $page, $limit);
+    }
+
+    /**
+     * C 端详情：只认已发布。不存在 / 草稿 → 404。不加浏览量。
+     *
+     * @return array<string, mixed>
+     */
+    public function getPublishedDetail(int $id): array
+    {
+        $row = $this->announcementRepository->find($id);
+        if ($row === null || (int) $row['status'] !== AnnouncementRepository::PUBLISHED) {
+            throw new NotFoundException(lang('announcement.not_found'));
+        }
+
+        return $row;
+    }
+
+    /**
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      * @return array<string, mixed>
      */
     public function createAnnouncement(array $data): array
     {
-        $row = array_intersect_key($data, array_flip(['title', 'content', 'type', 'status', 'sort', 'publish_at']));
+        $actor = RequestContext::actingUser();
+        $row = $this->writable($data);
+        $row['created_by'] = $actor > 0 ? $actor : null;
+        $row = $this->fillPublishAt($row);
 
         return $this->runInTransaction(fn (): array => $this->announcementRepository->create($row));
     }
 
     /**
-     * 局部更新：只写传了的字段，值为 null 的丢弃；白名单与 create 一致。
+     * 局部更新：只写传了的字段，值为 null 的丢弃。草稿→发布且 publish_at 空则现填。
      *
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      */
     public function updateAnnouncement(int $id, array $data): void
     {
-        $this->findAnnouncementOrFail($id);
+        $existing = $this->findAnnouncementOrFail($id);
         $update = array_filter(
-            array_intersect_key($data, array_flip(['title', 'content', 'type', 'status', 'sort', 'publish_at'])),
+            $this->writable($data),
             static fn ($value) => $value !== null
         );
+        $update = $this->fillPublishAt($update, $existing);
         if ($update === []) {
             return;
         }
@@ -95,16 +129,49 @@ class AnnouncementService extends Service
 
     public function updateStatus(int $id, int $status): void
     {
-        $this->findAnnouncementOrFail($id);
+        $existing = $this->findAnnouncementOrFail($id);
+        $update = $this->fillPublishAt(['status' => $status], $existing);
 
-        $this->runInTransaction(function () use ($id, $status): void {
-            $this->announcementRepository->update($id, ['status' => $status]);
+        $this->runInTransaction(function () use ($id, $update): void {
+            $this->announcementRepository->update($id, $update);
         });
+    }
+
+    /**
+     * status===PUBLISHED 且 publish_at 空则现填；不覆盖已有发布时间。
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, mixed>|null $existing
+     * @return array<string, mixed>
+     */
+    private function fillPublishAt(array $row, ?array $existing = null): array
+    {
+        $status = array_key_exists('status', $row)
+            ? (int) $row['status']
+            : (int) ($existing['status'] ?? 0);
+        $publishAt = array_key_exists('publish_at', $row)
+            ? $row['publish_at']
+            : ($existing['publish_at'] ?? null);
+        if ($status === AnnouncementRepository::PUBLISHED && empty($publishAt)) {
+            $row['publish_at'] = date('Y-m-d H:i:s');
+        }
+
+        return $row;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function writable(array $data): array
+    {
+        return array_intersect_key($data, array_flip(self::WRITE_FIELDS));
     }
 
     /** @return array<string, mixed> */
     private function findAnnouncementOrFail(int $id): array
     {
-        return $this->announcementRepository->find($id) ?? throw new BusinessException(lang('announcement.announcement_not_found'));
+        return $this->announcementRepository->find($id)
+            ?? throw new NotFoundException(lang('announcement.not_found'));
     }
 }

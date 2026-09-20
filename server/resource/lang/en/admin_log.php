@@ -175,4 +175,13 @@ return [
     'article_delete_desc'          => 'Delete an article',
     'article_status'               => 'Change article status',
     'article_status_desc'          => 'Publish or unpublish an article',
+
+    'announcement_create'          => 'Create announcement',
+    'announcement_create_desc'     => 'Create a new announcement',
+    'announcement_update'          => 'Update announcement',
+    'announcement_update_desc'     => 'Update announcement details',
+    'announcement_delete'          => 'Delete announcement',
+    'announcement_delete_desc'     => 'Delete an announcement',
+    'announcement_status'          => 'Change announcement status',
+    'announcement_status_desc'     => 'Publish or unpublish an announcement',
 ];
