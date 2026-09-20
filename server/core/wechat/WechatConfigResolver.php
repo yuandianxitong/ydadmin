@@ -39,6 +39,42 @@ final class WechatConfigResolver
     }
 
     /** @throws WechatNotConfiguredException */
+    public function officialServer(): OfficialServerConfig
+    {
+        $appId = $this->read('wechat_official_app_id');
+        $token = $this->read('wechat_official_token');
+        $aesKey = $this->read('wechat_official_aes_key');
+        $encryptTypeValue = $this->read('wechat_official_encrypt_type');
+
+        $invalid = [];
+        if ($appId === '') {
+            $invalid[] = 'wechat_official_app_id';
+        }
+        if ($token === '') {
+            $invalid[] = 'wechat_official_token';
+        }
+
+        if ($encryptTypeValue === '') {
+            $encryptType = 1;
+        } elseif (in_array($encryptTypeValue, ['1', '2', '3'], true)) {
+            $encryptType = (int) $encryptTypeValue;
+        } else {
+            $encryptType = 0;
+            $invalid[] = 'wechat_official_encrypt_type';
+        }
+
+        if (in_array($encryptType, [2, 3], true) && strlen($aesKey) !== 43) {
+            $invalid[] = 'wechat_official_aes_key';
+        }
+
+        if ($invalid !== []) {
+            throw new WechatNotConfiguredException('微信公众号服务器配置无效：' . implode('、', $invalid));
+        }
+
+        return new OfficialServerConfig($appId, $token, $encryptType === 1 ? '' : $aesKey, $encryptType);
+    }
+
+    /** @throws WechatNotConfiguredException */
     public function open(): WechatAppConfig
     {
         return $this->resolve('open');

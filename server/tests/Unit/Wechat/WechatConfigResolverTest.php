@@ -6,6 +6,7 @@ namespace tests\Unit\Wechat;
 
 use core\contract\ConfigValueReader;
 use core\wechat\exception\WechatNotConfiguredException;
+use core\wechat\OfficialServerConfig;
 use core\wechat\WechatAppConfig;
 use core\wechat\WechatConfigResolver;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -113,6 +114,102 @@ final class WechatConfigResolverTest extends TestCase
         } catch (WechatNotConfiguredException $e) {
             $this->assertStringContainsString('wechat_open_app_id', $e->getMessage());
             $this->assertStringContainsString('wechat_open_app_secret', $e->getMessage());
+        }
+    }
+
+    public function test_official_server_defaults_to_plaintext_without_aes_key(): void
+    {
+        $resolver = $this->resolver([
+            'wechat_official_app_id'       => ' wx-official ',
+            'wechat_official_app_secret'   => ' secret-official ',
+            'wechat_official_token'        => ' token-value ',
+            'wechat_official_encrypt_type' => ' ',
+        ]);
+
+        $server = $resolver->officialServer();
+
+        $this->assertInstanceOf(OfficialServerConfig::class, $server);
+        $this->assertSame('wx-official', $server->appId);
+        $this->assertSame('token-value', $server->token);
+        $this->assertSame('', $server->aesKey);
+        $this->assertSame(1, $server->encryptType);
+
+        $login = $resolver->official();
+        $this->assertSame('wx-official', $login->appId);
+        $this->assertSame('secret-official', $login->secret);
+    }
+
+    public function test_official_login_does_not_require_server_token(): void
+    {
+        $resolver = $this->resolver([
+            'wechat_official_app_id'     => 'wx-official',
+            'wechat_official_app_secret' => 'secret-official',
+        ]);
+
+        $this->assertSame('wx-official', $resolver->official()->appId);
+
+        try {
+            $resolver->officialServer();
+            $this->fail('公众号服务器配置缺少 token 必须抛异常');
+        } catch (WechatNotConfiguredException $e) {
+            $this->assertStringContainsString('wechat_official_token', $e->getMessage());
+            $this->assertStringNotContainsString('secret-official', $e->getMessage());
+        }
+    }
+
+    public function test_safe_mode_requires_exactly_43_character_aes_key(): void
+    {
+        $resolver = $this->resolver([
+            'wechat_official_app_id'       => 'wx-official',
+            'wechat_official_token'        => 'token-value',
+            'wechat_official_encrypt_type' => '3',
+            'wechat_official_aes_key'      => str_repeat('x', 42),
+        ]);
+
+        try {
+            $resolver->officialServer();
+            $this->fail('安全模式 AESKey 长度不是 43 必须抛异常');
+        } catch (WechatNotConfiguredException $e) {
+            $this->assertStringContainsString('wechat_official_aes_key', $e->getMessage());
+        }
+
+        $config = $this->resolver([
+            'wechat_official_app_id'       => 'wx-official',
+            'wechat_official_token'        => 'token-value',
+            'wechat_official_encrypt_type' => '3',
+            'wechat_official_aes_key'      => str_repeat('x', 43),
+        ])->officialServer();
+
+        $this->assertSame(str_repeat('x', 43), $config->aesKey);
+        $this->assertSame(3, $config->encryptType);
+    }
+
+    public function test_official_server_rejects_invalid_encrypt_type(): void
+    {
+        $this->expectException(WechatNotConfiguredException::class);
+        $this->expectExceptionMessageMatches('/wechat_official_encrypt_type/');
+
+        $this->resolver([
+            'wechat_official_app_id'       => 'wx-official',
+            'wechat_official_token'        => 'token-value',
+            'wechat_official_encrypt_type' => '9',
+        ])->officialServer();
+    }
+
+    public function test_official_server_exception_never_leaks_token_or_aes_key(): void
+    {
+        try {
+            $this->resolver([
+                'wechat_official_app_id'       => 'wx-official',
+                'wechat_official_token'        => 'TOP-SECRET-TOKEN',
+                'wechat_official_encrypt_type' => '9',
+                'wechat_official_aes_key'      => str_repeat('x', 43),
+            ])->officialServer();
+            $this->fail('非法加密类型必须抛异常');
+        } catch (WechatNotConfiguredException $e) {
+            $this->assertStringContainsString('wechat_official_encrypt_type', $e->getMessage());
+            $this->assertStringNotContainsString('TOP-SECRET-TOKEN', $e->getMessage());
+            $this->assertStringNotContainsString(str_repeat('x', 43), $e->getMessage());
         }
     }
 }
