@@ -535,3 +535,91 @@ CREATE TABLE `wechat_auto_replies` (
   KEY `idx_keyword` (`keyword`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='微信自动回复';
+
+CREATE TABLE `article_categories` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `parent_id` int unsigned NOT NULL DEFAULT 0 COMMENT '父栏目ID',
+  `name` varchar(100) NOT NULL COMMENT '栏目名称',
+  `icon` varchar(255) NOT NULL DEFAULT '' COMMENT '栏目图标',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态:1启用 0禁用',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文章栏目';
+
+CREATE TABLE `articles` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `category_id` int unsigned NOT NULL COMMENT '栏目ID',
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `cover` varchar(255) NOT NULL DEFAULT '' COMMENT '封面图',
+  `summary` varchar(500) NOT NULL DEFAULT '' COMMENT '摘要',
+  `content` longtext NOT NULL COMMENT '内容',
+  `tags` json DEFAULT NULL COMMENT '标签JSON数组',
+  `author` varchar(50) NOT NULL DEFAULT '' COMMENT '作者',
+  `view_count` int unsigned NOT NULL DEFAULT 0 COMMENT '阅读量',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1已发布',
+  `publish_at` datetime DEFAULT NULL COMMENT '发布时间',
+  `created_by` int unsigned DEFAULT NULL COMMENT '创建人（不接数据权限）',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_category_id` (`category_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_publish_at` (`publish_at`),
+  KEY `idx_created_by` (`created_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文章';
+
+CREATE TABLE `announcements` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `content` text COMMENT '内容',
+  `type` tinyint NOT NULL DEFAULT 1 COMMENT '1通知 2更新 3活动',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0草稿 1已发布',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `publish_at` datetime DEFAULT NULL COMMENT '发布时间',
+  `created_by` int unsigned DEFAULT NULL COMMENT '创建人（不接数据权限）',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_type` (`type`),
+  KEY `idx_sort` (`sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='公告';
+
+CREATE TABLE `agreements` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL COMMENT '标题',
+  `code` varchar(50) NOT NULL COMMENT '协议编码',
+  `content` text COMMENT '内容',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '0禁用 1启用',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='协议';
+
+CREATE TABLE `feedbacks` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL COMMENT '用户ID',
+  `type` varchar(30) NOT NULL DEFAULT 'suggestion' COMMENT 'suggestion/bug/complaint/other',
+  `content` text COMMENT '反馈内容',
+  `images` json DEFAULT NULL COMMENT '图片URL数组',
+  `contact` varchar(100) DEFAULT NULL COMMENT '联系方式',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0待处理 1处理中 2已回复 3已关闭',
+  `reply` text COMMENT '管理员回复',
+  `replied_at` datetime DEFAULT NULL COMMENT '回复时间',
+  `replied_by` int unsigned DEFAULT NULL COMMENT '回复人',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户反馈';

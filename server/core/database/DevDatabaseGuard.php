@@ -24,6 +24,11 @@ final class DevDatabaseGuard
         'failed_jobs'    => [],            // M3 Task 2 加的表
         'cron_jobs'      => [],            // M3 Task 6 加的表
         'cron_job_logs'  => [],            // M3 Task 6 加的表
+        'articles'            => ['created_by', 'view_count', 'deleted_at'],
+        'article_categories'  => ['parent_id'],
+        'announcements'       => ['created_by', 'deleted_at'],
+        'agreements'          => ['code'],
+        'feedbacks'           => ['user_id', 'deleted_at'],
     ];
 
     /**

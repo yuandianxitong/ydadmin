@@ -28,7 +28,7 @@ use support\Log;
 class MessageService extends Service
 {
     /** 站内信展示分类：模板 code → user_notifications.type，未列出的一律 system（uniapp 按它选图标与标签） */
-    public const SITE_TYPES = ['payment_success' => 'payment'];
+    public const SITE_TYPES = ['payment_success' => 'payment', 'feedback_received' => 'feedback'];
 
     public const QUEUE = 'message-send';
 

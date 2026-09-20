@@ -422,7 +422,7 @@ final class SchemaTest extends TestCase
 
     public function test_m6b_builtin_message_template_seeds(): void
     {
-        $this->assertSame(['user_register', 'payment_success'], \app\repository\message\MessageTemplateRepository::BUILTIN_CODES);
+        $this->assertSame(['user_register', 'payment_success', 'feedback_received'], \app\repository\message\MessageTemplateRepository::BUILTIN_CODES);
 
         $rows = [];
         foreach (Db::table('message_templates')->whereIn('code', ['user_register', 'payment_success'])->whereNull('deleted_at')->get()->all() as $row) {
@@ -459,6 +459,67 @@ final class SchemaTest extends TestCase
                 $this->assertSame('', $row->{"{$channel}_template_id"}, "{$code} 的 {$channel} 种子不带模板 id");
             }
         }
+    }
+
+    public function test_m7a_content_tables(): void
+    {
+        foreach (['articles', 'article_categories', 'announcements', 'agreements', 'feedbacks'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), $table);
+        }
+        $this->assertTrue(Db::schema()->hasColumn('articles', 'created_by'));
+        $this->assertFalse(Db::schema()->hasColumn('articles', 'admin_id'));
+        $this->assertTrue(Db::schema()->hasColumn('articles', 'deleted_at'));
+        $this->assertFalse(Db::schema()->hasColumn('article_categories', 'deleted_at'));
+        $this->assertFalse(Db::schema()->hasColumn('agreements', 'deleted_at'));
+        $this->assertTrue(Db::schema()->hasColumn('feedbacks', 'deleted_at'));
+        $indexes = Db::select('SHOW INDEX FROM agreements');
+        $this->assertContains('uk_code', array_column($indexes, 'Key_name'));
+    }
+
+    public function test_m7a_content_menu_seeds(): void
+    {
+        $ids = [7, 700, 701, 702, 703, 710, 711, 712, 713, 714, 720, 721, 722, 723, 725, 730, 731, 732, 733, 740, 741, 742, 743, 744];
+        $menus = Db::table('menus')->whereIn('id', $ids)->orderBy('id')->get()->all();
+        $this->assertCount(count($ids), $menus);
+        $byId = [];
+        foreach ($menus as $m) {
+            $byId[(int) $m->id] = $m;
+        }
+        $this->assertSame(0, (int) $byId[7]->parent_id);
+        $this->assertSame('Content', $byId[7]->name);
+        $this->assertSame('agreement.list', $byId[7]->permission);
+        $this->assertSame(600, (int) $byId[7]->sort);
+        $this->assertSame('/content/agreement', $byId[7]->redirect);
+        $this->assertSame('agreement.create', $byId[701]->permission);
+        $this->assertSame('announcement.status', $byId[714]->permission);
+        $this->assertSame('feedback.reply', $byId[721]->permission);
+        $this->assertSame(725, (int) $byId[730]->parent_id);
+        $this->assertSame('article.status', $byId[744]->permission);
+        $this->assertSame(0, Db::table('menus')->where('permission', 'article_category.status')->count());
+        foreach (['agreement/index.vue', 'announcement/index.vue', 'feedback/index.vue', 'article-category/index.vue', 'article/index.vue'] as $view) {
+            $this->assertFileExists(base_path() . "/../admin/src/views/content/{$view}");
+        }
+    }
+
+    public function test_m7a_agreement_and_feedback_template_seeds(): void
+    {
+        $this->assertSame(
+            ['user_register', 'payment_success', 'feedback_received'],
+            \app\repository\message\MessageTemplateRepository::BUILTIN_CODES
+        );
+        foreach (['user_agreement' => '用户协议', 'privacy_policy' => '隐私政策'] as $code => $title) {
+            $row = Db::table('agreements')->where('code', $code)->first();
+            $this->assertNotNull($row, $code);
+            $this->assertSame($title, $row->title);
+            $this->assertSame(1, (int) $row->status);
+        }
+        $tpl = Db::table('message_templates')->where('code', 'feedback_received')->whereNull('deleted_at')->first();
+        $this->assertNotNull($tpl);
+        $this->assertSame(1, (int) $tpl->site_enabled);
+        $this->assertSame(0, (int) $tpl->sms_enabled);
+        $this->assertSame('反馈已收到', $tpl->site_title);
+        $this->assertSame('您的反馈我们已收到，将尽快为您处理，感谢您的支持！', $tpl->site_content);
+        $this->assertSame('feedback', \app\service\message\MessageService::SITE_TYPES['feedback_received']);
     }
 
     public function test_init_sql_contains_no_admin_account(): void

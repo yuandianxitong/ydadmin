@@ -55,7 +55,7 @@ final class MessageTemplateRepositoryTest extends TestCase
 
     public function test_builtin_codes_and_status_constant(): void
     {
-        $this->assertSame(['user_register', 'payment_success'], MessageTemplateRepository::BUILTIN_CODES);
+        $this->assertSame(['user_register', 'payment_success', 'feedback_received'], MessageTemplateRepository::BUILTIN_CODES);
         $this->assertSame(1, MessageTemplateRepository::STATUS_ENABLED);
     }
 

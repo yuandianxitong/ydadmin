@@ -20,7 +20,7 @@ class MessageTemplateRepository extends Repository
     public const STATUS_ENABLED = MessageTemplate::STATUS_ENABLED;
 
     /** 内置模板：业务代码按编码触发，不可删除（计划设计决定 16）。 */
-    public const BUILTIN_CODES = ['user_register', 'payment_success'];
+    public const BUILTIN_CODES = ['user_register', 'payment_success', 'feedback_received'];
 
     protected ?string $creatorColumn = null;
 

@@ -281,7 +281,36 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (6, 4, 1, '小程序', 'ChannelMiniApp', '/channel/miniapp', 'LAYOUT', '/channel/miniapp/config', 'i-svg:smartphone', 'channel.miniapp', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
   (500, 6, 2, '小程序配置', 'ChannelMiniAppConfig', '/channel/miniapp/config', '/channel/miniapp/config', NULL, 'el-icon-Setting', 'channel.miniapp.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (15, 4, 1, '开放平台', 'ChannelOpen', '/channel/open', 'LAYOUT', '/channel/open/config', 'i-svg:globe', 'channel.open', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
-  (550, 15, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW());
+  (550, 15, 2, '开放平台配置', 'ChannelOpenConfig', '/channel/open/config', '/channel/open/config', NULL, 'el-icon-Setting', 'channel.open.config', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+
+  -- ===== 内容管理 =====
+  (7, 0, 1, '内容管理', 'Content', '/content', 'LAYOUT', '/content/agreement', 'i-svg:newspaper', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 600, NOW(), NOW()),
+  (700, 7, 2, '协议管理', 'ContentAgreement', '/content/agreement', '/content/agreement/index', NULL, 'i-svg:file-text', 'agreement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (701, 700, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'agreement.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (702, 700, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'agreement.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (703, 700, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'agreement.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (710, 7, 2, '公告管理', 'ContentAnnouncement', '/content/announcement', '/content/announcement/index', NULL, 'i-svg:bell-ring', 'announcement.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (711, 710, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'announcement.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (712, 710, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'announcement.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (713, 710, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'announcement.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (714, 710, 3, '状态', NULL, NULL, NULL, NULL, NULL, 'announcement.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  (720, 7, 2, '反馈管理', 'ContentFeedback', '/content/feedback', '/content/feedback/index', NULL, 'i-svg:message-square-text', 'feedback.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (721, 720, 3, '回复', NULL, NULL, NULL, NULL, NULL, 'feedback.reply', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (722, 720, 3, '关闭', NULL, NULL, NULL, NULL, NULL, 'feedback.close', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (723, 720, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'feedback.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  -- 文章资讯（目录）
+  (725, 7, 1, '文章资讯', 'ContentArticleGroup', '/content/article-group', 'LAYOUT', '/content/article-category', 'i-svg:newspaper', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
+  -- 文章栏目
+  (730, 725, 2, '文章栏目', 'ContentArticleCategory', '/content/article-category', '/content/article-category/index', NULL, 'i-svg:tag', 'article_category.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (731, 730, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article_category.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (732, 730, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article_category.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (733, 730, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article_category.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  -- 文章管理
+  (740, 725, 2, '文章管理', 'ContentArticle', '/content/article', '/content/article/index', NULL, 'i-svg:file-text', 'article.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (741, 740, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'article.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (742, 740, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'article.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (743, 740, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (744, 740, 3, '发布/下架', NULL, NULL, NULL, NULL, NULL, 'article.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW());
 
 -- ---------------------------------------------------------------- M6b：消息管理菜单
 
@@ -300,4 +329,9 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
 -- 只开站内信；短信、公众号、小程序全部停用且不带模板 id。字段映射只是示例，启用微信通道前须按实际选用的微信模板字段修改。
 INSERT INTO `message_templates` (`name`, `code`, `remark`, `status`, `sms_enabled`, `sms_template_id`, `sms_content`, `wechat_official_enabled`, `wechat_official_template_id`, `wechat_official_url`, `wechat_official_data`, `wechat_mini_enabled`, `wechat_mini_template_id`, `wechat_mini_page`, `wechat_mini_data`, `site_enabled`, `site_title`, `site_content`, `variables`, `created_at`, `updated_at`) VALUES
   ('注册成功通知', 'user_register', NULL, 1, 0, '', '', 0, '', '', '{"thing1":"${nickname}"}', 0, '', '', '{"thing1":"${nickname}"}', 1, '注册成功', '欢迎加入，${nickname}', '[{"key":"nickname","name":"昵称","example":"张三"}]', NOW(), NOW()),
-  ('充值成功通知', 'payment_success', NULL, 1, 0, '', '', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 1, '充值成功', '订单 ${order_no} 已到账 ${amount} 元', '[{"key":"order_no","name":"订单号","example":"R2026091712000000000001"},{"key":"amount","name":"金额","example":"100.00"},{"key":"paid_at","name":"支付时间","example":"2026-09-17 12:00:00"}]', NOW(), NOW());
+  ('充值成功通知', 'payment_success', NULL, 1, 0, '', '', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 0, '', '', '{"character_string1":"${order_no}","amount2":"${amount}元","time3":"${paid_at}"}', 1, '充值成功', '订单 ${order_no} 已到账 ${amount} 元', '[{"key":"order_no","name":"订单号","example":"R2026091712000000000001"},{"key":"amount","name":"金额","example":"100.00"},{"key":"paid_at","name":"支付时间","example":"2026-09-17 12:00:00"}]', NOW(), NOW()),
+  ('反馈已收到', 'feedback_received', NULL, 1, 0, '', '', 0, '', '', '{}', 0, '', '', '{}', 1, '反馈已收到', '您的反馈我们已收到，将尽快为您处理，感谢您的支持！', '[]', NOW(), NOW());
+
+INSERT INTO `agreements` (`title`, `code`, `content`, `status`, `created_at`, `updated_at`) VALUES
+  ('用户协议', 'user_agreement', '<p>请在后台编辑本协议。</p>', 1, NOW(), NOW()),
+  ('隐私政策', 'privacy_policy', '<p>请在后台编辑本协议。</p>', 1, NOW(), NOW());
