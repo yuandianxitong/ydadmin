@@ -184,4 +184,11 @@ return [
     'announcement_delete_desc'     => '删除公告',
     'announcement_status'          => '修改公告状态',
     'announcement_status_desc'     => '发布或撤回公告',
+
+    'agreement_create'             => '创建协议',
+    'agreement_create_desc'        => '创建新的协议',
+    'agreement_update'             => '更新协议',
+    'agreement_update_desc'        => '更新协议信息',
+    'agreement_delete'             => '删除协议',
+    'agreement_delete_desc'        => '删除协议',
 ];

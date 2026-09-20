@@ -72,7 +72,9 @@
                                     },
                                     "code": {
                                         "type": "string",
-                                        "maxLength": 50
+                                        "maxLength": 50,
+                                        "pattern": "^[a-z][a-z0-9_]{1,49}$",
+                                        "description": "regex:/^[a-z][a-z0-9_]{1,49}$/"
                                     },
                                     "content": {
                                         "type": "string",
@@ -327,10 +329,6 @@
                                     "title": {
                                         "type": "string",
                                         "maxLength": 200
-                                    },
-                                    "code": {
-                                        "type": "string",
-                                        "maxLength": 50
                                     },
                                     "content": {
                                         "type": "string",
@@ -11069,6 +11067,7 @@
         }
     ],
     "x-doc-warnings": [
+        "AgreementController::store 字段 code:regex:/^[a-z][a-z0-9_]{1,49}$/",
         "AnnouncementController::store 字段 publish_at:date",
         "AnnouncementController::update 字段 publish_at:date",
         "ArticleController::store 字段 publish_at:date",

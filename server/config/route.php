@@ -29,6 +29,7 @@ use app\adminapi\controller\upload\UploadController;
 use app\adminapi\controller\user\UserManageController;
 use app\adminapi\controller\wechat\AutoReplyController;
 use app\adminapi\controller\wechat\OfficialAccountController;
+use app\api\controller\agreement\AgreementController as ApiAgreementController;
 use app\api\controller\announcement\AnnouncementController as ApiAnnouncementController;
 use app\api\controller\article\ArticleCategoryController as ApiArticleCategoryController;
 use app\api\controller\article\ArticleController as ApiArticleController;
@@ -280,6 +281,7 @@ Route::group('/api', function () use ($apiAuth) {
     Route::get('/article-category/list', [ApiArticleCategoryController::class, 'list']);
     Route::get('/announcement/list', [ApiAnnouncementController::class, 'list']);
     Route::get('/announcement/detail/{id:\d+}', [ApiAnnouncementController::class, 'detail']);
+    Route::get('/agreement/{code:[a-z][a-z0-9_]{1,49}}', [ApiAgreementController::class, 'show']);
     // 复用管理端那套登录限流（最终评审第 2 条）：C 端口令规则只有 min:6，公开接口再没有锁定、没有计数、
     // 失败也不写日志的话，撞库的成本几乎为零。中间件按「IP + 账号」计数，账号字段兼容 account / mobile。
     Route::post('/auth/login', [ApiAuthController::class, 'login'])->middleware([LoginRateLimitMiddleware::class]);

@@ -184,4 +184,11 @@ return [
     'announcement_delete_desc'     => 'Delete an announcement',
     'announcement_status'          => 'Change announcement status',
     'announcement_status_desc'     => 'Publish or unpublish an announcement',
+
+    'agreement_create'             => 'Create agreement',
+    'agreement_create_desc'        => 'Create a new agreement',
+    'agreement_update'             => 'Update agreement',
+    'agreement_update_desc'        => 'Update agreement details',
+    'agreement_delete'             => 'Delete agreement',
+    'agreement_delete_desc'        => 'Delete an agreement',
 ];

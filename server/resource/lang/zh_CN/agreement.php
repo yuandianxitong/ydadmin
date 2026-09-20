@@ -3,6 +3,9 @@
 // 由代码生成器生成（zh_CN）。business.php / validation.php 是手写模块共用文件，
 // 生成模块用独立分组 agreement.*，键统一加 agreement_ 前缀，同模块以后生成别的模型不会互相覆盖。
 return [
+    'not_found' => '协议不存在',
+    'code_exists' => '协议编码已存在',
+    'code_format' => '协议编码只能包含小写字母、数字和下划线，且以字母开头',
     'agreement_not_found' => '协议不存在',
     'agreement_code_exists' => '协议编码已存在',
     'agreement_title_require' => '标题不能为空',

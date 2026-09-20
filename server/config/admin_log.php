@@ -133,6 +133,11 @@ return [
         'AnnouncementController@update' => ['admin_log.announcement_update', 'admin_log.announcement_update_desc'],
         'AnnouncementController@delete' => ['admin_log.announcement_delete', 'admin_log.announcement_delete_desc'],
         'AnnouncementController@status' => ['admin_log.announcement_status', 'admin_log.announcement_status_desc'],
+
+        // 协议（M7a）。无独立 status 动作，启用/禁用走 update。
+        'AgreementController@store'  => ['admin_log.agreement_create', 'admin_log.agreement_create_desc'],
+        'AgreementController@update' => ['admin_log.agreement_update', 'admin_log.agreement_update_desc'],
+        'AgreementController@delete' => ['admin_log.agreement_delete', 'admin_log.agreement_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

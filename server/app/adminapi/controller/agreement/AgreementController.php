@@ -21,10 +21,12 @@ use Webman\Http\Request;
  *   PUT    /adminapi/agreement/{id}              update  agreement.update
  *   DELETE /adminapi/agreement/{id}              delete  agreement.delete
  *
+ * 无独立 status 路由：启用/禁用走 update 的 status 字段。
  * update 场景用 sometimes|required：字段不传时跳过（局部更新），传了空值必须校验失败。
- * 唯一性不在这里做成校验规则，由 AgreementService 查重 + 唯一索引异常兜底（spec 决策 12）。
+ * code 只出现在 storeRules 里；编辑时客户端传了也会被丢掉。
+ * 唯一性不在这里做成校验规则，由 AgreementService 查重 + 唯一索引异常兜底（422 errors.code）。
  *
- * store()/update()/batchDelete()/status() 各自的校验规则由同名的 xxxRules() 无参私有方法
+ * store()/update()/batchDelete() 各自的校验规则由同名的 xxxRules() 无参私有方法
  * 提供：M2b 的 RuleReflector 按动作名反射调用 "{action}Rules"（spec §5、§14），方法必须无参、
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
@@ -87,38 +89,33 @@ class AgreementController extends Controller
         return $this->success([], lang('messages.batch_delete_success'));
     }
 
-    #[Permission('agreement.update')]
-    public function status(Request $request, string $id): Response
-    {
-        $data = $this->validate($this->body($request), $this->statusRules(), [
-            'status.required' => 'agreement.agreement_status_require',
-            'status.integer'  => 'agreement.agreement_status_integer',
-            'status.in'       => 'agreement.agreement_status_invalid',
-        ]);
-        $this->agreementService->updateStatus((int) $id, (int) $data['status']);
-
-        return $this->success([], lang('messages.status_update_success'));
-    }
-
     /**
-     * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14），
-     * 这里薄包装委派给 agreementRules()：规则表只在那一处维护，不重复写。
+     * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14）。
      *
      * @return array<string, string>
      */
     private function storeRules(): array
     {
-        return $this->agreementRules('create');
+        return [
+            'title'   => 'required|string|max:200',
+            'code'    => 'required|string|max:50|regex:/^[a-z][a-z0-9_]{1,49}$/',
+            'content' => 'nullable|string',
+            'status'  => 'sometimes|required|integer|in:0,1',
+        ];
     }
 
     /**
-     * update 场景同上，见 storeRules() 的说明。
+     * update 场景：白名单只有 title/content/status，不含 code。
      *
      * @return array<string, string>
      */
     private function updateRules(): array
     {
-        return $this->agreementRules('update');
+        return [
+            'title'   => 'sometimes|required|string|max:200',
+            'content' => 'nullable|string',
+            'status'  => 'sometimes|required|integer|in:0,1',
+        ];
     }
 
     /**
@@ -135,40 +132,6 @@ class AgreementController extends Controller
     }
 
     /**
-     * status 端点固定校验：0/1 二值开关。
-     *
-     * @return array<string, string>
-     */
-    private function statusRules(): array
-    {
-        return ['status' => 'required|integer|in:0,1'];
-    }
-
-    /**
-     * store/update 共用的字段校验规则表，由 storeRules()/updateRules() 按场景委派调用（不再被
-     * store()/update() 直接调用）。create 场景必填、update 场景 sometimes|required（不传就跳过，
-     * 传了空值要拒绝）。
-     *
-     * 这个数组必须一直是字面量：键是字段名、值是字符串，唯一允许的插值是 {$required}。这不是
-     * 给 M2b 反射用的约束（反射直接执行 storeRules()/updateRules() 拿完全求值后的返回值，不管
-     * 内部怎么实现）——而是给人读的：这张表本身就是接口契约，写成运行时拼装（foreach 塞、
-     * array_merge、变量当键）会让人没法一眼看出这个模块收哪些字段。
-     *
-     * @return array<string, string>
-     */
-    private function agreementRules(string $scene): array
-    {
-        $required = $scene === 'create' ? 'required' : 'sometimes|required';
-
-        return [
-            'title'   => "{$required}|string|max:200",
-            'code'    => "{$required}|string|max:50",
-            'content' => 'nullable|string',
-            'status'  => 'sometimes|required|integer|in:0,1',
-        ];
-    }
-
-    /**
      * message 的值即 lang key（与 ValidatorFactory::resolveMessage 的约定一致）。
      *
      * @return array<string, string>
@@ -180,6 +143,7 @@ class AgreementController extends Controller
             'title.max'       => 'agreement.agreement_title_length',
             'code.required'   => 'agreement.agreement_code_require',
             'code.max'        => 'agreement.agreement_code_length',
+            'code.regex'      => 'agreement.code_format',
             'status.required' => 'agreement.agreement_status_require',
             'status.integer'  => 'agreement.agreement_status_integer',
             'status.in'       => 'agreement.agreement_status_invalid',

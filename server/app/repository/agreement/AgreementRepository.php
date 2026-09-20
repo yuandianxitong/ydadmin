@@ -13,9 +13,12 @@ use core\support\Like;
  * 协议仓储（agreements 表）。由代码生成器生成，可直接手改。
  *
  * 不受数据权限约束：表里既没有 created_by 也没有 dept_id。不声明 $dataScoped，沿用基类默认值。
+ * 协议无软删：existsByCode / findPublishedByCode 一律从 $this->query() 起手。
  */
 class AgreementRepository extends Repository
 {
+    public const ENABLED = 1;
+
     /** @var list<string> */
     protected array $sortable = ['id', 'created_at', 'updated_at'];
 
@@ -27,7 +30,7 @@ class AgreementRepository extends Repository
     }
 
     /**
-     * 列表查询，搜索项：title（模糊）、code（模糊）、status（精确）。
+     * 管理端列表：keyword=title like，另滤 status，id desc。
      *
      * @param array<string, mixed> $params
      * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
@@ -38,14 +41,9 @@ class AgreementRepository extends Repository
         $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
         $query = $this->query();
 
-        $searchTitle = trim((string) ($params['title'] ?? ''));
-        if ($searchTitle !== '') {
-            $query->where($this->qualify('title'), 'like', Like::contains($searchTitle));
-        }
-
-        $searchCode = trim((string) ($params['code'] ?? ''));
-        if ($searchCode !== '') {
-            $query->where($this->qualify('code'), 'like', Like::contains($searchCode));
+        $keyword = trim((string) ($params['keyword'] ?? ''));
+        if ($keyword !== '') {
+            $query->where($this->qualify('title'), 'like', Like::contains($keyword));
         }
 
         if (isset($params['status']) && $params['status'] !== '') {
@@ -59,8 +57,22 @@ class AgreementRepository extends Repository
     }
 
     /**
-     * code 是否已被占用（表上有唯一索引，Service 层写入前调它查重）。
+     * C 端按编码取已启用协议。status≠ENABLED / 不存在 → null。
      *
+     * @return array<string, mixed>|null
+     */
+    public function findPublishedByCode(string $code): ?array
+    {
+        $row = $this->query()
+            ->where($this->qualify('code'), $code)
+            ->where($this->qualify('status'), self::ENABLED)
+            ->first();
+
+        return $row?->toArray();
+    }
+
+    /**
+     * code 是否已被占用（表上有唯一索引，无软删，query() 即全表）。
      */
     public function existsByCode(string $value, ?int $excludeId = null): bool
     {
