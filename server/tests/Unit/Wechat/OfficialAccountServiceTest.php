@@ -122,6 +122,30 @@ final class OfficialAccountServiceTest extends TestCase
         $this->assertInvalid($button);
     }
 
+    public function test_accepts_1x_editor_leaf_with_empty_sub_button_and_strips_it_from_wechat_json(): void
+    {
+        $this->cacheToken();
+        $service = $this->service([self::wechatJson(['errcode' => 0, 'errmsg' => 'ok'])]);
+
+        $service->createMenu([[
+            'name' => '首页',
+            'type' => 'view',
+            'url' => 'https://x.test',
+            'sub_button' => [],
+            'key' => '',
+            'appid' => '',
+            'pagepath' => '',
+        ]]);
+
+        $body = json_decode((string) $this->wechatRequests()[0]['request']->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(['button' => [[
+            'name' => '首页',
+            'type' => 'view',
+            'url' => 'https://x.test',
+        ]]], $body);
+        $this->assertArrayNotHasKey('sub_button', $body['button'][0]);
+    }
+
     public function test_parent_with_children_does_not_require_leaf_fields_and_payload_is_whitelisted(): void
     {
         $this->cacheToken();

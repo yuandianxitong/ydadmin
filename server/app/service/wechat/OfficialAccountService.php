@@ -84,6 +84,7 @@ final class OfficialAccountService
 
                 return ['name' => $name, 'sub_button' => $cleanChildren];
             }
+            unset($item['sub_button']);
         }
 
         return $this->validateLeaf($item);

@@ -50,6 +50,9 @@ final class WechatLangParityTest extends TestCase
             $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'zh_CN'), $key);
             $this->assertNotSame("wechat.{$key}", lang("wechat.{$key}", [], 'en'), $key);
         }
+        $this->assertSame('自动回复不存在', lang('wechat.auto_reply_not_found', [], 'zh_CN'));
+        $this->assertSame('已存在启用的关注回复', lang('wechat.reply_exists_subscribe', [], 'zh_CN'));
+        $this->assertSame('已存在启用的默认回复', lang('wechat.reply_exists_default', [], 'zh_CN'));
     }
 
     public function test_m6c_official_menu_keys_are_present(): void

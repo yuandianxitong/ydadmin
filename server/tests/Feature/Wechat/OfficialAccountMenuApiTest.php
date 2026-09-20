@@ -88,6 +88,33 @@ final class OfficialAccountMenuApiTest extends ApiTestCase
         $this->assertSame(lang('wechat.official_not_configured'), $response->message());
     }
 
+    public function test_create_menu_accepts_1x_editor_leaf_and_strips_empty_sub_button(): void
+    {
+        $this->cacheToken();
+        $this->fakeWechatHttp([self::wechatJson(['errcode' => 0, 'errmsg' => 'ok'])]);
+        $admin = $this->actingAsAdmin(['channel.official.menu.create']);
+
+        $this->post(self::BASE, [
+            'button' => [[
+                'name' => '首页',
+                'type' => 'view',
+                'url' => 'https://x.test',
+                'sub_button' => [],
+                'key' => '',
+                'appid' => '',
+                'pagepath' => '',
+            ]],
+        ], $admin->token)->assertOk();
+
+        $body = json_decode((string) $this->wechatRequests()[0]['request']->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(['button' => [[
+            'name' => '首页',
+            'type' => 'view',
+            'url' => 'https://x.test',
+        ]]], $body);
+        $this->assertArrayNotHasKey('sub_button', $body['button'][0]);
+    }
+
     public function test_create_menu_accepts_valid_payload_and_rejects_empty_button(): void
     {
         $this->cacheToken();
