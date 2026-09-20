@@ -461,6 +461,32 @@ WHERE code = 'payment_success';
 2. 公众号：按上文 SQL 为 `payment_success` 填映射与模板 id 并启用；用已关注公众号且已绑定 `oa_openid` 的会员充值，应收到模板消息。
 3. 在「消息日志」核对状态与失败原因；在应用日志里确认没有完整手机号、openid、access_token。
 
+### 内容管理（M7a）
+
+文章栏目、文章、公告、协议、用户反馈。五张表：`article_categories`、`articles`、`announcements`、`agreements`、`feedbacks`。管理端菜单 7 / 700–744（内容管理 → 协议、公告、反馈、文章资讯）。
+
+**升级到 M7a 时先执行开发库补丁 SQL**（五表、菜单 7/700–744、两条协议种子、`feedback_received` 模板），再部署代码。
+
+**C 端接口**：
+
+| 接口 | 鉴权 | 说明 |
+|---|---|---|
+| `GET /api/article/list`、`/api/article/detail/{id}` | 公开 | 只出已发布；详情浏览量 +1 |
+| `GET /api/article-category/list` | 公开 | 仅启用栏目树 |
+| `GET /api/announcement/list`、`/api/announcement/detail/{id}` | 公开 | 只出已发布 |
+| `GET /api/agreement/{code}` | 公开 | 仅启用；种子 `user_agreement` / `privacy_policy` |
+| `POST /api/feedback/submit`、`GET /api/feedback/list`、`/api/feedback/detail/{id}` | 需 user token | 只读写本人 |
+
+浏览量只在 C 端已发布文章详情增加；后台详情不加。`publish_at` 只展示、不参与 C 端过滤。
+
+**反馈站内信**：提交成功后经 `afterCommit` 发 `feedback_received`（只开站内信）。改文案在「消息管理 → 消息模板」即可，不必改代码。回复、关闭、删除不发消息。
+
+**已知限制**：
+
+- 无置顶、无定时发布；表没有 `is_top` / `published_at` 列（PC 类型里的这两个字段对不上）。
+- 反馈 `status=1`（处理中）本里程碑无写入入口。
+- 不改 PC / uniapp 页面。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
@@ -518,6 +544,6 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
-| M6 | 消息与微信 | 进行中（M6a ✅ 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b ✅ 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 本里程碑：公众号服务器接入、自定义菜单代理、自动回复） |
-| M7 | 内容与装修 | |
+| M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
+| M7 | 内容与装修 | 进行中（M7a 本里程碑：文章/分类、公告、协议、反馈） |
 | M8 | 安装与发布 | |

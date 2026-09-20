@@ -30,9 +30,9 @@ final class SchemaTest extends TestCase
 
     public function test_menu_seeds_keep_tp8_ids_without_the_permission_page(): void
     {
-        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录（均沿用 TP8 id）。
+        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录，7 是 M7a 内容管理目录（均沿用 TP8 id）。
         $ids = array_map('intval', Db::table('menus')->where('id', '<=', 53)->orderBy('id')->pluck('id')->all());
-        $this->assertSame([1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
         $this->assertSame('system.role.permission', Db::table('menus')->where('id', 24)->value('permission'));
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }

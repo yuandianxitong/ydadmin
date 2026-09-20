@@ -9,7 +9,7 @@ export interface AnnouncementInfo {
     status: number
     sort: number
     publish_at?: string
-    admin_id?: number
+    created_by?: number
     created_at?: string
     updated_at?: string
 }

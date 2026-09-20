@@ -20,6 +20,8 @@
  *   不写已读表。开发库没有 message_templates 表时整段跳过，没有会员时跳过 C 端断言。
  * M6c 起：公众号运营段只打不触网的请求（自动回复分页、AppID 为空时的菜单 GET、无签名的 serve GET）；
  *   开发库没有 wechat_auto_replies 表时整段跳过，AppID 已填时跳过菜单断言（禁止 POST/DELETE 菜单，以免打真实微信）。
+ * M7a 起：内容管理段打未登录 401、超管分页与分类树、C 端公开列表与协议 code、有会员时提交一条反馈再硬删夹具；
+ *   开发库没有 articles 表时整段跳过，没有会员时跳过写路径。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -31,6 +33,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 $port = parse_url((string) ($_ENV['SERVER_LISTEN'] ?? 'http://0.0.0.0:8000'), PHP_URL_PORT) ?: 8000;
 $base = rtrim((string) (getenv('CONTRACT_BASE_URL') ?: "http://127.0.0.1:{$port}"), '/');
+// 本地回环不要走 HTTP 代理（与 curl --noproxy '*' 相同）
+putenv('no_proxy=*');
+putenv('NO_PROXY=*');
 
 /** @var list<string> $failures */
 $failures = [];
@@ -55,6 +60,7 @@ function http(string $method, string $url, array $headers = [], ?array $json = n
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_TIMEOUT        => 10,
+        CURLOPT_NOPROXY        => '*',
         CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
             $parts = explode(':', $line, 2);
             if (count($parts) === 2) {
@@ -88,6 +94,7 @@ function httpUpload(string $url, array $headers, string $localPath, string $clie
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_TIMEOUT        => 20,
+        CURLOPT_NOPROXY        => '*',
         CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
             $parts = explode(':', $line, 2);
             if (count($parts) === 2) {
@@ -119,6 +126,7 @@ function httpRaw(string $method, string $url, array $headers, string $body): arr
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_TIMEOUT        => 10,
+        CURLOPT_NOPROXY        => '*',
         CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
             $parts = explode(':', $line, 2);
             if (count($parts) === 2) {
@@ -1826,6 +1834,78 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('wechat_auto_replies
         $r['status'] === 200 && !str_contains($r['body'], 'probe'),
         $r['body']
     );
+}
+
+echo "\n=== M7a：内容管理 ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('articles')) {
+    echo "  （开发库还没有 articles 表：M7a 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $m7aPageOk = static fn (mixed $data): bool => is_array($data)
+        && array_keys($data) === ['list', 'pagination']
+        && is_array($data['list'])
+        && is_array($data['pagination'])
+        && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys($data['pagination'])) === [];
+    $m7aIsListArray = static fn (mixed $data): bool => is_array($data) && !array_key_exists('pagination', $data);
+
+    foreach (['article', 'announcement', 'agreement', 'feedback', 'article-category'] as $mod) {
+        $r = http('GET', "{$base}/adminapi/{$mod}/list", $api);
+        check("管理端 {$mod}/list：未登录 → code 401", respCode($r) === 401, $r['body']);
+    }
+
+    foreach (['article', 'announcement', 'agreement', 'feedback'] as $mod) {
+        $r = http('GET', "{$base}/adminapi/{$mod}/list?page=1&limit=10", $auth);
+        check("管理端 {$mod}/list：code 200，标准分页四键", respCode($r) === 200 && $m7aPageOk(respData($r)), $r['body']);
+    }
+
+    $r = http('GET', "{$base}/adminapi/article-category/list", $auth);
+    check('管理端 article-category/list：code 200，data 为树/数组且无 pagination', respCode($r) === 200 && $m7aIsListArray(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/adminapi/article-category/options", $auth);
+    check('管理端 article-category/options：code 200，data 为数组', respCode($r) === 200 && is_array(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/article/list?page_no=1&page_size=10", $api);
+    check('C 端 article/list：code 200，标准分页形状', respCode($r) === 200 && $m7aPageOk(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/announcement/list?page_no=1&page_size=10", $api);
+    check('C 端 announcement/list：code 200，标准分页形状', respCode($r) === 200 && $m7aPageOk(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/article-category/list", $api);
+    check('C 端 article-category/list：code 200，data 为树/数组且无 pagination', respCode($r) === 200 && $m7aIsListArray(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/agreement/user_agreement", $api);
+    $agreement = respData($r);
+    check(
+        'C 端 agreement/user_agreement：code 200，data.code===user_agreement',
+        respCode($r) === 200 && is_array($agreement) && ($agreement['code'] ?? null) === 'user_agreement',
+        $r['body']
+    );
+
+    $m7aUserId = support\Db::connection()->getSchemaBuilder()->hasTable('users')
+        ? (int) support\Db::table('users')->orderBy('id')->value('id')
+        : 0;
+    if ($m7aUserId <= 0) {
+        echo "  （开发库 users 表里没有数据，跳过反馈写路径——需要一个真实会员签发 token）\n";
+    } else {
+        // 只读 SELECT 取会员 id，服务端同一套 TokenManager 签发 user token；token 不输出
+        $m7aToken = core\auth\TokenManager::scope('user')->generate([
+            'user_id' => $m7aUserId,
+            'ver'     => core\auth\TokenVersion::current($m7aUserId, 'user'),
+        ]);
+        $m7aApi = [...$api, "Authorization: Bearer {$m7aToken}"];
+        $r = http('POST', "{$base}/api/feedback/submit", $m7aApi, ['content' => "contract-m7a-{$suffix}"]);
+        $payload = respData($r);
+        $m7aFeedbackId = is_array($payload) ? (int) ($payload['id'] ?? 0) : 0;
+        check('api/feedback/submit：code 200', respCode($r) === 200 && $m7aFeedbackId > 0, $r['body']);
+        if ($m7aFeedbackId > 0) {
+            support\Db::table('feedbacks')->where('id', $m7aFeedbackId)->delete();
+            if (support\Db::connection()->getSchemaBuilder()->hasTable('user_notifications')) {
+                support\Db::table('user_notifications')
+                    ->where('biz_id', (string) $m7aFeedbackId)
+                    ->where('type', 'feedback')
+                    ->delete();
+            }
+        }
+    }
 }
 
 echo "\n=== M1a：刷新与登出 ===\n";
