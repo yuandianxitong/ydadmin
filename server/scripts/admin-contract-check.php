@@ -18,6 +18,8 @@
  *   无 cookie 的绑定、公开配置白名单）；开发库没有 wechat_* 配置键时整段跳过，某端已配置时跳过该端断言。
  * M6b 起：消息段管理端只打 GET（模板列表与详情、日志列表与遮蔽检查）；C 端 read 只传不存在的 id，断言静默忽略、
  *   不写已读表。开发库没有 message_templates 表时整段跳过，没有会员时跳过 C 端断言。
+ * M6c 起：公众号运营段只打不触网的请求（自动回复分页、AppID 为空时的菜单 GET、无签名的 serve GET）；
+ *   开发库没有 wechat_auto_replies 表时整段跳过，AppID 已填时跳过菜单断言（禁止 POST/DELETE 菜单，以免打真实微信）。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1793,6 +1795,37 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('message_templates')
             $r['body']
         );
     }
+}
+
+echo "\n=== M6c：公众号运营 ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('wechat_auto_replies')) {
+    echo "  （开发库还没有 wechat_auto_replies 表：M6c 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $r = http('GET', "{$base}/adminapi/wechat/auto-reply?page=1&limit=10", $auth);
+    $data = respData($r);
+    $pageOk = is_array($data)
+        && isset($data['list'], $data['pagination'])
+        && is_array($data['list'])
+        && is_array($data['pagination'])
+        && isset($data['pagination']['current_page'], $data['pagination']['per_page'], $data['pagination']['total'], $data['pagination']['last_page']);
+    check('wechat/auto-reply：code 200，标准分页', respCode($r) === 200 && $pageOk, $r['body']);
+
+    $appId = trim((string) support\Db::table('system_configs')->where('config_key', 'wechat_official_app_id')->value('config_value'));
+    if ($appId === '') {
+        $r = http('GET', "{$base}/adminapi/wechat/official/menu", $auth);
+        check(
+            'wechat/official/menu：AppID 为空 → code 400「公众号未配置」',
+            respCode($r) === 400 && (($r['json']['message'] ?? '') === lang('wechat.official_not_configured')),
+            $r['body']
+        );
+    }
+
+    $r = http('GET', "{$base}/api/wechat/serve?echostr=probe");
+    check(
+        'wechat/serve GET：无签名不得回 echostr',
+        $r['status'] === 200 && !str_contains($r['body'], 'probe'),
+        $r['body']
+    );
 }
 
 echo "\n=== M1a：刷新与登出 ===\n";
