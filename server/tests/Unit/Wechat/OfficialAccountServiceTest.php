@@ -111,6 +111,8 @@ final class OfficialAccountServiceTest extends TestCase
             'miniprogram 必须有 url' => [[['name' => '菜单', 'type' => 'miniprogram', 'appid' => 'wxapp', 'pagepath' => 'pages/a']]],
             'miniprogram url 最长 500' => [[['name' => '菜单', 'type' => 'miniprogram', 'appid' => 'wxapp', 'pagepath' => 'pages/a', 'url' => str_repeat('u', 501)]]],
             '子级遵循叶子规则' => [[['name' => '父级', 'sub_button' => [['name' => '子级', 'type' => 'click']]]]],
+            '子级禁止空的第三级菜单' => [[['name' => '父级', 'sub_button' => [['name' => '子级', 'type' => 'click', 'key' => 'k', 'sub_button' => []]]]]],
+            '子级禁止非空的第三级菜单' => [[['name' => '父级', 'sub_button' => [['name' => '子级', 'type' => 'click', 'key' => 'k', 'sub_button' => [['name' => '第三级']]]]]]],
         ];
     }
 

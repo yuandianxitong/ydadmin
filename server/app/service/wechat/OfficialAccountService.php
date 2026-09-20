@@ -97,7 +97,12 @@ final class OfficialAccountService
     {
         $name = $item['name'] ?? null;
         $type = $item['type'] ?? null;
-        if (!$this->validString($name, 16) || !is_string($type) || !in_array($type, ['view', 'click', 'miniprogram'], true)) {
+        if (
+            array_key_exists('sub_button', $item)
+            || !$this->validString($name, 16)
+            || !is_string($type)
+            || !in_array($type, ['view', 'click', 'miniprogram'], true)
+        ) {
             $this->invalidMenu();
         }
 
