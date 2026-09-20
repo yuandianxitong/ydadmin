@@ -351,8 +351,40 @@ final class SchemaTest extends TestCase
             $this->assertFileExists(base_path() . "/../admin/src/views/channel/{$channel}/config.vue");
         }
 
-        // M6c 的按钮 401、菜单 410/420 及其按钮不在 M6a 种入
-        $this->assertSame(0, Db::table('menus')->whereIn('id', [401, 410, 411, 412, 420, 421, 422, 423])->count());
+        // M6c 的按钮 401 不在 M6a 种入（410–423 见 test_m6c_official_ops_menu_seeds）
+        $this->assertSame(0, Db::table('menus')->whereIn('id', [401])->count());
+    }
+
+    public function test_m6c_official_ops_menu_seeds(): void
+    {
+        $menus = Db::table('menus')->whereIn('id', [410, 411, 412, 420, 421, 422, 423])->orderBy('id')->get()->all();
+        $this->assertCount(7, $menus);
+
+        $expected = [
+            // id => [parent, type, title, name, path, component, redirect, icon, permission, sort]
+            410 => [5, 2, '自定义菜单', 'ChannelOfficialMenu', '/channel/official/menu', '/channel/official/menu', null, 'el-icon-Grid', 'channel.official.menu', 2],
+            411 => [410, 3, '创建', null, null, null, null, null, 'channel.official.menu.create', 1],
+            412 => [410, 3, '删除', null, null, null, null, null, 'channel.official.menu.delete', 2],
+            420 => [5, 2, '自动回复', 'ChannelAutoReply', '/channel/official/auto-reply', '/channel/official/auto-reply', null, 'el-icon-ChatSquare', 'channel.official.auto_reply', 3],
+            421 => [420, 3, '新增', null, null, null, null, null, 'channel.official.auto_reply.create', 1],
+            422 => [420, 3, '编辑', null, null, null, null, null, 'channel.official.auto_reply.update', 2],
+            423 => [420, 3, '删除', null, null, null, null, null, 'channel.official.auto_reply.delete', 3],
+        ];
+        foreach ($menus as $menu) {
+            $id = (int) $menu->id;
+            $this->assertSame($expected[$id], [
+                (int) $menu->parent_id, (int) $menu->type, $menu->title, $menu->name, $menu->path,
+                $menu->component, $menu->redirect, $menu->icon, $menu->permission, (int) $menu->sort,
+            ], "菜单 {$id}");
+            $this->assertSame(0, (int) $menu->is_hidden, "菜单 {$id} is_hidden");
+            $this->assertSame(1, (int) $menu->is_cache, "菜单 {$id} is_cache");
+            $this->assertSame(1, (int) $menu->status, "菜单 {$id} status");
+            $this->assertSame(1, (int) $menu->breadcrumb, "菜单 {$id} breadcrumb");
+        }
+
+        foreach (['menu.vue', 'auto-reply.vue'] as $view) {
+            $this->assertFileExists(base_path() . "/../admin/src/views/channel/official/{$view}");
+        }
     }
 
     public function test_m6b_message_menu_seeds(): void
