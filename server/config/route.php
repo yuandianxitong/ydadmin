@@ -34,6 +34,7 @@ use app\api\controller\announcement\AnnouncementController as ApiAnnouncementCon
 use app\api\controller\article\ArticleCategoryController as ApiArticleCategoryController;
 use app\api\controller\article\ArticleController as ApiArticleController;
 use app\api\controller\common\CommonController;
+use app\api\controller\feedback\FeedbackController as ApiFeedbackController;
 use app\api\controller\message\MessageController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
@@ -333,6 +334,13 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/list', [MessageController::class, 'list']);
         Route::get('/unread-count', [MessageController::class, 'unreadCount']);
         Route::post('/read', [MessageController::class, 'read']);
+    })->middleware($apiAuth);
+
+    // M7a：C 端反馈。只读写本人的行，身份取自 token；管理端不得注册创建路由
+    Route::group('/feedback', function () {
+        Route::post('/submit', [ApiFeedbackController::class, 'submit']);
+        Route::get('/list', [ApiFeedbackController::class, 'list']);
+        Route::get('/detail/{id:\d+}', [ApiFeedbackController::class, 'detail']);
     })->middleware($apiAuth);
 })->middleware($apiOuter);
 

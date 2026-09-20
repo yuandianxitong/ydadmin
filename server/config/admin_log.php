@@ -138,6 +138,11 @@ return [
         'AgreementController@store'  => ['admin_log.agreement_create', 'admin_log.agreement_create_desc'],
         'AgreementController@update' => ['admin_log.agreement_update', 'admin_log.agreement_update_desc'],
         'AgreementController@delete' => ['admin_log.agreement_delete', 'admin_log.agreement_delete_desc'],
+
+        // 反馈（M7a）。无管理端创建动作，只记回复 / 关闭 / 删除。
+        'FeedbackController@reply'  => ['admin_log.feedback_reply', 'admin_log.feedback_reply_desc'],
+        'FeedbackController@close'  => ['admin_log.feedback_close', 'admin_log.feedback_close_desc'],
+        'FeedbackController@delete' => ['admin_log.feedback_delete', 'admin_log.feedback_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

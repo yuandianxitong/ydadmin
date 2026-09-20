@@ -191,4 +191,11 @@ return [
     'agreement_update_desc'        => '更新协议信息',
     'agreement_delete'             => '删除协议',
     'agreement_delete_desc'        => '删除协议',
+
+    'feedback_reply'               => '回复反馈',
+    'feedback_reply_desc'          => '回复用户反馈',
+    'feedback_close'               => '关闭反馈',
+    'feedback_close_desc'          => '关闭用户反馈',
+    'feedback_delete'              => '删除反馈',
+    'feedback_delete_desc'         => '删除用户反馈',
 ];

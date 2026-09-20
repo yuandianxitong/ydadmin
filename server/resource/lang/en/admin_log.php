@@ -191,4 +191,11 @@ return [
     'agreement_update_desc'        => 'Update agreement details',
     'agreement_delete'             => 'Delete agreement',
     'agreement_delete_desc'        => 'Delete an agreement',
+
+    'feedback_reply'               => 'Reply to feedback',
+    'feedback_reply_desc'          => 'Reply to user feedback',
+    'feedback_close'               => 'Close feedback',
+    'feedback_close_desc'          => 'Close user feedback',
+    'feedback_delete'              => 'Delete feedback',
+    'feedback_delete_desc'         => 'Delete user feedback',
 ];
