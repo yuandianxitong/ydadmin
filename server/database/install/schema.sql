@@ -517,3 +517,21 @@ CREATE TABLE `user_notification_reads` (
   UNIQUE KEY `uk_notification_user` (`notification_id`,`user_id`),
   KEY `idx_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='会员站内信已读记录';
+
+CREATE TABLE `wechat_auto_replies` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `type` varchar(20) NOT NULL COMMENT 'keyword/subscribe/default',
+  `keyword` varchar(200) NOT NULL DEFAULT '' COMMENT '关键词；非 keyword 类型为空串',
+  `match_type` varchar(10) NOT NULL DEFAULT 'exact' COMMENT 'exact/fuzzy',
+  `reply_type` varchar(10) NOT NULL DEFAULT 'text' COMMENT '本阶段只写 text',
+  `content` text NOT NULL COMMENT '回复正文',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1启用 0停用',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '越小越先匹配',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_type` (`type`),
+  KEY `idx_keyword` (`keyword`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='微信自动回复';

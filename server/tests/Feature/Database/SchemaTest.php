@@ -651,4 +651,34 @@ final class SchemaTest extends TestCase
             Db::table('message_logs')->where('id', $logId)->delete();
         }
     }
+
+    public function test_m6c_wechat_auto_replies_table(): void
+    {
+        $table = 'wechat_auto_replies';
+        $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
+        $this->assertSame([
+            'id', 'type', 'keyword', 'match_type', 'reply_type', 'content',
+            'status', 'sort_order', 'created_at', 'updated_at', 'deleted_at',
+        ], Db::schema()->getColumnListing($table));
+
+        $indexes = static function (string $table): array {
+            $result = [];
+            foreach (Db::select("SHOW INDEX FROM `{$table}`") as $row) {
+                $result[$row->Key_name][(int) $row->Seq_in_index] = $row->Column_name;
+            }
+
+            return array_map(static function (array $columns): array {
+                ksort($columns);
+
+                return array_values($columns);
+            }, $result);
+        };
+
+        $this->assertSame([
+            'PRIMARY'    => ['id'],
+            'idx_type'    => ['type'],
+            'idx_keyword' => ['keyword'],
+            'idx_status'  => ['status'],
+        ], $indexes($table));
+    }
 }
