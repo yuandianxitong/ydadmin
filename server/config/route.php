@@ -361,6 +361,7 @@ Route::group('/api', function () use ($apiAuth) {
 // M8：浏览器安装向导。挂在 /adminapi、/api 之外，只套 $apiOuter（不进认证组、不进 config/route/*.php 的 adminapi glob）。
 Route::group('/install', function () {
     Route::get('', [InstallController::class, 'index']);
+    Route::get('/', [InstallController::class, 'index']);
     Route::get('/environment', [InstallController::class, 'environment']);
     Route::post('/test-connection', [InstallController::class, 'testConnection']);
     Route::post('/run', [InstallController::class, 'run']);

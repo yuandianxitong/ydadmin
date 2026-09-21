@@ -9,7 +9,9 @@ use core\database\DatabaseInstaller;
 use core\database\SqlScript;
 use core\exception\BusinessException;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use support\Redis;
 use Webman\Config;
+use Webman\Redis\RedisManager;
 
 final class Installer
 {
@@ -57,6 +59,9 @@ final class Installer
         if (preg_match('/^[A-Za-z0-9_]+$/', $database) !== 1) {
             throw new BusinessException('数据库名只允许字母、数字与下划线');
         }
+
+        $this->testDatabase($input);
+        $this->testRedis($input);
 
         $pdo = DatabaseInstaller::connect([
             'host'     => (string) $input['db_host'],
@@ -113,6 +118,12 @@ final class Installer
             'database' => $database,
             'username' => (string) $input['db_user'],
             'password' => (string) $input['db_password'],
+        ]);
+        $this->injectRedisConfig([
+            'host'     => (string) $input['redis_host'],
+            'port'     => (int) $input['redis_port'],
+            'password' => (string) ($input['redis_password'] ?? ''),
+            'database' => (int) $input['redis_db'],
         ]);
 
         $this->admins->initSuperAdmin(
@@ -184,5 +195,22 @@ final class Installer
             $capsule->addConnection($merged, 'mysql');
             $capsule->getDatabaseManager()->purge('mysql');
         }
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function injectRedisConfig(array $overrides): void
+    {
+        $merged = array_replace((array) config('redis.default'), $overrides);
+
+        $property = new \ReflectionProperty(Config::class, 'config');
+        /** @var array<string, mixed> $all */
+        $all = $property->getValue();
+        $all['redis']['default'] = $merged;
+        $property->setValue(null, $all);
+        (new \ReflectionProperty(Config::class, 'flatCache'))->setValue(null, []);
+
+        (new \ReflectionProperty(Redis::class, 'instance'))->setValue(null, null);
+        (new \ReflectionProperty(Redis::class, 'config'))->setValue(null, []);
+        (new \ReflectionProperty(RedisManager::class, 'pools'))->setValue(null, []);
     }
 }

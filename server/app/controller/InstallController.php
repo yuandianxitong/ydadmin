@@ -81,10 +81,10 @@ class InstallController extends Controller
     private function runRules(): array
     {
         return $this->connectionRules() + [
-            'username' => 'required|string',
-            'password' => 'required|string',
-            'email'    => 'nullable|string',
-            'nickname' => 'nullable|string',
+            'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
+            'password' => 'required|string|min:6|max:20',
+            'email'    => 'nullable|email|max:100',
+            'nickname' => 'nullable|string|max:50',
         ];
     }
 

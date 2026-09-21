@@ -12,9 +12,11 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use support\Db;
+use support\Redis;
 use tests\Support\ConfigOverride;
 use tests\TestCase;
 use Webman\Config;
+use Webman\Redis\RedisManager;
 
 final class InstallerTest extends TestCase
 {
@@ -22,6 +24,9 @@ final class InstallerTest extends TestCase
 
     /** @var array<string, mixed> */
     private array $mysql;
+
+    /** @var array<string, mixed> */
+    private array $redis;
 
     private string $scratch;
 
@@ -39,6 +44,7 @@ final class InstallerTest extends TestCase
     {
         parent::setUp();
         $this->mysql = (array) config('database.connections.mysql');
+        $this->redis = (array) config('redis.default');
         $this->scratch = (string) $this->mysql['database'] . '_inst';
         $this->workDir = sys_get_temp_dir() . '/yd-inst-' . bin2hex(random_bytes(4));
         mkdir($this->workDir, 0o755, true);
@@ -49,9 +55,17 @@ final class InstallerTest extends TestCase
         $this->admins = new class () implements SuperAdminInitializer {
             public array $calls = [];
 
+            /** @var list<array{host: mixed, port: mixed, database: mixed}> */
+            public array $redisAtCall = [];
+
             public function initSuperAdmin(string $u, string $p, ?string $e, ?string $n): array
             {
                 $this->calls[] = [$u, $p, $e, $n];
+                $this->redisAtCall[] = [
+                    'host'     => config('redis.default.host'),
+                    'port'     => config('redis.default.port'),
+                    'database' => config('redis.default.database'),
+                ];
 
                 return ['created' => true, 'id' => 1, 'username' => $u];
             }
@@ -62,6 +76,7 @@ final class InstallerTest extends TestCase
     protected function tearDown(): void
     {
         $this->restoreMysqlConnection();
+        $this->restoreRedisConnection();
         $this->dropScratch();
         if ($this->stampedTestUpgrade) {
             Db::table('system_upgrades')->where('version', '2.0.0')->delete();
@@ -188,6 +203,33 @@ final class InstallerTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function test_unreachable_redis_does_not_create_database(): void
+    {
+        try {
+            $this->makeInstaller()->run($this->input(['redis_host' => '203.0.113.1']));
+            $this->fail('连不上 Redis 不得继续安装');
+        } catch (BusinessException $e) {
+            $this->assertSame('Redis 无法连接', $e->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($this->lockPath);
+        $this->assertFileDoesNotExist($this->envPath);
+
+        $pdo = DatabaseInstaller::connect($this->mysql);
+        $exists = $pdo->query(
+            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($this->scratch)
+        )->fetch();
+        $this->assertFalse($exists, '连不上 Redis 不得创建 scratch 库');
+    }
+
+    public function test_run_injects_redis_before_superadmin(): void
+    {
+        $this->makeInstaller()->run($this->input(['redis_db' => 14]));
+
+        $this->assertNotEmpty($this->admins->redisAtCall);
+        $this->assertSame(14, (int) $this->admins->redisAtCall[0]['database']);
+    }
+
     private function makeInstaller(): Installer
     {
         return new Installer(
@@ -280,6 +322,20 @@ SQL);
                 $resolver->purge('mysql');
             }
         }
+    }
+
+    private function restoreRedisConnection(): void
+    {
+        $property = new \ReflectionProperty(Config::class, 'config');
+        /** @var array<string, mixed> $all */
+        $all = $property->getValue();
+        $all['redis']['default'] = $this->redis;
+        $property->setValue(null, $all);
+        (new \ReflectionProperty(Config::class, 'flatCache'))->setValue(null, []);
+
+        (new \ReflectionProperty(Redis::class, 'instance'))->setValue(null, null);
+        (new \ReflectionProperty(Redis::class, 'config'))->setValue(null, []);
+        (new \ReflectionProperty(RedisManager::class, 'pools'))->setValue(null, []);
     }
 
     private function removeDir(string $dir): void

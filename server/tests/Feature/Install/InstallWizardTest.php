@@ -63,6 +63,15 @@ final class InstallWizardTest extends ApiTestCase
             str_contains($body, 'license') || str_contains($body, '协议'),
             '未安装时应返回含 license 或「协议」的向导页'
         );
+
+        $trailing = $this->get('/install/');
+        $this->assertSame(200, $trailing->status());
+        $this->assertStringContainsString('text/html', (string) $trailing->header('Content-Type'));
+        $trailingBody = $trailing->body();
+        $this->assertTrue(
+            str_contains($trailingBody, 'license') || str_contains($trailingBody, '协议'),
+            'GET /install/ 未安装时也应返回含 license 或「协议」的向导页'
+        );
     }
 
     public function test_already_installed_keeps_html_and_rejects_json_without_secrets(): void
@@ -73,6 +82,10 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertSame(200, $page->status());
         $this->assertStringContainsString('text/html', (string) $page->header('Content-Type'));
         $this->assertStringContainsString(lang('install.already_installed'), $page->body());
+
+        $trailing = $this->get('/install/');
+        $this->assertSame(200, $trailing->status());
+        $this->assertStringContainsString(lang('install.already_installed'), $trailing->body());
 
         $environment = $this->get('/install/environment');
         $this->assertSame(200, $environment->status());
@@ -105,6 +118,26 @@ final class InstallWizardTest extends ApiTestCase
     public function test_test_connection_accepts_test_database_and_redis(): void
     {
         $this->post('/install/test-connection', $this->payload())->assertOk();
+    }
+
+    public function test_run_rejects_short_password_before_installer(): void
+    {
+        $response = $this->post('/install/run', $this->payload(['password' => 'admin']));
+
+        $this->assertSame(200, $response->status());
+        $this->assertSame(422, $response->code());
+        $this->assertArrayHasKey('password', $response->data()['errors']);
+        $this->assertFileDoesNotExist($this->lockPath);
+    }
+
+    public function test_run_rejects_short_username_before_installer(): void
+    {
+        $response = $this->post('/install/run', $this->payload(['username' => 'ab']));
+
+        $this->assertSame(200, $response->status());
+        $this->assertSame(422, $response->code());
+        $this->assertArrayHasKey('username', $response->data()['errors']);
+        $this->assertFileDoesNotExist($this->lockPath);
     }
 
     public function test_run_rejects_nonempty_test_database_without_changing_roles(): void

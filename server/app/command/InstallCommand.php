@@ -7,6 +7,7 @@ namespace app\command;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\install\Installer;
+use core\validation\ValidatorFactory;
 use support\Container;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -66,7 +67,7 @@ final class InstallCommand extends Command
         $redis = (array) config('redis.default');
 
         try {
-            Container::get(Installer::class)->run([
+            $payload = [
                 'db_host'        => $this->optionOr($input, 'db-host', (string) ($mysql['host'] ?? '127.0.0.1')),
                 'db_port'        => $this->intOptionOr($input, 'db-port', (int) ($mysql['port'] ?? 3306)),
                 'db_name'        => (string) $input->getOption('db-name'),
@@ -80,7 +81,14 @@ final class InstallCommand extends Command
                 'password'       => (string) $input->getOption('password'),
                 'email'          => $this->nullableOption($input, 'email'),
                 'nickname'       => $this->nullableOption($input, 'nickname'),
+            ];
+            ValidatorFactory::validate($payload, [
+                'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
+                'password' => 'required|string|min:6|max:20',
+                'email'    => 'nullable|email|max:100',
+                'nickname' => 'nullable|string|max:50',
             ]);
+            Container::get(Installer::class)->run($payload);
         } catch (ValidationException $e) {
             foreach ($e->errors() as $field => $message) {
                 $output->writeln("<error>{$field}：{$message}</error>");

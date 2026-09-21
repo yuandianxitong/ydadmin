@@ -28,6 +28,12 @@ final class RouteTest extends TestCase
         }
     }
 
+    public function test_install_wizard_accepts_trailing_slash(): void
+    {
+        $this->assertSame(Dispatcher::FOUND, Route::dispatch('GET', '/install')[0], '/install');
+        $this->assertSame(Dispatcher::FOUND, Route::dispatch('GET', '/install/')[0], '/install/');
+    }
+
     public function test_unknown_api_is_not_routed(): void
     {
         $this->assertSame(Dispatcher::NOT_FOUND, Route::dispatch('GET', '/adminapi/nope')[0]);

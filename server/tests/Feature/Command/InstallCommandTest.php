@@ -69,6 +69,34 @@ final class InstallCommandTest extends TestCase
         ], $fake->input);
     }
 
+    public function test_short_password_fails_before_run(): void
+    {
+        $fake = $this->installFake();
+
+        $tester = new CommandTester(new InstallCommand());
+        $options = $this->allOptions();
+        $options['--password'] = 'admin';
+        $code = $tester->execute($options, ['interactive' => false]);
+
+        $this->assertSame(Command::FAILURE, $code);
+        $this->assertNull($fake->input);
+        $this->assertStringContainsString('password', $tester->getDisplay());
+    }
+
+    public function test_short_username_fails_before_run(): void
+    {
+        $fake = $this->installFake();
+
+        $tester = new CommandTester(new InstallCommand());
+        $options = $this->allOptions();
+        $options['--username'] = 'ab';
+        $code = $tester->execute($options, ['interactive' => false]);
+
+        $this->assertSame(Command::FAILURE, $code);
+        $this->assertNull($fake->input);
+        $this->assertStringContainsString('username', $tester->getDisplay());
+    }
+
     public function test_already_installed_prints_business_message(): void
     {
         $this->installFake(static function (): void {
