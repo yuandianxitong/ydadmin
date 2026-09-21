@@ -22,6 +22,8 @@
  *   开发库没有 wechat_auto_replies 表时整段跳过，AppID 已填时跳过菜单断言（禁止 POST/DELETE 菜单，以免打真实微信）。
  * M7a 起：内容管理段打未登录 401、超管分页与分类树、C 端公开列表与协议 code、有会员时提交一条反馈再硬删夹具；
  *   开发库没有 articles 表时整段跳过，没有会员时跳过写路径。
+ * M7b 起：地区 / App 版本 / 数据导入段打未登录 401、超管分页与 common/regions、C 端公开 tree 与 version/check；
+ *   开发库没有 regions 表时整段跳过。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1906,6 +1908,49 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('articles')) {
             }
         }
     }
+}
+
+echo "\n=== M7b：地区 / App 版本 / 数据导入 ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('regions')) {
+    echo "  （开发库还没有 regions 表：M7b 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    $m7bPageOk = static fn (mixed $data): bool => is_array($data)
+        && array_keys($data) === ['list', 'pagination']
+        && is_array($data['list'])
+        && is_array($data['pagination'])
+        && array_diff(['current_page', 'per_page', 'total', 'last_page'], array_keys($data['pagination'])) === [];
+
+    foreach (['region/list', 'version/list', 'dataimport/history'] as $path) {
+        $r = http('GET', "{$base}/adminapi/{$path}", $api);
+        check("管理端 {$path}：未登录 → code 401", respCode($r) === 401, $r['body']);
+    }
+
+    foreach (['region/list', 'version/list', 'dataimport/history'] as $path) {
+        $r = http('GET', "{$base}/adminapi/{$path}?page=1&limit=10", $auth);
+        check("管理端 {$path}：code 200，标准分页四键", respCode($r) === 200 && $m7bPageOk(respData($r)), $r['body']);
+    }
+
+    $r = http('GET', "{$base}/adminapi/common/regions", $auth);
+    check('管理端 common/regions：code 200，data 为数组', respCode($r) === 200 && is_array(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/region/tree", $api);
+    check('C 端 region/tree：code 200，data 为数组', respCode($r) === 200 && is_array(respData($r)), $r['body']);
+
+    $r = http('GET', "{$base}/api/version/check", $api);
+    $m7bCheckCode = respCode($r);
+    check(
+        'C 端 version/check 无参：业务错误（code ≠ 0 且 ≠ 401）',
+        $m7bCheckCode !== null && $m7bCheckCode !== 0 && $m7bCheckCode !== 401 && $m7bCheckCode !== 200,
+        $r['body']
+    );
+
+    $r = http('GET', "{$base}/api/version/check?platform=android&version_code=1", $api);
+    $m7bCheck = respData($r);
+    check(
+        'C 端 version/check：code 200，data 含 need_update',
+        respCode($r) === 200 && is_array($m7bCheck) && array_key_exists('need_update', $m7bCheck),
+        $r['body']
+    );
 }
 
 echo "\n=== M1a：刷新与登出 ===\n";

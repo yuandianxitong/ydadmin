@@ -27,8 +27,6 @@ class DataImportService extends Service
      */
     public function import(string $module, string $filePath, string $filename, array $fieldMap, int $adminId): array
     {
-        $rowHandler = static fn (array $row) => null;
-
         if (!is_file($filePath)) {
             throw new BusinessException(lang('dataimport.file_not_exists'));
         }
@@ -76,7 +74,7 @@ class DataImportService extends Service
                     $rowNumber++;
                     $totalCount++;
 
-                    if ($csvRow === [] || empty(array_filter($csvRow))) {
+                    if (array_filter($csvRow) === []) {
                         continue;
                     }
 
@@ -85,17 +83,9 @@ class DataImportService extends Service
                         $row[$field] = $csvRow[$index] ?? '';
                     }
 
-                    try {
-                        $rowHandler($row);
-                        $successCount++;
-                    } catch (\Throwable $e) {
-                        $failCount++;
-                        $errors[] = [
-                            'row'     => $rowNumber,
-                            'message' => $e->getMessage(),
-                            'data'    => $row,
-                        ];
-                    }
+                    // 空 rowHandler：映射后计成功，不写业务表。后续按 module 注册实现时再包 try/catch。
+                    unset($row);
+                    $successCount++;
                 }
             }
 

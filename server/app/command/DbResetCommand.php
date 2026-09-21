@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
-#[AsCommand('db:reset', '删库重建开发数据库并导入 schema.sql 与 init.sql（仅 APP_DEBUG=true 可用）')]
+#[AsCommand('db:reset', '删库重建开发数据库并导入 schema.sql、init.sql 与 regions.sql（仅 APP_DEBUG=true 可用）')]
 final class DbResetCommand extends Command
 {
     /** @param bool|null $debug 测试注入用；null 时读 config('app.debug') */

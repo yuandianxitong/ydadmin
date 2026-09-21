@@ -67,6 +67,6 @@ class AppVersionRepository extends Repository
             'version_code desc'
         )->limit(1)->first();
 
-        return $row?->toArray();
+        return $row instanceof Model ? $row->toArray() : null;
     }
 }

@@ -487,6 +487,32 @@ WHERE code = 'payment_success';
 - 反馈 `status=1`（处理中）本里程碑无写入入口。
 - 不改 PC / uniapp 页面。
 
+### 应用管理（M7b）
+
+地区、App 版本、数据导入。三张表：`regions`、`app_versions`、`data_imports`。管理端菜单 8 / 800–813（应用管理 → 区域管理、应用版本）。不种导入菜单，也不种 `region.status` / `version.status` 按钮。
+
+**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区表若为空，再单独执行 `server/database/install/regions.sql`（该文件是 `INSERT`，不是 `INSERT IGNORE`）。种子来自 1.x，截到甘肃省省级一行，**不是全国完整区划**。
+
+**C 端接口**（公开，不挂会员认证）：
+
+| 接口 | 鉴权 | 说明 |
+|---|---|---|
+| `GET /api/region/tree` | 公开 | 启用地区树，节点 `value/label/children` |
+| `GET /api/region/children` | 公开 | 指定父级下的启用子级 |
+| `GET /api/version/check?platform&version_code` | 公开 | 该平台启用行里 `version_code` 最大的一条；大于当前才 `need_update` |
+
+**级联**：管理端登录即可 `GET /adminapi/common/regions`，一次拉全量启用树（节点 `{value,label,children?}`）。`admin/src/components/Region` 已在打这条。
+
+**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history`。只是 CSV 管道 + 历史：空 `rowHandler`，计数后记一条 `data_imports`，不写任何业务表，也不进 `files`。没有导入页面；导入权限不进角色树，非超管默认 403。
+
+**已知限制**：
+
+- 导入不写业务表；以后要真导入用户/商品，另开里程碑注册 `rowHandler`。
+- 导入权限不进角色树，非超管调 `dataimport.*` 会 403。
+- 地区树 / `common/regions` 一次拉全量启用节点，不做按需加载。
+- 地区种子可被超管删改；不在本里程碑做「种子地区不可删」。
+- 不改 admin / PC / uniapp 页面。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
@@ -545,5 +571,5 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
 | M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
-| M7 | 内容与装修 | 进行中（M7a 本里程碑：文章/分类、公告、协议、反馈） |
+| M7 | 内容与装修 | 进行中（M7a 已完成；M7b 本里程碑：地区 / App 版本 / 数据导入） |
 | M8 | 安装与发布 | |

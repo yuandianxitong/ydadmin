@@ -54,7 +54,7 @@ $GLOBALS['__phpunit_testdb_lock'] = $lockHandle;
 Webman\Config::clear();
 support\App::loadAllConfig(['route']);
 
-// 4. 测试库不存在、安装脚本有变化（指纹不符）或 YDADMIN_TEST_DB_RESET=1 时，删库重建并导入 schema + init
+// 4. 测试库不存在、安装脚本有变化（指纹不符）或 YDADMIN_TEST_DB_RESET=1 时，删库重建并导入 schema + init + regions
 $installDir = dirname(__DIR__) . '/database/install';
 $fingerprintFile = $lockDir . '/phpunit-testdb.fingerprint';
 $fingerprint = $testDb . ':' . core\database\DatabaseInstaller::fingerprint($installDir);
