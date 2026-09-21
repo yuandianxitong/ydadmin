@@ -10,6 +10,15 @@ $builder->addDefinitions([
     core\contract\ConfigValueReader::class => \DI\get(app\repository\system\SystemConfigRepository::class),
     // 安装：core/install 经接口建超管，core/ 不 use app\（check:context 规则六）
     core\contract\SuperAdminInitializer::class => \DI\get(app\service\system\AdminService::class),
+    core\install\Installer::class => \DI\factory(static function (core\contract\SuperAdminInitializer $admins): core\install\Installer {
+        return new core\install\Installer(
+            $admins,
+            base_path() . '/database/install',
+            base_path() . '/.env',
+            base_path() . '/.env.example',
+            runtime_path() . '/install.lock',
+        );
+    }),
 
     // 短信：注入点要的是「当前配置选出来的那个驱动」，所以绑成工厂而不是 \DI\get——
     // \DI\get 只能指向一个具体类，而选哪个驱动要问 SmsManager。SmsManager 保持 final：
