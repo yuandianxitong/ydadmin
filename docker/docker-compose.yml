@@ -1,0 +1,76 @@
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - webman
+    networks: [ydadmin]
+    restart: unless-stopped
+
+  webman:
+    build:
+      context: ./webman
+      dockerfile: Dockerfile
+    volumes:
+      - ../server:/var/www/html
+    expose:
+      - "8000"
+      - "8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+    networks: [ydadmin]
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ydadmin}
+      MYSQL_USER: ${MYSQL_USER:-ydadmin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - ydadmin-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ydadmin]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    volumes:
+      - ydadmin-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ydadmin]
+    restart: unless-stopped
+
+volumes:
+  ydadmin-mysql:
+  ydadmin-redis:
+
+networks:
+  ydadmin:
+    driver: bridge
