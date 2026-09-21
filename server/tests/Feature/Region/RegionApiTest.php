@@ -53,12 +53,17 @@ final class RegionApiTest extends ApiTestCase
         $p = 't' . bin2hex(random_bytes(3));
         $on = $this->post('/adminapi/region', ['parent_id' => 0, 'name' => 'on' . $p, 'code' => 'on' . $p, 'status' => 1], $admin->token)->assertOk()->data();
         $off = $this->post('/adminapi/region', ['parent_id' => 0, 'name' => 'off' . $p, 'code' => 'off' . $p, 'status' => 0], $admin->token)->assertOk()->data();
+        $orphan = $this->post('/adminapi/region', ['parent_id' => $off['id'], 'name' => 'or' . $p, 'code' => 'or' . $p, 'status' => 1], $admin->token)->assertOk()->data();
         $this->track('regions', (int) $on['id']);
         $this->track('regions', (int) $off['id']);
+        $this->track('regions', (int) $orphan['id']);
 
         $list = $this->get('/adminapi/region/list', ['parent_id' => 0, 'page' => 1, 'limit' => 100], $admin->token)->assertOk()->data()['list'];
         $listIds = array_map('intval', array_column($list, 'id'));
         $this->assertContains((int) $off['id'], $listIds);
+
+        $underOff = $this->get('/adminapi/region/list', ['parent_id' => $off['id'], 'page' => 1, 'limit' => 100], $admin->token)->assertOk()->data()['list'];
+        $this->assertContains((int) $orphan['id'], array_map('intval', array_column($underOff, 'id')));
 
         foreach (['/adminapi/region/tree', '/adminapi/common/regions', '/api/region/tree'] as $path) {
             $tree = $path === '/api/region/tree'
@@ -68,6 +73,7 @@ final class RegionApiTest extends ApiTestCase
             $values = $this->flattenValues($tree);
             $this->assertContains((int) $on['id'], $values);
             $this->assertNotContains((int) $off['id'], $values);
+            $this->assertNotContains((int) $orphan['id'], $values);
             $this->assertArrayHasKey('value', $tree[0]);
             $this->assertArrayHasKey('label', $tree[0]);
         }

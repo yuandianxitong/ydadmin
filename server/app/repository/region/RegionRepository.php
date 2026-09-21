@@ -154,12 +154,13 @@ class RegionRepository extends Repository
             ];
         }
 
+        // 只认 parent_id===0 为根；父级不在启用集合里的子节点丢掉（不升为根）。
         $tree = [];
         foreach ($mapped as &$item) {
             $pid = $item['parent_id'];
-            if ($pid === 0 || !isset($mapped[$pid])) {
+            if ($pid === 0) {
                 $tree[] = &$item;
-            } else {
+            } elseif (isset($mapped[$pid])) {
                 $mapped[$pid]['children'][] = &$item;
             }
         }
