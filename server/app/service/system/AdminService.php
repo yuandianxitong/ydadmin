@@ -14,6 +14,7 @@ use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
 use core\context\RequestContext;
+use core\contract\SuperAdminInitializer;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
@@ -23,7 +24,7 @@ use core\validation\ValidatorFactory;
 use DI\Attribute\Inject;
 use support\Log;
 
-class AdminService extends Service
+class AdminService extends Service implements SuperAdminInitializer
 {
     public const SUPER_ADMIN_ID = 1;
 

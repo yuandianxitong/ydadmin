@@ -8,6 +8,9 @@ $builder->addDefinitions([
     core\permission\PermissionCheckerInterface::class => \DI\get(core\auth\Permission::class),
     // 存储：core\storage\StorageManager 经这个接口读系统配置，core/ 不 use app\（check:context 规则六）
     core\contract\ConfigValueReader::class => \DI\get(app\repository\system\SystemConfigRepository::class),
+    // 安装：core/install 经接口建超管，core/ 不 use app\（check:context 规则六）
+    core\contract\SuperAdminInitializer::class => \DI\get(app\service\system\AdminService::class),
+
     // 短信：注入点要的是「当前配置选出来的那个驱动」，所以绑成工厂而不是 \DI\get——
     // \DI\get 只能指向一个具体类，而选哪个驱动要问 SmsManager。SmsManager 保持 final：
     // 需要假驱动的测试直接实现 SmsInterface，不继承它，也不改这里的绑定。
