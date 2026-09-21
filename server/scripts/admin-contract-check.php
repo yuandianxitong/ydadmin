@@ -26,6 +26,7 @@
  *   开发库没有 regions 表时整段跳过。
  * M7c 起：装修 / 移动端配置段打未登录 401、超管页面列表 {list,total} 与首页 components、C 端公开 diy-page 与 config；
  *   开发库没有 diy_pages 表时整段跳过。
+ * M8 起：安装段打 GET /install 已安装页（不是 401）；无 system_upgrades 表则跳过。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -2006,6 +2007,36 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('diy_pages')) {
             && array_key_exists('tabbar', $m7cConfig),
         $r['body']
     );
+}
+
+echo "\n=== M8：安装向导 ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('system_upgrades')) {
+    // 开发库是用户的真实数据，不做 db:reset；M8 的 system_upgrades 要等控制器经用户同意执行
+    // docs/superpowers/plans/2026-09-21-m8-dev-db-patch.sql 之后才有。在那之前本段整体跳过、不计失败。
+    echo "  （开发库还没有 system_upgrades 表：M8 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    // 未登录、不带超管 token：/install 在 /adminapi 组外。不要 var_dump token。
+    $r = http('GET', "{$base}/install", $api);
+    check('GET /install：HTTP 200', $r['status'] === 200, (string) $r['status']);
+    check(
+        'GET /install：已安装页（含「已安装」，不是 401）',
+        str_contains($r['body'], '已安装'),
+        $r['body']
+    );
+
+    $r = http('GET', "{$base}/install/environment", $api);
+    $m8EnvCode = respCode($r);
+    check(
+        'GET /install/environment：code !== 401（未登录即可）',
+        $m8EnvCode !== null && $m8EnvCode !== 401,
+        $r['body']
+    );
+    check(
+        'GET /install/environment：已安装时业务错误',
+        $m8EnvCode !== null && $m8EnvCode !== 200 && $m8EnvCode !== 401,
+        $r['body']
+    );
+    check('GET /install/environment：body 不含 JWT_', !str_contains($r['body'], 'JWT_'));
 }
 
 echo "\n=== M1a：刷新与登出 ===\n";

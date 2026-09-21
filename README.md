@@ -41,19 +41,37 @@ cd admin && pnpm install && pnpm dev   # 接口代理到 http://127.0.0.1:8000
 ### 全新安装（生产）
 
 ```bash
-mysql -u root -p -e "CREATE DATABASE ydadmin DEFAULT CHARACTER SET utf8mb4"
-mysql -u root -p ydadmin < server/database/install/schema.sql   # 先表结构
-mysql -u root -p ydadmin < server/database/install/init.sql     # 再初始数据
 cd server
 composer install
-cp .env.example .env    # 见下方说明
-php webman admin:init --username=admin --password=你的密码
+cp .env.example .env
 php start.php start -d
+# 浏览器打开 http://127.0.0.1:8000/install/  或
+php webman install -n --db-host=127.0.0.1 --db-name=ydadmin --db-user=root --db-password=... --username=admin --password=...
+php start.php restart
 ```
 
-`.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。
+`.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。向导与 CLI 会写入数据库连接与两把 JWT secret。
+
+手工灌 SQL 是备选：仅在无法走向导/CLI 时，先建库并依次导入 `schema.sql`、`init.sql`、`regions.sql`，事后须 `touch runtime/install.lock` 与 `php webman yd:update --baseline=2.0.0`。
 
 `php webman db:reset` 会删库重建，只供开发环境使用，`APP_DEBUG` 未开启时拒绝执行。
+
+### 安装（M8）
+
+- 无表前缀（`DB_PREFIX` 保持空）；安装与升级脚本写裸表名。
+- 无演示数据；只灌 `schema.sql`、`init.sql`、`regions.sql` 与超管。
+- 装完必须 `php start.php restart`（`reload` 不够），新 `.env` 才会被常驻进程读到。
+- 禁止对已有数据的库 DROP：目标库已有表时安装拒绝，库仍在。
+
+### 升级
+
+```bash
+cd server
+php webman yd:update --dry-run
+php webman yd:update
+```
+
+首次把已有 2.x 库纳入升级系统时用 `--baseline=2.0.0`（只打标，不重跑基线）。`schema.sql` 只用于全新安装。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
 ### Redis
 
@@ -539,9 +557,9 @@ DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_page
 - 前端 MobileConfig 上的客服 / 分享 / 微信字段本里程碑不落库（不建 `app_intro` / `service_*` / `share_*` / `wechat_appid`）。
 - 不改 admin / PC / uniapp 页面。
 
-### 升级
+### 开发库与 schema 演进
 
-`schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
+`schema.sql` 只用于全新安装。生产升级走上方「升级」的 `php webman yd:update`。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
 M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
 
@@ -597,5 +615,5 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
 | M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
-| M7 | 内容与装修 | 进行中（M7a / M7b 已完成；M7c 本里程碑：DIY 装修 + 移动端配置） |
-| M8 | 安装与发布 | |
+| M7 | 内容与装修 | ✅（M7a 内容、M7b 地区/版本/导入、M7c DIY 装修 + 移动端配置） |
+| M8 | 安装与发布 | 进行中（安装向导 + yd:update；Docker / 发布包另开） |
