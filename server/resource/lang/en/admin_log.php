@@ -236,4 +236,10 @@ return [
     'diy_page_update_desc'         => 'Update a custom decoration page title, key, or status',
     'diy_page_delete'              => 'Delete decoration page',
     'diy_page_delete_desc'         => 'Delete a custom decoration page',
+    'diy_link_create'              => 'Create decoration link',
+    'diy_link_create_desc'         => 'Create a decoration link library entry',
+    'diy_link_update'              => 'Update decoration link',
+    'diy_link_update_desc'         => 'Update a decoration link library entry',
+    'diy_link_delete'              => 'Delete decoration link',
+    'diy_link_delete_desc'         => 'Delete a decoration link library entry',
 ];

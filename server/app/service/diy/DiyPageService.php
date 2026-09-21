@@ -18,7 +18,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * 装修页面：系统页草稿/发布/版本、自定义页 CRUD / 复制 / 删除保护、C 端已发布。
  *
- * 只调 Repository。链接目录与 widget-preview 由后续任务补。
+ * 只调 Repository。链接目录见 LinkCatalogService；widget-preview 由后续任务补。
  */
 class DiyPageService extends Service
 {

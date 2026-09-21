@@ -157,7 +157,7 @@ return [
         // 数据导入（M7b）。history 是读，不登记。
         'DataImportController@upload' => ['admin_log.dataimport_upload', 'admin_log.dataimport_upload_desc'],
 
-        // 装修页面（M7c）。读接口不登记；widget-preview / links 由后续任务补。
+        // 装修页面（M7c）。读接口不登记；widget-preview 由后续任务补。
         'DiyPageController@saveHome'            => ['admin_log.diy_home_save', 'admin_log.diy_home_save_desc'],
         'DiyPageController@publishHome'         => ['admin_log.diy_home_publish', 'admin_log.diy_home_publish_desc'],
         'DiyPageController@restoreVersion'      => ['admin_log.diy_home_restore', 'admin_log.diy_home_restore_desc'],
@@ -168,6 +168,9 @@ return [
         'DiyPageController@copyPage'            => ['admin_log.diy_page_copy', 'admin_log.diy_page_copy_desc'],
         'DiyPageController@updatePage'          => ['admin_log.diy_page_update', 'admin_log.diy_page_update_desc'],
         'DiyPageController@deletePage'          => ['admin_log.diy_page_delete', 'admin_log.diy_page_delete_desc'],
+        'DiyLinkController@store'               => ['admin_log.diy_link_create', 'admin_log.diy_link_create_desc'],
+        'DiyLinkController@update'              => ['admin_log.diy_link_update', 'admin_log.diy_link_update_desc'],
+        'DiyLinkController@delete'              => ['admin_log.diy_link_delete', 'admin_log.diy_link_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

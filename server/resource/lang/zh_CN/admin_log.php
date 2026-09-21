@@ -236,4 +236,10 @@ return [
     'diy_page_update_desc'         => '更新自定义装修页面标题、标识或状态',
     'diy_page_delete'              => '删除装修页面',
     'diy_page_delete_desc'         => '删除自定义装修页面',
+    'diy_link_create'              => '创建装修链接',
+    'diy_link_create_desc'         => '创建装修链接库条目',
+    'diy_link_update'              => '更新装修链接',
+    'diy_link_update_desc'         => '更新装修链接库条目',
+    'diy_link_delete'              => '删除装修链接',
+    'diy_link_delete_desc'         => '删除装修链接库条目',
 ];

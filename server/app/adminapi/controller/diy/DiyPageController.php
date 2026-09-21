@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\adminapi\controller\diy;
 
 use app\service\diy\DiyPageService;
+use app\service\diy\LinkCatalogService;
 use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
@@ -22,6 +23,7 @@ use Webman\Http\Request;
  *   GET    /adminapi/diy/home                                 getHome               diy.home.view
  *   PUT    /adminapi/diy/home                                 saveHome              diy.home.save
  *   GET    /adminapi/diy/widgets                              widgets               diy.home.view
+ *   GET    /adminapi/diy/link-catalog                         linkCatalog           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/summary                  pageSummary           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/draft                    getDraftByKey         diy.page.view
  *   PUT    /adminapi/diy/pages/{key}/draft                    saveDraftByKey        diy.page.save
@@ -41,6 +43,9 @@ class DiyPageController extends Controller
 {
     #[Inject]
     protected DiyPageService $diyPageService;
+
+    #[Inject]
+    protected LinkCatalogService $linkCatalogService;
 
     #[Permission('diy.home.view')]
     public function homeSummary(): Response
@@ -139,6 +144,12 @@ class DiyPageController extends Controller
     public function widgets(): Response
     {
         return $this->success($this->diyPageService->widgets());
+    }
+
+    #[Permission('diy.home.view')]
+    public function linkCatalog(): Response
+    {
+        return $this->success(['links' => $this->linkCatalogService->catalog()]);
     }
 
     #[Permission('diy.page.view')]

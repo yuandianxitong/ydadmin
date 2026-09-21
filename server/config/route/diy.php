@@ -1,5 +1,6 @@
 <?php
 
+use app\adminapi\controller\diy\DiyLinkController;
 use app\adminapi\controller\diy\DiyPageController;
 use Webman\Route;
 
@@ -12,6 +13,11 @@ Route::group('/diy', function () {
     Route::put('/home', [DiyPageController::class, 'saveHome']);
 
     Route::get('/widgets', [DiyPageController::class, 'widgets']);
+    Route::get('/link-catalog', [DiyPageController::class, 'linkCatalog']);
+    Route::get('/links', [DiyLinkController::class, 'index']);
+    Route::post('/links', [DiyLinkController::class, 'store']);
+    Route::put('/links/{id:\d+}', [DiyLinkController::class, 'update']);
+    Route::delete('/links/{id:\d+}', [DiyLinkController::class, 'delete']);
 
     Route::get('/pages/{key:[a-z0-9-]+}/summary', [DiyPageController::class, 'pageSummary']);
     Route::get('/pages/{key:[a-z0-9-]+}/draft', [DiyPageController::class, 'getDraftByKey']);
