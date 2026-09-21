@@ -13,6 +13,7 @@ Route::group('/diy', function () {
     Route::put('/home', [DiyPageController::class, 'saveHome']);
 
     Route::get('/widgets', [DiyPageController::class, 'widgets']);
+    Route::post('/widget-preview', [DiyPageController::class, 'previewWidget']);
     Route::get('/link-catalog', [DiyPageController::class, 'linkCatalog']);
     Route::get('/links', [DiyLinkController::class, 'index']);
     Route::post('/links', [DiyLinkController::class, 'store']);

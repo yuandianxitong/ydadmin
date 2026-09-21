@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\service\diy;
 
+use app\repository\article\ArticleRepository;
 use app\repository\diy\DiyPageRepository;
 use app\repository\diy\DiyPageVersionRepository;
 use core\base\Service;
@@ -18,7 +19,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * 装修页面：系统页草稿/发布/版本、自定义页 CRUD / 复制 / 删除保护、C 端已发布。
  *
- * 只调 Repository。链接目录见 LinkCatalogService；widget-preview 由后续任务补。
+ * 只调 Repository。链接目录见 LinkCatalogService；content-list 注水走 ArticleRepository。
  */
 class DiyPageService extends Service
 {
@@ -38,6 +39,9 @@ class DiyPageService extends Service
 
     #[Inject]
     protected DiyWidgetRegistry $widgetRegistry;
+
+    #[Inject]
+    protected ArticleRepository $articleRepository;
 
     /**
      * @return array{components: list<array<string, mixed>>, page_settings: array<string, mixed>}
@@ -172,11 +176,62 @@ class DiyPageService extends Service
             return null;
         }
 
+        foreach ($components as $i => $component) {
+            $type = (string) ($component['type'] ?? '');
+            if ($type !== 'content-list') {
+                continue;
+            }
+            $props = is_array($component['props'] ?? null) ? $component['props'] : [];
+            $components[$i]['props'] = $this->hydrateProps($type, $props);
+        }
+
         return [
             'title'         => (string) ($row['title'] ?? ''),
             'components'    => $components,
             'page_settings' => $this->normalizeSettings($row['page_settings'] ?? []),
         ];
+    }
+
+    /**
+     * 管理端组件预览：未知 type → 422；content-list + source=latest 注入 items。
+     *
+     * @param array<string, mixed> $props
+     * @return array{props: array<string, mixed>}
+     */
+    public function previewWidget(string $type, array $props): array
+    {
+        if (!in_array($type, DiyWidgetRegistry::TYPES, true)) {
+            throw new ValidationException(['type' => lang('diy.widget_type_invalid')]);
+        }
+
+        return ['props' => $this->hydrateProps($type, $props)];
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     * @return array<string, mixed>
+     */
+    private function hydrateProps(string $type, array $props): array
+    {
+        if ($type !== 'content-list' || (string) ($props['source'] ?? 'latest') !== 'latest') {
+            return $props;
+        }
+        $limit = min(20, max(1, (int) ($props['limit'] ?? 6)));
+        $params = [];
+        if (isset($props['category_id']) && (int) $props['category_id'] > 0) {
+            $params['category_id'] = (int) $props['category_id'];
+        }
+        $result = $this->articleRepository->getPublishedList($params, 1, $limit);
+        $props['items'] = array_map(static function (array $row): array {
+            return [
+                'id'    => (int) ($row['id'] ?? 0),
+                'title' => (string) ($row['title'] ?? ''),
+                'cover' => (string) ($row['cover'] ?? ''),
+                'date'  => (string) ($row['publish_at'] ?? $row['created_at'] ?? ''),
+            ];
+        }, $result['list']);
+
+        return $props;
     }
 
     /**

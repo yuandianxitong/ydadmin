@@ -157,7 +157,7 @@ return [
         // 数据导入（M7b）。history 是读，不登记。
         'DataImportController@upload' => ['admin_log.dataimport_upload', 'admin_log.dataimport_upload_desc'],
 
-        // 装修页面（M7c）。读接口不登记；widget-preview 由后续任务补。
+        // 装修页面（M7c）。读接口不登记；widget-preview 是 POST 但不写库，进 skip。
         'DiyPageController@saveHome'            => ['admin_log.diy_home_save', 'admin_log.diy_home_save_desc'],
         'DiyPageController@publishHome'         => ['admin_log.diy_home_publish', 'admin_log.diy_home_publish_desc'],
         'DiyPageController@restoreVersion'      => ['admin_log.diy_home_restore', 'admin_log.diy_home_restore_desc'],
@@ -177,6 +177,7 @@ return [
     // 与 actions 互斥；tests/Feature/System/AdminLogMiddlewareTest 会核对它们都对得上写路由。
     'skip' => [
         'WsTicketController@store',
+        'DiyPageController@previewWidget',
     ],
 
     'masked_params' => [

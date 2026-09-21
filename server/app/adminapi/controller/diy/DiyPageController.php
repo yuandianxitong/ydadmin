@@ -23,6 +23,7 @@ use Webman\Http\Request;
  *   GET    /adminapi/diy/home                                 getHome               diy.home.view
  *   PUT    /adminapi/diy/home                                 saveHome              diy.home.save
  *   GET    /adminapi/diy/widgets                              widgets               diy.home.view
+ *   POST   /adminapi/diy/widget-preview                       previewWidget         diy.home.view
  *   GET    /adminapi/diy/link-catalog                         linkCatalog           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/summary                  pageSummary           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/draft                    getDraftByKey         diy.page.view
@@ -36,7 +37,7 @@ use Webman\Http\Request;
  *   PUT    /adminapi/diy/pages/{id}                           updatePage            diy.page.update
  *   DELETE /adminapi/diy/pages/{id}                           deletePage            diy.page.delete
  *
- * saveHome()/saveDraftByKey()/createPage()/updatePage() 的校验规则由同名的 xxxRules() 无参私有方法提供。
+ * saveHome()/saveDraftByKey()/createPage()/updatePage()/previewWidget() 的校验规则由同名的 xxxRules() 无参私有方法提供。
  * listPages 禁止 $this->paginate()：前端冻的是 {list,total}。
  */
 class DiyPageController extends Controller
@@ -147,6 +148,17 @@ class DiyPageController extends Controller
     }
 
     #[Permission('diy.home.view')]
+    public function previewWidget(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->previewWidgetRules());
+
+        return $this->success($this->diyPageService->previewWidget(
+            (string) $data['type'],
+            is_array($data['props'] ?? null) ? $data['props'] : []
+        ));
+    }
+
+    #[Permission('diy.home.view')]
     public function linkCatalog(): Response
     {
         return $this->success(['links' => $this->linkCatalogService->catalog()]);
@@ -195,6 +207,17 @@ class DiyPageController extends Controller
         $this->diyPageService->deletePage((int) $id);
 
         return $this->success([], lang('messages.delete_success'));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function previewWidgetRules(): array
+    {
+        return [
+            'type'  => 'required|string',
+            'props' => 'nullable|array',
+        ];
     }
 
     /**
