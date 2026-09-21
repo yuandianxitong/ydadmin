@@ -5,6 +5,7 @@ use Webman\Route;
 
 Route::group('/region', function () {
     Route::get('/list', [RegionController::class, 'index']);
+    Route::get('/tree', [RegionController::class, 'tree']);
     Route::get('/detail/{id:\d+}', [RegionController::class, 'show']);
     Route::post('', [RegionController::class, 'store']);
     Route::put('/{id:\d+}', [RegionController::class, 'update']);

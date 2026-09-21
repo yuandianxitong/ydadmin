@@ -7,78 +7,118 @@ namespace app\service\region;
 use app\repository\region\RegionRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
+use core\exception\ValidationException;
 use DI\Attribute\Inject;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * 地区（由代码生成器生成）。
+ * 地区。
  *
- * 只调 Repository：查询条件与数据权限都在 RegionRepository 里，这一层不直接调用数据库门面。
- * 写操作一律包 runInTransaction()；缓存失效之类的副作用请在事务里用 afterCommit() 追加。
+ * 只调 Repository：查询条件在 RegionRepository。这一层不直接调用数据库门面。
+ * 写操作一律包 runInTransaction()。
  *
- * 唯一性（code）：写入前调 RegionRepository 的 existsBy* 预检查，
- * 命中就抛业务提示；更新时把自己这一行用 $excludeId 排除掉。并发写入撞上唯一索引时捕获
- * UniqueConstraintViolationException 转成同一条业务错误，不返回 500。
+ * 请求里的 level 丢掉，按父级重算（根=1）。code 重复 / 撞唯一索引 → 422 errors.code。
  */
 class RegionService extends Service
 {
+    /** @var list<string> */
+    private const WRITE_FIELDS = ['parent_id', 'name', 'code', 'sort', 'status'];
+
     #[Inject]
     protected RegionRepository $regionRepository;
 
     /**
-     * 列表：keyword、区间等查询条件在 Repository 里按列类型展开。
-     *
      * @param array<string, mixed> $params
      * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
      */
-    public function getRegionList(array $params, int $page, int $limit): array
+    public function getList(array $params, int $page, int $limit): array
     {
-        return $this->regionRepository->getRegionList($params, $page, $limit);
+        return $this->regionRepository->getSearchList($params, $page, $limit);
+    }
+
+    /**
+     * 启用地区树：[{value,label,children?}]。
+     *
+     * @return list<array{value: int, label: string, children?: list<array<string, mixed>>}>
+     */
+    public function getTree(): array
+    {
+        return $this->regionRepository->buildValueLabelTree($this->regionRepository->listEnabled());
+    }
+
+    /**
+     * 指定父级下的启用子级（完整行）。
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getChildren(int $parentId): array
+    {
+        return $this->regionRepository->getByParentId($parentId);
     }
 
     /** @return array<string, mixed> */
-    public function getRegionDetail(int $id): array
+    public function getDetail(int $id): array
     {
-        return $this->findRegionOrFail($id);
+        return $this->findOrFail($id);
     }
 
     /**
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      * @return array<string, mixed>
      */
-    public function createRegion(array $data): array
+    public function create(array $data): array
     {
-        $row = array_intersect_key($data, array_flip(['parent_id', 'name', 'code', 'level', 'sort', 'status']));
-        if (isset($row['code']) && $this->regionRepository->existsByCode((string) $row['code'])) {
-            throw new BusinessException(lang('region.region_code_exists'));
+        $parentId = (int) ($data['parent_id'] ?? 0);
+        $this->assertParentValid($parentId);
+
+        $code = (string) $data['code'];
+        if ($this->regionRepository->existsByCode($code)) {
+            throw $this->codeTaken();
         }
+
+        $row = [
+            'parent_id' => $parentId,
+            'name'      => $data['name'],
+            'code'      => $code,
+            'level'     => $this->levelOfParent($parentId),
+            'sort'      => (int) ($data['sort'] ?? 0),
+            'status'    => (int) ($data['status'] ?? 1),
+        ];
 
         try {
             return $this->runInTransaction(fn (): array => $this->regionRepository->create($row));
         } catch (UniqueConstraintViolationException) {
-            throw new BusinessException(lang('region.region_code_exists'));
+            throw $this->codeTaken();
         }
     }
 
     /**
-     * 局部更新：只写传了的字段，值为 null 的丢弃；白名单与 create 一致。
+     * 局部更新：只写传了的字段，值为 null 的丢弃；丢掉 level，按父级重算。
      *
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      */
-    public function updateRegion(int $id, array $data): void
+    public function update(int $id, array $data): void
     {
-        $this->findRegionOrFail($id);
+        $this->findOrFail($id);
+
+        if (array_key_exists('parent_id', $data)) {
+            $this->assertParentValid((int) $data['parent_id'], $id);
+        }
+        if (isset($data['code']) && $this->regionRepository->existsByCode((string) $data['code'], $id)) {
+            throw $this->codeTaken();
+        }
+
         $update = array_filter(
-            array_intersect_key($data, array_flip(['parent_id', 'name', 'code', 'level', 'sort', 'status'])),
+            array_intersect_key($data, array_flip(self::WRITE_FIELDS)),
             static fn ($value) => $value !== null
         );
+        if (array_key_exists('parent_id', $update)) {
+            $update['parent_id'] = (int) $update['parent_id'];
+            $update['level'] = $this->levelOfParent((int) $update['parent_id']);
+        }
         if ($update === []) {
             return;
-        }
-        // 自己这一行由 $excludeId 排除，不必先比较值有没有改动：那次字符串比较依赖 find() 的返回值，
-        // 而 find() 受数据权限约束，取不到该列时 ?? '' 会把「没改」误判成「改了」，白跑一次查重。
-        if (isset($update['code']) && $this->regionRepository->existsByCode((string) $update['code'], $id)) {
-            throw new BusinessException(lang('region.region_code_exists'));
         }
 
         try {
@@ -86,46 +126,61 @@ class RegionService extends Service
                 $this->regionRepository->update($id, $update);
             });
         } catch (UniqueConstraintViolationException) {
-            throw new BusinessException(lang('region.region_code_exists'));
+            throw $this->codeTaken();
         }
     }
 
-    public function deleteRegion(int $id): void
+    public function delete(int $id): void
     {
-        $this->findRegionOrFail($id);
+        $this->findOrFail($id);
+
+        if ($this->regionRepository->hasChildren($id)) {
+            throw new BusinessException(lang('region.has_children'));
+        }
 
         $this->runInTransaction(function () use ($id): void {
             $this->regionRepository->delete($id);
         });
     }
 
-    /**
-     * 批量删除：同一事务内逐条删除，任一 id 不存在则整体回滚（与 M1 的角色、字典批量删除同语义）。
-     * 重复 id 先去重。
-     *
-     * @param list<int> $ids
-     */
-    public function batchDelete(array $ids): void
+    private function assertParentValid(int $parentId, ?int $selfId = null): void
     {
-        $this->runInTransaction(function () use ($ids): void {
-            foreach (array_values(array_unique($ids)) as $id) {
-                $this->deleteRegion($id);
-            }
-        });
+        if ($parentId === 0) {
+            return;
+        }
+        if ($selfId !== null && $parentId === $selfId) {
+            throw new BusinessException(lang('region.parent_invalid'));
+        }
+        if ($this->regionRepository->find($parentId) === null) {
+            throw new BusinessException(lang('region.parent_invalid'));
+        }
+        if ($selfId !== null && in_array($parentId, $this->regionRepository->descendantIds($selfId), true)) {
+            throw new BusinessException(lang('region.parent_invalid'));
+        }
     }
 
-    public function updateStatus(int $id, int $status): void
+    private function levelOfParent(int $parentId): int
     {
-        $this->findRegionOrFail($id);
+        if ($parentId === 0) {
+            return 1;
+        }
+        $parent = $this->regionRepository->find($parentId);
+        if ($parent === null) {
+            throw new BusinessException(lang('region.parent_invalid'));
+        }
 
-        $this->runInTransaction(function () use ($id, $status): void {
-            $this->regionRepository->update($id, ['status' => $status]);
-        });
+        return (int) $parent['level'] + 1;
     }
 
     /** @return array<string, mixed> */
-    private function findRegionOrFail(int $id): array
+    private function findOrFail(int $id): array
     {
-        return $this->regionRepository->find($id) ?? throw new BusinessException(lang('region.region_not_found'));
+        return $this->regionRepository->find($id)
+            ?? throw new NotFoundException(lang('region.not_found'));
+    }
+
+    private function codeTaken(): ValidationException
+    {
+        return new ValidationException(['code' => lang('region.code_exists')]);
     }
 }

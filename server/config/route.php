@@ -26,6 +26,7 @@ use app\adminapi\controller\system\RoleController;
 use app\adminapi\controller\system\SystemConfigController;
 use app\adminapi\controller\realtime\WsTicketController;
 use app\adminapi\controller\upload\UploadController;
+use app\adminapi\controller\region\RegionController;
 use app\adminapi\controller\user\UserManageController;
 use app\adminapi\controller\wechat\AutoReplyController;
 use app\adminapi\controller\wechat\OfficialAccountController;
@@ -36,6 +37,7 @@ use app\api\controller\article\ArticleController as ApiArticleController;
 use app\api\controller\common\CommonController;
 use app\api\controller\feedback\FeedbackController as ApiFeedbackController;
 use app\api\controller\message\MessageController;
+use app\api\controller\region\RegionController as ApiRegionController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
@@ -262,6 +264,9 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::delete('/menu', [OfficialAccountController::class, 'deleteMenu']);
     })->middleware($adminAuth);
 
+    // M7b：级联选择器（admin Region 组件走 /common/regions；与 /region/tree 同一动作）
+    Route::get('/common/regions', [RegionController::class, 'tree'])->middleware($adminAuth);
+
     // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。
     // 被 require 的文件在本闭包体内执行（require 不新开作用域），因此文件里能直接用外层 use
     // 进来的 $adminAuth——这也是它必须被 require 进这个闭包、而不是在别处独立注册的原因。
@@ -280,6 +285,8 @@ Route::group('/api', function () use ($apiAuth) {
     Route::get('/article/list', [ApiArticleController::class, 'list']);
     Route::get('/article/detail/{id:\d+}', [ApiArticleController::class, 'detail']);
     Route::get('/article-category/list', [ApiArticleCategoryController::class, 'list']);
+    Route::get('/region/tree', [ApiRegionController::class, 'tree']);
+    Route::get('/region/children', [ApiRegionController::class, 'children']);
     Route::get('/announcement/list', [ApiAnnouncementController::class, 'list']);
     Route::get('/announcement/detail/{id:\d+}', [ApiAnnouncementController::class, 'detail']);
     Route::get('/agreement/{code:[a-z][a-z0-9_]{1,49}}', [ApiAgreementController::class, 'show']);

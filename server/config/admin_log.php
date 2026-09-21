@@ -143,6 +143,11 @@ return [
         'FeedbackController@reply'  => ['admin_log.feedback_reply', 'admin_log.feedback_reply_desc'],
         'FeedbackController@close'  => ['admin_log.feedback_close', 'admin_log.feedback_close_desc'],
         'FeedbackController@delete' => ['admin_log.feedback_delete', 'admin_log.feedback_delete_desc'],
+
+        // 地区（M7b）。无独立 status / batchDelete 路由。
+        'RegionController@store'  => ['admin_log.region_create', 'admin_log.region_create_desc'],
+        'RegionController@update' => ['admin_log.region_update', 'admin_log.region_update_desc'],
+        'RegionController@delete' => ['admin_log.region_delete', 'admin_log.region_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

@@ -3,6 +3,10 @@
 // 由代码生成器生成（en）。business.php / validation.php 是手写模块共用文件，
 // 生成模块用独立分组 region.*，键统一加 region_ 前缀，同模块以后生成别的模型不会互相覆盖。
 return [
+    'not_found' => 'Region not found',
+    'parent_invalid' => 'Parent region is invalid',
+    'has_children' => 'Cannot delete a region that has children',
+    'code_exists' => 'Code already exists',
     'region_not_found' => 'Region not found',
     'region_code_exists' => 'Code already exists',
     'region_parent_id_require' => 'Parent Id is required',

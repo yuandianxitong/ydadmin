@@ -198,4 +198,11 @@ return [
     'feedback_close_desc'          => 'Close user feedback',
     'feedback_delete'              => 'Delete feedback',
     'feedback_delete_desc'         => 'Delete user feedback',
+
+    'region_create'                => 'Create region',
+    'region_create_desc'           => 'Create a new region',
+    'region_update'                => 'Update region',
+    'region_update_desc'           => 'Update region details',
+    'region_delete'                => 'Delete region',
+    'region_delete_desc'           => 'Delete a region',
 ];

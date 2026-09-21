@@ -198,4 +198,11 @@ return [
     'feedback_close_desc'          => '关闭用户反馈',
     'feedback_delete'              => '删除反馈',
     'feedback_delete_desc'         => '删除用户反馈',
+
+    'region_create'                => '创建地区',
+    'region_create_desc'           => '创建新的地区',
+    'region_update'                => '更新地区',
+    'region_update_desc'           => '更新地区信息',
+    'region_delete'                => '删除地区',
+    'region_delete_desc'           => '删除地区',
 ];
