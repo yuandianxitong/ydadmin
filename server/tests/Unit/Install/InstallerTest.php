@@ -46,7 +46,7 @@ final class InstallerTest extends TestCase
         $this->envPath = $this->workDir . '/.env';
         file_put_contents($this->workDir . '/.env.example', "APP_DEBUG = true\nDB_HOST = 127.0.0.1\nKEEP_ME = 1\n");
         $this->writeMiniSql();
-        $this->admins = new class implements SuperAdminInitializer {
+        $this->admins = new class () implements SuperAdminInitializer {
             public array $calls = [];
 
             public function initSuperAdmin(string $u, string $p, ?string $e, ?string $n): array

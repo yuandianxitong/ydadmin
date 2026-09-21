@@ -19,7 +19,8 @@ final class Installer
         private string $envPath,
         private string $envExamplePath,
         private string $lockPath,
-    ) {}
+    ) {
+    }
 
     public function isInstalled(): bool
     {
@@ -117,8 +118,8 @@ final class Installer
         $this->admins->initSuperAdmin(
             (string) $input['username'],
             (string) $input['password'],
-            isset($input['email']) ? ($input['email'] !== null ? (string) $input['email'] : null) : null,
-            isset($input['nickname']) ? ($input['nickname'] !== null ? (string) $input['nickname'] : null) : null,
+            isset($input['email']) ? (string) $input['email'] : null,
+            isset($input['nickname']) ? (string) $input['nickname'] : null,
         );
 
         $pdo->exec("INSERT INTO system_upgrades (version, applied_at) VALUES ('2.0.0', NOW())");

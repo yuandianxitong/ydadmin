@@ -72,7 +72,7 @@ final class Test55_InstallerNeverDropsDatabaseTest extends TestCase
 
     private function makeInstaller(): Installer
     {
-        $admins = new class implements SuperAdminInitializer {
+        $admins = new class () implements SuperAdminInitializer {
             public function initSuperAdmin(string $u, string $p, ?string $e, ?string $n): array
             {
                 return ['created' => true, 'id' => 1, 'username' => $u];
