@@ -193,6 +193,16 @@ class DiyPageService extends Service
     }
 
     /**
+     * C 端已发布首页。未发布 / 不存在则为 null。
+     *
+     * @return array{title: string, components: list<array<string, mixed>>, page_settings: array<string, mixed>}|null
+     */
+    public function getPublishedHome(string $platform = 'uniapp'): ?array
+    {
+        return $this->getPublished('home', $platform);
+    }
+
+    /**
      * 管理端组件预览：未知 type → 422；content-list + source=latest 注入 items。
      *
      * @param array<string, mixed> $props

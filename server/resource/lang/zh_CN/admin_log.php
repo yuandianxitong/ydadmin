@@ -242,4 +242,7 @@ return [
     'diy_link_update_desc'         => '更新装修链接库条目',
     'diy_link_delete'              => '删除装修链接',
     'diy_link_delete_desc'         => '删除装修链接库条目',
+
+    'mobile_config_update'         => '更新移动端配置',
+    'mobile_config_update_desc'    => '更新移动端主题与底部导航配置',
 ];

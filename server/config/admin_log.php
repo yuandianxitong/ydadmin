@@ -171,6 +171,9 @@ return [
         'DiyLinkController@store'               => ['admin_log.diy_link_create', 'admin_log.diy_link_create_desc'],
         'DiyLinkController@update'              => ['admin_log.diy_link_update', 'admin_log.diy_link_update_desc'],
         'DiyLinkController@delete'              => ['admin_log.diy_link_delete', 'admin_log.diy_link_delete_desc'],
+
+        // 移动端配置（M7c）。仅写接口登记。
+        'MobileConfigController@update' => ['admin_log.mobile_config_update', 'admin_log.mobile_config_update_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

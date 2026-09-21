@@ -242,4 +242,7 @@ return [
     'diy_link_update_desc'         => 'Update a decoration link library entry',
     'diy_link_delete'              => 'Delete decoration link',
     'diy_link_delete_desc'         => 'Delete a decoration link library entry',
+
+    'mobile_config_update'         => 'Update mobile config',
+    'mobile_config_update_desc'    => 'Update mobile theme and tab bar configuration',
 ];
