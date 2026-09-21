@@ -51,6 +51,10 @@ final class CronCommandRunnerTest extends TestCase
         $this->assertTrue((new CronCommandRunner())->allows('payment:close-expired'));
         $this->assertTrue((new CronCommandRunner())->allows('payment:reconcile-refunds'));
         $this->assertFalse((new CronCommandRunner())->allows('db:reset'), 'db:reset 永远不能进白名单');
+        $this->assertFalse($this->runner->allows('install'));
+        $this->assertFalse($this->runner->allows('yd:update'));
+        $this->assertNotContains('install', array_keys((array) config('cron.commands')));
+        $this->assertNotContains('yd:update', array_keys((array) config('cron.commands')));
         $this->assertFalse((new CronCommandRunner())->allows('payment:refund R1 1.00'), '退款只能人工在命令行执行');
     }
 
