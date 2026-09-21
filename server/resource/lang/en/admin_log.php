@@ -205,4 +205,11 @@ return [
     'region_update_desc'           => 'Update region details',
     'region_delete'                => 'Delete region',
     'region_delete_desc'           => 'Delete a region',
+
+    'version_create'               => 'Create app version',
+    'version_create_desc'          => 'Create a new app version',
+    'version_update'               => 'Update app version',
+    'version_update_desc'          => 'Update app version details',
+    'version_delete'               => 'Delete app version',
+    'version_delete_desc'          => 'Delete an app version',
 ];

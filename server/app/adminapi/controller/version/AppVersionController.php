@@ -21,10 +21,11 @@ use Webman\Http\Request;
  *   PUT    /adminapi/version/{id}              update  version.update
  *   DELETE /adminapi/version/{id}              delete  version.delete
  *
+ * 无独立 status / batchDelete 路由：启用/禁用走 update 的 status 字段。
  * update 场景用 sometimes|required：字段不传时跳过（局部更新），传了空值必须校验失败。
  * 唯一性不在这里做成校验规则，由 AppVersionService 查重 + 唯一索引异常兜底（spec 决策 12）。
  *
- * store()/update()/batchDelete()/status() 各自的校验规则由同名的 xxxRules() 无参私有方法
+ * store()/update() 各自的校验规则由同名的 xxxRules() 无参私有方法
  * 提供：M2b 的 RuleReflector 按动作名反射调用 "{action}Rules"（spec §5、§14），方法必须无参、
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
@@ -73,33 +74,6 @@ class AppVersionController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
-    #[Permission('version.delete')]
-    public function batchDelete(Request $request): Response
-    {
-        $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
-            'ids.required'  => 'version.app_version_ids_require',
-            'ids.array'     => 'version.app_version_ids_require',
-            'ids.min'       => 'version.app_version_ids_require',
-            'ids.*.integer' => 'version.app_version_ids_integer',
-        ]);
-        $this->appVersionService->batchDelete(array_map('intval', (array) $data['ids']));
-
-        return $this->success([], lang('messages.batch_delete_success'));
-    }
-
-    #[Permission('version.update')]
-    public function status(Request $request, string $id): Response
-    {
-        $data = $this->validate($this->body($request), $this->statusRules(), [
-            'status.required' => 'version.app_version_status_require',
-            'status.integer'  => 'version.app_version_status_integer',
-            'status.in'       => 'version.app_version_status_invalid',
-        ]);
-        $this->appVersionService->updateStatus((int) $id, (int) $data['status']);
-
-        return $this->success([], lang('messages.status_update_success'));
-    }
-
     /**
      * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14），
      * 这里薄包装委派给 appVersionRules()：规则表只在那一处维护，不重复写。
@@ -122,29 +96,6 @@ class AppVersionController extends Controller
     }
 
     /**
-     * 批量删除固定校验：ids 必须是非空数组，元素必须是整数（CLAUDE.md + spec §6.1 第 4 条）。
-     *
-     * @return array<string, string>
-     */
-    private function batchDeleteRules(): array
-    {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
-    }
-
-    /**
-     * status 端点固定校验：0/1 二值开关。
-     *
-     * @return array<string, string>
-     */
-    private function statusRules(): array
-    {
-        return ['status' => 'required|integer|in:0,1'];
-    }
-
-    /**
      * store/update 共用的字段校验规则表，由 storeRules()/updateRules() 按场景委派调用（不再被
      * store()/update() 直接调用）。create 场景必填、update 场景 sometimes|required（不传就跳过，
      * 传了空值要拒绝）。
@@ -161,12 +112,12 @@ class AppVersionController extends Controller
         $required = $scene === 'create' ? 'required' : 'sometimes|required';
 
         return [
-            'platform'     => "{$required}|string|max:20",
+            'platform'     => "{$required}|in:android,ios,harmony",
             'version'      => "{$required}|string|max:20",
-            'version_code' => "{$required}|integer",
-            'download_url' => 'sometimes|required|string|max:500',
+            'version_code' => "{$required}|integer|min:1",
+            'download_url' => 'sometimes|string|max:500',
             'description'  => 'nullable|string',
-            'force_update' => 'sometimes|required|integer',
+            'force_update' => 'sometimes|required|integer|in:0,1',
             'status'       => 'sometimes|required|integer|in:0,1',
         ];
     }
@@ -180,15 +131,16 @@ class AppVersionController extends Controller
     {
         return [
             'platform.required'     => 'version.app_version_platform_require',
-            'platform.max'          => 'version.app_version_platform_length',
+            'platform.in'           => 'version.app_version_platform_invalid',
             'version.required'      => 'version.app_version_version_require',
             'version.max'           => 'version.app_version_version_length',
             'version_code.required' => 'version.app_version_version_code_require',
             'version_code.integer'  => 'version.app_version_version_code_integer',
-            'download_url.required' => 'version.app_version_download_url_require',
+            'version_code.min'      => 'version.app_version_version_code_min',
             'download_url.max'      => 'version.app_version_download_url_length',
             'force_update.required' => 'version.app_version_force_update_require',
             'force_update.integer'  => 'version.app_version_force_update_integer',
+            'force_update.in'       => 'version.app_version_force_update_invalid',
             'status.required'       => 'version.app_version_status_require',
             'status.integer'        => 'version.app_version_status_integer',
             'status.in'             => 'version.app_version_status_invalid',

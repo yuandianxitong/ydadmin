@@ -7,6 +7,7 @@ namespace app\service\version;
 use app\repository\version\AppVersionRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 
 /**
@@ -79,32 +80,37 @@ class AppVersionService extends Service
     }
 
     /**
-     * 批量删除：同一事务内逐条删除，任一 id 不存在则整体回滚（与 M1 的角色、字典批量删除同语义）。
-     * 重复 id 先去重。
+     * C 端检查更新：取平台最新启用版本，与当前 version_code 比较。
      *
-     * @param list<int> $ids
+     * @return array{need_update: bool, force_update: bool, version?: mixed, version_code?: mixed, download_url?: mixed, description?: mixed}
      */
-    public function batchDelete(array $ids): void
+    public function checkUpdate(string $platform, int $versionCode): array
     {
-        $this->runInTransaction(function () use ($ids): void {
-            foreach (array_values(array_unique($ids)) as $id) {
-                $this->deleteAppVersion($id);
-            }
-        });
-    }
+        if ($platform === '' || $versionCode <= 0) {
+            throw new BusinessException(lang('version.check_params'));
+        }
 
-    public function updateStatus(int $id, int $status): void
-    {
-        $this->findAppVersionOrFail($id);
+        $latest = $this->appVersionRepository->getLatestEnabled($platform);
+        if ($latest === null || (int) $latest['version_code'] <= $versionCode) {
+            return [
+                'need_update'  => false,
+                'force_update' => false,
+            ];
+        }
 
-        $this->runInTransaction(function () use ($id, $status): void {
-            $this->appVersionRepository->update($id, ['status' => $status]);
-        });
+        return [
+            'need_update'  => true,
+            'force_update' => (bool) $latest['force_update'],
+            'version'      => $latest['version'],
+            'version_code' => $latest['version_code'],
+            'download_url' => $latest['download_url'],
+            'description'  => $latest['description'],
+        ];
     }
 
     /** @return array<string, mixed> */
     private function findAppVersionOrFail(int $id): array
     {
-        return $this->appVersionRepository->find($id) ?? throw new BusinessException(lang('version.app_version_not_found'));
+        return $this->appVersionRepository->find($id) ?? throw new NotFoundException(lang('version.not_found'));
     }
 }

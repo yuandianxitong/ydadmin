@@ -205,4 +205,11 @@ return [
     'region_update_desc'           => '更新地区信息',
     'region_delete'                => '删除地区',
     'region_delete_desc'           => '删除地区',
+
+    'version_create'               => '创建应用版本',
+    'version_create_desc'          => '创建新的应用版本',
+    'version_update'               => '更新应用版本',
+    'version_update_desc'          => '更新应用版本信息',
+    'version_delete'               => '删除应用版本',
+    'version_delete_desc'          => '删除应用版本',
 ];

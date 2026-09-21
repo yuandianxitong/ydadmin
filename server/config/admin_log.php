@@ -148,6 +148,11 @@ return [
         'RegionController@store'  => ['admin_log.region_create', 'admin_log.region_create_desc'],
         'RegionController@update' => ['admin_log.region_update', 'admin_log.region_update_desc'],
         'RegionController@delete' => ['admin_log.region_delete', 'admin_log.region_delete_desc'],
+
+        // 应用版本（M7b）。无独立 status / batchDelete 路由。
+        'AppVersionController@store'  => ['admin_log.version_create', 'admin_log.version_create_desc'],
+        'AppVersionController@update' => ['admin_log.version_update', 'admin_log.version_update_desc'],
+        'AppVersionController@delete' => ['admin_log.version_delete', 'admin_log.version_delete_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

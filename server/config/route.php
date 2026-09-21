@@ -38,6 +38,7 @@ use app\api\controller\common\CommonController;
 use app\api\controller\feedback\FeedbackController as ApiFeedbackController;
 use app\api\controller\message\MessageController;
 use app\api\controller\region\RegionController as ApiRegionController;
+use app\api\controller\version\VersionController as ApiVersionController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
@@ -287,6 +288,7 @@ Route::group('/api', function () use ($apiAuth) {
     Route::get('/article-category/list', [ApiArticleCategoryController::class, 'list']);
     Route::get('/region/tree', [ApiRegionController::class, 'tree']);
     Route::get('/region/children', [ApiRegionController::class, 'children']);
+    Route::get('/version/check', [ApiVersionController::class, 'check']);
     Route::get('/announcement/list', [ApiAnnouncementController::class, 'list']);
     Route::get('/announcement/detail/{id:\d+}', [ApiAnnouncementController::class, 'detail']);
     Route::get('/agreement/{code:[a-z][a-z0-9_]{1,49}}', [ApiAgreementController::class, 'show']);
