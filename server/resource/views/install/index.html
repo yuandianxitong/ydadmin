@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>元点Admin 安装向导</title>
+    <style>
+        :root { color-scheme: light; --bg: #f4f1ea; --card: #fffaf3; --ink: #1f2933; --muted: #5b6773; --line: #d7cfc4; --accent: #0f6b5c; --danger: #9b2c2c; --ok: #1b6b3a; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font: 16px/1.55 "Source Han Sans SC", "PingFang SC", sans-serif; background: var(--bg); color: var(--ink); }
+        main { max-width: 760px; margin: 40px auto; padding: 0 20px 60px; }
+        h1 { font-size: 1.6rem; margin: 0 0 8px; }
+        h2 { font-size: 1.2rem; margin: 0 0 16px; }
+        p.lead, .muted { color: var(--muted); }
+        section { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+        section.active { display: block; }
+        .steps { display: flex; gap: 8px; margin: 0 0 20px; padding: 0; list-style: none; }
+        .steps li { flex: 1; text-align: center; font-size: 13px; padding: 8px; border-bottom: 2px solid var(--line); color: var(--muted); }
+        .steps li.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+        .license { max-height: 280px; overflow: auto; padding: 12px 16px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+        .ok { color: var(--ok); } .fail { color: var(--danger); }
+        fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0 0 16px; padding: 16px; }
+        legend { font-weight: 600; padding: 0 6px; }
+        label { display: block; font-size: 13px; margin: 10px 0 4px; }
+        input[type=text], input[type=password], input[type=number], input[type=email] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 20px; }
+        button { appearance: none; border: 0; border-radius: 6px; padding: 9px 16px; font: inherit; cursor: pointer; background: var(--accent); color: #fff; }
+        button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .msg { min-height: 1.4em; margin-top: 10px; font-size: 14px; }
+        .agree { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+        @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<main>
+    <h1>元点Admin 安装向导</h1>
+    <p class="lead">按步骤完成协议确认、环境检查、参数配置后即可安装。安装完成后需要重启服务。</p>
+    <ol class="steps">
+        <li class="on" data-step="license">1. 协议</li>
+        <li data-step="environment">2. 环境</li>
+        <li data-step="config">3. 参数</li>
+        <li data-step="done">4. 完成</li>
+    </ol>
+
+    <section id="step-license" class="active">
+        <h2>软件许可协议</h2>
+        <div class="license" id="license">
+            <p>感谢您选择元点Admin。安装或使用本软件即表示您已阅读并接受本协议。</p>
+            <p>本软件由元点系统开发，官方网站为 www.dev007.cn。源代码、文档与标识的知识产权归版权方所有。</p>
+            <p>在遵守开源许可与本协议附加条款的前提下，您可将本软件用于学习、商业部署与二次开发。请保留版权声明，不得将「元点」「元点Admin」用作自有产品名称。</p>
+            <p>完整条款以项目根目录 LICENSE 与官方文档为准。</p>
+        </div>
+        <label class="agree"><input type="checkbox" id="agree"> 我已阅读并同意上述协议</label>
+        <div class="actions"><span></span><button type="button" id="to-env" disabled>下一步</button></div>
+    </section>
+
+    <section id="step-environment">
+        <h2>环境检测</h2>
+        <table>
+            <thead><tr><th>检查项</th><th>要求</th><th>当前</th><th>结果</th></tr></thead>
+            <tbody id="env-body"></tbody>
+        </table>
+        <p class="msg" id="env-msg"></p>
+        <div class="actions">
+            <button type="button" class="ghost" data-back="license">上一步</button>
+            <button type="button" id="to-config" disabled>下一步</button>
+        </div>
+    </section>
+
+    <section id="step-config">
+        <h2>参数配置</h2>
+        <form id="install-form">
+            <fieldset>
+                <legend>数据库</legend>
+                <div class="row">
+                    <div><label for="db_host">主机</label><input id="db_host" name="db_host" type="text" value="127.0.0.1" required></div>
+                    <div><label for="db_port">端口</label><input id="db_port" name="db_port" type="number" value="3306" required></div>
+                    <div><label for="db_name">数据库名</label><input id="db_name" name="db_name" type="text" required pattern="[A-Za-z0-9_]+"></div>
+                    <div><label for="db_user">用户名</label><input id="db_user" name="db_user" type="text" required></div>
+                    <div><label for="db_password">密码</label><input id="db_password" name="db_password" type="password"></div>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Redis</legend>
+                <div class="row">
+                    <div><label for="redis_host">主机</label><input id="redis_host" name="redis_host" type="text" value="127.0.0.1" required></div>
+                    <div><label for="redis_port">端口</label><input id="redis_port" name="redis_port" type="number" value="6379" required></div>
+                    <div><label for="redis_password">密码</label><input id="redis_password" name="redis_password" type="password"></div>
+                    <div><label for="redis_db">库序号</label><input id="redis_db" name="redis_db" type="number" value="0" required></div>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>超级管理员</legend>
+                <div class="row">
+                    <div><label for="username">用户名</label><input id="username" name="username" type="text" value="admin" required></div>
+                    <div><label for="password">密码</label><input id="password" name="password" type="password" required></div>
+                    <div><label for="email">邮箱（可选）</label><input id="email" name="email" type="email"></div>
+                    <div><label for="nickname">昵称（可选）</label><input id="nickname" name="nickname" type="text"></div>
+                </div>
+            </fieldset>
+        </form>
+        <p class="msg" id="config-msg"></p>
+        <div class="actions">
+            <button type="button" class="ghost" data-back="environment">上一步</button>
+            <div>
+                <button type="button" class="ghost" id="test-btn">测试连接</button>
+                <button type="button" id="run-btn">执行安装</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="step-done">
+        <h2>安装完成</h2>
+        <p id="done-msg"></p>
+        <p class="muted">请执行 <code>php start.php restart</code> 使新配置生效，然后访问管理后台。</p>
+    </section>
+</main>
+<script>
+(function () {
+    const agree = document.getElementById('agree');
+    const toEnv = document.getElementById('to-env');
+    const toConfig = document.getElementById('to-config');
+    const envBody = document.getElementById('env-body');
+    const envMsg = document.getElementById('env-msg');
+    const configMsg = document.getElementById('config-msg');
+    const form = document.getElementById('install-form');
+
+    function show(name) {
+        document.querySelectorAll('section').forEach(function (el) { el.classList.toggle('active', el.id === 'step-' + name); });
+        document.querySelectorAll('.steps li').forEach(function (el) { el.classList.toggle('on', el.getAttribute('data-step') === name); });
+    }
+
+    function payload() {
+        const data = {};
+        new FormData(form).forEach(function (value, key) { data[key] = value; });
+        data.db_port = Number(data.db_port);
+        data.redis_port = Number(data.redis_port);
+        data.redis_db = Number(data.redis_db);
+        return data;
+    }
+
+    async function api(path, options) {
+        const res = await fetch('/install' + path, Object.assign({ headers: { 'Accept': 'application/json' } }, options));
+        return res.json();
+    }
+
+    agree.addEventListener('change', function () { toEnv.disabled = !agree.checked; });
+    toEnv.addEventListener('click', async function () {
+        show('environment');
+        envMsg.textContent = '正在检测…';
+        envBody.innerHTML = '';
+        toConfig.disabled = true;
+        try {
+            const json = await api('/environment');
+            if (json.code !== 200) {
+                envMsg.textContent = json.message || '环境检测失败';
+                return;
+            }
+            let allOk = true;
+            envBody.innerHTML = (json.data.checks || []).map(function (row) {
+                if (!row.ok) allOk = false;
+                return '<tr><td>' + row.name + '</td><td>' + row.required + '</td><td>' + row.current + '</td><td class="' + (row.ok ? 'ok' : 'fail') + '">' + (row.ok ? '通过' : '未通过') + '</td></tr>';
+            }).join('');
+            envMsg.textContent = allOk ? '环境检查通过。' : '存在未通过的检查项，请先修复。';
+            toConfig.disabled = !allOk;
+        } catch (e) {
+            envMsg.textContent = '环境检测请求失败';
+        }
+    });
+    toConfig.addEventListener('click', function () { show('config'); });
+    document.querySelectorAll('[data-back]').forEach(function (btn) {
+        btn.addEventListener('click', function () { show(btn.getAttribute('data-back')); });
+    });
+
+    document.getElementById('test-btn').addEventListener('click', async function () {
+        configMsg.textContent = '正在测试连接…';
+        try {
+            const json = await api('/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload())
+            });
+            configMsg.textContent = json.code === 200 ? '数据库与 Redis 连接成功。' : (json.message || '连接失败');
+        } catch (e) {
+            configMsg.textContent = '测试连接请求失败';
+        }
+    });
+
+    document.getElementById('run-btn').addEventListener('click', async function () {
+        configMsg.textContent = '正在安装…';
+        try {
+            const json = await api('/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload())
+            });
+            if (json.code !== 200) {
+                configMsg.textContent = json.message || '安装失败';
+                return;
+            }
+            document.getElementById('done-msg').textContent = json.message || '安装完成。';
+            show('done');
+        } catch (e) {
+            configMsg.textContent = '安装请求失败';
+        }
+    });
+})();
+</script>
+</body>
+</html>

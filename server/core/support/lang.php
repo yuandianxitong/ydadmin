@@ -13,3 +13,10 @@ if (!function_exists('lang')) {
         return \core\validation\ValidatorFactory::translator()->get($key, $replace, $locale);
     }
 }
+
+if (!function_exists('resource_path')) {
+    function resource_path(string $path = ''): string
+    {
+        return path_combine(base_path() . DIRECTORY_SEPARATOR . 'resource', $path);
+    }
+}

@@ -41,6 +41,7 @@ use app\api\controller\region\RegionController as ApiRegionController;
 use app\api\controller\mobile\DiyPageController as ApiDiyPageController;
 use app\api\controller\mobile\MobileConfigController as ApiMobileConfigController;
 use app\api\controller\version\VersionController as ApiVersionController;
+use app\controller\InstallController;
 use app\controller\SpaController;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
@@ -355,6 +356,14 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/list', [ApiFeedbackController::class, 'list']);
         Route::get('/detail/{id:\d+}', [ApiFeedbackController::class, 'detail']);
     })->middleware($apiAuth);
+})->middleware($apiOuter);
+
+// M8：浏览器安装向导。挂在 /adminapi、/api 之外，只套 $apiOuter（不进认证组、不进 config/route/*.php 的 adminapi glob）。
+Route::group('/install', function () {
+    Route::get('', [InstallController::class, 'index']);
+    Route::get('/environment', [InstallController::class, 'environment']);
+    Route::post('/test-connection', [InstallController::class, 'testConnection']);
+    Route::post('/run', [InstallController::class, 'run']);
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径
