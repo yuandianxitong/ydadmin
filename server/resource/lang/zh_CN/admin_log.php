@@ -212,4 +212,7 @@ return [
     'version_update_desc'          => '更新应用版本信息',
     'version_delete'               => '删除应用版本',
     'version_delete_desc'          => '删除应用版本',
+
+    'dataimport_upload'            => '导入数据',
+    'dataimport_upload_desc'       => '上传 CSV 并导入数据',
 ];

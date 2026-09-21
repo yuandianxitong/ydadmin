@@ -212,4 +212,7 @@ return [
     'version_update_desc'          => 'Update app version details',
     'version_delete'               => 'Delete app version',
     'version_delete_desc'          => 'Delete an app version',
+
+    'dataimport_upload'            => 'Import data',
+    'dataimport_upload_desc'       => 'Upload a CSV file and import data',
 ];
