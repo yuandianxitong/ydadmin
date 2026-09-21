@@ -156,6 +156,14 @@ return [
 
         // 数据导入（M7b）。history 是读，不登记。
         'DataImportController@upload' => ['admin_log.dataimport_upload', 'admin_log.dataimport_upload_desc'],
+
+        // 装修页面（M7c）。本任务只登记已接通的写动作；自定义 CRUD 等 Task 4 再补。
+        'DiyPageController@saveHome'            => ['admin_log.diy_home_save', 'admin_log.diy_home_save_desc'],
+        'DiyPageController@publishHome'         => ['admin_log.diy_home_publish', 'admin_log.diy_home_publish_desc'],
+        'DiyPageController@restoreVersion'      => ['admin_log.diy_home_restore', 'admin_log.diy_home_restore_desc'],
+        'DiyPageController@saveDraftByKey'      => ['admin_log.diy_page_save', 'admin_log.diy_page_save_desc'],
+        'DiyPageController@publishByKey'        => ['admin_log.diy_page_publish', 'admin_log.diy_page_publish_desc'],
+        'DiyPageController@restoreVersionByKey' => ['admin_log.diy_page_restore', 'admin_log.diy_page_restore_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

@@ -215,4 +215,17 @@ return [
 
     'dataimport_upload'            => '导入数据',
     'dataimport_upload_desc'       => '上传 CSV 并导入数据',
+
+    'diy_home_save'                => '保存装修首页草稿',
+    'diy_home_save_desc'           => '保存装修首页草稿与页面设置',
+    'diy_home_publish'             => '发布装修首页',
+    'diy_home_publish_desc'        => '发布装修首页并写入版本快照',
+    'diy_home_restore'             => '回滚装修首页版本',
+    'diy_home_restore_desc'        => '将历史版本回滚到装修首页草稿',
+    'diy_page_save'                => '保存装修页面草稿',
+    'diy_page_save_desc'           => '保存自定义装修页面草稿与页面设置',
+    'diy_page_publish'             => '发布装修页面',
+    'diy_page_publish_desc'        => '发布装修页面并写入版本快照',
+    'diy_page_restore'             => '回滚装修页面版本',
+    'diy_page_restore_desc'        => '将历史版本回滚到装修页面草稿',
 ];

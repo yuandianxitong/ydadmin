@@ -215,4 +215,17 @@ return [
 
     'dataimport_upload'            => 'Import data',
     'dataimport_upload_desc'       => 'Upload a CSV file and import data',
+
+    'diy_home_save'                => 'Save home decoration draft',
+    'diy_home_save_desc'           => 'Save the home decoration draft and page settings',
+    'diy_home_publish'             => 'Publish home decoration',
+    'diy_home_publish_desc'        => 'Publish the home decoration page and write a version snapshot',
+    'diy_home_restore'             => 'Restore home decoration version',
+    'diy_home_restore_desc'        => 'Restore a history version to the home decoration draft',
+    'diy_page_save'                => 'Save decoration page draft',
+    'diy_page_save_desc'           => 'Save a custom decoration page draft and page settings',
+    'diy_page_publish'             => 'Publish decoration page',
+    'diy_page_publish_desc'        => 'Publish a decoration page and write a version snapshot',
+    'diy_page_restore'             => 'Restore decoration page version',
+    'diy_page_restore_desc'        => 'Restore a history version to the decoration page draft',
 ];
