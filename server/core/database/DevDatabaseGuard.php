@@ -29,6 +29,9 @@ final class DevDatabaseGuard
         'announcements'       => ['created_by', 'deleted_at'],
         'agreements'          => ['code'],
         'feedbacks'           => ['user_id', 'deleted_at'],
+        'regions'             => ['parent_id', 'code', 'level'],
+        'app_versions'        => ['platform', 'version_code', 'force_update'],
+        'data_imports'        => ['admin_id', 'errors'],
     ];
 
     /**

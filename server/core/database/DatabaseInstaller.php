@@ -29,16 +29,20 @@ final class DatabaseInstaller
         $pdo->exec("DROP DATABASE IF EXISTS `{$database}`");
         $pdo->exec("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
         $pdo->exec("USE `{$database}`");
-        foreach (['schema.sql', 'init.sql'] as $file) {
+        foreach (['schema.sql', 'init.sql', 'regions.sql'] as $file) {
             foreach (SqlScript::split((string) file_get_contents($installDir . '/' . $file)) as $statement) {
                 $pdo->exec($statement);
             }
         }
     }
 
-    /** schema.sql 或 init.sql 任一变化，指纹就变（测试库据此自动重建）。 */
+    /** schema.sql / init.sql / regions.sql 任一变化，指纹就变（测试库据此自动重建）。 */
     public static function fingerprint(string $installDir): string
     {
-        return md5((string) file_get_contents($installDir . '/schema.sql') . "\0" . (string) file_get_contents($installDir . '/init.sql'));
+        return md5(
+            (string) file_get_contents($installDir . '/schema.sql') . "\0"
+            . (string) file_get_contents($installDir . '/init.sql') . "\0"
+            . (string) file_get_contents($installDir . '/regions.sql')
+        );
     }
 }

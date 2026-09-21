@@ -312,6 +312,17 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (743, 740, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'article.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
   (744, 740, 3, '发布/下架', NULL, NULL, NULL, NULL, NULL, 'article.status', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW());
 
+INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `component`, `redirect`, `icon`, `permission`, `is_hidden`, `is_cache`, `is_affix`, `is_iframe`, `external_link`, `breadcrumb`, `active_menu`, `meta`, `status`, `sort`, `created_at`, `updated_at`) VALUES
+  (8, 0, 1, '应用管理', 'Application', '/app', 'LAYOUT', '/app/region', 'i-svg:box', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 650, NOW(), NOW()),
+  (800, 8, 2, '区域管理', 'AppRegion', '/app/region', '/content/region/index', NULL, 'i-svg:map-pinned', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (801, 800, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'region.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (802, 800, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'region.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (803, 800, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'region.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (810, 8, 2, '应用版本', 'AppVersion', '/app/version', '/content/version/index', NULL, 'i-svg:arrow-up-from-line', 'version.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (811, 810, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'version.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
+  (812, 810, 3, '编辑', NULL, NULL, NULL, NULL, NULL, 'version.update', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
+  (813, 810, 3, '删除', NULL, NULL, NULL, NULL, NULL, 'version.delete', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW());
+
 -- ---------------------------------------------------------------- M6b：消息管理菜单
 
 -- 菜单 130–135（M6b spec §5）：避开 M4 在线管理员占用的 120/121。图标、按钮排序、redirect 照抄 1.x 的 120–125 行；

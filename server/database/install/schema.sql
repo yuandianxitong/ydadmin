@@ -623,3 +623,50 @@ CREATE TABLE `feedbacks` (
   KEY `idx_status` (`status`),
   KEY `idx_type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户反馈';
+
+CREATE TABLE `regions` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `parent_id` int unsigned NOT NULL DEFAULT 0 COMMENT '父级ID',
+  `name` varchar(50) NOT NULL COMMENT '名称',
+  `code` varchar(20) NOT NULL DEFAULT '' COMMENT '编码',
+  `level` tinyint NOT NULL DEFAULT 1 COMMENT '层级：1省 2市 3区',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_parent_id` (`parent_id`),
+  KEY `idx_level` (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='地区表';
+
+CREATE TABLE `app_versions` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `platform` varchar(20) NOT NULL COMMENT '平台',
+  `version` varchar(20) NOT NULL COMMENT '版本号',
+  `version_code` int unsigned NOT NULL COMMENT '版本编码',
+  `download_url` varchar(500) NOT NULL DEFAULT '' COMMENT '下载地址',
+  `description` text COMMENT '版本描述',
+  `force_update` tinyint NOT NULL DEFAULT 0 COMMENT '强制更新：0否 1是',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_platform_version` (`platform`, `version_code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='APP版本表';
+
+CREATE TABLE `data_imports` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `module` varchar(50) NOT NULL COMMENT '模块',
+  `filename` varchar(200) NOT NULL COMMENT '文件名',
+  `total_count` int NOT NULL DEFAULT 0 COMMENT '总条数',
+  `success_count` int NOT NULL DEFAULT 0 COMMENT '成功条数',
+  `fail_count` int NOT NULL DEFAULT 0 COMMENT '失败条数',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0处理中 1完成 2失败',
+  `errors` text COMMENT '错误信息JSON',
+  `admin_id` int unsigned NOT NULL COMMENT '管理员ID',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_module` (`module`),
+  KEY `idx_admin_id` (`admin_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据导入表';

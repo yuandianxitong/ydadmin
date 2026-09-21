@@ -30,9 +30,9 @@ final class SchemaTest extends TestCase
 
     public function test_menu_seeds_keep_tp8_ids_without_the_permission_page(): void
     {
-        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录，7 是 M7a 内容管理目录（均沿用 TP8 id）。
+        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录，7 是 M7a 内容管理目录，8 是 M7b 应用管理目录（均沿用 TP8 id）。
         $ids = array_map('intval', Db::table('menus')->where('id', '<=', 53)->orderBy('id')->pluck('id')->all());
-        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
         $this->assertSame('system.role.permission', Db::table('menus')->where('id', 24)->value('permission'));
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }
@@ -520,6 +520,69 @@ final class SchemaTest extends TestCase
         $this->assertSame('反馈已收到', $tpl->site_title);
         $this->assertSame('您的反馈我们已收到，将尽快为您处理，感谢您的支持！', $tpl->site_content);
         $this->assertSame('feedback', \app\service\message\MessageService::SITE_TYPES['feedback_received']);
+    }
+
+    public function test_m7b_app_tables(): void
+    {
+        foreach (['regions', 'app_versions', 'data_imports'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), $table);
+        }
+        $this->assertFalse(Db::schema()->hasColumn('regions', 'created_at'));
+        $this->assertFalse(Db::schema()->hasColumn('regions', 'deleted_at'));
+        $this->assertFalse(Db::schema()->hasColumn('data_imports', 'created_by'));
+        $this->assertTrue(Db::schema()->hasColumn('data_imports', 'admin_id'));
+        $this->assertContains('uk_code', array_column(Db::select('SHOW INDEX FROM regions'), 'Key_name'));
+    }
+
+    public function test_m7b_region_seed_matches_sql_file(): void
+    {
+        $sql = (string) file_get_contents(base_path() . '/database/install/regions.sql');
+        preg_match_all('/^\(\d+,/m', $sql, $m);
+        $this->assertGreaterThan(2800, count($m[0]));
+        $this->assertSame(count($m[0]), (int) Db::table('regions')->count());
+        $bj = Db::table('regions')->where('id', 110000)->first();
+        $this->assertNotNull($bj);
+        $this->assertSame('北京市', $bj->name);
+        $this->assertSame(0, (int) Db::table('app_versions')->count());
+        $this->assertSame(0, (int) Db::table('data_imports')->count());
+    }
+
+    public function test_m7b_app_menu_seeds(): void
+    {
+        $ids = [8, 800, 801, 802, 803, 810, 811, 812, 813];
+        $menus = Db::table('menus')->whereIn('id', $ids)->orderBy('id')->get()->all();
+        $this->assertCount(count($ids), $menus);
+        $byId = [];
+        foreach ($menus as $m) {
+            $byId[(int) $m->id] = $m;
+        }
+        $this->assertSame(0, (int) $byId[8]->parent_id);
+        $this->assertSame('Application', $byId[8]->name);
+        $this->assertSame('region.list', $byId[8]->permission);
+        $this->assertSame(650, (int) $byId[8]->sort);
+        $this->assertSame('/app/region', $byId[8]->redirect);
+        $this->assertSame('/content/region/index', $byId[800]->component);
+        $this->assertSame('/content/version/index', $byId[810]->component);
+        $this->assertSame('region.create', $byId[801]->permission);
+        $this->assertSame('version.delete', $byId[813]->permission);
+        $this->assertSame(0, Db::table('menus')->where('permission', 'like', 'dataimport.%')->count());
+        $this->assertSame(0, Db::table('menus')->whereIn('permission', ['region.status', 'version.status'])->count());
+        foreach (['region/index.vue', 'version/index.vue'] as $view) {
+            $this->assertFileExists(base_path() . "/../admin/src/views/content/{$view}");
+        }
+    }
+
+    public function test_installer_fingerprint_includes_regions_sql(): void
+    {
+        $dir = base_path() . '/database/install';
+        $two = md5((string) file_get_contents($dir . '/schema.sql') . "\0" . (string) file_get_contents($dir . '/init.sql'));
+        $three = md5(
+            (string) file_get_contents($dir . '/schema.sql') . "\0"
+            . (string) file_get_contents($dir . '/init.sql') . "\0"
+            . (string) file_get_contents($dir . '/regions.sql')
+        );
+        $this->assertSame($three, \core\database\DatabaseInstaller::fingerprint($dir));
+        $this->assertNotSame($two, $three);
     }
 
     public function test_init_sql_contains_no_admin_account(): void
