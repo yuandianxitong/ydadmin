@@ -30,4 +30,16 @@ final class GeneratedRouteSmokeTest extends ApiTestCase
             $this->assertFalse($p->getDefaultValue());
         }
     }
+
+    public function test_admin_can_create_region_without_timestamp_columns(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $code = 't' . bin2hex(random_bytes(4));
+        $created = $this->post('/adminapi/region', [
+            'name' => '冒烟夹具',
+            'code' => $code,
+        ], $admin->token)->assertOk()->data();
+        $this->track('regions', (int) $created['id']);
+        $this->assertSame($code, $created['code']);
+    }
 }

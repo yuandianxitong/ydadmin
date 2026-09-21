@@ -6,9 +6,11 @@ namespace app\model\region;
 
 use core\base\Model;
 
-/** 地区（regions 表）。由代码生成器生成，可直接手改。 */
+/** 地区（regions 表）。无 created_at / updated_at，必须关掉 Eloquent 时间戳。 */
 class Region extends Model
 {
+    public $timestamps = false;
+
     protected $table = 'regions';
 
     /** @var array<string, string> */
