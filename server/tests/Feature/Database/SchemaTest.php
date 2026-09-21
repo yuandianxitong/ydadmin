@@ -30,9 +30,9 @@ final class SchemaTest extends TestCase
 
     public function test_menu_seeds_keep_tp8_ids_without_the_permission_page(): void
     {
-        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录，7 是 M7a 内容管理目录，8 是 M7b 应用管理目录（均沿用 TP8 id）。
+        // 测试夹具新建的菜单 id 都大于 53，这里只看种子区间。9 是 M5a 会员管理目录，4/5/6/15 是 M6a 渠道管理目录，7 是 M7a 内容管理目录，8 是 M7b 应用管理目录，16 是 M7c 装修目录（均沿用 TP8 id）。
         $ids = array_map('intval', Db::table('menus')->where('id', '<=', 53)->orderBy('id')->pluck('id')->all());
-        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 22, 23, 24, 25, 30, 31, 32, 33, 50, 51, 52, 53], $ids);
         $this->assertSame('system.role.permission', Db::table('menus')->where('id', 24)->value('permission'));
         $this->assertSame('/system/admin/index', Db::table('menus')->where('id', 10)->value('component'));
     }
@@ -569,6 +569,66 @@ final class SchemaTest extends TestCase
         $this->assertSame(0, Db::table('menus')->whereIn('permission', ['region.status', 'version.status'])->count());
         foreach (['region/index.vue', 'version/index.vue'] as $view) {
             $this->assertFileExists(base_path() . "/../admin/src/views/content/{$view}");
+        }
+    }
+
+    public function test_m7c_diy_tables(): void
+    {
+        foreach (['diy_pages', 'diy_page_versions', 'diy_links', 'mobile_configs'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table), $table);
+        }
+        $this->assertTrue(Db::schema()->hasColumn('diy_pages', 'deleted_at'));
+        $this->assertTrue(Db::schema()->hasColumn('diy_links', 'deleted_at'));
+        $this->assertFalse(Db::schema()->hasColumn('diy_page_versions', 'updated_at'));
+        $this->assertFalse(Db::schema()->hasColumn('diy_page_versions', 'deleted_at'));
+        $this->assertTrue(Db::schema()->hasColumn('diy_page_versions', 'created_by'));
+        $this->assertFalse(Db::schema()->hasColumn('mobile_configs', 'app_intro'));
+        $this->assertContains('uk_pagekey_platform', array_column(Db::select('SHOW INDEX FROM diy_pages'), 'Key_name'));
+    }
+
+    public function test_m7c_diy_seeds(): void
+    {
+        $this->assertSame(1, (int) Db::table('diy_pages')->where('page_key', 'home')->where('platform', 'uniapp')->count());
+        $this->assertSame(1, (int) Db::table('diy_pages')->where('page_key', 'member')->where('platform', 'uniapp')->count());
+        $home = Db::table('diy_pages')->where('page_key', 'home')->first();
+        $this->assertNotNull($home);
+        $published = json_decode((string) $home->components_published, true);
+        $this->assertIsArray($published);
+        $this->assertNotSame([], $published);
+        $this->assertSame($home->components_draft, $home->components_published);
+        $this->assertSame(1, (int) Db::table('mobile_configs')->count());
+        $cfg = Db::table('mobile_configs')->first();
+        $this->assertSame('#2979ff', $cfg->theme_color);
+        $this->assertSame(0, (int) Db::table('diy_links')->count());
+        $this->assertSame(0, (int) Db::table('diy_page_versions')->count());
+    }
+
+    public function test_m7c_diy_menu_seeds(): void
+    {
+        $ids = [16, 1600, 1601, 1602, 1603, 1604, 1605, 1606, 1607, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1616, 1617, 1618];
+        $menus = Db::table('menus')->whereIn('id', $ids)->orderBy('id')->get()->all();
+        $this->assertCount(count($ids), $menus);
+        $byId = [];
+        foreach ($menus as $m) {
+            $byId[(int) $m->id] = $m;
+        }
+        $this->assertSame(0, (int) $byId[16]->parent_id);
+        $this->assertSame('Diy', $byId[16]->name);
+        $this->assertSame('diy.home.view', $byId[16]->permission);
+        $this->assertSame(700, (int) $byId[16]->sort);
+        $this->assertSame('/diy/home', $byId[16]->redirect);
+        $this->assertSame('diy/decorate-list', $byId[1600]->component);
+        $this->assertSame('diy/pages', $byId[1601]->component);
+        $this->assertSame('diy/tabbar', $byId[1602]->component);
+        $this->assertSame('diy/theme', $byId[1603]->component);
+        $this->assertSame('diy/links', $byId[1604]->component);
+        $this->assertSame('diy.home.save', $byId[1605]->permission);
+        $this->assertSame('diy.page.create', $byId[1609]->permission);
+        $this->assertSame('mobile.config.update', $byId[1614]->permission);
+        $this->assertSame('mobile.config.update', $byId[1615]->permission);
+        $this->assertSame('diy.link.delete', $byId[1618]->permission);
+        foreach (['decorate-list.vue', 'pages.vue', 'tabbar.vue', 'theme.vue', 'links.vue'] as $view) {
+            $this->assertFileExists(base_path() . "/../admin/src/views/diy/{$view}");
         }
     }
 

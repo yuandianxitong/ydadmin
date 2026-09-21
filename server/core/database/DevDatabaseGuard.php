@@ -32,6 +32,10 @@ final class DevDatabaseGuard
         'regions'             => ['parent_id', 'code', 'level'],
         'app_versions'        => ['platform', 'version_code', 'force_update'],
         'data_imports'        => ['admin_id', 'errors'],
+        'diy_pages'          => ['page_key', 'components_draft', 'deleted_at'],
+        'diy_page_versions'  => ['page_id', 'version_no', 'created_by'],
+        'diy_links'          => ['path', 'deleted_at'],
+        'mobile_configs'     => ['theme_color', 'tabbar_json'],
     ];
 
     /**
