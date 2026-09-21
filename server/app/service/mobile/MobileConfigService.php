@@ -54,7 +54,7 @@ class MobileConfigService extends Service
         foreach (self::BUILTIN_PAGES as $code => $path) {
             $opts[] = [
                 'code'              => $code,
-                'name'              => $labels[$code] ?? $code,
+                'name'              => $labels[$code],
                 'kind'              => 'builtin',
                 'subpackage'        => '',
                 'pages'             => [['path' => $path]],

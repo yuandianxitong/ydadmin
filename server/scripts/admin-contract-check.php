@@ -24,6 +24,8 @@
  *   开发库没有 articles 表时整段跳过，没有会员时跳过写路径。
  * M7b 起：地区 / App 版本 / 数据导入段打未登录 401、超管分页与 common/regions、C 端公开 tree 与 version/check；
  *   开发库没有 regions 表时整段跳过。
+ * M7c 起：装修 / 移动端配置段打未登录 401、超管页面列表 {list,total} 与首页 components、C 端公开 diy-page 与 config；
+ *   开发库没有 diy_pages 表时整段跳过。
  * 地址：默认取 .env 的 SERVER_LISTEN 端口；可用环境变量 CONTRACT_BASE_URL 覆盖。
  * 退出码：0 = 全部通过。
  */
@@ -1949,6 +1951,59 @@ if (!support\Db::connection()->getSchemaBuilder()->hasTable('regions')) {
     check(
         'C 端 version/check：code 200，data 含 need_update',
         respCode($r) === 200 && is_array($m7bCheck) && array_key_exists('need_update', $m7bCheck),
+        $r['body']
+    );
+}
+
+echo "\n=== M7c：DIY 装修 / 移动端配置 ===\n";
+if (!support\Db::connection()->getSchemaBuilder()->hasTable('diy_pages')) {
+    echo "  （开发库还没有 diy_pages 表：M7c 开发库补丁 SQL 尚未执行，这是预期状态，本段跳过）\n";
+} else {
+    foreach (['diy/home', 'diy/pages', 'mobile/config'] as $path) {
+        $r = http('GET', "{$base}/adminapi/{$path}", $api);
+        check("管理端 {$path}：未登录 → code 401", respCode($r) === 401, $r['body']);
+    }
+
+    $r = http('GET', "{$base}/adminapi/diy/pages", $auth);
+    $m7cPages = respData($r);
+    check(
+        '管理端 diy/pages：code 200，data 为 {list,total} 且无 pagination',
+        respCode($r) === 200
+            && is_array($m7cPages)
+            && array_key_exists('list', $m7cPages)
+            && array_key_exists('total', $m7cPages)
+            && !array_key_exists('pagination', $m7cPages),
+        $r['body']
+    );
+
+    $r = http('GET', "{$base}/adminapi/diy/home", $auth);
+    $m7cHome = respData($r);
+    check(
+        '管理端 diy/home：code 200，data 含 components',
+        respCode($r) === 200 && is_array($m7cHome) && array_key_exists('components', $m7cHome),
+        $r['body']
+    );
+
+    $r = http('GET', "{$base}/api/mobile/diy-page?key=home", $api);
+    $m7cPublic = respData($r);
+    $m7cPublicCode = respCode($r);
+    check(
+        'C 端 mobile/diy-page?key=home：code 200，data.components 为非空数组',
+        $m7cPublicCode === 200
+            && is_array($m7cPublic)
+            && is_array($m7cPublic['components'] ?? null)
+            && $m7cPublic['components'] !== [],
+        $r['body']
+    );
+
+    $r = http('GET', "{$base}/api/mobile/config", $api);
+    $m7cConfig = respData($r);
+    check(
+        'C 端 mobile/config：code 200，data 含 theme_color 与 tabbar',
+        respCode($r) === 200
+            && is_array($m7cConfig)
+            && array_key_exists('theme_color', $m7cConfig)
+            && array_key_exists('tabbar', $m7cConfig),
         $r['body']
     );
 }

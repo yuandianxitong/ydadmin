@@ -39,7 +39,7 @@ class LinkCatalogService extends Service
         ['label' => '用户协议', 'path' => '/modules/agreement/pages/agreement?code=user_agreement', 'category' => '内容'],
     ];
 
-    /** @return array<int,array{label:string,path:string,category:string,source:string,params_schema:array,external:bool}> */
+    /** @return array<int, array{label: string, path: string, category: string, source: string, params_schema: list<mixed>, external: bool}> */
     public function catalog(): array
     {
         $out = [];
@@ -56,7 +56,7 @@ class LinkCatalogService extends Service
         return $out;
     }
 
-    /** @return array{label:string,path:string,category:string,source:string,params_schema:array,external:bool} */
+    /** @return array{label: string, path: string, category: string, source: string, params_schema: list<mixed>, external: bool} */
     private function item(string $label, string $path, string $category, string $source): array
     {
         return [

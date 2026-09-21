@@ -513,6 +513,32 @@ WHERE code = 'payment_success';
 - 地区种子可被超管删改；不在本里程碑做「种子地区不可删」。
 - 不改 admin / PC / uniapp 页面。
 
+### 装修（M7c）
+
+DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_pages`、`diy_page_versions`、`diy_links`、`mobile_configs`。管理端菜单 16 / 1600–1618（装修 → 页面装修、自定义页面、底部导航、主题风格、链接管理）。
+
+**升级到 M7c 时先执行开发库补丁 SQL**（四表、菜单 16/1600–1618、home/member 与 `mobile_configs` 种子），再部署代码。补丁按 `page_key` / 是否已有配置行判空再插，不会覆盖开发库里已有的同 key 装修。
+
+**C 端接口**（公开，不挂会员认证）：
+
+| 接口 | 鉴权 | 说明 |
+|---|---|---|
+| `GET /api/mobile/diy-page?key=` | 公开 | 只出已发布且启用、组件树非空的页；缺 `key` → 400；未发布 / 不存在 → 404，body 不含草稿 |
+| `GET /api/mobile/config` | 公开 | 主题色、tabBar，以及 `home_decoration`（已发布首页，没有则为 `null`） |
+
+**组件**：15 个内置（`banner`、`nav-grid`、`category-nav`、`rich-text`、`title-bar`、`divider`、`image-ad`、`image-cube`、`video`、`notice`、`search-bar`、`float-button`、`user-info-card`、`service-menu`、`content-list`）。`widgets.plugins` 恒为空数组。`content-list` 的 `source=latest` 会注水已发布文章。
+
+**页面列表**：`GET /adminapi/diy/pages` 出参是 `{list,total}`，不是标准 `{list, pagination}`（前端已冻）。
+
+**已知限制**：
+
+- 无插件宿主；`plugins` 空，以后另开里程碑。
+- 不做 `platform=pc` 第二套页面（列保留，本里程碑只写 `uniapp`）。
+- 页面列表不是标准四键分页。
+- 种子图路径是 `/static/diy/...`；2.x 若缺文件，C 端显示破图，不在本里程碑补图。
+- 前端 MobileConfig 上的客服 / 分享 / 微信字段本里程碑不落库（不建 `app_intro` / `service_*` / `share_*` / `wechat_appid`）。
+- 不改 admin / PC / uniapp 页面。
+
 ### 升级
 
 `schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
@@ -571,5 +597,5 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
 | M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
-| M7 | 内容与装修 | 进行中（M7a 已完成；M7b 本里程碑：地区 / App 版本 / 数据导入） |
+| M7 | 内容与装修 | 进行中（M7a / M7b 已完成；M7c 本里程碑：DIY 装修 + 移动端配置） |
 | M8 | 安装与发布 | |

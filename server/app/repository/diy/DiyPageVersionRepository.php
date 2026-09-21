@@ -56,10 +56,10 @@ class DiyPageVersionRepository extends Repository
     public function listByPageId(int $pageId): array
     {
         return $this->applyOrder(
-            $this->query()
-                ->where($this->qualify('page_id'), $pageId)
-                ->select(['id', 'version_no', 'created_at', 'note']),
+            $this->query()->where($this->qualify('page_id'), $pageId),
             'version_no desc'
-        )->get()->toArray();
+        )->select(['id', 'version_no', 'created_at', 'note'])
+            ->get()
+            ->toArray();
     }
 }

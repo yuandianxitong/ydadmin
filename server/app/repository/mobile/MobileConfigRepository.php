@@ -26,7 +26,10 @@ class MobileConfigRepository extends Repository
     /** @return array<string, mixed>|null */
     public function findSingleton(): ?array
     {
-        return $this->query()->orderBy('id')->first()?->toArray();
+        $query = $this->query();
+        $query->orderBy($this->qualify('id'));
+
+        return $query->first()?->toArray();
     }
 
     /**

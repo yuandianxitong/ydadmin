@@ -132,10 +132,11 @@ class DiyPageRepository extends Repository
             $this->query()
                 ->where($this->qualify('page_type'), 'custom')
                 ->where($this->qualify('platform'), 'uniapp')
-                ->where($this->qualify('status'), 1)
-                ->select([$this->qualify('page_key'), $this->qualify('title')]),
+                ->where($this->qualify('status'), 1),
             'updated_at desc'
-        )->get()->toArray();
+        )->select([$this->qualify('page_key'), $this->qualify('title')])
+            ->get()
+            ->toArray();
 
         return array_map(static fn (array $r): array => [
             'label' => (string) ($r['title'] ?? $r['page_key']),
