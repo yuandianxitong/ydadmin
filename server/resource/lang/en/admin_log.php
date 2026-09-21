@@ -228,4 +228,12 @@ return [
     'diy_page_publish_desc'        => 'Publish a decoration page and write a version snapshot',
     'diy_page_restore'             => 'Restore decoration page version',
     'diy_page_restore_desc'        => 'Restore a history version to the decoration page draft',
+    'diy_page_create'              => 'Create decoration page',
+    'diy_page_create_desc'         => 'Create a custom decoration page',
+    'diy_page_copy'                => 'Copy decoration page',
+    'diy_page_copy_desc'           => 'Copy a custom decoration page as an unpublished draft',
+    'diy_page_update'              => 'Update decoration page',
+    'diy_page_update_desc'         => 'Update a custom decoration page title, key, or status',
+    'diy_page_delete'              => 'Delete decoration page',
+    'diy_page_delete_desc'         => 'Delete a custom decoration page',
 ];

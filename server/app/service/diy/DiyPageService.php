@@ -11,15 +11,19 @@ use core\context\RequestContext;
 use core\diy\DiyWidgetRegistry;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
+use core\exception\ValidationException;
 use DI\Attribute\Inject;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * 装修页面：系统页（home/member）草稿读写、发布插版本、回滚只改草稿、C 端已发布。
+ * 装修页面：系统页草稿/发布/版本、自定义页 CRUD / 复制 / 删除保护、C 端已发布。
  *
- * 只调 Repository。自定义页 CRUD 由后续任务补。
+ * 只调 Repository。链接目录与 widget-preview 由后续任务补。
  */
 class DiyPageService extends Service
 {
+    private const SLUG_RE = '/^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/';
+
     /** @var array<string, array{page_type: string, title: string}> */
     private const SYSTEM_PAGES = [
         'home'   => ['page_type' => 'home', 'title' => '首页'],
@@ -264,6 +268,130 @@ class DiyPageService extends Service
     }
 
     /**
+     * 自定义页分页。形状是 {list,total}，不是标准 {list,pagination}。
+     *
+     * @return array{list: list<array<string, mixed>>, total: int}
+     */
+    public function listPages(int $page = 1, int $limit = 10, string $keyword = '', ?bool $published = null): array
+    {
+        return $this->diyPageRepository->listPages($page, $limit, trim($keyword), $published);
+    }
+
+    /**
+     * 新建自定义页。slug 在 Service 再断言一次（含 home/member 保留字）。
+     *
+     * @param array<string, mixed> $data 控制器 validate() 白名单
+     * @return array{id: int}
+     */
+    public function createPage(array $data): array
+    {
+        $key = (string) $data['page_key'];
+        $this->assertSlug($key);
+        if ($this->diyPageRepository->existsKey($key)) {
+            throw self::pageKeyTaken();
+        }
+
+        try {
+            $row = $this->diyPageRepository->create([
+                'page_type'             => 'custom',
+                'page_key'              => $key,
+                'platform'              => 'uniapp',
+                'title'                 => (string) $data['title'],
+                'components_draft'      => [],
+                'components_published'  => [],
+                'page_settings'         => [],
+                'status'                => 1,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw self::pageKeyTaken();
+        }
+
+        return ['id' => (int) $row['id']];
+    }
+
+    /**
+     * 改自定义页 title / page_key / status。非 custom → 404。
+     *
+     * @param array<string, mixed> $data 控制器 validate() 白名单
+     */
+    public function updatePage(int $id, array $data): void
+    {
+        $row = $this->guardCustom($id);
+        $patch = [];
+        if (array_key_exists('title', $data)) {
+            $patch['title'] = (string) $data['title'];
+        }
+        if (array_key_exists('status', $data)) {
+            $patch['status'] = (int) $data['status'] === 1 ? 1 : 0;
+        }
+        if (array_key_exists('page_key', $data)) {
+            $key = (string) $data['page_key'];
+            $this->assertSlug($key);
+            if ($key !== (string) $row['page_key'] && $this->diyPageRepository->existsKey($key)) {
+                throw self::pageKeyTaken();
+            }
+            $patch['page_key'] = $key;
+        }
+        if ($patch === []) {
+            return;
+        }
+
+        try {
+            $this->diyPageRepository->update($id, $patch);
+        } catch (UniqueConstraintViolationException) {
+            throw self::pageKeyTaken();
+        }
+    }
+
+    /**
+     * 复制自定义页。草稿空则抄已发布；副本恒未发布。
+     *
+     * @return array{id: int}
+     */
+    public function copyPage(int $id): array
+    {
+        return $this->runInTransaction(function () use ($id): array {
+            $src = $this->guardCustom($id);
+            $draft = $this->normalizeComponents($src['components_draft'] ?? []);
+            if ($draft === []) {
+                $draft = $this->normalizeComponents($src['components_published'] ?? []);
+            }
+
+            try {
+                $row = $this->diyPageRepository->create([
+                    'page_type'            => 'custom',
+                    'page_key'             => $this->nextCopyKey((string) $src['page_key']),
+                    'platform'             => 'uniapp',
+                    'title'                => mb_substr((string) $src['title'], 0, 90) . '-副本',
+                    'components_draft'     => $draft,
+                    'components_published' => [],
+                    'page_settings'        => $this->normalizeSettings($src['page_settings'] ?? []),
+                    'status'               => (int) ($src['status'] ?? 1),
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                throw self::pageKeyTaken();
+            }
+
+            return ['id' => (int) $row['id']];
+        });
+    }
+
+    public function deletePage(int $id): void
+    {
+        $row = $this->diyPageRepository->find($id);
+        if ($row === null) {
+            throw new NotFoundException();
+        }
+        $key = (string) ($row['page_key'] ?? '');
+        $type = (string) ($row['page_type'] ?? '');
+        if (isset(self::SYSTEM_PAGES[$key]) || $type === 'home' || $type === 'member') {
+            throw new BusinessException(lang('diy.system_page_protected'), 400);
+        }
+        $this->guardCustom($id);
+        $this->diyPageRepository->softDelete($id);
+    }
+
+    /**
      * @param array<int, mixed> $components
      * @return list<array<string, mixed>>
      */
@@ -342,5 +470,46 @@ class DiyPageService extends Service
         }
 
         return true;
+    }
+
+    /** slug：小写字母数字连字符，2–64 位；home/member 保留。 */
+    private function assertSlug(string $key): void
+    {
+        if (isset(self::SYSTEM_PAGES[$key]) || preg_match(self::SLUG_RE, $key) !== 1) {
+            throw new ValidationException(['page_key' => lang('diy.page_key_invalid')]);
+        }
+    }
+
+    /**
+     * 非 custom（含系统页、不存在）→ 404。
+     *
+     * @return array<string, mixed>
+     */
+    private function guardCustom(int $id): array
+    {
+        $row = $this->diyPageRepository->find($id);
+        if ($row === null || ($row['page_type'] ?? '') !== 'custom') {
+            throw new NotFoundException();
+        }
+
+        return $row;
+    }
+
+    /** 生成不冲突的副本标识：{src}-copy、{src}-copy2…；截断源 key 保证总长 ≤64。 */
+    private function nextCopyKey(string $sourceKey): string
+    {
+        $base = rtrim(mb_substr($sourceKey, 0, 64 - 7), '-');
+        for ($i = 1; $i <= 99; $i++) {
+            $key = $base . '-copy' . ($i === 1 ? '' : (string) $i);
+            if (!$this->diyPageRepository->existsKey($key)) {
+                return $key;
+            }
+        }
+        throw new ValidationException(['page_key' => lang('diy.copy_exhausted')]);
+    }
+
+    private static function pageKeyTaken(): ValidationException
+    {
+        return new ValidationException(['page_key' => lang('diy.page_key_exists')]);
     }
 }

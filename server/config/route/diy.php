@@ -19,4 +19,10 @@ Route::group('/diy', function () {
     Route::post('/pages/{key:[a-z0-9-]+}/publish', [DiyPageController::class, 'publishByKey']);
     Route::get('/pages/{key:[a-z0-9-]+}/versions', [DiyPageController::class, 'versionsByKey']);
     Route::post('/pages/{key:[a-z0-9-]+}/versions/{id:\d+}/restore', [DiyPageController::class, 'restoreVersionByKey']);
+
+    Route::get('/pages', [DiyPageController::class, 'listPages']);
+    Route::post('/pages', [DiyPageController::class, 'createPage']);
+    Route::post('/pages/{id:\d+}/copy', [DiyPageController::class, 'copyPage']);
+    Route::put('/pages/{id:\d+}', [DiyPageController::class, 'updatePage']);
+    Route::delete('/pages/{id:\d+}', [DiyPageController::class, 'deletePage']);
 })->middleware($adminAuth);

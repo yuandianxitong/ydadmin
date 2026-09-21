@@ -13,4 +13,8 @@ return [
     'stat_balance'         => 'Balance',
     'stat_points'          => 'Points',
     'system_page_only'     => 'Summary is only available for system pages',
+    'page_key_exists'      => 'This page key already exists',
+    'page_key_invalid'     => 'Invalid page key (lowercase letters, digits, hyphens, 2-64 characters, not a reserved key)',
+    'system_page_protected' => 'System pages cannot be deleted',
+    'copy_exhausted'       => 'Too many copies; clean up existing ones first',
 ];

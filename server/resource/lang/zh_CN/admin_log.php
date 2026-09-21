@@ -228,4 +228,12 @@ return [
     'diy_page_publish_desc'        => '发布装修页面并写入版本快照',
     'diy_page_restore'             => '回滚装修页面版本',
     'diy_page_restore_desc'        => '将历史版本回滚到装修页面草稿',
+    'diy_page_create'              => '创建装修页面',
+    'diy_page_create_desc'         => '创建自定义装修页面',
+    'diy_page_copy'                => '复制装修页面',
+    'diy_page_copy_desc'           => '复制自定义装修页面为未发布草稿',
+    'diy_page_update'              => '更新装修页面',
+    'diy_page_update_desc'         => '更新自定义装修页面标题、标识或状态',
+    'diy_page_delete'              => '删除装修页面',
+    'diy_page_delete_desc'         => '删除自定义装修页面',
 ];
