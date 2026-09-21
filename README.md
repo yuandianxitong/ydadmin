@@ -56,6 +56,35 @@ php start.php restart
 
 `php webman db:reset` 会删库重建，只供开发环境使用，`APP_DEBUG` 未开启时拒绝执行。
 
+### Docker Compose
+
+~~~bash
+cd server && composer install   # 镜像挂载宿主机 server/，依赖要在宿主机装好
+cd ../docker
+cp .env.example .env            # 端口冲突只改这里，不要改开发库
+docker compose up -d --build
+# 浏览器 http://127.0.0.1/install/  或
+# docker compose exec webman php webman install -n --db-host=mysql --db-name=ydadmin ...
+docker compose restart webman   # 装完必须 restart，reload 不够
+~~~
+
+compose 的 MySQL 是空库 `ydadmin`，只连服务名 `mysql` / `redis`。禁止把 `DB_HOST` 指到宿主机去打 `dev007_ydadmin`。本机 80/3306/6379 被占时改 `docker/.env` 的端口。
+
+### 发布包
+
+~~~bash
+# 在仓库根，需 Node / pnpm
+sh scripts/release.sh           # 产物 dist/ydadmin-2.0.0.zip
+unzip dist/ydadmin-2.0.0.zip && cd ydadmin-2.0.0/server
+composer install
+cp .env.example .env
+php start.php start -d
+# 浏览器 /install/ 或 php webman install -n ...
+php start.php restart
+~~~
+
+zip 不含 `vendor/`、`.env`、admin/pc/uniapp 源码和 `docker/`。
+
 ### 安装（M8）
 
 - 无表前缀（`DB_PREFIX` 保持空）；安装与升级脚本写裸表名。
@@ -616,4 +645,4 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
 | M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
 | M7 | 内容与装修 | ✅（M7a 内容、M7b 地区/版本/导入、M7c DIY 装修 + 移动端配置） |
-| M8 | 安装与发布 | 进行中（安装向导 + yd:update；Docker / 发布包另开） |
+| M8 | 安装与发布 | ✅（安装向导 + yd:update + Docker compose + 发布包） |
