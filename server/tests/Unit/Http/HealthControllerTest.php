@@ -16,6 +16,6 @@ final class HealthControllerTest extends TestCase
         $body = json_decode((string) (new HealthController())->index($request)->rawBody(), true);
 
         $this->assertSame(200, $body['code']);
-        $this->assertSame(['status' => 'ok', 'version' => '2.0.0-dev'], $body['data']);
+        $this->assertSame(['status' => 'ok', 'version' => config('version.version')], $body['data']);
     }
 }

@@ -731,3 +731,11 @@ CREATE TABLE `mobile_configs` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='移动端配置（主题/tabBar）';
+
+CREATE TABLE `system_upgrades` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `version` varchar(32) NOT NULL COMMENT '已应用版本，如 2.0.0',
+  `applied_at` datetime NOT NULL COMMENT '打标时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_version` (`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='框架升级记录';

@@ -897,4 +897,22 @@ final class SchemaTest extends TestCase
             'idx_status'  => ['status'],
         ], $indexes($table));
     }
+
+    public function test_m8_system_upgrades_table(): void
+    {
+        $this->assertTrue(Db::schema()->hasTable('system_upgrades'));
+        $this->assertSame(['id', 'version', 'applied_at'], Db::schema()->getColumnListing('system_upgrades'));
+        $this->assertSame(0, Db::table('system_upgrades')->count(), 'init.sql 不种版本，由安装器/db:reset 打标');
+        $indexes = [];
+        foreach (Db::select('SHOW INDEX FROM system_upgrades') as $row) {
+            $indexes[$row->Key_name][(int) $row->Seq_in_index] = $row->Column_name;
+        }
+        $this->assertSame(['id'], array_values($indexes['PRIMARY']));
+        $this->assertSame(['version'], array_values($indexes['uk_version']));
+    }
+
+    public function test_m8_code_version_is_2_0_0(): void
+    {
+        $this->assertSame('2.0.0', config('version.version'));
+    }
 }

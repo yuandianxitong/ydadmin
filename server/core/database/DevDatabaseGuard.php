@@ -36,6 +36,7 @@ final class DevDatabaseGuard
         'diy_page_versions'  => ['page_id', 'version_no', 'created_by'],
         'diy_links'          => ['path', 'deleted_at'],
         'mobile_configs'     => ['theme_color', 'tabbar_json'],
+        'system_upgrades'    => ['version', 'applied_at'],
     ];
 
     /**
