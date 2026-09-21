@@ -5,3 +5,4 @@ node_modules/
 /docs/
 /CLAUDE.md
 /docker/.env
+/dist/
