@@ -47,6 +47,7 @@ export default {
         UserList: '用户列表',
         UserBalanceLog: '余额记录',
         UserPointsLog: '积分记录',
+        UserPaymentOrder: '充值订单',
         // 内容管理
         Content: '内容管理',
         ContentAgreement: '协议管理',
@@ -772,6 +773,9 @@ export default {
         exceedLimit: '只能上传一个文件，请先移除已选文件',
         importFailed: '导入失败，请重试'
     },
+    taskProgress: {
+        title: '任务进度'
+    },
     // 导出组件
     exportData: {
         title: '导出设置',
@@ -1242,6 +1246,27 @@ export default {
         }
     },
     // 用户管理
+    paymentOrder: {
+        title: '充值订单',
+        detailTitle: '订单详情',
+        orderNo: '订单号',
+        user: '会员',
+        amount: '金额',
+        refunded: '已退',
+        channel: '渠道',
+        channelWechat: '微信',
+        channelAlipay: '支付宝',
+        status: '状态',
+        statusPending: '待支付',
+        statusPaid: '已支付',
+        statusClosed: '已关闭',
+        statusRefunded: '已退款',
+        createdAt: '创建时间',
+        refund: '退款',
+        refundNo: '退款单号',
+        reason: '原因',
+        refundSubmitted: '退款已提交'
+    },
     userMgmt: {
         title: '用户列表',
         keyword: '用户昵称/账号',

@@ -56,5 +56,20 @@ export const userManageApi = {
      */
     getPointsLogs(params: any) {
         return myRequest.get<PageResult<PointsLogItem>>('/adminapi/user/points-logs', { params })
+    },
+
+    importUsers(file: File) {
+        const form = new FormData()
+        form.append('file', file)
+        return myRequest.post<{
+            id: number
+            total_count: number
+            success_count: number
+            fail_count: number
+            status: number
+            errors: { row: number; message: string }[]
+        }>('/adminapi/user/import', form, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
     }
 }

@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace app\service\dataimport;
 
 use app\repository\dataimport\DataImportRepository;
+use app\service\dataimport\handler\UserImportHandler;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\realtime\RealtimePublisher;
 use DI\Attribute\Inject;
+use support\Log;
 
 /**
- * 数据导入。CSV 原生解析（fopen + fgetcsv），默认空 rowHandler，不写任何业务表。
+ * 数据导入。CSV 原生解析（fopen + fgetcsv）。
+ * module=user 写入会员；其它 module 仍只计数。进度经 RealtimePublisher::progress。
  *
  * 只调 Repository：状态常量取 DataImportRepository，不引用 Model 常量。
  */
@@ -18,6 +22,32 @@ class DataImportService extends Service
 {
     #[Inject]
     protected DataImportRepository $dataImportRepository;
+
+    #[Inject]
+    protected UserImportHandler $userImportHandler;
+
+    #[Inject]
+    protected RealtimePublisher $realtimePublisher;
+
+    /**
+     * 落库的行错误只留业务文案：底层异常（如 QueryException）会把绑定值——手机号、bcrypt 密码哈希——
+     * 连同库主机、库名一起拼进 message，那份 message 会经 data_imports.errors 回显给管理员。
+     * 原始异常只进应用日志，且只记类名与位置。
+     */
+    private function rowErrorMessage(\Throwable $e, int $recordId, int $rowNumber): string
+    {
+        if ($e instanceof BusinessException) {
+            return $e->getMessage();
+        }
+
+        Log::error('导入行失败', [
+            'import_id' => $recordId,
+            'row'       => $rowNumber,
+            'exception' => $e::class,
+        ]);
+
+        return lang('dataimport.row_failed');
+    }
 
     /**
      * 解析一份已落到本地的 CSV，写入 data_imports 最终态。
@@ -52,6 +82,8 @@ class DataImportService extends Service
         $failCount = 0;
         $errors = [];
         $status = DataImportRepository::STATUS_FAILED;
+        $taskId = 'import:' . $record['id'];
+        $this->realtimePublisher->progress($adminId, $taskId, 0, lang('dataimport.progress_start'));
 
         try {
             $header = fgetcsv($handle, 0, ',', '"', '\\');
@@ -83,9 +115,28 @@ class DataImportService extends Service
                         $row[$field] = $csvRow[$index] ?? '';
                     }
 
-                    // 空 rowHandler：映射后计成功，不写业务表。后续按 module 注册实现时再包 try/catch。
-                    unset($row);
-                    $successCount++;
+                    try {
+                        if ($module === 'user') {
+                            $this->userImportHandler->handle($row);
+                        }
+                        $successCount++;
+                    } catch (\Throwable $e) {
+                        $failCount++;
+                        $errors[] = [
+                            'row'     => $rowNumber,
+                            'message' => $this->rowErrorMessage($e, (int) $record['id'], $rowNumber),
+                        ];
+                    }
+
+                    $processed = $successCount + $failCount;
+                    if ($processed % 50 === 0) {
+                        $this->realtimePublisher->progress(
+                            $adminId,
+                            $taskId,
+                            min(99, intdiv($processed, 50) * 5),
+                            lang('dataimport.progress_running')
+                        );
+                    }
                 }
             }
 
@@ -108,12 +159,15 @@ class DataImportService extends Service
                 'status'        => DataImportRepository::STATUS_FAILED,
                 'errors'        => array_merge($errors, [[
                     'row'     => 0,
-                    'message' => $e->getMessage(),
+                    'message' => $this->rowErrorMessage($e, (int) $record['id'], 0),
                 ]]),
             ]);
             throw $e;
         } finally {
             fclose($handle);
+            // 上传的临时 CSV 带着手机号与明文密码，读完即删（两个入口都把文件交给这里）。
+            @unlink($filePath);
+            $this->realtimePublisher->progress($adminId, $taskId, 100, lang('dataimport.progress_done'));
         }
 
         return [

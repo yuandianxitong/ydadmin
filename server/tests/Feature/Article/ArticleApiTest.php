@@ -26,6 +26,43 @@ final class ArticleApiTest extends ApiTestCase
         $this->assertSame($cat['name'], $again['category_name']);
     }
 
+    /** 后台表单把选填项固定当空串发：封面/摘要/作者留空、草稿不选发布时间，都要能存下来。 */
+    public function test_admin_form_payload_with_blank_optional_fields_saves(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $cat = $this->post('/adminapi/article-category', ['name' => 't'.bin2hex(random_bytes(3)), 'parent_id' => 0, 'status' => 1], $admin->token)->assertOk()->data();
+        $this->track('article_categories', (int) $cat['id']);
+
+        $created = $this->post('/adminapi/article', [
+            'title'      => 'Blank',
+            'category_id' => $cat['id'],
+            'content'    => '<p>x</p>',
+            'cover'      => '',
+            'summary'    => '',
+            'author'     => '',
+            'tags'       => [],
+            'status'     => 0,
+            'publish_at' => '',
+        ], $admin->token)->assertOk()->data();
+        $this->track('articles', (int) $created['id']);
+        $this->assertSame('', (string) $created['cover']);
+        $this->assertSame('', (string) $created['summary']);
+        $this->assertSame('', (string) $created['author']);
+        $this->assertNull($created['publish_at'], '草稿不填发布时间时存 null，不能把空串写进 datetime 列');
+
+        $this->put('/adminapi/article/'.$created['id'], [
+            'title'      => 'Blank2',
+            'category_id' => $cat['id'],
+            'content'    => '<p>y</p>',
+            'cover'      => '',
+            'summary'    => '',
+            'author'     => '',
+            'status'     => 0,
+            'publish_at' => '',
+        ], $admin->token)->assertOk();
+        $this->assertNull(Db::table('articles')->where('id', $created['id'])->value('publish_at'));
+    }
+
     public function test_c_end_hides_draft_and_increments_published_views(): void
     {
         $admin = $this->actingAsAdmin('super');

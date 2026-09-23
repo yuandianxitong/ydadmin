@@ -8,6 +8,29 @@ use tests\Support\ApiTestCase;
 
 final class ArticleCategoryApiTest extends ApiTestCase
 {
+    /** 后台栏目表单把图标固定当空串发，留空要能存下来。 */
+    public function test_admin_form_payload_with_blank_icon_saves(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $created = $this->post('/adminapi/article-category', [
+            'name'      => 'n'.bin2hex(random_bytes(3)),
+            'parent_id' => 0,
+            'icon'      => '',
+            'sort'      => 0,
+            'status'    => 1,
+        ], $admin->token)->assertOk()->data();
+        $this->track('article_categories', (int) $created['id']);
+        $this->assertSame('', (string) $created['icon']);
+
+        $this->put('/adminapi/article-category/'.$created['id'], [
+            'name'      => 'n'.bin2hex(random_bytes(3)),
+            'parent_id' => 0,
+            'icon'      => '',
+            'sort'      => 0,
+            'status'    => 1,
+        ], $admin->token)->assertOk();
+    }
+
     public function test_list_is_tree_and_options_exclude_descendants(): void
     {
         $admin = $this->actingAsAdmin('super');

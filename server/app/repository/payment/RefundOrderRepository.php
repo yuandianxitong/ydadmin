@@ -10,7 +10,7 @@ use core\base\Repository;
 
 /**
  * 退款单仓储（M5b spec §8）：不设 $dataScoped——refund_orders 没有 created_by 也没有部门列，
- * 退款只有命令行入口，不存在按管理员范围过滤的场景；红线 Test26 钉住。
+ * 管理端列表与退款入口复用本仓储；不存在按管理员范围过滤的场景；红线 Test26 钉住。
  */
 class RefundOrderRepository extends Repository
 {
@@ -72,6 +72,21 @@ class RefundOrderRepository extends Repository
             ->orderBy($this->qualify('created_at'))
             ->orderBy($this->qualify('id'))
             ->limit(max(1, $limit))
+            ->get()
+            ->toArray();
+
+        return array_values($rows);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listByPaymentOrderId(int $paymentOrderId): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->query()
+            ->where($this->qualify('payment_order_id'), $paymentOrderId)
+            ->orderBy($this->qualify('id'), 'desc')
             ->get()
             ->toArray();
 

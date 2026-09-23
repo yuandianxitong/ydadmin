@@ -37,6 +37,7 @@ final class InstallWizardTest extends ApiTestCase
         if (class_exists(InstallController::class)) {
             Container::set(InstallController::class, Container::make(InstallController::class));
         }
+        Db::table('system_upgrades')->delete();
     }
 
     protected function tearDown(): void
@@ -44,6 +45,12 @@ final class InstallWizardTest extends ApiTestCase
         Container::set(Installer::class, $this->originalInstaller);
         if (class_exists(InstallController::class)) {
             Container::set(InstallController::class, Container::make(InstallController::class));
+        }
+        if ((int) Db::table('system_upgrades')->count() === 0) {
+            Db::table('system_upgrades')->insert([
+                'version'    => '2.0.0',
+                'applied_at' => date('Y-m-d H:i:s'),
+            ]);
         }
         $this->removeDir($this->workDir);
         parent::tearDown();
@@ -113,6 +120,17 @@ final class InstallWizardTest extends ApiTestCase
             $this->assertArrayHasKey('key', $item);
             $this->assertArrayHasKey('ok', $item);
         }
+        $this->assertArrayHasKey('defaults', $data);
+        $defaults = $data['defaults'];
+        $this->assertIsArray($defaults);
+        foreach (['db_host', 'db_port', 'db_name', 'db_user', 'redis_host', 'redis_port', 'redis_db'] as $key) {
+            $this->assertArrayHasKey($key, $defaults);
+        }
+        $this->assertArrayNotHasKey('db_password', $defaults);
+        $this->assertArrayNotHasKey('redis_password', $defaults);
+        $encoded = json_encode($defaults);
+        $this->assertIsString($encoded);
+        $this->assertStringNotContainsString('JWT_', $encoded);
     }
 
     public function test_test_connection_accepts_test_database_and_redis(): void
@@ -203,7 +221,8 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertStringNotContainsString('JWT_', $raw);
 
         $mysqlPassword = (string) (((array) config('database.connections.mysql'))['password'] ?? '');
-        if ($mysqlPassword !== '' && str_contains($raw, $mysqlPassword)) {
+        $mysqlUser = (string) (((array) config('database.connections.mysql'))['username'] ?? '');
+        if ($mysqlPassword !== '' && $mysqlPassword !== $mysqlUser && str_contains($raw, $mysqlPassword)) {
             $this->fail('响应泄漏了数据库口令');
         }
         $redisPassword = (string) (((array) config('redis.default'))['password'] ?? '');

@@ -139,6 +139,10 @@ return [
     'user_adjust_points_desc'      => 'Add to or deduct from member points and record the ledger entry',
     'user_status'                  => 'Change member status',
     'user_status_desc'             => 'Enable or disable a member account (disabling takes effect immediately)',
+    'user_import'                  => 'Import members',
+    'user_import_desc'             => 'Bulk import members from a CSV file',
+    'payment_order_refund'         => 'Refund payment order',
+    'payment_order_refund_desc'    => 'Refund a paid recharge order',
 
     'message_template_create'      => 'Create message template',
     'message_template_create_desc' => 'Create a new message template',

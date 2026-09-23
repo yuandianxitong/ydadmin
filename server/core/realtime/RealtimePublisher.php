@@ -31,7 +31,7 @@ class RealtimePublisher
         }
     }
 
-    /** 任务进度（spec §6 task.progress）：本期只提供通道，暂无生产方。percent 夹到 0–100。 */
+    /** 任务进度（spec §6 task.progress）：导入是第一个生产方。percent 夹到 0–100。 */
     public function progress(int $adminId, string $taskId, int $percent, string $message): void
     {
         $this->publish([$adminId], 'task.progress', [

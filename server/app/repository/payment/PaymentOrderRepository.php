@@ -109,4 +109,46 @@ class PaymentOrderRepository extends Repository
 
         return array_values($rows);
     }
+
+    /**
+     * 管理端列表。金额仍是分，展示转换在 Service。
+     *
+     * @param array<string, mixed> $params
+     * @return array{list: array<int, array<string, mixed>>, pagination: array{current_page: int, per_page: int, total: int, last_page: int}}
+     */
+    public function getAdminList(array $params, int $page, int $limit): array
+    {
+        $page = max(1, $page);
+        $limit = min(self::MAX_PAGE_SIZE, max(1, $limit));
+        $query = $this->query();
+
+        $orderNo = trim((string) ($params['order_no'] ?? ''));
+        if ($orderNo !== '') {
+            $query->where($this->qualify('order_no'), $orderNo);
+        }
+        if (isset($params['user_id']) && $params['user_id'] !== '') {
+            $query->where($this->qualify('user_id'), (int) $params['user_id']);
+        }
+        $status = trim((string) ($params['status'] ?? ''));
+        if ($status !== '') {
+            $query->where($this->qualify('status'), $status);
+        }
+        $channel = trim((string) ($params['channel'] ?? ''));
+        if ($channel !== '') {
+            $query->where($this->qualify('channel'), $channel);
+        }
+        $start = trim((string) ($params['start_date'] ?? ''));
+        if ($start !== '') {
+            $query->where($this->qualify('created_at'), '>=', $start . ' 00:00:00');
+        }
+        $end = trim((string) ($params['end_date'] ?? ''));
+        if ($end !== '') {
+            $query->where($this->qualify('created_at'), '<=', $end . ' 23:59:59');
+        }
+
+        $total = (clone $query)->count();
+        $list = $query->orderBy($this->qualify('id'), 'desc')->forPage($page, $limit)->get()->toArray();
+
+        return $this->buildPagination($list, $page, $limit, $total);
+    }
 }

@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\user;
 
+use app\service\dataimport\DataImportService;
+use app\service\system\SystemConfigService;
 use app\service\user\UserManageService;
 use core\base\Controller;
 use core\context\RequestContext;
+use core\exception\BusinessException;
 use core\permission\Permission;
 use DI\Attribute\Inject;
 use support\Response;
 use Webman\Http\Request;
+use Webman\Http\UploadFile;
 
 /**
  * 管理端会员管理（spec §6.3）。
@@ -23,6 +27,8 @@ use Webman\Http\Request;
  *   POST /adminapi/user/adjust-points    adjustPoints   user.adjust-points
  *   GET  /adminapi/user/detail/{id}      detail         user.detail
  *   PUT  /adminapi/user/{id}/status      updateStatus   user.status
+ *   POST /adminapi/user/import           import         user.import
+ *   GET  /adminapi/user/import-template  importTemplate user.import
  *
  * 三个列表动作不调 validate()：查询参数（keyword / status / type / start_date / end_date）
  * 的整形在 Repository 里做，与 DictionaryController::index 一致，规则七不适用。
@@ -32,8 +38,26 @@ use Webman\Http\Request;
  */
 class UserManageController extends Controller
 {
+    private const DEFAULT_FILE_MAX_MB = 10;
+
+    /** @var array<string, string> */
+    private const USER_FIELD_MAP = [
+        'mobile'   => 'mobile',
+        'nickname' => 'nickname',
+        'password' => 'password',
+        'email'    => 'email',
+        'gender'   => 'gender',
+        'status'   => 'status',
+    ];
+
     #[Inject]
     protected UserManageService $userManageService;
+
+    #[Inject]
+    protected DataImportService $dataImportService;
+
+    #[Inject]
+    protected SystemConfigService $systemConfigService;
 
     #[Permission('user.list')]
     public function index(Request $request): Response
@@ -115,6 +139,51 @@ class UserManageController extends Controller
         [$page, $limit] = $this->pageParams($request);
 
         return $this->paginate($this->userManageService->getBalanceLogs((array) $request->get(), $page, $limit));
+    }
+
+    #[Permission('user.import')]
+    public function import(Request $request): Response
+    {
+        $file = $request->file('file');
+        if (!$file instanceof UploadFile || !$file->isValid()) {
+            throw new BusinessException(lang('dataimport.file_required'));
+        }
+        if (strtolower($file->getUploadExtension()) !== 'csv') {
+            throw new BusinessException(lang('dataimport.csv_only'));
+        }
+        $maxMb = (int) $this->systemConfigService->getConfigValue('storage_upload_max_size', self::DEFAULT_FILE_MAX_MB);
+        if ($maxMb <= 0) {
+            $maxMb = self::DEFAULT_FILE_MAX_MB;
+        }
+        if ((int) $file->getSize() > $maxMb * 1024 * 1024) {
+            throw new BusinessException(lang('business.file_size_exceeded', ['size' => $maxMb]));
+        }
+
+        $dir = runtime_path() . '/imports';
+        if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
+            throw new BusinessException(lang('dataimport.file_open_failed'));
+        }
+        $target = $dir . '/' . bin2hex(random_bytes(16)) . '.csv';
+        $file->move($target);
+
+        return $this->success($this->dataImportService->import(
+            'user',
+            $target,
+            (string) $file->getUploadName(),
+            self::USER_FIELD_MAP,
+            RequestContext::actingUser()
+        ));
+    }
+
+    #[Permission('user.import')]
+    public function importTemplate(): Response
+    {
+        $csv = "mobile,nickname,password,email,gender,status\n";
+
+        return new Response(200, [
+            'Content-Type'        => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="user-import.csv"',
+        ], $csv);
     }
 
     #[Permission('user.points-logs')]

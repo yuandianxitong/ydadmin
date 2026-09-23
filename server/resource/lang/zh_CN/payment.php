@@ -19,4 +19,7 @@ return [
     'refund_in_progress'          => '该订单有退款正在处理',
     'refund_exceeds'              => '退款金额超过可退金额',
     'refund_balance_insufficient' => '用户余额不足，无法退回充值',
+    'order_no_required'           => '请填写订单号',
+    'amount_invalid'              => '退款金额必须大于 0，最多两位小数',
+    'reason_max'                  => '退款原因过长',
 ];

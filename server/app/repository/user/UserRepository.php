@@ -229,6 +229,28 @@ class UserRepository extends Repository
         return $this->buildPagination($list, $page, $limit, $total);
     }
 
+    /**
+     * @param list<int> $ids
+     * @return array<int, array{nickname: string, mobile: string}>
+     */
+    public function briefsByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $rows = $this->query()->whereIn($this->qualify('id'), $ids)->get(['id', 'nickname', 'mobile'])->toArray();
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['id']] = [
+                'nickname' => (string) ($row['nickname'] ?? ''),
+                'mobile'   => (string) ($row['mobile'] ?? ''),
+            ];
+        }
+
+        return $map;
+    }
+
     public function countAll(): int
     {
         return $this->query()->count();

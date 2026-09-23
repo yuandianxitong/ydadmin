@@ -188,7 +188,19 @@ class ArticleService extends Service
      */
     private function writable(array $data): array
     {
-        return array_intersect_key($data, array_flip(self::WRITE_FIELDS));
+        $row = array_intersect_key($data, array_flip(self::WRITE_FIELDS));
+        // 后台表单把选填项固定当空串发：datetime 列收空串在 strict 模式下是 1292，先转成 null；
+        // 文本列是 NOT NULL DEFAULT ''，显式传 null 时回落成空串（update 的 null 会在调用方被丢弃）。
+        if (array_key_exists('publish_at', $row) && $row['publish_at'] === '') {
+            $row['publish_at'] = null;
+        }
+        foreach (['cover', 'summary', 'author'] as $field) {
+            if (array_key_exists($field, $row) && $row[$field] === null) {
+                $row[$field] = '';
+            }
+        }
+
+        return $row;
     }
 
     /** @return array<string, mixed> */

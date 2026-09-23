@@ -65,6 +65,9 @@ if (!$exists || getenv('YDADMIN_TEST_DB_RESET') === '1' || $recorded !== $finger
     core\database\DatabaseInstaller::reinstall($pdo, $testDb, $installDir);
     file_put_contents($fingerprintFile, $fingerprint);
 }
+// init.sql 不种版本。测试库打标后 InstallGuard 才把已装环境当已安装，否则全部 /adminapi 会 503。
+$pdo->exec("USE `{$testDb}`");
+$pdo->exec("INSERT IGNORE INTO system_upgrades (version, applied_at) VALUES ('2.0.0', NOW())");
 
 // 4.5 测试库结构自检：上一步已按指纹重建，这里是兜底——指纹算法本身有 bug 或安装脚本本身漏表时，
 //     测试实际连接的就是这个库，在这里报错比让某条业务测试撞一个看不懂的 Table doesn't exist 更清楚。

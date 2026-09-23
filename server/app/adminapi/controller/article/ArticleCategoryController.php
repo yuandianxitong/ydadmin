@@ -171,7 +171,7 @@ class ArticleCategoryController extends Controller
         return [
             'parent_id' => 'sometimes|required|integer',
             'name'      => "{$required}|string|max:100",
-            'icon'      => 'sometimes|required|string|max:255',
+            'icon'      => 'nullable|string|max:255',
             'sort'      => 'sometimes|required|integer|min:0',
             'status'    => 'sometimes|required|integer|in:0,1',
         ];

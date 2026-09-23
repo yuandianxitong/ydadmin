@@ -139,6 +139,10 @@ return [
     'user_adjust_points_desc'      => '为指定会员增加或扣减积分并记录流水',
     'user_status'                  => '修改会员状态',
     'user_status_desc'             => '启用或禁用会员账号（禁用即时失效）',
+    'user_import'                  => '导入会员',
+    'user_import_desc'             => '从 CSV 批量导入会员',
+    'payment_order_refund'         => '订单退款',
+    'payment_order_refund_desc'    => '对已支付充值订单发起退款',
 
     'message_template_create'      => '创建消息模板',
     'message_template_create_desc' => '创建新的消息模板',

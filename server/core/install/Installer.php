@@ -44,8 +44,29 @@ final class Installer
 
             return (int) $pdo->query('SELECT COUNT(*) FROM system_upgrades')->fetchColumn() > 0;
         } catch (\Throwable) {
+            // 连不上、认证失败、权限不足时不能当「未安装」：lock 被部署清掉再赶上一次数据库抖动，
+            // 未登录的安装向导就会重新开放，任何人都能把 .env 指向自己的库并在那边建超管。
+            // 判据是 .env 里的 JWT 密钥——安装器写完才有，.env.example 里是空的，
+            // 所以全新机器（还没填凭据、库同样连不上）仍然走得进向导。
+            return $this->envCarriesInstalledSecrets();
+        }
+    }
+
+    /** .env 里两个 JWT 密钥都非空 → 这台机器上跑完过一次安装。 */
+    private function envCarriesInstalledSecrets(): bool
+    {
+        if (!is_file($this->envPath)) {
             return false;
         }
+
+        $text = (string) file_get_contents($this->envPath);
+        foreach (['JWT_ADMIN_SECRET', 'JWT_USER_SECRET'] as $key) {
+            if (preg_match('/^\s*' . $key . '\s*=\s*"?([^"\r\n]*)"?\s*$/m', $text, $m) !== 1 || trim($m[1]) === '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @param array<string, mixed> $input */

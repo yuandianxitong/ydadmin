@@ -47,6 +47,7 @@ export default {
         UserList: 'User List',
         UserBalanceLog: 'Balance Log',
         UserPointsLog: 'Points Log',
+        UserPaymentOrder: 'Recharge Orders',
         // Content Management
         Content: 'Content',
         ContentAgreement: 'Agreements',
@@ -783,6 +784,9 @@ export default {
         exceedLimit: 'Only one file can be uploaded. Please remove the selected file first.',
         importFailed: 'Import failed, please try again'
     },
+    taskProgress: {
+        title: 'Task progress'
+    },
     // Export component
     exportData: {
         title: 'Export Settings',
@@ -1248,6 +1252,27 @@ export default {
             saveSuccess: 'Saved successfully',
             saveFailed: 'Failed to save'
         }
+    },
+    paymentOrder: {
+        title: 'Recharge orders',
+        detailTitle: 'Order detail',
+        orderNo: 'Order no.',
+        user: 'Member',
+        amount: 'Amount',
+        refunded: 'Refunded',
+        channel: 'Channel',
+        channelWechat: 'WeChat',
+        channelAlipay: 'Alipay',
+        status: 'Status',
+        statusPending: 'Pending',
+        statusPaid: 'Paid',
+        statusClosed: 'Closed',
+        statusRefunded: 'Refunded',
+        createdAt: 'Created at',
+        refund: 'Refund',
+        refundNo: 'Refund no.',
+        reason: 'Reason',
+        refundSubmitted: 'Refund submitted'
     },
     // User Management
     userMgmt: {

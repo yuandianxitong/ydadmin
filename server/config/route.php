@@ -48,6 +48,7 @@ use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
 use app\middleware\ApiAuthMiddleware;
 use app\middleware\CorsMiddleware;
+use app\middleware\InstallGuardMiddleware;
 use app\middleware\LocaleMiddleware;
 use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
@@ -55,7 +56,7 @@ use core\response\Api;
 use Webman\Route;
 
 // 所有 API 路由组的外层中间件：先种 trace，再定 locale，再处理跨域（fallback 同样挂载）。
-$apiOuter = [RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddleware::class];
+$apiOuter = [InstallGuardMiddleware::class, RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddleware::class];
 
 // 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝），最内层记操作日志（只记写请求）。
 // 除下方三个公开路由外，/adminapi 下的路由都必须挂在这个组里——Test6 会逐条检查。
@@ -238,6 +239,8 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::get('/list', [UserManageController::class, 'index']);
         Route::get('/balance-logs', [UserManageController::class, 'balanceLogs']);
         Route::get('/points-logs', [UserManageController::class, 'pointsLogs']);
+        Route::get('/import-template', [UserManageController::class, 'importTemplate']);
+        Route::post('/import', [UserManageController::class, 'import']);
         Route::post('/adjust-balance', [UserManageController::class, 'adjustBalance']);
         Route::post('/adjust-points', [UserManageController::class, 'adjustPoints']);
         Route::get('/detail/{id:\d+}', [UserManageController::class, 'detail']);
@@ -368,10 +371,10 @@ Route::group('/install', function () {
 })->middleware($apiOuter);
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径
-Route::get('/', [SpaController::class, 'home']);
-Route::get('/admin[/{path:.*}]', [SpaController::class, 'admin']);
-Route::get('/pc[/{path:.*}]', [SpaController::class, 'pc']);
-Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile']);
+Route::get('/', [SpaController::class, 'home'])->middleware([InstallGuardMiddleware::class]);
+Route::get('/admin[/{path:.*}]', [SpaController::class, 'admin'])->middleware([InstallGuardMiddleware::class]);
+Route::get('/pc[/{path:.*}]', [SpaController::class, 'pc'])->middleware([InstallGuardMiddleware::class]);
+Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile'])->middleware([InstallGuardMiddleware::class]);
 
 // 未匹配的路由：HTTP 404 + 统一响应体（TP8 版未知路由同样是 HTTP 404）；关闭 webman 的「/控制器/方法」自动路由。
 // 注意与「记录不存在」区分：后者是业务错误，HTTP 200 + code 404。

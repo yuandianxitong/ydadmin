@@ -2,6 +2,7 @@
 
 return [
     'already_installed'   => 'The system is already installed and cannot be installed again.',
+    'not_installed'       => 'The system is not installed yet.',
     'database_not_empty'  => 'The target database already has tables. Installation is refused to avoid overwriting existing data.',
     'sql_failed'          => 'Installing SQL failed. The database may be incomplete; drop it manually and retry.',
     'baseline_required'   => 'This database has no upgrade records. Pass --baseline with the current version before upgrading.',

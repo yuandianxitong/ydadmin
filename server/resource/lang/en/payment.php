@@ -18,4 +18,7 @@ return [
     'refund_in_progress'          => 'A refund for this order is already being processed',
     'refund_exceeds'              => 'The refund amount exceeds the refundable amount',
     'refund_balance_insufficient' => "The user's balance is insufficient to take back this recharge",
+    'order_no_required'           => 'Order number is required',
+    'amount_invalid'              => 'Refund amount must be greater than 0 with at most two decimals',
+    'reason_max'                  => 'Refund reason is too long',
 ];

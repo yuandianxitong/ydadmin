@@ -253,6 +253,17 @@ final class SchemaTest extends TestCase
         $this->assertSame('/user/user/index', $menus[1]->component);
         $this->assertSame('/user/balance-log/index', $menus[6]->component);
         $this->assertSame('/user/points-log/index', $menus[7]->component);
+        $importMenu = Db::table('menus')->where('id', 905)->first();
+        $this->assertNotNull($importMenu);
+        $this->assertSame('user.import', $importMenu->permission);
+        $this->assertSame(900, (int) $importMenu->parent_id);
+        $payment = Db::table('menus')->whereIn('id', [930, 931, 932])->orderBy('id')->get()->all();
+        $this->assertCount(3, $payment);
+        $this->assertSame(['payment.order.list', 'payment.order.detail', 'payment.order.refund'], array_map(
+            static fn (object $m): string => (string) $m->permission,
+            $payment
+        ));
+        $this->assertSame('/user/payment-order/index', $payment[0]->component);
     }
 
     public function test_m6a_wechat_config_seeds(): void
@@ -543,6 +554,9 @@ final class SchemaTest extends TestCase
         $bj = Db::table('regions')->where('id', 110000)->first();
         $this->assertNotNull($bj);
         $this->assertSame('北京市', $bj->name);
+        $this->assertNotNull(Db::table('regions')->where('id', 630000)->first(), '青海省');
+        $this->assertNotNull(Db::table('regions')->where('id', 650000)->first(), '新疆');
+        $this->assertGreaterThan(0, Db::table('regions')->where('parent_id', 620000)->count(), '甘肃须有市级');
         $this->assertSame(0, (int) Db::table('app_versions')->count());
         $this->assertSame(0, (int) Db::table('data_imports')->count());
     }
@@ -902,7 +916,9 @@ final class SchemaTest extends TestCase
     {
         $this->assertTrue(Db::schema()->hasTable('system_upgrades'));
         $this->assertSame(['id', 'version', 'applied_at'], Db::schema()->getColumnListing('system_upgrades'));
-        $this->assertSame(0, Db::table('system_upgrades')->count(), 'init.sql 不种版本，由安装器/db:reset 打标');
+        $initSql = (string) file_get_contents(base_path() . '/database/install/init.sql');
+        $this->assertStringNotContainsString('INSERT INTO `system_upgrades`', $initSql, 'init.sql 不种版本');
+        $this->assertGreaterThan(0, Db::table('system_upgrades')->count(), '测试引导打标 2.0.0，InstallGuard 才能把已装环境当已安装');
         $indexes = [];
         foreach (Db::select('SHOW INDEX FROM system_upgrades') as $row) {
             $indexes[$row->Key_name][(int) $row->Seq_in_index] = $row->Column_name;

@@ -860,10 +860,12 @@
                                     },
                                     "cover": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 255
                                     },
                                     "summary": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 500
                                     },
                                     "content": {
@@ -876,6 +878,7 @@
                                     },
                                     "author": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 50
                                     },
                                     "status": {
@@ -966,6 +969,7 @@
                                     },
                                     "icon": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 255
                                     },
                                     "sort": {
@@ -1216,6 +1220,7 @@
                                     },
                                     "icon": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 255
                                     },
                                     "sort": {
@@ -1556,10 +1561,12 @@
                                     },
                                     "cover": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 255
                                     },
                                     "summary": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 500
                                     },
                                     "content": {
@@ -1572,6 +1579,7 @@
                                     },
                                     "author": {
                                         "type": "string",
+                                        "nullable": true,
                                         "maxLength": 50
                                     },
                                     "status": {
@@ -4985,6 +4993,193 @@
                         }
                     }
                 }
+            }
+        },
+        "/adminapi/payment/order/list": {
+            "get": {
+                "operationId": "PaymentOrderController::index",
+                "tags": [
+                    "payment"
+                ],
+                "summary": "PaymentOrderController::index",
+                "description": "需登录，且需权限 `payment.order.list`",
+                "x-permission": "payment.order.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/payment/order/refund": {
+            "post": {
+                "operationId": "PaymentOrderController::refund",
+                "tags": [
+                    "payment"
+                ],
+                "summary": "PaymentOrderController::refund",
+                "description": "需登录，且需权限 `payment.order.refund`",
+                "x-permission": "payment.order.refund",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "order_no": {
+                                        "type": "string",
+                                        "maxLength": 32
+                                    },
+                                    "amount": {
+                                        "type": "string",
+                                        "pattern": "^[0-9]+(\\.[0-9]{1,2})?$",
+                                        "description": "regex:/^[0-9]+(\\.[0-9]{1,2})?$/"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 80
+                                    }
+                                },
+                                "required": [
+                                    "order_no",
+                                    "amount"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/payment/order/{orderNo}": {
+            "get": {
+                "operationId": "PaymentOrderController::show",
+                "tags": [
+                    "payment"
+                ],
+                "summary": "PaymentOrderController::show",
+                "description": "需登录，且需权限 `payment.order.detail`",
+                "x-permission": "payment.order.detail",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "orderNo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
             }
         },
         "/adminapi/region": {
@@ -12695,6 +12890,113 @@
                 ]
             }
         },
+        "/adminapi/user/import": {
+            "post": {
+                "operationId": "UserManageController::import",
+                "tags": [
+                    "user"
+                ],
+                "summary": "UserManageController::import",
+                "description": "需登录，且需权限 `user.import`",
+                "x-permission": "user.import",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/user/import-template": {
+            "get": {
+                "operationId": "UserManageController::importTemplate",
+                "tags": [
+                    "user"
+                ],
+                "summary": "UserManageController::importTemplate",
+                "description": "需登录，且需权限 `user.import`",
+                "x-permission": "user.import",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/user/list": {
             "get": {
                 "operationId": "UserManageController::index",
@@ -14049,6 +14351,7 @@
         "DiyLinkController::update 字段 category:max:32",
         "DiyLinkController::update 字段 icon:max:64",
         "MessageTemplateController::store 字段 code:regex:/^[a-z][a-z0-9_]*$/",
+        "PaymentOrderController::refund 字段 amount:regex:/^[0-9]+(\\.[0-9]{1,2})?$/",
         "AdminController::store 字段 mobile:regex:/^1[3-9]\\d{9}$/",
         "AdminController::changePassword 字段 new_password:different:old_password",
         "AdminController::update 字段 mobile:regex:/^1[3-9]\\d{9}$/",

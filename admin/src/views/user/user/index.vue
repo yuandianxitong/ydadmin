@@ -39,6 +39,12 @@
         <el-card class="table-card" shadow="never">
             <div class="table-header">
                 <div class="table-title">{{ t('userMgmt.title') }}</div>
+                <ImportData
+                    v-has-perm="['user.import']"
+                    :import-fun="handleImport"
+                    :template-url="importTemplateUrl"
+                    @success="getList"
+                />
             </div>
 
             <el-table v-loading="loading" :data="list" style="width: 100%">
@@ -171,6 +177,7 @@ import { useI18n } from 'vue-i18n'
 
 import type { UserItem } from '@/api/user'
 import { userManageApi } from '@/api/user'
+import ImportData from '@/components/ImportData/index.vue'
 import { useListPage } from '@/hooks/useListPage'
 import useAppStore from '@/store/modules/app.store'
 
@@ -222,10 +229,31 @@ const handleAdjustPoints = (row: UserItem) => {
     currentUser.value = row
     pointsVisible.value = true
 }
+
+const importTemplateUrl =
+    'data:text/csv;charset=utf-8,' +
+    encodeURIComponent('mobile,nickname,password,email,gender,status\n')
+
+const handleImport = async (file: File) => {
+    const res = await userManageApi.importUsers(file)
+    const data = res.data
+    return {
+        success: data.success_count,
+        fail: data.fail_count,
+        errors: (data.errors ?? []).map((item) => `${item.row}: ${item.message}`)
+    }
+}
 </script>
 
 <style lang="scss" scoped>
 .user-container {
+    .table-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
     .avatar-fallback {
         width: 40px;
         height: 40px;

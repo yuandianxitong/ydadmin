@@ -101,6 +101,8 @@ return [
         'UserManageController@adjustBalance' => ['admin_log.user_adjust_balance', 'admin_log.user_adjust_balance_desc'],
         'UserManageController@adjustPoints'  => ['admin_log.user_adjust_points', 'admin_log.user_adjust_points_desc'],
         'UserManageController@updateStatus'  => ['admin_log.user_status', 'admin_log.user_status_desc'],
+        'UserManageController@import'        => ['admin_log.user_import', 'admin_log.user_import_desc'],
+        'PaymentOrderController@refund'      => ['admin_log.payment_order_refund', 'admin_log.payment_order_refund_desc'],
 
         // 消息模板（M6b）
         'MessageTemplateController@store'  => ['admin_log.message_template_create', 'admin_log.message_template_create_desc'],

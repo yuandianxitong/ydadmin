@@ -1,5 +1,5 @@
 // src/store/modules/realtime.store.ts
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElNotification } from 'element-plus'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -52,6 +52,26 @@ export const useRealtimeStore = defineStore('realtime', () => {
         realtimeClient.on('force_logout', (payload: ForceLogoutPayload) => {
             void handleForceLogout(payload)
         })
+        const progressToasts = new Map<string, { close: () => void }>()
+        realtimeClient.on(
+            'task.progress',
+            (payload: { task_id?: string; percent?: number; message?: string }) => {
+                const taskId = String(payload.task_id ?? '')
+                if (taskId === '') {
+                    return
+                }
+                const percent = Math.max(0, Math.min(100, Number(payload.percent ?? 0)))
+                const message = String(payload.message ?? '')
+                progressToasts.get(taskId)?.close()
+                const toast = ElNotification({
+                    title: t('taskProgress.title'),
+                    message: `${percent}% ${message}`,
+                    duration: percent >= 100 ? 3000 : 0,
+                    type: percent >= 100 ? 'success' : 'info'
+                })
+                progressToasts.set(taskId, toast)
+            }
+        )
     }
 
     function connect() {

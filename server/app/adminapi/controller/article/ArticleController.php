@@ -164,11 +164,11 @@ class ArticleController extends Controller
         return [
             'category_id' => "{$required}|integer",
             'title'       => "{$required}|string|max:200",
-            'cover'       => 'sometimes|required|string|max:255',
-            'summary'     => 'sometimes|required|string|max:500',
+            'cover'       => 'nullable|string|max:255',
+            'summary'     => 'nullable|string|max:500',
             'content'     => "{$required}|string",
             'tags'        => 'nullable|array',
-            'author'      => 'sometimes|required|string|max:50',
+            'author'      => 'nullable|string|max:50',
             'status'      => 'sometimes|required|integer|in:0,1',
             'publish_at'  => 'nullable|date',
         ];

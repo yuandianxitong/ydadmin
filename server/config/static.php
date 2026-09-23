@@ -6,6 +6,7 @@
 return [
     'enable'     => true,
     'middleware' => [
+        app\middleware\InstallGuardMiddleware::class,
         app\middleware\StaticFile::class,
     ],
 ];

@@ -8,6 +8,17 @@ use tests\Support\ApiTestCase;
 
 final class AnnouncementApiTest extends ApiTestCase
 {
+    /** 后台表单不选发布时间时发空串，草稿要能存下来（空串不能进 datetime 列）。 */
+    public function test_draft_with_blank_publish_at_saves(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $draft = $this->post('/adminapi/announcement', [
+            'title' => 'blank', 'content' => 'x', 'type' => 1, 'status' => 0, 'sort' => 0, 'publish_at' => '',
+        ], $admin->token)->assertOk()->data();
+        $this->track('announcements', (int) $draft['id']);
+        $this->assertNull($draft['publish_at']);
+    }
+
     public function test_c_end_lists_published_only_and_admin_can_open_draft(): void
     {
         $admin = $this->actingAsAdmin('super');

@@ -38,7 +38,10 @@ class InstallController extends Controller
             return $this->error(lang('install.already_installed'), 400);
         }
 
-        return $this->success(['checks' => $this->checker->check()], lang('messages.get_success'));
+        return $this->success([
+            'checks'   => $this->checker->check(),
+            'defaults' => $this->connectionDefaults(),
+        ], lang('messages.get_success'));
     }
 
     #[\core\permission\PermissionSkip]
@@ -85,6 +88,23 @@ class InstallController extends Controller
             'password' => 'required|string|min:6|max:20',
             'email'    => 'nullable|email|max:100',
             'nickname' => 'nullable|string|max:50',
+        ];
+    }
+
+    /** @return array<string, int|string> */
+    private function connectionDefaults(): array
+    {
+        $mysql = (array) config('database.connections.mysql');
+        $redis = (array) config('redis.default');
+
+        return [
+            'db_host'    => (string) ($mysql['host'] ?? '127.0.0.1'),
+            'db_port'    => (int) ($mysql['port'] ?? 3306),
+            'db_name'    => (string) ($mysql['database'] ?? ''),
+            'db_user'    => (string) ($mysql['username'] ?? ''),
+            'redis_host' => (string) ($redis['host'] ?? '127.0.0.1'),
+            'redis_port' => (int) ($redis['port'] ?? 6379),
+            'redis_db'   => (int) ($redis['database'] ?? 0),
         ];
     }
 

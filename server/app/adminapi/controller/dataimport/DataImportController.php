@@ -48,6 +48,11 @@ class DataImportController extends Controller
         }
 
         $data = $this->validate($this->body($request), $this->uploadRules(), $this->uploadMessages());
+        // 会员导入只走 /adminapi/user/import（权限 user.import）。通用导入权限不进角色树，
+        // 放行 module=user 等于给 dataimport.upload 开了一条写会员表的后门。
+        if ((string) $data['module'] === 'user') {
+            throw new BusinessException(lang('dataimport.module_not_allowed'));
+        }
         $this->assertSizeWithin($file);
 
         $dir = runtime_path() . '/imports';

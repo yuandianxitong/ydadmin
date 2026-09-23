@@ -8,6 +8,7 @@ use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\exception\BusinessException;
 use core\install\Installer;
+use support\Db;
 use tests\TestCase;
 
 /**
@@ -33,12 +34,20 @@ final class Test55_InstallerNeverDropsDatabaseTest extends TestCase
         $this->assertNotSame('dev007_ydadmin', $this->scratch);
         $this->workDir = sys_get_temp_dir() . '/yd-rl55-' . bin2hex(random_bytes(4));
         mkdir($this->workDir, 0o755, true);
+        // 测试引导会给当前库打 2.0.0，isInstalled() 看的是当前库不是 scratch；先清掉才能测到「非空库拒绝」。
+        Db::table('system_upgrades')->delete();
         $this->dropScratch();
     }
 
     protected function tearDown(): void
     {
         $this->dropScratch();
+        if ((int) Db::table('system_upgrades')->count() === 0) {
+            Db::table('system_upgrades')->insert([
+                'version'    => '2.0.0',
+                'applied_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
         $this->removeDir($this->workDir);
         parent::tearDown();
     }

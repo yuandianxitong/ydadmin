@@ -134,6 +134,15 @@
         document.querySelectorAll('.steps li').forEach(function (el) { el.classList.toggle('on', el.getAttribute('data-step') === name); });
     }
 
+    function applyDefaults(defaults) {
+        if (!defaults) return;
+        ['db_host', 'db_port', 'db_name', 'db_user', 'redis_host', 'redis_port', 'redis_db'].forEach(function (key) {
+            if (defaults[key] === undefined || defaults[key] === null || defaults[key] === '') return;
+            var el = document.getElementById(key);
+            if (el) el.value = defaults[key];
+        });
+    }
+
     function payload() {
         const data = {};
         new FormData(form).forEach(function (value, key) { data[key] = value; });
@@ -165,6 +174,7 @@
                 if (!row.ok) allOk = false;
                 return '<tr><td>' + row.name + '</td><td>' + row.required + '</td><td>' + row.current + '</td><td class="' + (row.ok ? 'ok' : 'fail') + '">' + (row.ok ? '通过' : '未通过') + '</td></tr>';
             }).join('');
+            applyDefaults(json.data.defaults);
             envMsg.textContent = allOk ? '环境检查通过。' : '存在未通过的检查项，请先修复。';
             toConfig.disabled = !allOk;
         } catch (e) {

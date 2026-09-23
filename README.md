@@ -23,12 +23,14 @@ PHP 8.4（pdo_mysql、redis、pcntl、posix）· MySQL 8 · Redis · Composer 2 
 cd server
 composer install
 cp .env.example .env    # 填写 DB_* 与 REDIS_*，两个 JWT secret 各用 php -r "echo bin2hex(random_bytes(32));" 生成
-php webman db:reset     # 仅开发环境：删库重建并导入 database/install 下的表结构与初始数据
+php webman db:reset     # 仅可丢弃的开发库：删库重建并导入 database/install 下的表结构与初始数据
 php webman admin:init --username=admin --password=你的密码   # 建立超级管理员（重复执行即重置密码）
 php start.php start     # 开发模式（文件变更自动重载）；生产环境用 php start.php start -d
 ```
 
-访问 `http://127.0.0.1:8000/adminapi/health`，返回 `{"code":200,…}` 即启动成功。
+`db:reset` 会删库重建，只供你自己的可丢弃库使用，`APP_DEBUG` 未开启时拒绝执行。**禁止对 `dev007_ydadmin` 执行 `db:reset`**；现网库表结构变化走 `php webman yd:update`。
+
+访问 `http://127.0.0.1:8000/adminapi/health`，返回 `{"code":200,…}` 即启动成功。已安装前该接口会返回 HTTP 503（`data.installed=false`），请先走 `/install/`。
 
 前端开发：
 
@@ -54,7 +56,7 @@ php start.php restart
 
 手工灌 SQL 是备选：仅在无法走向导/CLI 时，先建库并依次导入 `schema.sql`、`init.sql`、`regions.sql`，事后须 `touch runtime/install.lock` 与 `php webman yd:update --baseline=2.0.0`。
 
-`php webman db:reset` 会删库重建，只供开发环境使用，`APP_DEBUG` 未开启时拒绝执行。
+`php webman db:reset` 会删库重建，只供可丢弃的开发库使用，`APP_DEBUG` 未开启时拒绝执行。**禁止对 `dev007_ydadmin` 执行。**
 
 ### Docker Compose
 
@@ -538,7 +540,7 @@ WHERE code = 'payment_success';
 
 地区、App 版本、数据导入。三张表：`regions`、`app_versions`、`data_imports`。管理端菜单 8 / 800–813（应用管理 → 区域管理、应用版本）。不种导入菜单，也不种 `region.status` / `version.status` 按钮。
 
-**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区表若为空，再单独执行 `server/database/install/regions.sql`（该文件是 `INSERT`，不是 `INSERT IGNORE`）。种子来自 1.x，截到甘肃省省级一行，**不是全国完整区划**。
+**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区种子是大陆 31 省市区（`id =` GB/T 2260 六位码）。新装走 `regions.sql`（`INSERT`）；已有库补齐缺失行用 `php webman yd:update`（`INSERT IGNORE`，不覆盖已改名称）。
 
 **C 端接口**（公开，不挂会员认证）：
 
@@ -550,12 +552,12 @@ WHERE code = 'payment_success';
 
 **级联**：管理端登录即可 `GET /adminapi/common/regions`，一次拉全量启用树（节点 `{value,label,children?}`）。`admin/src/components/Region` 已在打这条。
 
-**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history`。只是 CSV 管道 + 历史：空 `rowHandler`，计数后记一条 `data_imports`，不写任何业务表，也不进 `files`。没有导入页面；导入权限不进角色树，非超管默认 403。
+**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history` 仍是通用 CSV 管道。`module=user` 会写入会员；其它 module 只计数、记历史，不进 `files`。用户列表上的导入按钮走 `POST /adminapi/user/import`（权限 `user.import`）。通用 `dataimport.*` 不进角色树，非超管默认 403。
 
 **已知限制**：
 
-- 导入不写业务表；以后要真导入用户/商品，另开里程碑注册 `rowHandler`。
-- 导入权限不进角色树，非超管调 `dataimport.*` 会 403。
+- 除 `user` 外的 module 仍不写业务表（没有商品模块）。
+- 通用导入权限不进角色树，非超管调 `dataimport.*` 会 403。
 - 地区树 / `common/regions` 一次拉全量启用节点，不做按需加载。
 - 地区种子可被超管删改；不在本里程碑做「种子地区不可删」。
 - 不改 admin / PC / uniapp 页面。
@@ -590,7 +592,7 @@ DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_page
 
 `schema.sql` 只用于全新安装。生产升级走上方「升级」的 `php webman yd:update`。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
-M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
+M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，**现网库（含 `dev007_ydadmin`）只执行 `php webman yd:update`**，禁止 `db:reset`。可丢弃的本地库才用 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。可丢弃库忘了重建时，`composer test` 的测试引导会提示执行 `db:reset`，而不是抛一个看不懂的 SQL 错误。
 
 **这道检查要跟着 schema 一起维护**：它靠 `DevDatabaseGuard` 里的 `REQUIRED` 清单逐项核对表与列，**后续里程碑每加一张表或一个列，都要往那份清单里补一行**，否则库过期时它会一声不吭地放行。
 
@@ -629,7 +631,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | `composer lint` | php-cs-fixer（`composer lint:fix` 自动修复） |
 | `composer analyse` | phpstan level 6 |
 | `composer check:context` | 常驻内存纪律：禁止可变静态属性；Service/Controller 禁止 `Db::` 与 Model 静态查询；Repository 查询必须从 `query()` 起手 |
-| `composer contract` | 对运行中的服务做接口契约检查（先 `php webman db:reset` 一次，再 `php start.php start -d`） |
+| `composer contract` | 对已启动且已安装的服务做接口契约检查（脚本本身不重置数据库；表结构变了才对可丢弃库 `db:reset`，现网库走 `yd:update`） |
 
 测试固定使用 `${DB_NAME}_test` 库与 Redis DB 15，首次运行自动建库；`YDADMIN_TEST_DB_RESET=1 composer test` 可重建测试库。
 

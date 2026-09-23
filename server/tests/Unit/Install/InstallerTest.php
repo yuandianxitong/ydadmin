@@ -52,6 +52,7 @@ final class InstallerTest extends TestCase
         $this->envPath = $this->workDir . '/.env';
         file_put_contents($this->workDir . '/.env.example', "APP_DEBUG = true\nDB_HOST = 127.0.0.1\nKEEP_ME = 1\n");
         $this->writeMiniSql();
+        Db::table('system_upgrades')->delete();
         $this->admins = new class () implements SuperAdminInitializer {
             public array $calls = [];
 
@@ -82,6 +83,12 @@ final class InstallerTest extends TestCase
             Db::table('system_upgrades')->where('version', '2.0.0')->delete();
             $this->stampedTestUpgrade = false;
         }
+        if ((int) Db::table('system_upgrades')->count() === 0) {
+            Db::table('system_upgrades')->insert([
+                'version'    => '2.0.0',
+                'applied_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
         $this->removeDir($this->workDir);
         parent::tearDown();
     }
@@ -103,13 +110,13 @@ final class InstallerTest extends TestCase
         $this->assertSame(['2.0.0'], $versions);
 
         $env = (string) file_get_contents($this->envPath);
-        $this->assertMatchesRegularExpression('/^JWT_ADMIN_SECRET\s*=\s*([0-9a-f]{64})$/m', $env);
-        $this->assertMatchesRegularExpression('/^JWT_USER_SECRET\s*=\s*([0-9a-f]{64})$/m', $env);
-        preg_match('/^JWT_ADMIN_SECRET\s*=\s*([0-9a-f]{64})$/m', $env, $adminJwt);
-        preg_match('/^JWT_USER_SECRET\s*=\s*([0-9a-f]{64})$/m', $env, $userJwt);
+        $this->assertMatchesRegularExpression('/^JWT_ADMIN_SECRET\s*=\s*"([0-9a-f]{64})"$/m', $env);
+        $this->assertMatchesRegularExpression('/^JWT_USER_SECRET\s*=\s*"([0-9a-f]{64})"$/m', $env);
+        preg_match('/^JWT_ADMIN_SECRET\s*=\s*"([0-9a-f]{64})"$/m', $env, $adminJwt);
+        preg_match('/^JWT_USER_SECRET\s*=\s*"([0-9a-f]{64})"$/m', $env, $userJwt);
         $this->assertNotSame($adminJwt[1], $userJwt[1]);
-        $this->assertStringContainsString('APP_DEBUG = false', $env);
-        $this->assertMatchesRegularExpression('/^DB_PREFIX\s*=\s*$/m', $env);
+        $this->assertStringContainsString('APP_DEBUG = "false"', $env);
+        $this->assertMatchesRegularExpression('/^DB_PREFIX\s*=\s*""$/m', $env);
 
         $this->assertCount(1, $this->admins->calls);
         $this->assertSame(['admin', 'Secret123', 'admin@example.com', '超管'], $this->admins->calls[0]);
@@ -176,6 +183,35 @@ final class InstallerTest extends TestCase
         $installer = $this->makeInstaller();
         $this->assertFalse(is_file($this->lockPath));
         $this->assertTrue($installer->isInstalled(), 'isInstalled 必须读当前 config() 的测试库，而不是 scratch');
+    }
+
+    /**
+     * 库连不上时必须往「已安装」判：lock 被部署清掉 + 数据库抖一下，
+     * 否则未登录的安装向导会重新开放，任何人都能把 .env 指向自己的库并建超管。
+     * 判据是 .env 里的 JWT 密钥——安装器才会写，.env.example 里是空的。
+     */
+    public function test_unreachable_database_counts_as_installed_when_env_carries_secrets(): void
+    {
+        file_put_contents($this->envPath, "DB_HOST = \"127.0.0.1\"\nJWT_ADMIN_SECRET = \"" . str_repeat('a', 64) . "\"\nJWT_USER_SECRET = \"" . str_repeat('b', 64) . "\"\n");
+        $mysql = $this->mysql;
+        $mysql['port'] = 1;                 // 连不上
+        $mysql['database'] = $this->scratch; // 不存在
+        $this->overrideConfig('database.connections.mysql', $mysql);
+
+        $this->assertFalse(is_file($this->lockPath));
+        $this->assertTrue($this->makeInstaller()->isInstalled(), '库不可达 + 已写过密钥 → 按已安装处理');
+    }
+
+    /** 全新机器上库同样连不上（凭据还没填），这时必须放行向导，否则首次安装无路可走。 */
+    public function test_unreachable_database_still_allows_first_install(): void
+    {
+        file_put_contents($this->envPath, "DB_HOST = \"127.0.0.1\"\nJWT_ADMIN_SECRET = \nJWT_USER_SECRET = \n");
+        $mysql = $this->mysql;
+        $mysql['port'] = 1;
+        $mysql['database'] = $this->scratch;
+        $this->overrideConfig('database.connections.mysql', $mysql);
+
+        $this->assertFalse($this->makeInstaller()->isInstalled(), '还没装过（无密钥）→ 向导可用');
     }
 
     public function test_missing_upgrades_table_is_not_installed(): void
