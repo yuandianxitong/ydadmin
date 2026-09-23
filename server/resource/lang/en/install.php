@@ -11,4 +11,5 @@ return [
     'env_php'             => 'PHP version must be 8.4 or newer.',
     'env_extension'       => 'The :name extension must be installed.',
     'env_writable'        => ':path must be writable.',
+    'cross_site_rejected' => 'Invalid request origin, please use the install wizard page',
 ];

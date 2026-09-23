@@ -154,7 +154,10 @@ final class Installer
             isset($input['nickname']) ? (string) $input['nickname'] : null,
         );
 
-        $pdo->exec("INSERT INTO system_upgrades (version, applied_at) VALUES ('2.0.0', NOW())");
+        // 新装的库已经是 schema.sql 的最新形态，所以把「当前版本以及更早的升级目录」全部打成已应用：
+        // 写死 2.0.0 的话，之后每个新装都挂着一堆待升级，第一个 ALTER TABLE 会砸在本来就有那列的新库上。
+        (new Upgrader(dirname($this->installDir) . '/updates'))
+            ->run($pdo, (string) config('version.version', '2.0.0'), false);
         file_put_contents($this->lockPath, date('c'));
     }
 

@@ -9,6 +9,35 @@ use tests\Support\ApiTestCase;
 
 final class FeedbackApiTest extends ApiTestCase
 {
+    /** content 是 text（64KB）、images 是 json：没有上限时超长内容是 500 而不是 422。 */
+    public function test_submit_rejects_oversized_content_and_too_many_images(): void
+    {
+        $user = $this->actingAsUser();
+
+        $this->post('/api/feedback/submit', ['content' => str_repeat('长', 2001)], $user->token)->assertCode(422);
+        $this->post('/api/feedback/submit', [
+            'content' => 'ok',
+            'images'  => array_fill(0, 10, 'https://example.com/a.png'),
+        ], $user->token)->assertCode(422);
+
+        $this->assertSame(0, (int) Db::table('feedbacks')->where('user_id', $user->id)->count());
+    }
+
+    /** 一个会员能无限刷反馈的话，每次都会连带写一条站内信和一条消息日志。 */
+    public function test_submit_is_rate_limited_per_user(): void
+    {
+        $user = $this->actingAsUser();
+        $limit = max(1, (int) config('feedback.submit_per_minute', 5));
+
+        for ($i = 0; $i < $limit; $i++) {
+            $ok = $this->post('/api/feedback/submit', ['content' => "第{$i}条"], $user->token)->assertOk()->data();
+            $this->track('feedbacks', (int) $ok['id']);
+        }
+
+        $this->post('/api/feedback/submit', ['content' => '再来一条'], $user->token)->assertCode(429);
+        $this->assertSame($limit, (int) Db::table('feedbacks')->where('user_id', $user->id)->count());
+    }
+
     public function test_user_submits_and_receives_site_message_admin_can_reply(): void
     {
         $user = $this->actingAsUser();

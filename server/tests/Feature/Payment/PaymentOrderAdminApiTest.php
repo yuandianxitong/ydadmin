@@ -72,6 +72,21 @@ final class PaymentOrderAdminApiTest extends ApiTestCase
         $this->assertSame('admin:' . $admin->id, $detail['refunds'][0]['operator']);
     }
 
+    /** 金额位数没上限时会撞上 Money::toCents 的 15 位限制，抛的是非业务异常 → HTTP 500。 */
+    public function test_refund_rejects_absurd_amount_with_422_not_500(): void
+    {
+        $admin = $this->actingAsAdmin(['payment.order.refund']);
+
+        foreach (['9999999999999999', '123456789.00'] as $amount) {
+            $response = $this->post('/adminapi/payment/order/refund', [
+                'order_no' => 'RT000',
+                'amount'   => $amount,
+            ], $admin->token);
+            $this->assertSame(200, $response->status(), '不能是未捕获异常');
+            $this->assertSame(422, $response->code(), "金额 {$amount} 应按校验失败处理");
+        }
+    }
+
     public function test_refund_requires_permission(): void
     {
         $admin = $this->actingAsAdmin(['payment.order.list']);

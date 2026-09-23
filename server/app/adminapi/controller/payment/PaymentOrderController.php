@@ -62,7 +62,9 @@ class PaymentOrderController extends Controller
     {
         return [
             'order_no' => 'required|string|max:32',
-            'amount'   => 'required|regex:/^[0-9]+(\.[0-9]{1,2})?$/',
+            // 位数收到 8 位：payment_orders.amount_cents 是 int unsigned（上限 4294.96 万元），
+            // 放行更长的数字会掉进 Money::toCents 的 15 位限制，抛出非业务异常变成 HTTP 500。
+            'amount'   => 'required|regex:/^[0-9]{1,8}(\.[0-9]{1,2})?$/',
             'reason'   => 'nullable|string|max:80',
         ];
     }

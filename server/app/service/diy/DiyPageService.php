@@ -188,7 +188,8 @@ class DiyPageService extends Service
         return [
             'title'         => (string) ($row['title'] ?? ''),
             'components'    => $components,
-            'page_settings' => $this->normalizeSettings($row['page_settings'] ?? []),
+            // 已发布那份，不是草稿：只点保存不发布时 C 端不能跟着变（回滚同理）
+            'page_settings' => $this->normalizeSettings($row['page_settings_published'] ?? []),
         ];
     }
 
@@ -365,6 +366,7 @@ class DiyPageService extends Service
                 'components_draft'      => [],
                 'components_published'  => [],
                 'page_settings'         => [],
+                'page_settings_published' => [],
                 'status'                => 1,
             ]);
         } catch (UniqueConstraintViolationException) {
@@ -431,6 +433,7 @@ class DiyPageService extends Service
                     'components_draft'     => $draft,
                     'components_published' => [],
                     'page_settings'        => $this->normalizeSettings($src['page_settings'] ?? []),
+                    'page_settings_published' => [],
                     'status'               => (int) ($src['status'] ?? 1),
                 ]);
             } catch (UniqueConstraintViolationException) {

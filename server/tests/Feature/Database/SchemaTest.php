@@ -931,8 +931,21 @@ final class SchemaTest extends TestCase
         $this->assertSame(['version'], array_values($indexes['uk_version']));
     }
 
-    public function test_m8_code_version_is_2_0_0(): void
+    /**
+     * 代码版本要盖过所有升级目录：新装按代码版本打戳，版本落后的话，
+     * 新装会挂着一个永远待应用的升级目录，而 schema.sql 里其实早就有那些改动了。
+     */
+    public function test_m8_code_version_covers_every_update_dir(): void
     {
-        $this->assertSame('2.0.0', config('version.version'));
+        $version = (string) config('version.version');
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', $version);
+
+        foreach (glob(base_path() . '/database/updates/v*') ?: [] as $dir) {
+            $dirVersion = ltrim(basename($dir), 'v');
+            $this->assertTrue(
+                version_compare($dirVersion, $version, '<='),
+                "升级目录 v{$dirVersion} 比代码版本 {$version} 新，config/version.php 该跟上"
+            );
+        }
     }
 }

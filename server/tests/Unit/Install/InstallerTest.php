@@ -107,7 +107,9 @@ final class InstallerTest extends TestCase
         $pdo = DatabaseInstaller::connect($this->mysql);
         $pdo->exec('USE `' . $this->scratch . '`');
         $versions = $pdo->query('SELECT version FROM system_upgrades ORDER BY id')->fetchAll(\PDO::FETCH_COLUMN);
-        $this->assertSame(['2.0.0'], $versions);
+        // 新装打的戳是「当前版本」，不是写死的 2.0.0：否则每个新装都挂着一堆待升级，
+        // 第一个 ALTER TABLE 会砸在本来就有那列的新库上。
+        $this->assertSame([(string) config('version.version')], $versions);
 
         $env = (string) file_get_contents($this->envPath);
         $this->assertMatchesRegularExpression('/^JWT_ADMIN_SECRET\s*=\s*"([0-9a-f]{64})"$/m', $env);

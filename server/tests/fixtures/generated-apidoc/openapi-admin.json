@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "元点Admin 管理端 API",
-        "version": "2.0.0"
+        "version": "2.0.2"
     },
     "servers": [
         {
@@ -5105,8 +5105,8 @@
                                     },
                                     "amount": {
                                         "type": "string",
-                                        "pattern": "^[0-9]+(\\.[0-9]{1,2})?$",
-                                        "description": "regex:/^[0-9]+(\\.[0-9]{1,2})?$/"
+                                        "pattern": "^[0-9]{1,8}(\\.[0-9]{1,2})?$",
+                                        "description": "regex:/^[0-9]{1,8}(\\.[0-9]{1,2})?$/"
                                     },
                                     "reason": {
                                         "type": "string",
@@ -14351,7 +14351,7 @@
         "DiyLinkController::update 字段 category:max:32",
         "DiyLinkController::update 字段 icon:max:64",
         "MessageTemplateController::store 字段 code:regex:/^[a-z][a-z0-9_]*$/",
-        "PaymentOrderController::refund 字段 amount:regex:/^[0-9]+(\\.[0-9]{1,2})?$/",
+        "PaymentOrderController::refund 字段 amount:regex:/^[0-9]{1,8}(\\.[0-9]{1,2})?$/",
         "AdminController::store 字段 mobile:regex:/^1[3-9]\\d{9}$/",
         "AdminController::changePassword 字段 new_password:different:old_password",
         "AdminController::update 字段 mobile:regex:/^1[3-9]\\d{9}$/",

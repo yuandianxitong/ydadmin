@@ -54,6 +54,8 @@ php start.php restart
 
 `.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。向导与 CLI 会写入数据库连接与两把 JWT secret。
 
+安装向导在装完之前未登录可达，所以 `/install/test-connection` 与 `/install/run` 要求带向导页下发的令牌（cookie + `X-Install-Token` 双提交）并校验同源；直接用 curl 打这两条要先 `GET /install/` 取 cookie。
+
 手工灌 SQL 是备选：仅在无法走向导/CLI 时，先建库并依次导入 `schema.sql`、`init.sql`、`regions.sql`，事后须 `touch runtime/install.lock` 与 `php webman yd:update --baseline=2.0.0`。
 
 `php webman db:reset` 会删库重建，只供可丢弃的开发库使用，`APP_DEBUG` 未开启时拒绝执行。**禁止对 `dev007_ydadmin` 执行。**
@@ -530,7 +532,7 @@ WHERE code = 'payment_success';
 
 浏览量只在 C 端已发布文章详情增加；后台详情不加。`publish_at` 只展示、不参与 C 端过滤。
 
-**反馈站内信**：提交成功后经 `afterCommit` 发 `feedback_received`（只开站内信）。改文案在「消息管理 → 消息模板」即可，不必改代码。回复、关闭、删除不发消息。
+**反馈站内信**：提交成功后经 `afterCommit` 发 `feedback_received`（只开站内信）。改文案在「消息管理 → 消息模板」即可，不必改代码。回复、关闭、删除不发消息。提交限：正文 2000 字、图片 9 张，同一会员每分钟 5 条（`config/feedback.php` 的 `submit_per_minute`），超了返回 code 429。
 
 **已知限制**：
 
@@ -569,6 +571,8 @@ WHERE code = 'payment_success';
 ### 装修（M7c）
 
 DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_pages`、`diy_page_versions`、`diy_links`、`mobile_configs`。管理端菜单 16 / 1600–1618（装修 → 页面装修、自定义页面、底部导航、主题风格、链接管理）。
+
+**草稿与已发布分开存**：`page_settings` 是草稿，`page_settings_published` 才是 C 端读的那份，发布时才拷过去（回滚同理）。升级到该行为要执行 `php webman yd:update`（v2.0.2 加列并用现有值回填）。首页即使经 `/adminapi/diy/pages/home/*` 这条通用路径写，也要求 `diy.home.*` 权限。
 
 **升级到 M7c 时先执行开发库补丁 SQL**（四表、菜单 16/1600–1618、home/member 与 `mobile_configs` 种子），再部署代码。补丁按 `page_key` / 是否已有配置行判空再插，不会覆盖开发库里已有的同 key 装修。
 

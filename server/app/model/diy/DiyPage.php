@@ -20,6 +20,7 @@ class DiyPage extends Model
         'components_draft'     => 'array',
         'components_published' => 'array',
         'page_settings'        => 'array',
+        'page_settings_published' => 'array',
         'status'               => 'int',
         'created_at'           => 'datetime',
         'updated_at'           => 'datetime',

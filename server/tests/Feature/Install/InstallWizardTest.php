@@ -56,6 +56,14 @@ final class InstallWizardTest extends ApiTestCase
         parent::tearDown();
     }
 
+    /** 向导页发的双提交令牌；写操作都要带上。 */
+    private function tokenHeaders(): array
+    {
+        preg_match('/yd_install_token=([0-9a-f]{32})/', (string) $this->get('/install')->header('Set-Cookie'), $m);
+
+        return ['Cookie' => 'yd_install_token=' . ($m[1] ?? ''), 'X-Install-Token' => $m[1] ?? ''];
+    }
+
     public function test_wizard_page_is_html_with_license_when_not_installed(): void
     {
         $this->assertSame(0, Db::table('system_upgrades')->count());
@@ -108,6 +116,45 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertNotSame(401, $run->code());
     }
 
+    /**
+     * 安装向导在装完之前是未登录可达的：没有跨站防护时，受害者随便打开一个页面，
+     * 那个页面就能 POST 过来把 .env 指向攻击者的库并在那边建超管。
+     * 令牌走双提交：向导页发 cookie，请求头带同一个值，跨站页面读不到 cookie 也写不了这个头。
+     */
+    public function test_state_changing_endpoints_require_the_wizard_token(): void
+    {
+        $this->post('/install/test-connection', $this->payload())->assertCode(403);
+        $this->post('/install/run', $this->payload())->assertCode(403);
+
+        // 令牌对不上同样拒绝
+        $this->post('/install/run', $this->payload(), null, [
+            'Cookie'         => 'yd_install_token=aaaa',
+            'X-Install-Token' => 'bbbb',
+        ])->assertCode(403);
+
+        // 带着向导页发的 cookie 与请求头就能过防护（连接失败是另一回事，不是 403）
+        $page = $this->get('/install');
+        $cookie = (string) $page->header('Set-Cookie');
+        $this->assertMatchesRegularExpression('/yd_install_token=[0-9a-f]{32}/', $cookie, '向导页要下发令牌 cookie');
+        preg_match('/yd_install_token=([0-9a-f]{32})/', $cookie, $m);
+        $withToken = $this->post('/install/test-connection', $this->payload(), null, [
+            'Cookie'          => 'yd_install_token=' . $m[1],
+            'X-Install-Token' => $m[1],
+        ]);
+        $this->assertNotSame(403, $withToken->code());
+    }
+
+    /** 跨站来源即使拿到了令牌也要拒（令牌泄漏时的第二道）。 */
+    public function test_cross_origin_requests_are_rejected(): void
+    {
+        $token = str_repeat('a', 32);
+        $this->post('/install/run', $this->payload(), null, [
+            'Cookie'          => 'yd_install_token=' . $token,
+            'X-Install-Token' => $token,
+            'Origin'          => 'http://evil.example.com',
+        ])->assertCode(403);
+    }
+
     public function test_environment_returns_nonempty_checks_when_not_installed(): void
     {
         $data = $this->get('/install/environment')->assertOk()->data();
@@ -135,12 +182,12 @@ final class InstallWizardTest extends ApiTestCase
 
     public function test_test_connection_accepts_test_database_and_redis(): void
     {
-        $this->post('/install/test-connection', $this->payload())->assertOk();
+        $this->post('/install/test-connection', $this->payload(), null, $this->tokenHeaders())->assertOk();
     }
 
     public function test_run_rejects_short_password_before_installer(): void
     {
-        $response = $this->post('/install/run', $this->payload(['password' => 'admin']));
+        $response = $this->post('/install/run', $this->payload(['password' => 'admin']), null, $this->tokenHeaders());
 
         $this->assertSame(200, $response->status());
         $this->assertSame(422, $response->code());
@@ -150,7 +197,7 @@ final class InstallWizardTest extends ApiTestCase
 
     public function test_run_rejects_short_username_before_installer(): void
     {
-        $response = $this->post('/install/run', $this->payload(['username' => 'ab']));
+        $response = $this->post('/install/run', $this->payload(['username' => 'ab']), null, $this->tokenHeaders());
 
         $this->assertSame(200, $response->status());
         $this->assertSame(422, $response->code());
@@ -162,7 +209,7 @@ final class InstallWizardTest extends ApiTestCase
     {
         $rolesBefore = (int) Db::table('roles')->count();
 
-        $response = $this->post('/install/run', $this->payload());
+        $response = $this->post('/install/run', $this->payload(), null, $this->tokenHeaders());
 
         $this->assertSame(200, $response->status());
         $this->assertSame(400, $response->code());
@@ -184,7 +231,7 @@ final class InstallWizardTest extends ApiTestCase
 
         foreach ($responses as $response) {
             $this->assertSame(200, $response->status());
-            $this->assertContains($response->code(), [200, 400]);
+            $this->assertContains($response->code(), [200, 400, 403], '无令牌的写操作现在是 403，同样不许带出密钥');
             $encoded = json_encode($response->data());
             $this->assertIsString($encoded);
             $this->assertStringNotContainsString('JWT_ADMIN_SECRET', $encoded);

@@ -62,8 +62,8 @@ class DiyPageRepository extends Repository
             ->where($this->qualify('page_key'), $key)
             ->where($this->qualify('platform'), $platform)
             ->update([
-                'components_published' => $components,
-                'page_settings'        => $pageSettings,
+                'components_published'    => $components,
+                'page_settings_published' => $pageSettings,
             ]);
     }
 

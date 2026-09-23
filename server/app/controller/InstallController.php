@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controller;
 
 use core\base\Controller;
+use core\exception\ForbiddenException;
 use core\install\EnvironmentChecker;
 use core\install\Installer;
 use DI\Attribute\Inject;
@@ -19,6 +20,9 @@ class InstallController extends Controller
     #[Inject]
     protected EnvironmentChecker $checker;
 
+    /** 双提交令牌的 cookie 名；向导页下发，写操作要求请求头带同一个值。 */
+    public const TOKEN_COOKIE = 'yd_install_token';
+
     #[\core\permission\PermissionSkip]
     public function index(): Response
     {
@@ -28,7 +32,39 @@ class InstallController extends Controller
             return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Install</title></head><body><p>' . $message . '</p></body></html>');
         }
 
-        return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], (string) file_get_contents(resource_path() . '/views/install/index.html'));
+        // 装完之前这页未登录可达，所以写操作要防跨站：这里发一个随机令牌，
+        // 向导的 JS 把它回传到请求头。跨站页面既读不到这个 cookie，也加不了自定义头。
+        $token = bin2hex(random_bytes(16));
+
+        return (new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], (string) file_get_contents(resource_path() . '/views/install/index.html')))
+            ->cookie(self::TOKEN_COOKIE, $token, null, '/install', '', false, false, 'Strict');
+    }
+
+    /**
+     * 写操作前的跨站防护：令牌对得上，且（带了 Origin/Referer 时）来源与本站同源。
+     * 不依赖 session / Redis——这两样在装完之前都还没配好。
+     */
+    private function assertSameSiteRequest(Request $request): void
+    {
+        $host = (string) $request->host();
+        foreach (['origin', 'referer'] as $header) {
+            $value = (string) $request->header($header, '');
+            if ($value === '') {
+                continue;
+            }
+            $origin = parse_url($value, PHP_URL_HOST);
+            $port = parse_url($value, PHP_URL_PORT);
+            $originHost = is_string($origin) ? $origin . ($port === null ? '' : ':' . $port) : '';
+            if ($originHost !== $host && $originHost !== (string) parse_url('//' . $host, PHP_URL_HOST)) {
+                throw new ForbiddenException(lang('install.cross_site_rejected'));
+            }
+        }
+
+        $cookie = (string) $request->cookie(self::TOKEN_COOKIE, '');
+        $header = (string) $request->header('x-install-token', '');
+        if ($cookie === '' || $header === '' || !hash_equals($cookie, $header)) {
+            throw new ForbiddenException(lang('install.cross_site_rejected'));
+        }
     }
 
     #[\core\permission\PermissionSkip]
@@ -50,6 +86,7 @@ class InstallController extends Controller
         if ($this->installer->isInstalled()) {
             return $this->error(lang('install.already_installed'), 400);
         }
+        $this->assertSameSiteRequest($request);
 
         $data = $this->validate((array) $request->all(), $this->testConnectionRules());
         $this->installer->testDatabase($data);
@@ -64,6 +101,7 @@ class InstallController extends Controller
         if ($this->installer->isInstalled()) {
             return $this->error(lang('install.already_installed'), 400);
         }
+        $this->assertSameSiteRequest($request);
 
         $data = $this->validate((array) $request->all(), $this->runRules());
         $this->installer->run($data);

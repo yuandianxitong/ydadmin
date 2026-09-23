@@ -10,4 +10,7 @@ return [
     'id_require'      => '请选择反馈',
     'reply_require'   => '回复内容不能为空',
     'reply_length'    => '回复内容不能超过2000个字符',
+    'content_max' => '反馈内容不能超过2000个字符',
+    'images_max' => '最多上传9张图片',
+    'rate_limited' => '提交太频繁，请稍后再试',
 ];

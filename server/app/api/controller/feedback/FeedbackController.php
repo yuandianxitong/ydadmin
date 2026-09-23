@@ -52,9 +52,9 @@ class FeedbackController extends Controller
     private function submitRules(): array
     {
         return [
-            'content'   => 'required|string',
+            'content'   => 'required|string|max:2000',
             'type'      => 'nullable|string|in:suggestion,bug,complaint,other',
-            'images'    => 'nullable|array',
+            'images'    => 'nullable|array|max:9',
             'images.*'  => 'string|max:500',
             'contact'   => 'nullable|string|max:100',
         ];
@@ -67,6 +67,8 @@ class FeedbackController extends Controller
     {
         return [
             'content.required' => 'feedback.content_require',
+            'content.max'      => 'feedback.content_max',
+            'images.max'       => 'feedback.images_max',
             'type.in'          => 'feedback.type_invalid',
             'images.array'     => 'feedback.images_array',
             'contact.max'      => 'feedback.contact_max',

@@ -11,6 +11,7 @@ use core\context\RequestContext;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
 use DI\Attribute\Inject;
+use support\Redis;
 
 /**
  * 用户反馈。
@@ -26,6 +27,20 @@ class FeedbackService extends Service
     #[Inject]
     protected MessageService $messageService;
 
+    /** 每条反馈都会连带写一条站内信与一条消息日志，按会员限一分钟内的条数（同 RechargeService 的写法）。 */
+    private const RATE_WINDOW = 60;
+
+    private const INCR_WITH_TTL = "local n = redis.call('INCR', KEYS[1]) if n == 1 or redis.call('TTL', KEYS[1]) == -1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return n";
+
+    private function assertWithinRateLimit(int $userId): void
+    {
+        $limit = max(1, (int) config('feedback.submit_per_minute', 5));
+        $count = (int) Redis::eval(self::INCR_WITH_TTL, 1, "feedback_rate:submit:{$userId}", self::RATE_WINDOW);
+        if ($count > $limit) {
+            throw new BusinessException(lang('feedback.rate_limited'), 429);
+        }
+    }
+
     /**
      * C 端提交。type 缺省 suggestion；status 固定待处理；user_id 只认调用方传入（控制器取 $request->userId）。
      *
@@ -34,6 +49,7 @@ class FeedbackService extends Service
      */
     public function submit(int $userId, array $data): array
     {
+        $this->assertWithinRateLimit($userId);
         $type = trim((string) ($data['type'] ?? ''));
         $images = $data['images'] ?? [];
         $row = [

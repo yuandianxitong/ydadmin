@@ -11,4 +11,5 @@ return [
     'env_php'             => 'PHP 版本必须不低于 8.4。',
     'env_extension'       => '必须安装 :name 扩展。',
     'env_writable'        => ':path 必须可写。',
+    'cross_site_rejected' => '请求来源不合法，请在安装向导页面内操作',
 ];

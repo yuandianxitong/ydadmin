@@ -7,7 +7,10 @@ namespace app\adminapi\controller\diy;
 use app\service\diy\DiyPageService;
 use app\service\diy\LinkCatalogService;
 use core\base\Controller;
+use core\context\RequestContext;
+use core\exception\ForbiddenException;
 use core\permission\Permission;
+use core\permission\PermissionCheckerInterface;
 use DI\Attribute\Inject;
 use support\Response;
 use Webman\Http\Request;
@@ -27,10 +30,10 @@ use Webman\Http\Request;
  *   GET    /adminapi/diy/link-catalog                         linkCatalog           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/summary                  pageSummary           diy.home.view
  *   GET    /adminapi/diy/pages/{key}/draft                    getDraftByKey         diy.page.view
- *   PUT    /adminapi/diy/pages/{key}/draft                    saveDraftByKey        diy.page.save
- *   POST   /adminapi/diy/pages/{key}/publish                  publishByKey          diy.page.publish
+ *   PUT    /adminapi/diy/pages/{key}/draft                    saveDraftByKey        diy.page.save（key=home 另需 diy.home.save）
+ *   POST   /adminapi/diy/pages/{key}/publish                  publishByKey          diy.page.publish（key=home 另需 diy.home.publish）
  *   GET    /adminapi/diy/pages/{key}/versions                 versionsByKey         diy.page.view
- *   POST   /adminapi/diy/pages/{key}/versions/{id}/restore    restoreVersionByKey   diy.page.save
+ *   POST   /adminapi/diy/pages/{key}/versions/{id}/restore    restoreVersionByKey   diy.page.save（key=home 另需 diy.home.version.restore）
  *   GET    /adminapi/diy/pages                                 listPages             diy.page.view
  *   POST   /adminapi/diy/pages                                 createPage            diy.page.create
  *   POST   /adminapi/diy/pages/{id}/copy                      copyPage              diy.page.create
@@ -47,6 +50,27 @@ class DiyPageController extends Controller
 
     #[Inject]
     protected LinkCatalogService $linkCatalogService;
+
+    #[Inject]
+    protected PermissionCheckerInterface $permissionChecker;
+
+    /**
+     * 首页同时能从 /diy/home（diy.home.*）和 /diy/pages/home（diy.page.*）两条路打到——
+     * 后台编辑器走的就是后一条。注解只认静态权限点，所以这里按 key 再确认一次：
+     * 动到首页必须持有对应的 diy.home.*，否则只有「自定义页面」权限的人就能改并发布首页。
+     * 个人中心（member）不在此列，它本来就归 diy.page.*。
+     */
+    private function assertHomeKeyAllowed(string $key, string $homePermission): void
+    {
+        if ($key !== 'home') {
+            return;
+        }
+
+        $adminId = RequestContext::actingUser();
+        if ($adminId <= 0 || !$this->permissionChecker->check($adminId, $homePermission)) {
+            throw new ForbiddenException();
+        }
+    }
 
     #[Permission('diy.home.view')]
     public function homeSummary(): Response
@@ -109,6 +133,7 @@ class DiyPageController extends Controller
     #[Permission('diy.page.save')]
     public function saveDraftByKey(Request $request, string $key): Response
     {
+        $this->assertHomeKeyAllowed($key, 'diy.home.save');
         $data = $this->validate($this->body($request), $this->saveDraftByKeyRules());
         $this->diyPageService->saveDraft(
             $key,
@@ -122,6 +147,7 @@ class DiyPageController extends Controller
     #[Permission('diy.page.publish')]
     public function publishByKey(Request $request, string $key): Response
     {
+        $this->assertHomeKeyAllowed($key, 'diy.home.publish');
         $this->diyPageService->publish($key);
 
         return $this->success([], lang('messages.success'));
@@ -136,6 +162,7 @@ class DiyPageController extends Controller
     #[Permission('diy.page.save')]
     public function restoreVersionByKey(Request $request, string $key, string $id): Response
     {
+        $this->assertHomeKeyAllowed($key, 'diy.home.version.restore');
         $this->diyPageService->restorePageVersion($key, (int) $id);
 
         return $this->success([], lang('messages.success'));

@@ -152,8 +152,16 @@
         return data;
     }
 
+    function installToken() {
+        const hit = document.cookie.match(/(?:^|;\s*)yd_install_token=([0-9a-f]+)/);
+        return hit ? hit[1] : '';
+    }
+
     async function api(path, options) {
-        const res = await fetch('/install' + path, Object.assign({ headers: { 'Accept': 'application/json' } }, options));
+        // 写操作要带上向导页下发的令牌（双提交），跨站页面拿不到它。
+        const opts = Object.assign({ credentials: 'same-origin' }, options);
+        opts.headers = Object.assign({ 'Accept': 'application/json', 'X-Install-Token': installToken() }, (options || {}).headers || {});
+        const res = await fetch('/install' + path, opts);
         return res.json();
     }
 
