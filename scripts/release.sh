@@ -38,10 +38,13 @@ copy_tree() {
     mkdir -p "$dest/database"
     cp -R "$SOURCE/database/updates" "$dest/database/updates"
   fi
-  # 丢掉误拷的生成物
-  rm -rf "$dest/database/generated" "$dest/vendor" "$dest/tests" "$dest/runtime"
+  # 丢掉误拷的生成物；public/storage 是开发机的上传件（.gitignore 里，但 cp -R public 会一并带走）
+  rm -rf "$dest/database/generated" "$dest/vendor" "$dest/tests" "$dest/runtime" "$dest/public/storage"
   find "$dest" -name '.env' -type f -delete
   find "$dest" -name '.env.*' -type f ! -name '.env.example' -delete
+  # 解压即可用：安装向导的环境检测要求 runtime 存在且可写
+  mkdir -p "$dest/runtime"
+  : > "$dest/runtime/.gitkeep"
 }
 
 if [ "$SKIP_BUILD" -eq 0 ]; then

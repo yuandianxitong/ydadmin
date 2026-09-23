@@ -28,6 +28,10 @@ class DiyWidgetRegistry
             if (!is_array($c)) {
                 throw new ValidationException(['components' => lang('diy.widget_invalid')]);
             }
+            // 数组/对象值会触发 Array to string conversion，webman 把 warning 转成 ErrorException → 500
+            if (!is_scalar($c['id'] ?? '') || !is_scalar($c['type'] ?? '')) {
+                throw new ValidationException(['components' => lang('diy.widget_invalid')]);
+            }
             $id = (string) ($c['id'] ?? '');
             $type = (string) ($c['type'] ?? '');
             if ($id === '') {

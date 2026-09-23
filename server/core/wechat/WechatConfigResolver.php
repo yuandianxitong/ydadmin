@@ -63,7 +63,11 @@ final class WechatConfigResolver
             $invalid[] = 'wechat_official_encrypt_type';
         }
 
-        if (in_array($encryptType, [2, 3], true) && strlen($aesKey) !== 43) {
+        // 43 位只是长度对得上：真正要的是 base64 解出 32 字节密钥。
+        // 粘错成 43 个别的字符时，配置这里放行、每条加密回调都在解密里静默失败，接入验证查不出原因。
+        if (in_array($encryptType, [2, 3], true)
+            && (strlen($aesKey) !== 43 || strlen((string) base64_decode($aesKey . '=', true)) !== 32)
+        ) {
             $invalid[] = 'wechat_official_aes_key';
         }
 

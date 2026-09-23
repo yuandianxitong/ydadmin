@@ -137,7 +137,7 @@ class DataImportService extends Service
 
         $record = $this->dataImportRepository->create([
             'module'        => $module,
-            'filename'      => $filename,
+            'filename'      => mb_substr($filename, 0, 200),
             'total_count'   => 0,
             'success_count' => 0,
             'fail_count'    => 0,
@@ -175,11 +175,13 @@ class DataImportService extends Service
                 while (($csvRow = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
                     $csvRow = $this->toUtf8($csvRow);
                     $rowNumber++;
-                    $totalCount++;
 
-                    if (array_filter($csvRow) === []) {
+                    // 整行空白才跳过，且跳过的行不计入 total（否则 total ≠ 成功 + 失败）；
+                    // array_filter 会把 "0" 当空，这里按去空白后的字符串判。
+                    if (implode('', array_map('trim', $csvRow)) === '') {
                         continue;
                     }
+                    $totalCount++;
 
                     $row = [];
                     foreach ($columnMap as $index => $field) {

@@ -650,7 +650,7 @@ CREATE TABLE `app_versions` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_platform_version` (`platform`, `version_code`),
+  UNIQUE KEY `uk_platform_version_code` (`platform`, `version_code`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='APP版本表';
 

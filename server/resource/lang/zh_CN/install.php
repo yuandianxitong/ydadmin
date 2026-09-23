@@ -12,4 +12,6 @@ return [
     'env_extension'       => '必须安装 :name 扩展。',
     'env_writable'        => ':path 必须可写。',
     'cross_site_rejected' => '请求来源不合法，请在安装向导页面内操作',
+    'upgrade_running' => '已有升级在执行，请稍后再试',
+    'install_running' => '已有安装在执行，请稍后再试',
 ];

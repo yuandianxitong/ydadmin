@@ -79,8 +79,9 @@ final class UserImportTest extends ApiTestCase
         $this->track('data_imports', (int) $data['id']);
 
         $this->assertSame(1, (int) $data['fail_count']);
-        $message = (string) $data['errors'][0]['message'];
-        $this->assertSame(lang('dataimport.row_failed'), $message);
+        // 超长昵称现在先被业务校验挡下（见 UserImportHandler），不再落到底层 SQL 异常；
+        // 无论哪种失败，落库的消息都只能是业务文案。
+        $this->assertSame(lang('dataimport.nickname_too_long'), (string) $data['errors'][0]['message']);
         $stored = (string) Db::table('data_imports')->where('id', $data['id'])->value('errors');
         foreach (['$2y$', 'insert into', 'Database:', 'Host:', $mobile] as $secret) {
             $this->assertStringNotContainsString($secret, $stored);

@@ -12,4 +12,6 @@ return [
     'env_extension'       => 'The :name extension must be installed.',
     'env_writable'        => ':path must be writable.',
     'cross_site_rejected' => 'Invalid request origin, please use the install wizard page',
+    'upgrade_running' => 'An upgrade is already running, please retry later',
+    'install_running' => 'An install is already running, please retry later',
 ];

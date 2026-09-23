@@ -27,11 +27,10 @@ describe('addUnit', () => {
 })
 
 describe('isEmpty', () => {
-    it('should return false for null due to implementation bug (uses && instead of ||)', () => {
-        // Note: isEmpty uses `value == null && typeof value == 'undefined'`
-        // null == null is true, but typeof null is 'object' (not 'undefined')
-        // So isEmpty(null) returns false. This is a known issue in the implementation.
-        expect(isEmpty(null)).toBe(false)
+    it('should return true for null', () => {
+        // 实现是 `value == null || typeof value === 'undefined'`，null 与 undefined 都算空；
+        // 这条用例早先照着一个写错的版本（&&）写，实现改对之后一直没跟上。
+        expect(isEmpty(null)).toBe(true)
     })
 
     it('should return true for undefined', () => {
@@ -39,7 +38,7 @@ describe('isEmpty', () => {
     })
 
     it('should return false for empty string', () => {
-        // The implementation checks null && undefined, so '' returns false
+        // 空串不算空：objectToQuery 会把 ?foo= 也拼出去
         expect(isEmpty('')).toBe(false)
     })
 

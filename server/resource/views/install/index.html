@@ -178,10 +178,18 @@
                 return;
             }
             let allOk = true;
-            envBody.innerHTML = (json.data.checks || []).map(function (row) {
+            // 用 textContent 逐格写，别把后端文案当 HTML 拼进来
+            envBody.replaceChildren.apply(envBody, (json.data.checks || []).map(function (row) {
                 if (!row.ok) allOk = false;
-                return '<tr><td>' + row.name + '</td><td>' + row.required + '</td><td>' + row.current + '</td><td class="' + (row.ok ? 'ok' : 'fail') + '">' + (row.ok ? '通过' : '未通过') + '</td></tr>';
-            }).join('');
+                const tr = document.createElement('tr');
+                [row.name, row.required, row.current, row.ok ? '通过' : '未通过'].forEach(function (text, i) {
+                    const td = document.createElement('td');
+                    td.textContent = String(text == null ? '' : text);
+                    if (i === 3) td.className = row.ok ? 'ok' : 'fail';
+                    tr.appendChild(td);
+                });
+                return tr;
+            }));
             applyDefaults(json.data.defaults);
             envMsg.textContent = allOk ? '环境检查通过。' : '存在未通过的检查项，请先修复。';
             toConfig.disabled = !allOk;

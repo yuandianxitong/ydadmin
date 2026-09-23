@@ -63,4 +63,30 @@ final class DiyLinkApiTest extends ApiTestCase
 
         $this->delete('/adminapi/diy/links/' . $created['id'], [], $admin->token)->assertCode(200);
     }
+
+    /** label / path 传数组同样不能 500。 */
+    public function test_array_values_are_rejected_with_422(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+
+        $response = $this->post('/adminapi/diy/links', ['label' => ['x'], 'path' => '/pages/index'], $admin->token);
+        $this->assertSame(200, $response->status(), '不能是未捕获异常');
+        $this->assertSame(422, $response->code());
+
+        $response = $this->post('/adminapi/diy/links', ['label' => '链接', 'path' => ['x']], $admin->token);
+        $this->assertSame(200, $response->status(), '不能是未捕获异常');
+        $this->assertSame(422, $response->code());
+    }
+
+    /** path 只收站内绝对路径或 http(s)：javascript: 之流不该被当成站内链接存下来。 */
+    public function test_path_shape_is_validated(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+
+        foreach (['javascript:alert(1)', '//evil.example.com', 'pages/index'] as $bad) {
+            $this->post('/adminapi/diy/links', ['label' => '链接', 'path' => $bad], $admin->token)->assertCode(422);
+        }
+        $ok = $this->post('/adminapi/diy/links', ['label' => '链接', 'path' => '/pages/index/index'], $admin->token)->assertOk()->data();
+        $this->track('diy_links', (int) $ok['id']);
+    }
 }

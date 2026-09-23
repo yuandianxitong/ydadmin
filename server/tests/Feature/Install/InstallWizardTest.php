@@ -170,10 +170,11 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertArrayHasKey('defaults', $data);
         $defaults = $data['defaults'];
         $this->assertIsArray($defaults);
-        foreach (['db_host', 'db_port', 'db_name', 'db_user', 'redis_host', 'redis_port', 'redis_db'] as $key) {
+        foreach (['db_host', 'db_port', 'db_name', 'redis_host', 'redis_port', 'redis_db'] as $key) {
             $this->assertArrayHasKey($key, $defaults);
         }
         $this->assertArrayNotHasKey('db_password', $defaults);
+        $this->assertArrayNotHasKey('db_user', $defaults, '未登录可达，库用户名不外送');
         $this->assertArrayNotHasKey('redis_password', $defaults);
         $encoded = json_encode($defaults);
         $this->assertIsString($encoded);

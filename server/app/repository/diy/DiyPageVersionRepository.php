@@ -34,7 +34,14 @@ class DiyPageVersionRepository extends Repository
      */
     public function insertSnapshot(int $pageId, array $components, array $pageSettings, int $createdBy, string $note = ''): int
     {
-        $versionNo = (int) $this->query()->where($this->qualify('page_id'), $pageId)->max('version_no') + 1;
+        // 取号要加行锁：idx_page_version 不是唯一索引，两个并发发布会拿到同一个 version_no，
+        // 回滚时就分不清该回哪一版。调用方（publish/restore）都在事务里。
+        $current = (int) $this->query()
+            ->where($this->qualify('page_id'), $pageId)
+            ->orderByDesc($this->qualify('version_no'))
+            ->lockForUpdate()
+            ->value('version_no');
+        $versionNo = $current + 1;
         $row = $this->create([
             'page_id'       => $pageId,
             'version_no'    => $versionNo,

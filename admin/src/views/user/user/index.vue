@@ -230,9 +230,10 @@ const handleAdjustPoints = (row: UserItem) => {
     pointsVisible.value = true
 }
 
+// 带 BOM：不带的话 Excel 会按 GBK 打开，用户填完中文再存回来就是乱码
 const importTemplateUrl =
     'data:text/csv;charset=utf-8,' +
-    encodeURIComponent('mobile,nickname,password,email,gender,status\n')
+    encodeURIComponent('\ufeffmobile,nickname,password,email,gender,status\n')
 
 const handleImport = async (file: File) => {
     const res = await userManageApi.importUsers(file)

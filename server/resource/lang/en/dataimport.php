@@ -16,4 +16,8 @@ return [
     'progress_start'   => 'Import started',
     'progress_running' => 'Importing',
     'progress_done'    => 'Import finished',
+    'nickname_too_long' => 'Nickname must not exceed 50 characters',
+    'invalid_email' => 'Invalid email',
+    'invalid_gender' => 'Gender must be 0, 1 or 2',
+    'invalid_status' => 'Status must be 0 or 1',
 ];

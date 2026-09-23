@@ -42,7 +42,13 @@
                 <el-table-column :label="t('paymentOrder.createdAt')" prop="created_at" width="170" />
                 <el-table-column :label="t('common.operation')" width="160" fixed="right">
                     <template #default="{ row }">
-                        <el-button type="primary" size="small" text @click="openDetail(row.order_no)">
+                        <el-button
+                            v-has-perm="['payment.order.detail']"
+                            type="primary"
+                            size="small"
+                            text
+                            @click="openDetail(row.order_no)"
+                        >
                             {{ t('common.detail') }}
                         </el-button>
                         <el-button
@@ -51,7 +57,7 @@
                             type="warning"
                             size="small"
                             text
-                            @click="openRefund(row)"
+                            @click="openRefund(row as PaymentOrderItem)"
                         >
                             {{ t('paymentOrder.refund') }}
                         </el-button>
@@ -136,9 +142,13 @@ const refunding = ref(false)
 const refundForm = ref({ order_no: '', amount: '', reason: '' })
 
 const openDetail = async (orderNo: string) => {
-    const res = await paymentOrderApi.detail(orderNo)
-    detail.value = res.data
-    detailVisible.value = true
+    try {
+        const res = await paymentOrderApi.detail(orderNo)
+        detail.value = res.data
+        detailVisible.value = true
+    } catch {
+        // 拦截器已经弹过错误提示，这里只是别让 Promise 悬着
+    }
 }
 
 const openRefund = (row: PaymentOrderItem) => {

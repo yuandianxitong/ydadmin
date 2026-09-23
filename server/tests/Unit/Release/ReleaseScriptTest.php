@@ -21,6 +21,7 @@ final class ReleaseScriptTest extends TestCase
         mkdir($this->source . '/tests', 0o755, true);
         mkdir($this->source . '/database/generated', 0o755, true);
         mkdir($this->source . '/runtime', 0o755, true);
+        mkdir($this->source . '/public/storage/uploads/images', 0o755, true);
         file_put_contents($this->source . '/config/version.php', "<?php\nreturn ['version' => '2.0.0'];\n");
         file_put_contents($this->source . '/public/admin/index.html', '<html></html>');
         file_put_contents($this->source . '/app/keep.php', '<?php');
@@ -31,6 +32,7 @@ final class ReleaseScriptTest extends TestCase
         file_put_contents($this->source . '/vendor/autoload.php', '<?php');
         file_put_contents($this->source . '/tests/Nope.php', '<?php');
         file_put_contents($this->source . '/database/generated/x-menu.sql', 'SELECT 1');
+        file_put_contents($this->source . '/public/storage/uploads/images/dev-upload.png', 'PNG');
     }
 
     protected function tearDown(): void
@@ -66,5 +68,10 @@ final class ReleaseScriptTest extends TestCase
         $this->assertStringNotContainsString('/tests/', $list);
         $this->assertStringNotContainsString('generated/', $list);
         $this->assertStringNotContainsString('DB_PASSWORD', $list);
+        // public/ 是整目录拷的，public/storage 里是开发机的上传件（.gitignore 里，别人的图不该进发布包）
+        $this->assertStringNotContainsString('public/storage', $list);
+        $this->assertStringNotContainsString('dev-upload.png', $list);
+        // 解压即可用：安装向导的环境检测要求 runtime 存在
+        $this->assertStringContainsString('ydadmin-2.0.0/server/runtime/', $list);
     }
 }

@@ -74,6 +74,8 @@ docker compose restart webman   # 装完必须 restart，reload 不够
 
 compose 的 MySQL 是空库 `ydadmin`，只连服务名 `mysql` / `redis`。禁止把 `DB_HOST` 指到宿主机去打 `dev007_ydadmin`。本机 80/3306/6379 被占时改 `docker/.env` 的端口。
 
+webman 容器默认以 root 跑（它绑挂宿主机的 `server/`，UID 对不上就写不了 `.env` 与 `runtime`）；Linux 上把 `docker/.env` 的 `DOCKER_USER` 设成 `$(id -u):$(id -g)` 就不会再产出 root 属主的文件。
+
 三个密码没有默认值，不填 `docker compose` 直接拒绝启动（早先的 `changeme` 已删）。MySQL 与 Redis 的端口只绑 `127.0.0.1`：compose 的端口映射会绕过宿主机防火墙，绑 `0.0.0.0` 等于把库和 Redis 开到公网，而 Redis 里存着会话吊销名单。确需外部访问再改 `MYSQL_BIND` / `REDIS_BIND`。安装向导里的 Redis 密码要填 `docker/.env` 里那一个。
 
 ### 发布包
@@ -598,7 +600,7 @@ DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_page
 
 ### 开发库与 schema 演进
 
-`schema.sql` 只用于全新安装。生产升级走上方「升级」的 `php webman yd:update`。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
+`schema.sql` 只用于全新安装。生产升级走上方「升级」的 `php webman yd:update`，升级目录的写法与可重跑要求见 `server/database/updates/README.md`。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
 M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，**现网库（含 `dev007_ydadmin`）只执行 `php webman yd:update`**，禁止 `db:reset`。可丢弃的本地库才用 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。可丢弃库忘了重建时，`composer test` 的测试引导会提示执行 `db:reset`，而不是抛一个看不懂的 SQL 错误。
 

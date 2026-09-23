@@ -73,9 +73,12 @@ class AutoReplyService extends Service
             return (string) $exact['content'];
         }
 
+        // 精确匹配落在 MySQL 的 utf8mb4_0900_ai_ci 上，本来就不分大小写；
+        // 模糊匹配在 PHP 里做，不统一小写的话同一个关键词「精确能中、模糊不中」，运营会当成坏了。
+        $haystack = mb_strtolower($keyword);
         foreach ($this->wechatAutoReplyRepository->fuzzyRules() as $rule) {
-            $needle = (string) ($rule['keyword'] ?? '');
-            if ($needle !== '' && str_contains($keyword, $needle)) {
+            $needle = mb_strtolower((string) ($rule['keyword'] ?? ''));
+            if ($needle !== '' && str_contains($haystack, $needle)) {
                 return (string) $rule['content'];
             }
         }
@@ -121,6 +124,14 @@ class AutoReplyService extends Service
      */
     private function normalize(array $data): array
     {
+        // 这几列都是 NOT NULL，而校验规则写的是 nullable：显式传 null 会一路走到 INSERT 变成 500。
+        // 传了 null 当作「没传」丢掉，由列默认值或下面的兜底决定。
+        foreach (['keyword', 'match_type', 'sort_order', 'status', 'content'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] === null) {
+                unset($data[$field]);
+            }
+        }
+
         if (in_array((string) ($data['type'] ?? ''), [WechatAutoReplyRepository::TYPE_SUBSCRIBE, WechatAutoReplyRepository::TYPE_DEFAULT], true)) {
             $data['keyword'] = '';
             $data['match_type'] = WechatAutoReplyRepository::MATCH_EXACT;

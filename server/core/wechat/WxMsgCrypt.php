@@ -89,7 +89,7 @@ final class WxMsgCrypt
         return '<xml>'
             . '<Encrypt><![CDATA[' . self::cdata($encrypt) . ']]></Encrypt>'
             . '<MsgSignature><![CDATA[' . $sig . ']]></MsgSignature>'
-            . '<TimeStamp>' . $timestamp . '</TimeStamp>'
+            . '<TimeStamp>' . (int) $timestamp . '</TimeStamp>'
             . '<Nonce><![CDATA[' . self::cdata($nonce) . ']]></Nonce>'
             . '</xml>';
     }

@@ -93,12 +93,13 @@ class WechatAutoReplyRepository extends Repository
 
     public function existsEnabledByType(string $type, ?int $exceptId = null): bool
     {
+        // 调用方在事务里用它守「同类型至多一条启用」：不加行锁的话两个并发请求会同时看到「没有」
         $query = $this->query()->where($this->qualify('type'), $type)->where($this->qualify('status'), self::STATUS_ENABLED);
         if ($exceptId !== null) {
             $query->where($this->qualify('id'), '<>', $exceptId);
         }
 
-        return $query->exists();
+        return $query->lockForUpdate()->exists();
     }
 
     /**
@@ -144,9 +145,12 @@ class WechatAutoReplyRepository extends Repository
      */
     public function findEnabledByType(string $type): ?array
     {
-        return $this->query()
+        // 定序：同类型多条启用时（并发开启绕过了唯一性检查）命中哪条不能看数据库心情
+        $query = $this->query()
             ->where($this->qualify('type'), $type)
-            ->where($this->qualify('status'), self::STATUS_ENABLED)
-            ->first()?->toArray();
+            ->where($this->qualify('status'), self::STATUS_ENABLED);
+        $query->orderBy($this->qualify('sort_order'))->orderBy($this->qualify('id'));
+
+        return $query->first()?->toArray();
     }
 }

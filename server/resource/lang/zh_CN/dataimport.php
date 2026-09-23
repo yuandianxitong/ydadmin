@@ -16,4 +16,8 @@ return [
     'progress_start'   => '开始导入',
     'progress_running' => '正在导入',
     'progress_done'    => '导入完成',
+    'nickname_too_long' => '昵称不能超过50个字符',
+    'invalid_email' => '邮箱格式不正确',
+    'invalid_gender' => '性别只能是 0/1/2',
+    'invalid_status' => '状态只能是 0 或 1',
 ];

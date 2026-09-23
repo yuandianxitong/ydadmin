@@ -14,6 +14,9 @@ services:
     build:
       context: ./webman
       dockerfile: Dockerfile
+    # 默认仍是 root：容器把宿主机的 server/ 绑进来，UID 对不上就写不了 .env 与 runtime。
+    # Linux 上想让容器别用 root 写文件，在 docker/.env 里设 DOCKER_USER=$(id -u):$(id -g)。
+    user: "${DOCKER_USER:-root}"
     volumes:
       - ../server:/var/www/html
     expose:

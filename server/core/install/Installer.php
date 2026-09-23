@@ -91,6 +91,22 @@ final class Installer
             'password' => (string) $input['db_password'],
         ]);
 
+        // 两个人同时点「开始安装」时，后一个可能在前一个写 .env 之前就跑完自己的那份，
+        // 最后 .env 里是谁的密钥说不准。拿不到锁就直接拒绝。
+        if ((int) $pdo->query("SELECT GET_LOCK('ydadmin:install', 0)")->fetchColumn() !== 1) {
+            throw new BusinessException(lang('install.install_running'));
+        }
+
+        try {
+            $this->runLocked($pdo, $input, $database);
+        } finally {
+            $pdo->query("SELECT RELEASE_LOCK('ydadmin:install')");
+        }
+    }
+
+    /** @param array<string, mixed> $input */
+    private function runLocked(\PDO $pdo, array $input, string $database): void
+    {
         $exists = $pdo->query(
             'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($database)
         )->fetch();

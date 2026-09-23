@@ -29,7 +29,7 @@
                     drag
                     :auto-upload="false"
                     :limit="1"
-                    accept=".xlsx,.xls,.csv"
+                    accept=".csv"
                     :on-change="handleFileChange"
                     :on-exceed="handleExceed"
                 >

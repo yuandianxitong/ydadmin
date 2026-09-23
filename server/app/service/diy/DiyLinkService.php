@@ -75,15 +75,21 @@ class DiyLinkService extends Service
         $row = array_intersect_key($data, array_flip(self::WRITE_FIELDS));
 
         if ($creating || array_key_exists('label', $row)) {
-            $label = trim((string) ($row['label'] ?? ''));
+            // 数组值会触发 Array to string conversion（webman 转成 ErrorException → 500）
+            $label = is_scalar($row['label'] ?? '') ? trim((string) ($row['label'] ?? '')) : '';
             if ($label === '') {
                 throw new ValidationException(['label' => lang('messages.invalid_params')]);
             }
             $row['label'] = $label;
         }
         if ($creating || array_key_exists('path', $row)) {
-            $path = trim((string) ($row['path'] ?? ''));
-            if ($path === '') {
+            $path = is_scalar($row['path'] ?? '') ? trim((string) ($row['path'] ?? '')) : '';
+            // 站内路径要以单个 / 开头（`//evil.com` 是协议相对的站外地址），站外只认 http(s)：
+            // 否则 javascript: 这类值会被当成站内链接存下来并展示给管理员。
+            if ($path === ''
+                || (!str_starts_with($path, 'http://') && !str_starts_with($path, 'https://')
+                    && (!str_starts_with($path, '/') || str_starts_with($path, '//')))
+            ) {
                 throw new ValidationException(['path' => lang('messages.invalid_params')]);
             }
             $row['path'] = $path;

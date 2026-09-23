@@ -69,7 +69,12 @@ export const useRealtimeStore = defineStore('realtime', () => {
                     duration: percent >= 100 ? 3000 : 0,
                     type: percent >= 100 ? 'success' : 'info'
                 })
-                progressToasts.set(taskId, toast)
+                if (percent >= 100) {
+                    // 任务完成后这条就不会再更新了，留在 Map 里只会一直涨
+                    progressToasts.delete(taskId)
+                } else {
+                    progressToasts.set(taskId, toast)
+                }
             }
         )
     }

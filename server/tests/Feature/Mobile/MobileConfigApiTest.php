@@ -93,4 +93,16 @@ final class MobileConfigApiTest extends ApiTestCase
         unset($data['id']);
         Db::table('mobile_configs')->where('id', $id)->update($data);
     }
+
+    /** 传数组给字符串字段时 PHP 的 Array to string conversion 会被 webman 转成 ErrorException → 500。 */
+    public function test_array_values_are_rejected_with_422(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+
+        foreach (['app_name', 'app_logo', 'theme_color', 'home_app_code', 'home_page'] as $field) {
+            $response = $this->put('/adminapi/mobile/config', [$field => ['a' => 1]], $admin->token);
+            $this->assertSame(200, $response->status(), "{$field} 不能是未捕获异常");
+            $this->assertSame(422, $response->code(), "{$field} 应按校验失败处理");
+        }
+    }
 }

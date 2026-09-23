@@ -139,7 +139,7 @@ class InstallController extends Controller
             'db_host'    => (string) ($mysql['host'] ?? '127.0.0.1'),
             'db_port'    => (int) ($mysql['port'] ?? 3306),
             'db_name'    => (string) ($mysql['database'] ?? ''),
-            'db_user'    => (string) ($mysql['username'] ?? ''),
+            // 不回 db_user：装完之前这条接口未登录可达，库用户名没必要送给任何访客
             'redis_host' => (string) ($redis['host'] ?? '127.0.0.1'),
             'redis_port' => (int) ($redis['port'] ?? 6379),
             'redis_db'   => (int) ($redis['database'] ?? 0),

@@ -26,7 +26,36 @@ SQL;
     /**
      * @return array{stamped: list<string>, executed: list<string>, pending: list<string>}
      */
+    /** 同一个库同时跑两次升级会把同一版的 SQL 执行两遍（唯一键只能在事后报错）。 */
+    private const LOCK_NAME = 'ydadmin:upgrade';
+
+    /**
+     * @return array{stamped: list<string>, executed: list<string>, pending: list<string>}
+     */
     public function run(\PDO $pdo, ?string $baseline, bool $dryRun): array
+    {
+        if (!$dryRun && !$this->acquireLock($pdo)) {
+            throw new BusinessException(lang('install.upgrade_running'));
+        }
+
+        try {
+            return $this->runLocked($pdo, $baseline, $dryRun);
+        } finally {
+            if (!$dryRun) {
+                $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote(self::LOCK_NAME) . ')');
+            }
+        }
+    }
+
+    private function acquireLock(\PDO $pdo): bool
+    {
+        return (int) $pdo->query('SELECT GET_LOCK(' . $pdo->quote(self::LOCK_NAME) . ', 0)')->fetchColumn() === 1;
+    }
+
+    /**
+     * @return array{stamped: list<string>, executed: list<string>, pending: list<string>}
+     */
+    private function runLocked(\PDO $pdo, ?string $baseline, bool $dryRun): array
     {
         $scanned = $this->scanVersions();
         $applied = $this->readApplied($pdo);

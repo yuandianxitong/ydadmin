@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "元点Admin 管理端 API",
-        "version": "2.0.2"
+        "version": "2.0.3"
     },
     "servers": [
         {
@@ -5111,7 +5111,7 @@
                                     "reason": {
                                         "type": "string",
                                         "nullable": true,
-                                        "maxLength": 80
+                                        "maxLength": 26
                                     }
                                 },
                                 "required": [

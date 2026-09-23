@@ -141,6 +141,9 @@ class MobileConfigService extends Service
             if (!array_key_exists($field, $input)) {
                 continue;
             }
+            if (!is_scalar($input[$field]) && $input[$field] !== null) {
+                throw new ValidationException([$field => lang('messages.invalid_params')]);
+            }
             $value = (string) $input[$field];
             if ($field === 'theme_color') {
                 $this->assertColorValue($value, 'theme_color');
@@ -180,10 +183,10 @@ class MobileConfigService extends Service
     private function defaultTabbar(): array
     {
         return [
-            ['code' => '__home__', 'path' => 'pages/index/index', 'text' => '首页', 'icon' => '/static/diy/tabbar/home.png', 'selected_icon' => '/static/diy/tabbar/home-active.png'],
-            ['code' => '__discover__', 'path' => 'pages/discover/index', 'text' => '发现', 'icon' => '/static/diy/tabbar/discover.png', 'selected_icon' => '/static/diy/tabbar/discover-active.png'],
-            ['code' => '__message__', 'path' => 'pages/message/index', 'text' => '消息', 'icon' => '/static/diy/tabbar/message.png', 'selected_icon' => '/static/diy/tabbar/message-active.png'],
-            ['code' => '__my__', 'path' => 'pages/my/index', 'text' => '我的', 'icon' => '/static/diy/tabbar/my.png', 'selected_icon' => '/static/diy/tabbar/my-active.png'],
+            ['code' => '__home__', 'path' => 'pages/index/index', 'text' => '首页', 'icon' => '/static/tabbar/home.png', 'selected_icon' => '/static/tabbar/home-active.png'],
+            ['code' => '__discover__', 'path' => 'pages/discover/index', 'text' => '发现', 'icon' => '/static/tabbar/discover.png', 'selected_icon' => '/static/tabbar/discover-active.png'],
+            ['code' => '__message__', 'path' => 'pages/message/index', 'text' => '消息', 'icon' => '/static/tabbar/message.png', 'selected_icon' => '/static/tabbar/message-active.png'],
+            ['code' => '__my__', 'path' => 'pages/my/index', 'text' => '我的', 'icon' => '/static/tabbar/my.png', 'selected_icon' => '/static/tabbar/my-active.png'],
         ];
     }
 

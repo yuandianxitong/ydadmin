@@ -60,4 +60,20 @@ final class DiyPageApiTest extends ApiTestCase
         $this->assertNotNull(Db::table('diy_pages')->where('id', $created['id'])->whereNotNull('deleted_at')->first());
         $this->post('/adminapi/diy/pages', ['title' => '复用', 'page_key' => $key], $admin->token)->assertCode(422);
     }
+
+    /** 组件 id / type 传数组时同样要 422。 */
+    public function test_component_array_values_are_rejected_with_422(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $key = 'arr-' . bin2hex(random_bytes(3));
+        $created = $this->post('/adminapi/diy/pages', ['title' => '数组页', 'page_key' => $key], $admin->token)->assertOk()->data();
+        $this->track('diy_pages', (int) $created['id']);
+
+        $response = $this->put('/adminapi/diy/pages/' . $key . '/draft', [
+            'components'    => [['id' => ['a' => 1], 'type' => 'banner', 'props' => []]],
+            'page_settings' => [],
+        ], $admin->token);
+        $this->assertSame(200, $response->status(), '不能是未捕获异常');
+        $this->assertSame(422, $response->code());
+    }
 }
