@@ -34,6 +34,11 @@ foreach ($tree as $provinceSort => $province) {
         $rows[] = [$cityCode, $provinceCode, (string) $city['name'], $cityCode, 2, $citySort + 1];
         foreach ((array) ($city['children'] ?? []) as $districtSort => $district) {
             $districtCode = $pad((string) $district['code']);
+            // 源数据里东莞、中山、儋州、嘉峪关这几个不设区的市，第三级给的是街道/镇，编码是 9 位。
+            // 本表的约定是 GB/T 2260 六位码，多出来的街道会让人在「市」下面看到几十个街道而不是区县。
+            if (strlen($districtCode) !== 6) {
+                continue;
+            }
             $rows[] = [$districtCode, $cityCode, (string) $district['name'], $districtCode, 3, $districtSort + 1];
         }
     }

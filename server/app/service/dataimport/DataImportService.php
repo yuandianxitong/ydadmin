@@ -20,6 +20,12 @@ use support\Log;
  */
 class DataImportService extends Service
 {
+    /** 整份导入同步跑在 HTTP 请求里，超过这个行数直接拒收，让人拆文件。 */
+    public const MAX_ROWS = 5000;
+
+    /** data_imports.errors 是 TEXT（64KB）：失败行太多会写不进去，只留前这么多条并标记截断。 */
+    private const MAX_ERRORS = 200;
+
     #[Inject]
     protected DataImportRepository $dataImportRepository;
 
@@ -50,6 +56,67 @@ class DataImportService extends Service
     }
 
     /**
+     * 失败行数超过保留上限时补一条说明，别让管理员以为只错了 200 行。
+     *
+     * @param list<array<string, mixed>> $errors
+     * @return list<array<string, mixed>>
+     */
+    private function markTruncated(array $errors, int $failCount): array
+    {
+        if ($failCount <= count($errors)) {
+            return $errors;
+        }
+
+        $errors[] = ['row' => 0, 'message' => lang('dataimport.errors_truncated', ['count' => $failCount, 'kept' => self::MAX_ERRORS])];
+
+        return $errors;
+    }
+
+    /**
+     * 先数行再决定收不收：在循环里边导边拒会留下一半已写库的会员。
+     * 用 fgetcsv 数而不是数换行，带引号的多行字段才不会被算成多行。
+     */
+    private function assertRowCountWithin(string $filePath): void
+    {
+        $handle = fopen($filePath, 'r');
+        if ($handle === false) {
+            throw new BusinessException(lang('dataimport.file_open_failed'));
+        }
+
+        try {
+            $rows = -1; // 表头不算
+            while (fgetcsv($handle, 0, ',', '"', '\\') !== false) {
+                $rows++;
+                if ($rows > self::MAX_ROWS) {
+                    throw new BusinessException(lang('dataimport.too_many_rows', ['max' => self::MAX_ROWS]));
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /**
+     * Excel 在中文 Windows 上默认存 GBK：整行按 UTF-8 读会是乱码，落库要么报错要么存进去一堆问号。
+     * 逐值探一次，非 UTF-8 的按 GB18030（GBK 超集）转。
+     *
+     * @param list<string|null> $row
+     * @return list<string>
+     */
+    private function toUtf8(array $row): array
+    {
+        $out = [];
+        foreach ($row as $value) {
+            $value = (string) $value;
+            $out[] = mb_check_encoding($value, 'UTF-8')
+                ? $value
+                : (string) mb_convert_encoding($value, 'UTF-8', 'GB18030');
+        }
+
+        return $out;
+    }
+
+    /**
      * 解析一份已落到本地的 CSV，写入 data_imports 最终态。
      *
      * @param array<string, string> $fieldMap csv 列名 → 目标字段
@@ -60,6 +127,8 @@ class DataImportService extends Service
         if (!is_file($filePath)) {
             throw new BusinessException(lang('dataimport.file_not_exists'));
         }
+
+        $this->assertRowCountWithin($filePath);
 
         $handle = fopen($filePath, 'r');
         if ($handle === false) {
@@ -88,6 +157,7 @@ class DataImportService extends Service
         try {
             $header = fgetcsv($handle, 0, ',', '"', '\\');
             if ($header !== false) {
+                $header = $this->toUtf8($header);
                 if (isset($header[0])) {
                     $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]) ?? (string) $header[0];
                     $header[0] = preg_replace('/^\x{FEFF}/u', '', (string) $header[0]) ?? (string) $header[0];
@@ -103,6 +173,7 @@ class DataImportService extends Service
 
                 $rowNumber = 1;
                 while (($csvRow = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
+                    $csvRow = $this->toUtf8($csvRow);
                     $rowNumber++;
                     $totalCount++;
 
@@ -122,10 +193,12 @@ class DataImportService extends Service
                         $successCount++;
                     } catch (\Throwable $e) {
                         $failCount++;
-                        $errors[] = [
-                            'row'     => $rowNumber,
-                            'message' => $this->rowErrorMessage($e, (int) $record['id'], $rowNumber),
-                        ];
+                        if (count($errors) < self::MAX_ERRORS) {
+                            $errors[] = [
+                                'row'     => $rowNumber,
+                                'message' => $this->rowErrorMessage($e, (int) $record['id'], $rowNumber),
+                            ];
+                        }
                     }
 
                     $processed = $successCount + $failCount;
@@ -143,6 +216,7 @@ class DataImportService extends Service
             $status = $failCount === $totalCount
                 ? DataImportRepository::STATUS_FAILED
                 : DataImportRepository::STATUS_COMPLETED;
+            $errors = $this->markTruncated($errors, $failCount);
 
             $this->dataImportRepository->update((int) $record['id'], [
                 'total_count'   => $totalCount,
@@ -152,16 +226,24 @@ class DataImportService extends Service
                 'errors'        => $errors,
             ]);
         } catch (\Throwable $e) {
-            $this->dataImportRepository->update((int) $record['id'], [
-                'total_count'   => $totalCount,
-                'success_count' => $successCount,
-                'fail_count'    => $failCount,
-                'status'        => DataImportRepository::STATUS_FAILED,
-                'errors'        => array_merge($errors, [[
-                    'row'     => 0,
-                    'message' => $this->rowErrorMessage($e, (int) $record['id'], 0),
-                ]]),
-            ]);
+            // 这里再抛就把原始异常盖掉了，而且记录会永远停在「处理中」；写不进去只记日志。
+            try {
+                $this->dataImportRepository->update((int) $record['id'], [
+                    'total_count'   => $totalCount,
+                    'success_count' => $successCount,
+                    'fail_count'    => $failCount,
+                    'status'        => DataImportRepository::STATUS_FAILED,
+                    'errors'        => array_merge($this->markTruncated($errors, $failCount), [[
+                        'row'     => 0,
+                        'message' => $this->rowErrorMessage($e, (int) $record['id'], 0),
+                    ]]),
+                ]);
+            } catch (\Throwable $writeBack) {
+                Log::error('导入失败态写回失败', [
+                    'import_id' => (int) $record['id'],
+                    'exception' => $writeBack::class,
+                ]);
+            }
             throw $e;
         } finally {
             fclose($handle);

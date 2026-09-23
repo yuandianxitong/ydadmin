@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\DataImport;
 
+use app\service\dataimport\DataImportService;
 use support\Db;
 use tests\Support\ApiTestCase;
 
@@ -128,6 +129,63 @@ final class UserImportTest extends ApiTestCase
         )->assertCode(400);
 
         $this->assertSame(0, (int) Db::table('users')->where('mobile', $mobile)->count());
+    }
+
+    /** GBK 是中文 Windows 上 Excel 的默认编码，昵称要原样落库而不是乱码。 */
+    public function test_gbk_encoded_csv_is_converted(): void
+    {
+        $admin = $this->actingAsAdmin(['user.import']);
+        $mobile = '134' . str_pad((string) random_int(0, 9999_9999), 8, '0', STR_PAD_LEFT);
+        $utf8 = "mobile,nickname,password,email,gender,status\n{$mobile},张三丰,Secret1,e@example.com,1,1\n";
+        $gbk = (string) mb_convert_encoding($utf8, 'GB18030', 'UTF-8');
+        $this->assertNotSame($utf8, $gbk, '夹具本身必须真的是 GBK');
+
+        $data = $this->postFile('/adminapi/user/import', 'file', 'users.csv', $gbk, 'text/csv', $admin->token)
+            ->assertOk()->data();
+        $this->track('data_imports', (int) $data['id']);
+
+        $this->assertSame(1, (int) $data['success_count'], (string) json_encode($data['errors'], JSON_UNESCAPED_UNICODE));
+        $created = Db::table('users')->where('mobile', $mobile)->first();
+        $this->assertNotNull($created);
+        $this->userIds[] = (int) $created->id;
+        $this->assertSame('张三丰', $created->nickname);
+    }
+
+    /** 失败行很多时 errors 是 TEXT（64KB），写不下就会 500 并把记录卡在「处理中」。 */
+    public function test_many_failing_rows_are_capped_and_marked_truncated(): void
+    {
+        $admin = $this->actingAsAdmin(['user.import']);
+        $csv = "mobile,nickname,password,email,gender,status\n";
+        for ($i = 0; $i < 260; $i++) {
+            $csv .= "bad{$i},非法手机号,,,,\n";
+        }
+
+        $data = $this->postFile('/adminapi/user/import', 'file', 'users.csv', $csv, 'text/csv', $admin->token)
+            ->assertOk()->data();
+        $this->track('data_imports', (int) $data['id']);
+
+        $this->assertSame(260, (int) $data['fail_count']);
+        $this->assertLessThanOrEqual(201, count($data['errors']), 'errors 必须截断');
+        $this->assertSame(0, (int) $data['errors'][count($data['errors']) - 1]['row'], '末条是截断说明');
+        $stored = (string) Db::table('data_imports')->where('id', $data['id'])->value('errors');
+        $this->assertLessThan(65535, strlen($stored));
+        $this->assertSame(2, (int) Db::table('data_imports')->where('id', $data['id'])->value('status'), '不能停在处理中');
+    }
+
+    /** 整份导入同步跑在请求里，超量文件要在写任何一行之前就被拒。 */
+    public function test_oversized_row_count_is_rejected_before_writing_anything(): void
+    {
+        $admin = $this->actingAsAdmin(['user.import']);
+        $before = (int) Db::table('users')->count();
+        $csv = "mobile,nickname,password,email,gender,status\n";
+        for ($i = 0; $i <= DataImportService::MAX_ROWS; $i++) {
+            $csv .= '133' . str_pad((string) $i, 8, '0', STR_PAD_LEFT) . ",超量,Secret1,f@example.com,1,1\n";
+        }
+
+        $this->postFile('/adminapi/user/import', 'file', 'users.csv', $csv, 'text/csv', $admin->token)
+            ->assertCode(400);
+
+        $this->assertSame($before, (int) Db::table('users')->count(), '拒收时一行都不能写');
     }
 
     public function test_user_import_requires_permission(): void

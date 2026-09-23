@@ -10,6 +10,8 @@ return [
     'mobile_taken'     => 'This mobile number is already taken',
     'invalid_password' => 'Password must be 6–20 characters',
     'module_not_allowed' => 'Use the member list import entry for user data',
+    'too_many_rows' => 'At most :max rows per import, please split the file',
+    'errors_truncated' => ':count rows failed, only the first :kept errors are kept',
     'row_failed'       => 'Row import failed',
     'progress_start'   => 'Import started',
     'progress_running' => 'Importing',

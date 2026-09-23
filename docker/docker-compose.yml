@@ -31,13 +31,16 @@ services:
 
   mysql:
     image: mysql:8.0
+    # 只绑回环：compose 的端口映射会绕过宿主机防火墙，0.0.0.0 等于把库开到公网。
+    # 需要从别的机器连，自己改成 ${MYSQL_BIND:-127.0.0.1} 之外的地址并自负其责。
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_BIND:-127.0.0.1}:${MYSQL_PORT:-3306}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      # :? 表示没在 docker/.env 里设就直接拒绝启动，不再有 changeme 这种默认值。
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 docker/.env 设置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ydadmin}
       MYSQL_USER: ${MYSQL_USER:-ydadmin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 docker/.env 设置 MYSQL_PASSWORD}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
@@ -54,13 +57,17 @@ services:
 
   redis:
     image: redis:7-alpine
+    # 同上只绑回环。Redis 里存着会话吊销名单，裸奔的 Redis 是最常见的入侵入口。
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    command: redis-server --appendonly yes --maxmemory-policy noeviction
+      - "${REDIS_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?请在 docker/.env 设置 REDIS_PASSWORD}
+      TZ: Asia/Shanghai
+    command: ["sh", "-c", "exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass \"$$REDIS_PASSWORD\""]
     volumes:
       - ydadmin-redis:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5

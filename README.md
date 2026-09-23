@@ -63,7 +63,7 @@ php start.php restart
 ~~~bash
 cd server && composer install   # 镜像挂载宿主机 server/，依赖要在宿主机装好
 cd ../docker
-cp .env.example .env            # 端口冲突只改这里，不要改开发库
+cp .env.example .env            # 必填三个密码（MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / REDIS_PASSWORD），端口冲突也只改这里
 docker compose up -d --build
 # 浏览器 http://127.0.0.1/install/  或
 # docker compose exec webman php webman install -n --db-host=mysql --db-name=ydadmin ...
@@ -71,6 +71,8 @@ docker compose restart webman   # 装完必须 restart，reload 不够
 ~~~
 
 compose 的 MySQL 是空库 `ydadmin`，只连服务名 `mysql` / `redis`。禁止把 `DB_HOST` 指到宿主机去打 `dev007_ydadmin`。本机 80/3306/6379 被占时改 `docker/.env` 的端口。
+
+三个密码没有默认值，不填 `docker compose` 直接拒绝启动（早先的 `changeme` 已删）。MySQL 与 Redis 的端口只绑 `127.0.0.1`：compose 的端口映射会绕过宿主机防火墙，绑 `0.0.0.0` 等于把库和 Redis 开到公网，而 Redis 里存着会话吊销名单。确需外部访问再改 `MYSQL_BIND` / `REDIS_BIND`。安装向导里的 Redis 密码要填 `docker/.env` 里那一个。
 
 ### 发布包
 
@@ -540,7 +542,7 @@ WHERE code = 'payment_success';
 
 地区、App 版本、数据导入。三张表：`regions`、`app_versions`、`data_imports`。管理端菜单 8 / 800–813（应用管理 → 区域管理、应用版本）。不种导入菜单，也不种 `region.status` / `version.status` 按钮。
 
-**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区种子是大陆 31 省市区（`id =` GB/T 2260 六位码）。新装走 `regions.sql`（`INSERT`）；已有库补齐缺失行用 `php webman yd:update`（`INSERT IGNORE`，不覆盖已改名称）。
+**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区种子是大陆 31 省市区（`id =` GB/T 2260 **六位**码，3347 行）。新装走 `regions.sql`（`INSERT`）；已有库用 `php webman yd:update` 补齐缺失行（`INSERT IGNORE`，不覆盖已改名称），同时删掉早先种进去的 82 行 9 位街道码（东莞、中山、儋州、嘉峪关这几个不设区的市）。已知限制：升级不会改名或移动已有行，所以老库里的废弃区划与旧名称会留着。
 
 **C 端接口**（公开，不挂会员认证）：
 
@@ -552,7 +554,9 @@ WHERE code = 'payment_success';
 
 **级联**：管理端登录即可 `GET /adminapi/common/regions`，一次拉全量启用树（节点 `{value,label,children?}`）。`admin/src/components/Region` 已在打这条。
 
-**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history` 仍是通用 CSV 管道。`module=user` 会写入会员；其它 module 只计数、记历史，不进 `files`。用户列表上的导入按钮走 `POST /adminapi/user/import`（权限 `user.import`）。通用 `dataimport.*` 不进角色树，非超管默认 403。
+**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history` 是通用 CSV 管道，只计数、记历史，不进 `files`，且**拒收 `module=user`**——会员导入只走用户列表上的 `POST /adminapi/user/import`（权限 `user.import`）。通用 `dataimport.*` 不进角色树，非超管默认 403。
+
+导入整份同步跑在请求里：单次上限 5000 行，超了在写任何一行之前就拒收；GBK 文件（中文 Windows 上 Excel 的默认编码）会自动转码；失败行只记业务文案（原始异常带着绑定值与库主机，只进应用日志），`errors` 最多留 200 条并在末尾标明实际失败行数；临时 CSV 读完即删。
 
 **已知限制**：
 

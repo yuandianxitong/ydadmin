@@ -557,6 +557,10 @@ final class SchemaTest extends TestCase
         $this->assertNotNull(Db::table('regions')->where('id', 630000)->first(), '青海省');
         $this->assertNotNull(Db::table('regions')->where('id', 650000)->first(), '新疆');
         $this->assertGreaterThan(0, Db::table('regions')->where('parent_id', 620000)->count(), '甘肃须有市级');
+        // 约定是 GB/T 2260 六位码：源数据里几个不设区的市会给出 9 位的街道，生成脚本必须滤掉，
+        // 否则选到东莞这类城市时下拉里是几十个街道而不是区县。
+        $this->assertSame(0, (int) Db::table('regions')->where('id', '>', 999999)->count(), '不得有 9 位码的街道行');
+        $this->assertSame(0, (int) Db::table('regions')->whereRaw('CHAR_LENGTH(code) <> 6')->count());
         $this->assertSame(0, (int) Db::table('app_versions')->count());
         $this->assertSame(0, (int) Db::table('data_imports')->count());
     }
