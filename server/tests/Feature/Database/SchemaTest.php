@@ -664,15 +664,30 @@ final class SchemaTest extends TestCase
 
     public function test_installer_fingerprint_includes_regions_sql(): void
     {
-        $dir = base_path() . '/database/install';
-        $two = md5((string) file_get_contents($dir . '/schema.sql') . "\0" . (string) file_get_contents($dir . '/init.sql'));
-        $three = md5(
-            (string) file_get_contents($dir . '/schema.sql') . "\0"
-            . (string) file_get_contents($dir . '/init.sql') . "\0"
-            . (string) file_get_contents($dir . '/regions.sql')
-        );
-        $this->assertSame($three, \core\database\DatabaseInstaller::fingerprint($dir));
-        $this->assertNotSame($two, $three);
+        $source = base_path() . '/database/install';
+        $dir = sys_get_temp_dir() . '/yd-fingerprint-' . bin2hex(random_bytes(4));
+        mkdir($dir, 0o755, true);
+        try {
+            foreach (['schema.sql', 'init.sql', 'regions.sql'] as $file) {
+                copy($source . '/' . $file, $dir . '/' . $file);
+            }
+            $two = md5((string) file_get_contents($dir . '/schema.sql') . "\0" . (string) file_get_contents($dir . '/init.sql'));
+            $three = md5(
+                (string) file_get_contents($dir . '/schema.sql') . "\0"
+                . (string) file_get_contents($dir . '/init.sql') . "\0"
+                . (string) file_get_contents($dir . '/regions.sql')
+            );
+            $this->assertSame($three, \core\database\DatabaseInstaller::fingerprint($dir));
+            $this->assertNotSame($two, $three);
+
+            file_put_contents($dir . '/demo.sql', 'demo data must not affect the fingerprint');
+            $this->assertSame($three, \core\database\DatabaseInstaller::fingerprint($dir));
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $file) {
+                unlink($file);
+            }
+            rmdir($dir);
+        }
     }
 
     public function test_init_sql_contains_no_admin_account(): void

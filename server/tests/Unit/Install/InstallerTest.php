@@ -128,6 +128,111 @@ final class InstallerTest extends TestCase
         $this->assertStringNotContainsString('DROP DATABASE', $src);
     }
 
+    public function test_without_demo_flag_imports_nothing(): void
+    {
+        $this->seedMiniDemo();
+        $this->makeInstaller()->run($this->input());
+
+        $pdo = $this->scratchPdo();
+        $this->assertSame(0, (int) $pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn());
+        $this->assertFileDoesNotExist($this->workDir . '/storage/uploads/images/20260319/cover.jpg');
+    }
+
+    public function test_false_string_and_empty_do_not_import(): void
+    {
+        $this->seedMiniDemo();
+        foreach (['false', '', '0', false, 0] as $flag) {
+            $this->dropScratch();
+            @unlink($this->lockPath);
+            @unlink($this->envPath);
+            $this->makeInstaller()->run($this->input(['import_demo' => $flag, 'site_url' => 'http://demo.test']));
+            $this->assertSame(0, (int) $this->scratchPdo()->query('SELECT COUNT(*) FROM articles')->fetchColumn());
+        }
+    }
+
+    public function test_invalid_demo_flag_rejects_before_database(): void
+    {
+        $this->seedMiniDemo();
+        foreach (['yes', 'on', '2', 'true'] as $flag) {
+            try {
+                $this->makeInstaller()->run($this->input(['import_demo' => $flag]));
+                $this->fail($flag);
+            } catch (\core\exception\ValidationException $e) {
+                $this->assertArrayHasKey('import_demo', $e->errors());
+            }
+            $pdo = DatabaseInstaller::connect($this->mysql);
+            $exists = $pdo->query('SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($this->scratch))->fetch();
+            $this->assertFalse($exists);
+        }
+    }
+
+    public function test_demo_flag_replaces_site_url_copies_covers_and_does_not_overwrite(): void
+    {
+        $this->seedMiniDemo();
+        $dest = $this->workDir . '/storage/uploads/images/20260319/cover.jpg';
+        mkdir(dirname($dest), 0o755, true);
+        file_put_contents($dest, 'keep');
+
+        $this->makeInstaller()->run($this->input([
+            'import_demo' => '1',
+            'site_url'    => 'https://demo.test/',
+        ]));
+
+        $cover = (string) $this->scratchPdo()->query('SELECT cover FROM articles WHERE id = 1')->fetchColumn();
+        $this->assertSame('https://demo.test/storage/uploads/images/20260319/cover.jpg', $cover);
+        $this->assertStringNotContainsString('{{SITE_URL}}', $cover);
+        $this->assertSame('keep', (string) file_get_contents($dest));
+        $this->assertFileExists($this->lockPath);
+    }
+
+    public function test_demo_copy_failure_writes_no_lock(): void
+    {
+        $this->seedMiniDemo();
+        file_put_contents($this->workDir . '/storage-blocked', 'not-a-directory');
+        try {
+            $this->makeInstaller($this->workDir . '/storage-blocked')->run($this->input(['import_demo' => 1]));
+            $this->fail('封面目录不可写必须失败');
+        } catch (BusinessException $e) {
+            $this->assertSame(lang('install.sql_failed'), $e->getMessage());
+        }
+        $this->assertFileDoesNotExist($this->lockPath);
+        $this->assertFileDoesNotExist($this->envPath);
+    }
+
+    public function test_demo_sql_failure_writes_no_lock(): void
+    {
+        $this->seedMiniDemo();
+        file_put_contents($this->workDir . '/demo.sql', 'THIS IS NOT SQL;');
+        try {
+            $this->makeInstaller()->run($this->input(['import_demo' => 1]));
+            $this->fail('坏的 demo.sql 必须失败');
+        } catch (BusinessException $e) {
+            $this->assertSame(lang('install.sql_failed'), $e->getMessage());
+        }
+        $this->assertFileDoesNotExist($this->lockPath);
+        $this->assertFileDoesNotExist($this->envPath);
+    }
+
+    public function test_real_demo_sql_inserts_articles(): void
+    {
+        $installer = new Installer(
+            $this->admins,
+            base_path('database/install'),
+            $this->envPath,
+            $this->workDir . '/.env.example',
+            $this->lockPath,
+            $this->workDir . '/storage',
+        );
+        $installer->run($this->input(['import_demo' => true, 'site_url' => 'http://localhost']));
+
+        $pdo = $this->scratchPdo();
+        $this->assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM article_categories')->fetchColumn());
+        $this->assertSame(4, (int) $pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn());
+        $this->assertFileExists($this->workDir . '/storage/uploads/images/20260319/69bc17b38d60c.jpg');
+        $siteUrl = (string) $pdo->query("SELECT config_value FROM system_configs WHERE config_key = 'site_url'")->fetchColumn();
+        $this->assertSame('http://localhost', $siteUrl);
+    }
+
     public function test_non_empty_database_is_rejected_without_lock(): void
     {
         $pdo = DatabaseInstaller::connect($this->mysql);
@@ -268,7 +373,7 @@ final class InstallerTest extends TestCase
         $this->assertSame(14, (int) $this->admins->redisAtCall[0]['database']);
     }
 
-    private function makeInstaller(): Installer
+    private function makeInstaller(?string $storageRoot = null): Installer
     {
         return new Installer(
             $this->admins,
@@ -276,6 +381,7 @@ final class InstallerTest extends TestCase
             $this->envPath,
             $this->workDir . '/.env.example',
             $this->lockPath,
+            $storageRoot ?? $this->workDir . '/storage',
         );
     }
 
@@ -333,6 +439,32 @@ CREATE TABLE `admin_roles` (`admin_id` int unsigned NOT NULL, `role_id` int unsi
 SQL);
         file_put_contents($this->workDir . '/init.sql', "INSERT INTO `roles` (`id`,`name`,`is_system`) VALUES (1,'super_admin',1);\n");
         file_put_contents($this->workDir . '/regions.sql', "--\n");
+    }
+
+    private function seedMiniDemo(): void
+    {
+        file_put_contents($this->workDir . '/schema.sql', <<<'SQL'
+CREATE TABLE `articles` (
+  `id` int unsigned NOT NULL,
+  `cover` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+SQL, FILE_APPEND);
+        file_put_contents(
+            $this->workDir . '/demo.sql',
+            "INSERT INTO `articles` (`id`, `cover`) VALUES (1, '{{SITE_URL}}/storage/uploads/images/20260319/cover.jpg');\n"
+        );
+        $asset = $this->workDir . '/demo-assets/uploads/images/20260319/cover.jpg';
+        mkdir(dirname($asset), 0o755, true);
+        file_put_contents($asset, 'new');
+    }
+
+    private function scratchPdo(): \PDO
+    {
+        $pdo = DatabaseInstaller::connect($this->mysql);
+        $pdo->exec('USE `' . $this->scratch . '`');
+
+        return $pdo;
     }
 
     private function dropScratch(): void

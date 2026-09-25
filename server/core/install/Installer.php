@@ -8,6 +8,7 @@ use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\database\SqlScript;
 use core\exception\BusinessException;
+use core\exception\ValidationException;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use support\Redis;
 use Webman\Config;
@@ -21,7 +22,11 @@ final class Installer
         private string $envPath,
         private string $envExamplePath,
         private string $lockPath,
+        private ?string $storageRoot = null,
     ) {
+        if ($this->storageRoot === null || $this->storageRoot === '') {
+            $this->storageRoot = base_path('public/storage');
+        }
     }
 
     public function isInstalled(): bool
@@ -76,6 +81,7 @@ final class Installer
             throw new BusinessException(lang('install.already_installed'));
         }
 
+        $importDemo = self::wantsDemo($input['import_demo'] ?? null);
         $database = (string) ($input['db_name'] ?? '');
         if (preg_match('/^[A-Za-z0-9_]+$/', $database) !== 1) {
             throw new BusinessException('数据库名只允许字母、数字与下划线');
@@ -98,14 +104,14 @@ final class Installer
         }
 
         try {
-            $this->runLocked($pdo, $input, $database);
+            $this->runLocked($pdo, $input, $database, $importDemo);
         } finally {
             $pdo->query("SELECT RELEASE_LOCK('ydadmin:install')");
         }
     }
 
     /** @param array<string, mixed> $input */
-    private function runLocked(\PDO $pdo, array $input, string $database): void
+    private function runLocked(\PDO $pdo, array $input, string $database, bool $importDemo): void
     {
         $exists = $pdo->query(
             'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($database)
@@ -126,6 +132,10 @@ final class Installer
             }
         } catch (\Throwable $e) {
             throw new BusinessException(lang('install.sql_failed'), 400, $e);
+        }
+
+        if ($importDemo) {
+            $this->importDemo($pdo, self::normalizeSiteUrl((string) ($input['site_url'] ?? '')));
         }
 
         do {
@@ -175,6 +185,96 @@ final class Installer
         (new Upgrader(dirname($this->installDir) . '/updates'))
             ->run($pdo, (string) config('version.version', '2.0.0'), false);
         file_put_contents($this->lockPath, date('c'));
+    }
+
+    public static function wantsDemo(mixed $value): bool
+    {
+        if (in_array($value, [null, '', false, 0, '0', 'false'], true)) {
+            return false;
+        }
+        if (in_array($value, [true, 1, '1'], true)) {
+            return true;
+        }
+
+        throw new ValidationException(['import_demo' => '演示数据开关无效']);
+    }
+
+    public static function normalizeSiteUrl(string $url): string
+    {
+        $url = rtrim($url, '/');
+
+        return $url === '' ? 'http://localhost' : $url;
+    }
+
+    private function importDemo(\PDO $pdo, string $siteUrl): void
+    {
+        $sqlFile = $this->installDir . '/demo.sql';
+        $assets = $this->installDir . '/demo-assets';
+        try {
+            if (!is_file($sqlFile)) {
+                throw new \RuntimeException('缺少 demo.sql');
+            }
+            $contents = @file_get_contents($sqlFile);
+            if ($contents === false) {
+                throw new \RuntimeException('无法读取 demo.sql');
+            }
+            // 1.x 演示文件保持原样；2.x 的文章创建人列已统一为 created_by。
+            $sql = str_replace(
+                ['{{SITE_URL}}', '`admin_id`'],
+                [$siteUrl, '`created_by`'],
+                $contents
+            );
+            foreach (SqlScript::split($sql) as $statement) {
+                $pdo->exec($statement);
+            }
+            if (is_dir($assets)) {
+                $this->copyMissing($assets, (string) $this->storageRoot);
+            }
+        } catch (BusinessException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new BusinessException(lang('install.sql_failed'), 400, $e);
+        }
+    }
+
+    private function copyMissing(string $assets, string $destination): void
+    {
+        $root = realpath($assets);
+        if ($root === false) {
+            throw new \RuntimeException('演示资源目录无效');
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($iterator as $source) {
+            $sourcePath = $source->getPathname();
+            if (is_link($sourcePath)) {
+                continue;
+            }
+            $realSource = realpath($sourcePath);
+            if ($realSource === false || !str_starts_with($realSource, $root . DIRECTORY_SEPARATOR)) {
+                throw new \RuntimeException('演示资源路径越界');
+            }
+
+            $target = $destination . DIRECTORY_SEPARATOR . substr($realSource, strlen($root) + 1);
+            if ($source->isDir()) {
+                if (!is_dir($target) && !@mkdir($target, 0o755, true) && !is_dir($target)) {
+                    throw new \RuntimeException('无法创建演示资源目录');
+                }
+                continue;
+            }
+            if (is_file($target)) {
+                continue;
+            }
+            if (!is_dir(dirname($target)) && !@mkdir(dirname($target), 0o755, true) && !is_dir(dirname($target))) {
+                throw new \RuntimeException('无法创建演示资源目录');
+            }
+            if (!@copy($realSource, $target)) {
+                throw new \RuntimeException('无法复制演示资源');
+            }
+        }
     }
 
     /** @param array<string, mixed> $input */
