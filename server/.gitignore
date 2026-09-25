@@ -1,6 +1,13 @@
 /vendor/
 /.env
 /runtime/
-/public/storage/
+# 用户上传不进仓库。网站 Logo 与图标是安装默认图，配置种子指向这两个路径。
+/public/storage/*
+!/public/storage/uploads/
+/public/storage/uploads/*
+!/public/storage/uploads/images/
+/public/storage/uploads/images/*
+!/public/storage/uploads/images/logo.png
+!/public/storage/uploads/images/favicon.ico
 .php-cs-fixer.cache
 .phpunit.result.cache

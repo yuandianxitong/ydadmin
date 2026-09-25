@@ -62,7 +62,11 @@ final class SchemaTest extends TestCase
         $this->assertSame('5', $basic['login_max_retry']);
         $this->assertSame('30', $basic['login_lock_duration']);
         $this->assertSame('6', $basic['password_min_length']);
+        $this->assertSame('元点Admin', $basic['site_name']);
+        $this->assertSame('/storage/uploads/images/logo.png', $basic['site_logo']);
         $this->assertSame('/storage/uploads/images/favicon.ico', $basic['site_favicon']);
+        $this->assertFileExists(base_path('public/storage/uploads/images/logo.png'));
+        $this->assertFileExists(base_path('public/storage/uploads/images/favicon.ico'));
         $this->assertTrue(Db::schema()->hasColumn('system_configs', 'is_public'));
         $this->assertSame(18, Db::table('system_configs')->where('config_group', 'basic')->where('is_public', 1)->count(), 'basic 18 项都是前端公开配置');
     }

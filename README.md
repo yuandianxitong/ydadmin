@@ -1,6 +1,28 @@
-# 元点Admin
+<p align="center">
+  <img src="https://www.dev007.cn/oss/logo.png" alt="元点Admin" width="120">
+</p>
 
-基于 [webman](https://www.workerman.net/webman) 的通用后台管理系统（2.x）。常驻内存、多进程：一条命令拉起 HTTP、定时任务、队列与 WebSocket 进程。
+<h1 align="center">元点Admin</h1>
+
+<p align="center">
+  基于 <a href="https://www.workerman.net/webman">webman</a> 的通用后台管理系统（2.x）。常驻内存、多进程：一条命令拉起 HTTP、定时任务、队列与 WebSocket 进程。
+</p>
+
+<p align="center">
+  <a href="https://admin.dev007.cn">在线演示</a> · <a href="http://docs.dev007.cn/admin/">文档中心</a> · <a href="https://gitee.com/yuandianxitong/ydadmin/issues">问题反馈</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.x-blue?logo=php" alt="PHP">
+  <img src="https://img.shields.io/badge/ThinkPHP-8-green" alt="ThinkPHP">
+  <img src="https://img.shields.io/badge/Vue-3-brightgreen?logo=vue.js" alt="Vue 3">
+  <img src="https://img.shields.io/badge/Element%20Plus-latest-409eff" alt="Element Plus">
+  <img src="https://img.shields.io/badge/MySQL-8.0%2B-orange?logo=mysql" alt="MySQL">
+  <img src="https://img.shields.io/badge/uni--app-Vue%203-brightgreen?logo=vue.js" alt="uni-app">
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License">
+</p>
+
+---
 
 > 1.x（ThinkPHP 8 版）仓库为 `ydadmin-tp`，已停止维护。2.x 与 1.x 的数据库不兼容，不提供迁移。
 
@@ -23,14 +45,12 @@ PHP 8.4（pdo_mysql、redis、pcntl、posix）· MySQL 8 · Redis · Composer 2 
 cd server
 composer install
 cp .env.example .env    # 填写 DB_* 与 REDIS_*，两个 JWT secret 各用 php -r "echo bin2hex(random_bytes(32));" 生成
-php webman db:reset     # 仅可丢弃的开发库：删库重建并导入 database/install 下的表结构与初始数据
+php webman db:reset     # 仅开发环境：删库重建并导入 database/install 下的表结构与初始数据
 php webman admin:init --username=admin --password=你的密码   # 建立超级管理员（重复执行即重置密码）
 php start.php start     # 开发模式（文件变更自动重载）；生产环境用 php start.php start -d
 ```
 
-`db:reset` 会删库重建，只供你自己的可丢弃库使用，`APP_DEBUG` 未开启时拒绝执行。**禁止对 `dev007_ydadmin` 执行 `db:reset`**；现网库表结构变化走 `php webman yd:update`。
-
-访问 `http://127.0.0.1:8000/adminapi/health`，返回 `{"code":200,…}` 即启动成功。已安装前该接口会返回 HTTP 503（`data.installed=false`），请先走 `/install/`。
+访问 `http://127.0.0.1:8000/adminapi/health`，返回 `{"code":200,…}` 即启动成功。
 
 前端开发：
 
@@ -43,72 +63,19 @@ cd admin && pnpm install && pnpm dev   # 接口代理到 http://127.0.0.1:8000
 ### 全新安装（生产）
 
 ```bash
+mysql -u root -p -e "CREATE DATABASE ydadmin DEFAULT CHARACTER SET utf8mb4"
+mysql -u root -p ydadmin < server/database/install/schema.sql   # 先表结构
+mysql -u root -p ydadmin < server/database/install/init.sql     # 再初始数据
 cd server
 composer install
-cp .env.example .env
+cp .env.example .env    # 见下方说明
+php webman admin:init --username=admin --password=你的密码
 php start.php start -d
-# 浏览器打开 http://127.0.0.1:8000/install/  或
-php webman install -n --db-host=127.0.0.1 --db-name=ydadmin --db-user=root --db-password=... --username=admin --password=...
-php start.php restart
 ```
 
-`.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。向导与 CLI 会写入数据库连接与两把 JWT secret。
+`.env` 至少要改：`APP_DEBUG=false`；`DB_*` 与 `REDIS_*`；两个 JWT secret（各 ≥ 32 字节且互不相同）；部署在 nginx 等反向代理后面时填 `TRUSTED_PROXIES`；前端与 API 不同域时填 `CORS_ALLOWED_ORIGINS`。
 
-安装向导在装完之前未登录可达，所以 `/install/test-connection` 与 `/install/run` 要求带向导页下发的令牌（cookie + `X-Install-Token` 双提交）并校验同源；直接用 curl 打这两条要先 `GET /install/` 取 cookie。
-
-手工灌 SQL 是备选：仅在无法走向导/CLI 时，先建库并依次导入 `schema.sql`、`init.sql`、`regions.sql`，事后须 `touch runtime/install.lock` 与 `php webman yd:update --baseline=2.0.0`。
-
-`php webman db:reset` 会删库重建，只供可丢弃的开发库使用，`APP_DEBUG` 未开启时拒绝执行。**禁止对 `dev007_ydadmin` 执行。**
-
-### Docker Compose
-
-~~~bash
-cd server && composer install   # 镜像挂载宿主机 server/，依赖要在宿主机装好
-cd ../docker
-cp .env.example .env            # 必填三个密码（MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD / REDIS_PASSWORD），端口冲突也只改这里
-docker compose up -d --build
-# 浏览器 http://127.0.0.1/install/  或
-# docker compose exec webman php webman install -n --db-host=mysql --db-name=ydadmin ...
-docker compose restart webman   # 装完必须 restart，reload 不够
-~~~
-
-compose 的 MySQL 是空库 `ydadmin`，只连服务名 `mysql` / `redis`。禁止把 `DB_HOST` 指到宿主机去打 `dev007_ydadmin`。本机 80/3306/6379 被占时改 `docker/.env` 的端口。
-
-webman 容器默认以 root 跑（它绑挂宿主机的 `server/`，UID 对不上就写不了 `.env` 与 `runtime`）；Linux 上把 `docker/.env` 的 `DOCKER_USER` 设成 `$(id -u):$(id -g)` 就不会再产出 root 属主的文件。
-
-三个密码没有默认值，不填 `docker compose` 直接拒绝启动（早先的 `changeme` 已删）。MySQL 与 Redis 的端口只绑 `127.0.0.1`：compose 的端口映射会绕过宿主机防火墙，绑 `0.0.0.0` 等于把库和 Redis 开到公网，而 Redis 里存着会话吊销名单。确需外部访问再改 `MYSQL_BIND` / `REDIS_BIND`。安装向导里的 Redis 密码要填 `docker/.env` 里那一个。
-
-### 发布包
-
-~~~bash
-# 在仓库根，需 Node / pnpm
-sh scripts/release.sh           # 产物 dist/ydadmin-2.0.0.zip
-unzip dist/ydadmin-2.0.0.zip && cd ydadmin-2.0.0/server
-composer install
-cp .env.example .env
-php start.php start -d
-# 浏览器 /install/ 或 php webman install -n ...
-php start.php restart
-~~~
-
-zip 不含 `vendor/`、`.env`、admin/pc/uniapp 源码和 `docker/`。
-
-### 安装（M8）
-
-- 无表前缀（`DB_PREFIX` 保持空）；安装与升级脚本写裸表名。
-- 默认不导入演示数据。向导勾选「导入演示数据」，或 `php webman install --with-demo`（可用 `--site-url` 替换文章封面里的地址，缺省 `http://localhost`）才灌 `demo.sql` 并拷贝封面。不勾选时只灌 `schema.sql`、`init.sql`、`regions.sql` 与超管。
-- 装完必须 `php start.php restart`（`reload` 不够），新 `.env` 才会被常驻进程读到。
-- 禁止对已有数据的库 DROP：目标库已有表时安装拒绝，库仍在。
-
-### 升级
-
-```bash
-cd server
-php webman yd:update --dry-run
-php webman yd:update
-```
-
-首次把已有 2.x 库纳入升级系统时用 `--baseline=2.0.0`（只打标，不重跑基线）。`schema.sql` 只用于全新安装。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
+`php webman db:reset` 会删库重建，只供开发环境使用，`APP_DEBUG` 未开启时拒绝执行。
 
 ### Redis
 
@@ -516,93 +483,11 @@ WHERE code = 'payment_success';
 2. 公众号：按上文 SQL 为 `payment_success` 填映射与模板 id 并启用；用已关注公众号且已绑定 `oa_openid` 的会员充值，应收到模板消息。
 3. 在「消息日志」核对状态与失败原因；在应用日志里确认没有完整手机号、openid、access_token。
 
-### 内容管理（M7a）
+### 升级
 
-文章栏目、文章、公告、协议、用户反馈。五张表：`article_categories`、`articles`、`announcements`、`agreements`、`feedbacks`。管理端菜单 7 / 700–744（内容管理 → 协议、公告、反馈、文章资讯）。
+`schema.sql` 只用于全新安装。M1 还没有升级脚本，后续里程碑会在 `server/database/` 下提供增量 SQL。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
 
-**升级到 M7a 时先执行开发库补丁 SQL**（五表、菜单 7/700–744、两条协议种子、`feedback_received` 模板），再部署代码。
-
-**C 端接口**：
-
-| 接口 | 鉴权 | 说明 |
-|---|---|---|
-| `GET /api/article/list`、`/api/article/detail/{id}` | 公开 | 只出已发布；详情浏览量 +1 |
-| `GET /api/article-category/list` | 公开 | 仅启用栏目树 |
-| `GET /api/announcement/list`、`/api/announcement/detail/{id}` | 公开 | 只出已发布 |
-| `GET /api/agreement/{code}` | 公开 | 仅启用；种子 `user_agreement` / `privacy_policy` |
-| `POST /api/feedback/submit`、`GET /api/feedback/list`、`/api/feedback/detail/{id}` | 需 user token | 只读写本人 |
-
-浏览量只在 C 端已发布文章详情增加；后台详情不加。`publish_at` 只展示、不参与 C 端过滤。
-
-**反馈站内信**：提交成功后经 `afterCommit` 发 `feedback_received`（只开站内信）。改文案在「消息管理 → 消息模板」即可，不必改代码。回复、关闭、删除不发消息。提交限：正文 2000 字、图片 9 张，同一会员每分钟 5 条（`config/feedback.php` 的 `submit_per_minute`），超了返回 code 429。
-
-**已知限制**：
-
-- 无置顶、无定时发布；表没有 `is_top` / `published_at` 列（PC 类型里的这两个字段对不上）。
-- 反馈 `status=1`（处理中）本里程碑无写入入口。
-- 不改 PC / uniapp 页面。
-
-### 应用管理（M7b）
-
-地区、App 版本、数据导入。三张表：`regions`、`app_versions`、`data_imports`。管理端菜单 8 / 800–813（应用管理 → 区域管理、应用版本）。不种导入菜单，也不种 `region.status` / `version.status` 按钮。
-
-**升级到 M7b 时先执行开发库补丁 SQL**（三表、菜单 8/800–813），再部署代码。地区种子是大陆 31 省市区（`id =` GB/T 2260 **六位**码，3347 行）。新装走 `regions.sql`（`INSERT`）；已有库用 `php webman yd:update` 补齐缺失行（`INSERT IGNORE`，不覆盖已改名称），同时删掉早先种进去的 82 行 9 位街道码（东莞、中山、儋州、嘉峪关这几个不设区的市）。已知限制：升级不会改名或移动已有行，所以老库里的废弃区划与旧名称会留着。
-
-**C 端接口**（公开，不挂会员认证）：
-
-| 接口 | 鉴权 | 说明 |
-|---|---|---|
-| `GET /api/region/tree` | 公开 | 启用地区树，节点 `value/label/children` |
-| `GET /api/region/children` | 公开 | 指定父级下的启用子级 |
-| `GET /api/version/check?platform&version_code` | 公开 | 该平台启用行里 `version_code` 最大的一条；大于当前才 `need_update` |
-
-**级联**：管理端登录即可 `GET /adminapi/common/regions`，一次拉全量启用树（节点 `{value,label,children?}`）。`admin/src/components/Region` 已在打这条。
-
-**数据导入**：`POST /adminapi/dataimport/upload` + `GET /adminapi/dataimport/history` 是通用 CSV 管道，只计数、记历史，不进 `files`，且**拒收 `module=user`**——会员导入只走用户列表上的 `POST /adminapi/user/import`（权限 `user.import`）。通用 `dataimport.*` 不进角色树，非超管默认 403。
-
-导入整份同步跑在请求里：单次上限 5000 行，超了在写任何一行之前就拒收；GBK 文件（中文 Windows 上 Excel 的默认编码）会自动转码；失败行只记业务文案（原始异常带着绑定值与库主机，只进应用日志），`errors` 最多留 200 条并在末尾标明实际失败行数；临时 CSV 读完即删。
-
-**已知限制**：
-
-- 除 `user` 外的 module 仍不写业务表（没有商品模块）。
-- 通用导入权限不进角色树，非超管调 `dataimport.*` 会 403。
-- 地区树 / `common/regions` 一次拉全量启用节点，不做按需加载。
-- 地区种子可被超管删改；不在本里程碑做「种子地区不可删」。
-- 不改 admin / PC / uniapp 页面。
-
-### 装修（M7c）
-
-DIY 页面装修、链接库、移动端主题与 tabBar。四张表：`diy_pages`、`diy_page_versions`、`diy_links`、`mobile_configs`。管理端菜单 16 / 1600–1618（装修 → 页面装修、自定义页面、底部导航、主题风格、链接管理）。
-
-**草稿与已发布分开存**：`page_settings` 是草稿，`page_settings_published` 才是 C 端读的那份，发布时才拷过去（回滚同理）。升级到该行为要执行 `php webman yd:update`（v2.0.2 加列并用现有值回填）。首页即使经 `/adminapi/diy/pages/home/*` 这条通用路径写，也要求 `diy.home.*` 权限。
-
-**升级到 M7c 时先执行开发库补丁 SQL**（四表、菜单 16/1600–1618、home/member 与 `mobile_configs` 种子），再部署代码。补丁按 `page_key` / 是否已有配置行判空再插，不会覆盖开发库里已有的同 key 装修。
-
-**C 端接口**（公开，不挂会员认证）：
-
-| 接口 | 鉴权 | 说明 |
-|---|---|---|
-| `GET /api/mobile/diy-page?key=` | 公开 | 只出已发布且启用、组件树非空的页；缺 `key` → 400；未发布 / 不存在 → 404，body 不含草稿 |
-| `GET /api/mobile/config` | 公开 | 主题色、tabBar，以及 `home_decoration`（已发布首页，没有则为 `null`） |
-
-**组件**：15 个内置（`banner`、`nav-grid`、`category-nav`、`rich-text`、`title-bar`、`divider`、`image-ad`、`image-cube`、`video`、`notice`、`search-bar`、`float-button`、`user-info-card`、`service-menu`、`content-list`）。`widgets.plugins` 恒为空数组。`content-list` 的 `source=latest` 会注水已发布文章。
-
-**页面列表**：`GET /adminapi/diy/pages` 出参是 `{list,total}`，不是标准 `{list, pagination}`（前端已冻）。
-
-**已知限制**：
-
-- 无插件宿主；`plugins` 空，以后另开里程碑。
-- 不做 `platform=pc` 第二套页面（列保留，本里程碑只写 `uniapp`）。
-- 页面列表不是标准四键分页。
-- 种子图路径是 `/static/diy/...`；2.x 若缺文件，C 端显示破图，不在本里程碑补图。
-- 前端 MobileConfig 上的客服 / 分享 / 微信字段本里程碑不落库（不建 `app_intro` / `service_*` / `share_*` / `wechat_appid`）。
-- 不改 admin / PC / uniapp 页面。
-
-### 开发库与 schema 演进
-
-`schema.sql` 只用于全新安装。生产升级走上方「升级」的 `php webman yd:update`，升级目录的写法与可重跑要求见 `server/database/updates/README.md`。不提供从 1.x（ThinkPHP 版）数据的自动迁移。
-
-M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，**现网库（含 `dev007_ydadmin`）只执行 `php webman yd:update`**，禁止 `db:reset`。可丢弃的本地库才用 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。可丢弃库忘了重建时，`composer test` 的测试引导会提示执行 `db:reset`，而不是抛一个看不懂的 SQL 错误。
+M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 新增了字典、操作日志、通知等表，并给 `system_configs` 加了 `is_public` 列；M1c 新增了 `files` 表、`storage` 分组的配置种子与文件管理菜单（70–72）。M3 新增了 `failed_jobs`、`cron_jobs`、`cron_job_logs` 三张表、定时任务菜单（90–95）与一条示例定时任务（每天 03:00 执行 `log:archive --days=90`）。拉取新版本后，开发库执行一次 `php webman db:reset` 重建；测试库会按安装脚本指纹自动重建。开发库忘了重建时，`composer test` 的测试引导会直接提示「请执行 php webman db:reset」，而不是抛一个看不懂的 SQL 错误。
 
 **这道检查要跟着 schema 一起维护**：它靠 `DevDatabaseGuard` 里的 `REQUIRED` 清单逐项核对表与列，**后续里程碑每加一张表或一个列，都要往那份清单里补一行**，否则库过期时它会一声不吭地放行。
 
@@ -641,7 +526,7 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | `composer lint` | php-cs-fixer（`composer lint:fix` 自动修复） |
 | `composer analyse` | phpstan level 6 |
 | `composer check:context` | 常驻内存纪律：禁止可变静态属性；Service/Controller 禁止 `Db::` 与 Model 静态查询；Repository 查询必须从 `query()` 起手 |
-| `composer contract` | 对已启动且已安装的服务做接口契约检查（脚本本身不重置数据库；表结构变了才对可丢弃库 `db:reset`，现网库走 `yd:update`） |
+| `composer contract` | 对运行中的服务做接口契约检查（先 `php webman db:reset` 一次，再 `php start.php start -d`） |
 
 测试固定使用 `${DB_NAME}_test` 库与 Redis DB 15，首次运行自动建库；`YDADMIN_TEST_DB_RESET=1 composer test` 可重建测试库。
 
@@ -655,6 +540,6 @@ M1 开发期间各子里程碑会直接修改 `schema.sql`，不写迁移：M1b 
 | M3 | 调度器与队列 | ✅（scheduler 进程按 cron 表达式自动执行白名单命令，执行日志与手动执行；redis-queue 队列进程，操作日志异步落库；`failed_jobs` 与 `queue:failed/retry/flush`） |
 | M4 | WebSocket 实时通道 | ✅（websocket 进程 + 一次性票据握手，按管理员定向推送；通知实时推送与指定管理员通知；在线管理员页与强制下线；被吊销会话自动断开） |
 | M5 | 会员与支付 | ✅（C 端认证与短信验证码、余额与积分及管理端会员管理；微信支付 v3 与支付宝充值、回调验签与同事务入账、超时关单、命令行部分退款与退款对账） |
-| M6 | 消息与微信 | ✅（M6a 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 公众号服务器接入、自定义菜单代理、自动回复） |
-| M7 | 内容与装修 | ✅（M7a 内容、M7b 地区/版本/导入、M7c DIY 装修 + 移动端配置） |
-| M8 | 安装与发布 | ✅（安装向导 + yd:update + Docker compose + 发布包） |
+| M6 | 消息与微信 | 进行中（M6a ✅ 微信登录：pc 扫码、小程序静默与手机号快捷登录、公众号 H5 授权与防伪绑定，渠道配置页，按端 appid 支付；M6b ✅ 消息体系：模板与日志、站内信/短信/公众号/小程序四通道、异步投递与分类重试、慢队列进程组；M6c 本里程碑：公众号服务器接入、自定义菜单代理、自动回复） |
+| M7 | 内容与装修 | |
+| M8 | 安装与发布 | |
