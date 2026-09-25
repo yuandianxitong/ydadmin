@@ -619,6 +619,18 @@ final class SchemaTest extends TestCase
         $this->assertSame('#2979ff', $cfg->theme_color);
         $this->assertSame(0, (int) Db::table('diy_links')->count());
         $this->assertSame(0, (int) Db::table('diy_page_versions')->count());
+        $draft = (string) $home->components_draft;
+        $this->assertStringContainsString('/static/diy/home/banner.jpg', $draft);
+        $this->assertStringContainsString('/static/diy/home/nav-app-market.png', $draft);
+        $this->assertStringContainsString('/static/diy/home/nav-all.png', $draft);
+        $this->assertStringNotContainsString('/static/diy/home/', (string) Db::table('diy_pages')->where('page_key', 'member')->value('components_published'));
+        $tabbar = (string) Db::table('mobile_configs')->value('tabbar_json');
+        $this->assertStringContainsString('/static/diy/tabbar/home.png', $tabbar);
+        $this->assertStringContainsString('/static/diy/tabbar/my-active.png', $tabbar);
+        $this->assertStringNotContainsString('/static/tabbar/', $tabbar);
+        $this->assertFileExists(base_path('public/static/diy/home/banner.jpg'));
+        $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
+        $this->assertSame('2.0.3', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

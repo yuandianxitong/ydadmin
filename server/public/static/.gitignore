@@ -1,0 +1,7 @@
+*
+!.gitignore
+!fonts/
+!fonts/**
+!diy/
+!diy/**
+**/.DS_Store
