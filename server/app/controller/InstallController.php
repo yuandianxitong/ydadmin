@@ -9,7 +9,6 @@ use core\exception\ForbiddenException;
 use core\install\EnvironmentChecker;
 use core\install\Installer;
 use DI\Attribute\Inject;
-use support\Container;
 use support\Response;
 use Webman\Http\Request;
 
@@ -113,7 +112,7 @@ class InstallController extends Controller
                 : (((string) $request->header('https', '')) === 'on' ? 'https' : 'http');
             $data['site_url'] = Installer::normalizeSiteUrl($scheme . '://' . (string) $request->host());
         }
-        Container::get(Installer::class)->run($data);
+        $this->installer->run($data);
 
         return $this->success(['restart' => true], lang('install.restart_hint'));
     }

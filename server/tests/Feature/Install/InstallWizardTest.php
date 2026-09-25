@@ -6,10 +6,10 @@ namespace tests\Feature\Install;
 
 use app\controller\InstallController;
 use core\contract\SuperAdminInitializer;
+use core\database\DatabaseInstaller;
 use core\install\Installer;
 use support\Container;
 use support\Db;
-use support\Request;
 use tests\Support\ApiTestCase;
 use tests\Support\TestResponse;
 
@@ -219,44 +219,46 @@ final class InstallWizardTest extends ApiTestCase
 
     public function test_run_uses_request_host_not_body_site_url(): void
     {
-        $fake = new class () {
-            /** @var array<string, mixed>|null */
-            public ?array $input = null;
+        $mysql = (array) config('database.connections.mysql');
+        $scratch = (string) $mysql['database'] . '_wiz_' . bin2hex(random_bytes(4));
+        $installDir = $this->workDir . '/install-fixture';
+        mkdir($installDir . '/demo-assets', 0o755, true);
+        file_put_contents($installDir . '/schema.sql', 'CREATE TABLE `captured` (`site_url` varchar(255) NOT NULL);');
+        file_put_contents($installDir . '/init.sql', "--\n");
+        file_put_contents($installDir . '/regions.sql', "--\n");
+        file_put_contents($installDir . '/demo.sql', "INSERT INTO `captured` (`site_url`) VALUES ('{{SITE_URL}}');");
+        file_put_contents($installDir . '/demo-assets/cover.jpg', 'cover');
+        $storageBlock = $this->workDir . '/storage-blocked';
+        file_put_contents($storageBlock, 'not-a-directory');
 
-            /** @param array<string, mixed> $input */
-            public function run(array $input): void
-            {
-                $this->input = $input;
-            }
-
-            public function isInstalled(): bool
-            {
-                return false;
-            }
-        };
         $original = Container::get(Installer::class);
-        $controller = Container::get(InstallController::class);
-        Container::set(Installer::class, $fake);
+        $installer = new Installer(
+            Container::get(SuperAdminInitializer::class),
+            $installDir,
+            $this->workDir . '/fixture.env',
+            base_path() . '/.env.example',
+            $this->workDir . '/fixture.lock',
+            $storageBlock,
+        );
+        Container::set(Installer::class, $installer);
+        Container::set(InstallController::class, Container::make(InstallController::class));
         try {
-            $token = str_repeat('a', 32);
-            $body = (string) json_encode($this->payload([
+            $headers = $this->tokenHeaders();
+            $headers['Host'] = 'install.example:8443';
+            $response = $this->post('/install/run', $this->payload([
+                'db_name'     => $scratch,
                 'import_demo' => '1',
                 'site_url'    => 'https://evil.test',
-            ]));
-            $request = new Request(
-                "POST /install/run HTTP/1.1\r\n"
-                . "Host: install.example:8443\r\n"
-                . "Cookie: yd_install_token={$token}\r\n"
-                . "X-Install-Token: {$token}\r\n"
-                . "Content-Type: application/json\r\n"
-                . 'Content-Length: ' . strlen($body) . "\r\n\r\n"
-                . $body
-            );
-            $controller->run($request);
-            $this->assertTrue($fake->input['import_demo']);
-            $this->assertSame('http://install.example:8443', $fake->input['site_url']);
+            ]), null, $headers);
+
+            $this->assertSame(400, $response->code());
+            $pdo = DatabaseInstaller::connect($mysql);
+            $pdo->exec("USE `{$scratch}`");
+            $this->assertSame('http://install.example:8443', $pdo->query('SELECT site_url FROM captured')->fetchColumn());
         } finally {
+            DatabaseInstaller::connect($mysql)->exec("DROP DATABASE IF EXISTS `{$scratch}`");
             Container::set(Installer::class, $original);
+            Container::set(InstallController::class, Container::make(InstallController::class));
         }
     }
 
