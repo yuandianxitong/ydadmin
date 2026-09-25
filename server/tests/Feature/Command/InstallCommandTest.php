@@ -66,7 +66,31 @@ final class InstallCommandTest extends TestCase
             'password'       => 'Secret123',
             'email'          => 'admin@example.com',
             'nickname'       => '站长',
+            'import_demo'    => false,
         ], $fake->input);
+    }
+
+    public function test_site_url_without_with_demo_does_not_import(): void
+    {
+        $fake = $this->installFake();
+        $options = $this->allOptions();
+        $options['--site-url'] = 'https://demo.test/';
+        $tester = new CommandTester(new InstallCommand());
+        $this->assertSame(Command::SUCCESS, $tester->execute($options, ['interactive' => false]));
+        $this->assertFalse($fake->input['import_demo']);
+        $this->assertArrayNotHasKey('site_url', $fake->input);
+    }
+
+    public function test_with_demo_passes_normalized_site_url(): void
+    {
+        $fake = $this->installFake();
+        $options = $this->allOptions();
+        $options['--with-demo'] = true;
+        $options['--site-url'] = 'https://demo.test/';
+        $tester = new CommandTester(new InstallCommand());
+        $this->assertSame(Command::SUCCESS, $tester->execute($options, ['interactive' => false]));
+        $this->assertTrue($fake->input['import_demo']);
+        $this->assertSame('https://demo.test', $fake->input['site_url']);
     }
 
     public function test_short_password_fails_before_run(): void

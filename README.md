@@ -96,7 +96,7 @@ zip 不含 `vendor/`、`.env`、admin/pc/uniapp 源码和 `docker/`。
 ### 安装（M8）
 
 - 无表前缀（`DB_PREFIX` 保持空）；安装与升级脚本写裸表名。
-- 无演示数据；只灌 `schema.sql`、`init.sql`、`regions.sql` 与超管。
+- 默认不导入演示数据。向导勾选「导入演示数据」，或 `php webman install --with-demo`（可用 `--site-url` 替换文章封面里的地址，缺省 `http://localhost`）才灌 `demo.sql` 并拷贝封面。不勾选时只灌 `schema.sql`、`init.sql`、`regions.sql` 与超管。
 - 装完必须 `php start.php restart`（`reload` 不够），新 `.env` 才会被常驻进程读到。
 - 禁止对已有数据的库 DROP：目标库已有表时安装拒绝，库仍在。
 

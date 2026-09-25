@@ -9,6 +9,7 @@ use core\exception\ForbiddenException;
 use core\install\EnvironmentChecker;
 use core\install\Installer;
 use DI\Attribute\Inject;
+use support\Container;
 use support\Response;
 use Webman\Http\Request;
 
@@ -104,7 +105,15 @@ class InstallController extends Controller
         $this->assertSameSiteRequest($request);
 
         $data = $this->validate((array) $request->all(), $this->runRules());
-        $this->installer->run($data);
+        $data['import_demo'] = Installer::wantsDemo($data['import_demo'] ?? null);
+        if ($data['import_demo'] === true) {
+            $proto = strtolower((string) $request->header('x-forwarded-proto', ''));
+            $scheme = $proto === 'https' || $proto === 'http'
+                ? $proto
+                : (((string) $request->header('https', '')) === 'on' ? 'https' : 'http');
+            $data['site_url'] = Installer::normalizeSiteUrl($scheme . '://' . (string) $request->host());
+        }
+        Container::get(Installer::class)->run($data);
 
         return $this->success(['restart' => true], lang('install.restart_hint'));
     }
@@ -126,6 +135,7 @@ class InstallController extends Controller
             'password' => 'required|string|min:6|max:20',
             'email'    => 'nullable|email|max:100',
             'nickname' => 'nullable|string|max:50',
+            'import_demo' => 'nullable',
         ];
     }
 

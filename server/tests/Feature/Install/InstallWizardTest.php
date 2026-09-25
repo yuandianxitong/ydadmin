@@ -9,6 +9,7 @@ use core\contract\SuperAdminInitializer;
 use core\install\Installer;
 use support\Container;
 use support\Db;
+use support\Request;
 use tests\Support\ApiTestCase;
 use tests\Support\TestResponse;
 
@@ -78,6 +79,9 @@ final class InstallWizardTest extends ApiTestCase
             str_contains($body, 'license') || str_contains($body, '协议'),
             '未安装时应返回含 license 或「协议」的向导页'
         );
+        $this->assertStringContainsString('id="import_demo"', $response->body());
+        $this->assertStringContainsString('value="1"', $response->body());
+        $this->assertDoesNotMatchRegularExpression('/id="import_demo"[^>]*checked/', $response->body());
 
         $trailing = $this->get('/install/');
         $this->assertSame(200, $trailing->status());
@@ -204,6 +208,56 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertSame(422, $response->code());
         $this->assertArrayHasKey('username', $response->data()['errors']);
         $this->assertFileDoesNotExist($this->lockPath);
+    }
+
+    public function test_run_rejects_invalid_demo_flag_before_installer(): void
+    {
+        $response = $this->post('/install/run', $this->payload(['import_demo' => 'yes', 'site_url' => 'https://evil.test']), null, $this->tokenHeaders());
+        $this->assertSame(422, $response->code());
+        $this->assertArrayHasKey('import_demo', $response->data()['errors']);
+    }
+
+    public function test_run_uses_request_host_not_body_site_url(): void
+    {
+        $fake = new class () {
+            /** @var array<string, mixed>|null */
+            public ?array $input = null;
+
+            /** @param array<string, mixed> $input */
+            public function run(array $input): void
+            {
+                $this->input = $input;
+            }
+
+            public function isInstalled(): bool
+            {
+                return false;
+            }
+        };
+        $original = Container::get(Installer::class);
+        $controller = Container::get(InstallController::class);
+        Container::set(Installer::class, $fake);
+        try {
+            $token = str_repeat('a', 32);
+            $body = (string) json_encode($this->payload([
+                'import_demo' => '1',
+                'site_url'    => 'https://evil.test',
+            ]));
+            $request = new Request(
+                "POST /install/run HTTP/1.1\r\n"
+                . "Host: install.example:8443\r\n"
+                . "Cookie: yd_install_token={$token}\r\n"
+                . "X-Install-Token: {$token}\r\n"
+                . "Content-Type: application/json\r\n"
+                . 'Content-Length: ' . strlen($body) . "\r\n\r\n"
+                . $body
+            );
+            $controller->run($request);
+            $this->assertTrue($fake->input['import_demo']);
+            $this->assertSame('http://install.example:8443', $fake->input['site_url']);
+        } finally {
+            Container::set(Installer::class, $original);
+        }
     }
 
     public function test_run_rejects_nonempty_test_database_without_changing_roles(): void

@@ -38,7 +38,9 @@ final class InstallCommand extends Command
             ->addOption('username', null, InputOption::VALUE_REQUIRED, '超管用户名')
             ->addOption('password', null, InputOption::VALUE_REQUIRED, '超管密码')
             ->addOption('email', null, InputOption::VALUE_REQUIRED, '超管邮箱（可选）')
-            ->addOption('nickname', null, InputOption::VALUE_REQUIRED, '超管昵称（可选）');
+            ->addOption('nickname', null, InputOption::VALUE_REQUIRED, '超管昵称（可选）')
+            ->addOption('with-demo', null, InputOption::VALUE_NONE, '导入演示数据')
+            ->addOption('site-url', null, InputOption::VALUE_REQUIRED, '演示数据站点地址');
     }
 
     protected function interact(InputInterface $input, OutputInterface $output): void
@@ -81,7 +83,11 @@ final class InstallCommand extends Command
                 'password'       => (string) $input->getOption('password'),
                 'email'          => $this->nullableOption($input, 'email'),
                 'nickname'       => $this->nullableOption($input, 'nickname'),
+                'import_demo'    => (bool) $input->getOption('with-demo'),
             ];
+            if ($payload['import_demo'] === true) {
+                $payload['site_url'] = Installer::normalizeSiteUrl((string) ($input->getOption('site-url') ?? ''));
+            }
             ValidatorFactory::validate($payload, [
                 'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
                 'password' => 'required|string|min:6|max:20',
