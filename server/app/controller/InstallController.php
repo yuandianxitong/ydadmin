@@ -110,7 +110,8 @@ class InstallController extends Controller
             $scheme = $proto === 'https' || $proto === 'http'
                 ? $proto
                 : (((string) $request->header('https', '')) === 'on' ? 'https' : 'http');
-            $data['site_url'] = Installer::normalizeSiteUrl($scheme . '://' . (string) $request->host());
+            $host = (string) $request->host();
+            $data['site_url'] = Installer::normalizeSiteUrl($host === '' ? '' : $scheme . '://' . $host);
         }
         $this->installer->run($data);
 
@@ -130,10 +131,10 @@ class InstallController extends Controller
     private function runRules(): array
     {
         return $this->connectionRules() + [
-            'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
-            'password' => 'required|string|min:6|max:20',
-            'email'    => 'nullable|email|max:100',
-            'nickname' => 'nullable|string|max:50',
+            'username'    => 'required|string|min:3|max:20|alpha_dash:ascii',
+            'password'    => 'required|string|min:6|max:20',
+            'email'       => 'nullable|email|max:100',
+            'nickname'    => 'nullable|string|max:50',
             'import_demo' => 'nullable',
         ];
     }

@@ -25,7 +25,8 @@ final class Installer
         private ?string $storageRoot = null,
     ) {
         if ($this->storageRoot === null || $this->storageRoot === '') {
-            $this->storageRoot = base_path('public/storage');
+            $configuredRoot = (string) config('filesystem.disks.public.root');
+            $this->storageRoot = $configuredRoot !== '' ? $configuredRoot : base_path('public/storage');
         }
     }
 
@@ -82,6 +83,9 @@ final class Installer
         }
 
         $importDemo = self::wantsDemo($input['import_demo'] ?? null);
+        if ($importDemo) {
+            $this->assertStorageWritable();
+        }
         $database = (string) ($input['db_name'] ?? '');
         if (preg_match('/^[A-Za-z0-9_]+$/', $database) !== 1) {
             throw new BusinessException('数据库名只允许字母、数字与下划线');
@@ -203,7 +207,19 @@ final class Installer
     {
         $url = rtrim($url, '/');
 
-        return $url === '' ? 'http://localhost' : $url;
+        return preg_match('#^https?://[A-Za-z0-9._\-]+(:\d{1,5})?$#', $url) === 1
+            ? $url
+            : 'http://localhost';
+    }
+
+    private function assertStorageWritable(): void
+    {
+        $storageRoot = (string) $this->storageRoot;
+        if ((!is_dir($storageRoot) && !@mkdir($storageRoot, 0o755, true) && !is_dir($storageRoot))
+            || !is_writable($storageRoot)
+        ) {
+            throw new BusinessException(lang('install.storage_not_writable'));
+        }
     }
 
     private function importDemo(\PDO $pdo, string $siteUrl): void
@@ -218,20 +234,25 @@ final class Installer
             if ($contents === false) {
                 throw new \RuntimeException('无法读取 demo.sql');
             }
-            // 1.x 演示文件保持原样；2.x 的文章创建人列已统一为 created_by。
-            $sql = str_replace(
-                ['{{SITE_URL}}', '`admin_id`'],
-                [$siteUrl, '`created_by`'],
-                $contents
-            );
+            $sql = str_replace('{{SITE_URL}}', $siteUrl, $contents);
+            // demo.sql 保持 1.x 原始字节，仅在导入时重命名 articles 的创建人列。
+            $position = strpos($sql, 'INSERT INTO `articles` ');
+            if ($position !== false) {
+                $lineLength = strcspn($sql, "\r\n", $position);
+                $insertLine = substr($sql, $position, $lineLength);
+                $sql = substr_replace(
+                    $sql,
+                    str_replace('`admin_id`', '`created_by`', $insertLine),
+                    $position,
+                    $lineLength
+                );
+            }
             foreach (SqlScript::split($sql) as $statement) {
                 $pdo->exec($statement);
             }
             if (is_dir($assets)) {
                 $this->copyMissing($assets, (string) $this->storageRoot);
             }
-        } catch (BusinessException $e) {
-            throw $e;
         } catch (\Throwable $e) {
             throw new BusinessException(lang('install.sql_failed'), 400, $e);
         }

@@ -226,10 +226,9 @@ final class InstallWizardTest extends ApiTestCase
         file_put_contents($installDir . '/schema.sql', 'CREATE TABLE `captured` (`site_url` varchar(255) NOT NULL);');
         file_put_contents($installDir . '/init.sql', "--\n");
         file_put_contents($installDir . '/regions.sql', "--\n");
-        file_put_contents($installDir . '/demo.sql', "INSERT INTO `captured` (`site_url`) VALUES ('{{SITE_URL}}');");
+        file_put_contents($installDir . '/demo.sql', "INSERT INTO `captured` (`site_url`) VALUES ('{{SITE_URL}}');\nTHIS IS NOT SQL;");
         file_put_contents($installDir . '/demo-assets/cover.jpg', 'cover');
-        $storageBlock = $this->workDir . '/storage-blocked';
-        file_put_contents($storageBlock, 'not-a-directory');
+        $storageRoot = $this->workDir . '/fixture-storage';
 
         $original = Container::get(Installer::class);
         $installer = new Installer(
@@ -238,7 +237,7 @@ final class InstallWizardTest extends ApiTestCase
             $this->workDir . '/fixture.env',
             base_path() . '/.env.example',
             $this->workDir . '/fixture.lock',
-            $storageBlock,
+            $storageRoot,
         );
         Container::set(Installer::class, $installer);
         Container::set(InstallController::class, Container::make(InstallController::class));
@@ -255,6 +254,46 @@ final class InstallWizardTest extends ApiTestCase
             $pdo = DatabaseInstaller::connect($mysql);
             $pdo->exec("USE `{$scratch}`");
             $this->assertSame('http://install.example:8443', $pdo->query('SELECT site_url FROM captured')->fetchColumn());
+        } finally {
+            DatabaseInstaller::connect($mysql)->exec("DROP DATABASE IF EXISTS `{$scratch}`");
+            Container::set(Installer::class, $original);
+            Container::set(InstallController::class, Container::make(InstallController::class));
+        }
+    }
+
+    public function test_run_with_empty_request_host_uses_localhost(): void
+    {
+        $mysql = (array) config('database.connections.mysql');
+        $scratch = (string) $mysql['database'] . '_wiz_' . bin2hex(random_bytes(4));
+        $installDir = $this->workDir . '/empty-host-fixture';
+        mkdir($installDir, 0o755, true);
+        file_put_contents($installDir . '/schema.sql', 'CREATE TABLE `captured` (`site_url` varchar(255) NOT NULL);');
+        file_put_contents($installDir . '/init.sql', "--\n");
+        file_put_contents($installDir . '/regions.sql', "--\n");
+        file_put_contents($installDir . '/demo.sql', "INSERT INTO `captured` (`site_url`) VALUES ('{{SITE_URL}}');\nTHIS IS NOT SQL;");
+
+        $original = Container::get(Installer::class);
+        Container::set(Installer::class, new Installer(
+            Container::get(SuperAdminInitializer::class),
+            $installDir,
+            $this->workDir . '/empty-host.env',
+            base_path() . '/.env.example',
+            $this->workDir . '/empty-host.lock',
+            $this->workDir . '/empty-host-storage',
+        ));
+        Container::set(InstallController::class, Container::make(InstallController::class));
+        try {
+            $headers = $this->tokenHeaders();
+            $headers['Host'] = '';
+            $response = $this->post('/install/run', $this->payload([
+                'db_name'     => $scratch,
+                'import_demo' => '1',
+            ]), null, $headers);
+
+            $this->assertSame(400, $response->code());
+            $pdo = DatabaseInstaller::connect($mysql);
+            $pdo->exec("USE `{$scratch}`");
+            $this->assertSame('http://localhost', $pdo->query('SELECT site_url FROM captured')->fetchColumn());
         } finally {
             DatabaseInstaller::connect($mysql)->exec("DROP DATABASE IF EXISTS `{$scratch}`");
             Container::set(Installer::class, $original);

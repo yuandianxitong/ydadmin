@@ -630,6 +630,10 @@ final class SchemaTest extends TestCase
         $this->assertStringNotContainsString('/static/tabbar/', $tabbar);
         $this->assertFileExists(base_path('public/static/diy/home/banner.jpg'));
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
+    }
+
+    public function test_release_version_stays_2_0_3(): void
+    {
         $this->assertSame('2.0.3', (string) config('version.version'));
     }
 

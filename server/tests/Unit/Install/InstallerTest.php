@@ -185,7 +185,34 @@ final class InstallerTest extends TestCase
         $this->assertFileExists($this->lockPath);
     }
 
-    public function test_demo_copy_failure_writes_no_lock(): void
+    public function test_invalid_demo_site_url_falls_back_without_reaching_sql(): void
+    {
+        $this->seedMiniDemo();
+
+        $this->makeInstaller()->run($this->input([
+            'import_demo' => true,
+            'site_url'    => "http://demo.test' OR 1=1 --",
+        ]));
+
+        $cover = (string) $this->scratchPdo()->query('SELECT cover FROM articles WHERE id = 1')->fetchColumn();
+        $this->assertSame('http://localhost/storage/uploads/images/20260319/cover.jpg', $cover);
+        $this->assertStringNotContainsString("'", $cover);
+    }
+
+    public function test_empty_demo_site_url_falls_back_to_localhost(): void
+    {
+        $this->seedMiniDemo();
+
+        $this->makeInstaller()->run($this->input([
+            'import_demo' => true,
+            'site_url'    => '',
+        ]));
+
+        $cover = (string) $this->scratchPdo()->query('SELECT cover FROM articles WHERE id = 1')->fetchColumn();
+        $this->assertSame('http://localhost/storage/uploads/images/20260319/cover.jpg', $cover);
+    }
+
+    public function test_demo_storage_failure_happens_before_database_creation(): void
     {
         $this->seedMiniDemo();
         file_put_contents($this->workDir . '/storage-blocked', 'not-a-directory');
@@ -193,10 +220,52 @@ final class InstallerTest extends TestCase
             $this->makeInstaller($this->workDir . '/storage-blocked')->run($this->input(['import_demo' => 1]));
             $this->fail('封面目录不可写必须失败');
         } catch (BusinessException $e) {
-            $this->assertSame(lang('install.sql_failed'), $e->getMessage());
+            $this->assertSame(lang('install.storage_not_writable'), $e->getMessage());
         }
+        $pdo = DatabaseInstaller::connect($this->mysql);
+        $exists = $pdo->query(
+            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($this->scratch)
+        )->fetch();
+        $this->assertFalse($exists);
         $this->assertFileDoesNotExist($this->lockPath);
         $this->assertFileDoesNotExist($this->envPath);
+    }
+
+    public function test_demo_rewrites_only_articles_creator_column(): void
+    {
+        $this->seedMiniDemo();
+        file_put_contents($this->workDir . '/schema.sql', <<<'SQL'
+CREATE TABLE `demo_audits` (
+  `id` int unsigned NOT NULL,
+  `admin_id` int unsigned NOT NULL,
+  PRIMARY KEY (`id`)
+);
+SQL, FILE_APPEND);
+        file_put_contents(
+            $this->workDir . '/demo.sql',
+            "INSERT INTO `demo_audits` (`id`, `admin_id`) VALUES (1, 9);\n",
+            FILE_APPEND
+        );
+
+        $this->makeInstaller()->run($this->input(['import_demo' => true]));
+
+        $this->assertSame(9, (int) $this->scratchPdo()->query('SELECT admin_id FROM demo_audits WHERE id = 1')->fetchColumn());
+    }
+
+    public function test_default_storage_root_uses_public_filesystem_config(): void
+    {
+        $configuredRoot = $this->workDir . '/configured-storage';
+        $this->overrideConfig('filesystem.disks.public.root', $configuredRoot);
+        $installer = new Installer(
+            $this->admins,
+            $this->workDir,
+            $this->envPath,
+            $this->workDir . '/.env.example',
+            $this->lockPath,
+        );
+
+        $property = new \ReflectionProperty($installer, 'storageRoot');
+        $this->assertSame($configuredRoot, $property->getValue($installer));
     }
 
     public function test_demo_sql_failure_writes_no_lock(): void
@@ -447,12 +516,13 @@ SQL);
 CREATE TABLE `articles` (
   `id` int unsigned NOT NULL,
   `cover` varchar(255) NOT NULL,
+  `created_by` int unsigned NOT NULL,
   PRIMARY KEY (`id`)
 );
 SQL, FILE_APPEND);
         file_put_contents(
             $this->workDir . '/demo.sql',
-            "INSERT INTO `articles` (`id`, `cover`) VALUES (1, '{{SITE_URL}}/storage/uploads/images/20260319/cover.jpg');\n"
+            "INSERT INTO `articles` (`id`, `cover`, `admin_id`) VALUES (1, '{{SITE_URL}}/storage/uploads/images/20260319/cover.jpg', 1);\n"
         );
         $asset = $this->workDir . '/demo-assets/uploads/images/20260319/cover.jpg';
         mkdir(dirname($asset), 0o755, true);

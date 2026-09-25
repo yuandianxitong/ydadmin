@@ -93,6 +93,18 @@ final class InstallCommandTest extends TestCase
         $this->assertSame('https://demo.test', $fake->input['site_url']);
     }
 
+    public function test_with_demo_bad_site_url_falls_back_to_localhost(): void
+    {
+        $fake = $this->installFake();
+        $options = $this->allOptions();
+        $options['--with-demo'] = true;
+        $options['--site-url'] = "https://demo.test' OR 1=1 --";
+
+        $tester = new CommandTester(new InstallCommand());
+        $this->assertSame(Command::SUCCESS, $tester->execute($options, ['interactive' => false]));
+        $this->assertSame('http://localhost', $fake->input['site_url']);
+    }
+
     public function test_short_password_fails_before_run(): void
     {
         $fake = $this->installFake();
