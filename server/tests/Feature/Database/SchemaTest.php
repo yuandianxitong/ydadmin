@@ -627,12 +627,23 @@ final class SchemaTest extends TestCase
         $this->assertStringContainsString('/static/diy/home/banner.jpg', $draft);
         $this->assertStringContainsString('/static/diy/home/nav-app-market.png', $draft);
         $this->assertStringContainsString('/static/diy/home/nav-all.png', $draft);
+        $this->assertStringContainsString('/static/diy/home/cube-data.png', $draft);
+        $this->assertStringContainsString('/static/diy/home/cube-permission.png', $draft);
+        $components = json_decode($draft, true);
+        $this->assertIsArray($components);
+        $ids = array_column($components, 'id');
+        $this->assertSame(
+            ['seed-banner', 'seed-notice', 'seed-category-nav', 'seed-image-cube', 'seed-content-list'],
+            $ids
+        );
         $this->assertStringNotContainsString('/static/diy/home/', (string) Db::table('diy_pages')->where('page_key', 'member')->value('components_published'));
         $tabbar = (string) Db::table('mobile_configs')->value('tabbar_json');
         $this->assertStringContainsString('/static/diy/tabbar/home.png', $tabbar);
         $this->assertStringContainsString('/static/diy/tabbar/my-active.png', $tabbar);
         $this->assertStringNotContainsString('/static/tabbar/', $tabbar);
         $this->assertFileExists(base_path('public/static/diy/home/banner.jpg'));
+        $this->assertFileExists(base_path('public/static/diy/home/cube-data.png'));
+        $this->assertFileExists(base_path('public/static/diy/home/cube-permission.png'));
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
     }
 

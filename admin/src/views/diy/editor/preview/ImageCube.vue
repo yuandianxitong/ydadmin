@@ -21,8 +21,8 @@ const itemStyle = computed(() => {
 <style scoped>
 .pv-cube { display:flex; flex-wrap:wrap; }
 .pv-cube__item { box-sizing:border-box; }
-/* 单元高对齐 C 端 diy-image-cube（200rpx ÷2 = 100px）；空态占位块 150px 高（与轮播图默认一致） */
-.pv-cube__img { width:100%; height:100px; object-fit:cover; border-radius:4px; display:block; }
+/* 图片按自身比例铺满列宽，避免封面裁切；空态占位块 100px */
+.pv-cube__img { width:100%; height:auto; display:block; border-radius:4px; }
 .pv-cube__ph { width:100%; height:100px; background:#e3e7ef; border-radius:4px; }
 .pv-empty { width:100%; display:flex; align-items:center; justify-content:center; height:150px; color:#9aa4b2; font-size:12px; background:#eef1f6; border-radius:4px; }
 </style>
