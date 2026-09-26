@@ -26,8 +26,12 @@ final class ChangelogReadmeTest extends TestCase
         $path = dirname(__DIR__, 4) . '/README.md';
         $text = (string) file_get_contents($path);
         $this->assertStringContainsString('https://www.dev007.cn/oss/logo.png', $text);
-        $this->assertStringContainsString('<h1 align="center">元点Admin</h1>', $text);
-        $this->assertStringContainsString('https://admin.dev007.cn', $text);
+        $this->assertStringContainsString('<h1 align="center">元点Admin — 开源通用后台管理系统</h1>', $text);
+        $this->assertStringContainsString('## 演示体验', $text);
+        $this->assertStringContainsString('## 技术栈', $text);
+        $this->assertStringContainsString('## 功能特性', $text);
         $this->assertStringContainsString('webman', $text);
+        $this->assertStringNotContainsString('## 路线图', $text);
+        $this->assertStringNotContainsString('ThinkPHP 8 + Vue 3', $text);
     }
 }
