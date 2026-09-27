@@ -78,7 +78,7 @@ final class InstallCommandTest extends TestCase
         $tester = new CommandTester(new InstallCommand());
         $this->assertSame(Command::SUCCESS, $tester->execute($options, ['interactive' => false]));
         $this->assertFalse($fake->input['import_demo']);
-        $this->assertArrayNotHasKey('site_url', $fake->input);
+        $this->assertSame('https://demo.test', $fake->input['site_url']);
     }
 
     public function test_with_demo_passes_normalized_site_url(): void

@@ -41,6 +41,28 @@ final class EnvFileTest extends TestCase
         $this->assertMatchesRegularExpression('/DB_PASSWORD\s*=\s*"s3cret"/', $text);
     }
 
+    /**
+     * PCRE 的 \R 会把字节 0x85 当成换行。「必」的 UTF-8 是 E5 BF 85，注释会从字中间切开，
+     * 写成非法 UTF-8，phpdotenv 报 invalid name，进程起不来。
+     */
+    public function test_merge_keeps_utf8_comments_and_stays_parseable(): void
+    {
+        $dir = sys_get_temp_dir() . '/yd-env-' . bin2hex(random_bytes(4));
+        mkdir($dir);
+        copy(base_path('.env.example'), $dir . '/.env.example');
+        $target = $dir . '/.env';
+
+        (new EnvFile())->merge($target, $dir . '/.env.example', [
+            'APP_DEBUG' => 'false',
+        ]);
+
+        $raw = (string) file_get_contents($target);
+        $this->assertTrue(mb_check_encoding($raw, 'UTF-8'));
+        $this->assertStringContainsString('生产环境必须为 false（开启会在错误响应中暴露异常信息与文件路径）', $raw);
+        $loaded = \Dotenv\Dotenv::createArrayBacked($dir)->load();
+        $this->assertSame('false', $loaded['APP_DEBUG']);
+    }
+
     public function test_merge_copies_example_when_target_missing(): void
     {
         $dir = sys_get_temp_dir() . '/yd-env-' . bin2hex(random_bytes(4));

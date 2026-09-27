@@ -80,6 +80,14 @@ final class InstallGuardTest extends ApiTestCase
         $this->assertSame(200, $env->code());
     }
 
+    public function test_default_lock_file_is_under_config(): void
+    {
+        $path = (new \ReflectionClass($this->originalInstaller))->getProperty('lockPath')->getValue($this->originalInstaller);
+
+        $this->assertSame(base_path('config/install.lock'), $path);
+        $this->assertSame($path, config('install.lock'));
+    }
+
     public function test_installed_passes_through(): void
     {
         file_put_contents($this->lockPath, date('c'));

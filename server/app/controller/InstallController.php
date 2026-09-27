@@ -35,27 +35,33 @@ class InstallController extends Controller
         // 装完之前这页未登录可达，所以写操作要防跨站：这里发一个随机令牌，
         // 向导的 JS 把它回传到请求头。跨站页面既读不到这个 cookie，也加不了自定义头。
         $token = bin2hex(random_bytes(16));
+        $html = str_replace(
+            '__INSTALL_TOKEN__',
+            $token,
+            (string) file_get_contents(resource_path() . '/views/install/index.html'),
+        );
 
-        return (new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], (string) file_get_contents(resource_path() . '/views/install/index.html')))
-            ->cookie(self::TOKEN_COOKIE, $token, null, '/install', '', false, false, 'Strict');
+        return (new Response(200, [
+            'Content-Type'  => 'text/html; charset=utf-8',
+            'Cache-Control' => 'no-store',
+        ], $html))->cookie(self::TOKEN_COOKIE, $token, null, '/install', '', false, false, 'Strict');
     }
 
     /**
      * 写操作前的跨站防护：令牌对得上，且（带了 Origin/Referer 时）来源与本站同源。
      * 不依赖 session / Redis——这两样在装完之前都还没配好。
+     * 主机名必须一致；两边都写了端口时端口也要一致。只有一边带端口则放行。
+     * 反代把 Host 换成上游 IP 时，浏览器 Origin 仍是公网域名，这种也放行。
      */
     private function assertSameSiteRequest(Request $request): void
     {
-        $host = (string) $request->host();
+        $host = strtolower(trim((string) $request->host()));
         foreach (['origin', 'referer'] as $header) {
-            $value = (string) $request->header($header, '');
-            if ($value === '') {
+            $value = trim((string) $request->header($header, ''));
+            if ($value === '' || strcasecmp($value, 'null') === 0) {
                 continue;
             }
-            $origin = parse_url($value, PHP_URL_HOST);
-            $port = parse_url($value, PHP_URL_PORT);
-            $originHost = is_string($origin) ? $origin . ($port === null ? '' : ':' . $port) : '';
-            if ($originHost !== $host && $originHost !== (string) parse_url('//' . $host, PHP_URL_HOST)) {
+            if (!$this->sameHost($host, $value)) {
                 throw new ForbiddenException(lang('install.cross_site_rejected'));
             }
         }
@@ -65,6 +71,116 @@ class InstallController extends Controller
         if ($cookie === '' || $header === '' || !hash_equals($cookie, $header)) {
             throw new ForbiddenException(lang('install.cross_site_rejected'));
         }
+    }
+
+    private function sameHost(string $hostHeader, string $url): bool
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['host']) || !is_string($parts['host'])) {
+            return false;
+        }
+        [$headerHost, $headerPort] = $this->splitHostPort($hostHeader);
+        $originName = $this->bareHost((string) $parts['host']);
+        $headerName = $this->bareHost($headerHost);
+        $originPort = isset($parts['port']) ? (int) $parts['port'] : null;
+        if ($originName === $headerName) {
+            return $originPort === null || $headerPort === null || $originPort === $headerPort;
+        }
+
+        // nginx 默认把 Host 设成 proxy_pass 的上游（127.0.0.1:8000 或 webman），
+        // 浏览器 Origin 仍是用户打开的域名。
+        return $this->isUpstreamHost($headerName) && str_contains($originName, '.');
+    }
+
+    private function isUpstreamHost(string $host): bool
+    {
+        return filter_var($host, FILTER_VALIDATE_IP) !== false || !str_contains($host, '.');
+    }
+
+    /** @return array{0: string, 1: int|null} */
+    private function splitHostPort(string $host): array
+    {
+        if (str_starts_with($host, '[')) {
+            $end = strpos($host, ']');
+            if ($end === false) {
+                return [trim($host, '[]'), null];
+            }
+            $name = substr($host, 1, $end - 1);
+            $port = null;
+            if (isset($host[$end + 1]) && $host[$end + 1] === ':') {
+                $parsed = (int) substr($host, $end + 2);
+                $port = $parsed > 0 ? $parsed : null;
+            }
+
+            return [strtolower($name), $port];
+        }
+        if (preg_match('/^(.+):(\d+)$/', $host, $match) === 1) {
+            return [strtolower($match[1]), (int) $match[2]];
+        }
+
+        return [strtolower($host), null];
+    }
+
+    private function bareHost(string $host): string
+    {
+        return strtolower(trim($host, '[]'));
+    }
+
+    /**
+     * 安装时的对外地址。Host 是上游 IP 或单标签名时，用浏览器 Origin / Referer。
+     * 请求体里的 site_url 不采用。
+     */
+    private function resolveSiteUrl(Request $request): string
+    {
+        $hostHeader = strtolower(trim((string) $request->host()));
+        [$headerHost, $headerPort] = $this->splitHostPort($hostHeader);
+        $headerName = $this->bareHost($headerHost);
+        $browser = $this->browserSiteUrl($request);
+        if ($browser !== null && ($headerName === '' || $this->isUpstreamHost($headerName))) {
+            return Installer::normalizeSiteUrl($browser);
+        }
+
+        $proto = strtolower((string) $request->header('x-forwarded-proto', ''));
+        $scheme = $proto === 'https' || $proto === 'http'
+            ? $proto
+            : (((string) $request->header('https', '')) === 'on' ? 'https' : 'http');
+        if ($headerName === '') {
+            return 'http://localhost';
+        }
+        $withPort = $headerName;
+        if ($headerPort !== null && !($scheme === 'http' && $headerPort === 80) && !($scheme === 'https' && $headerPort === 443)) {
+            $withPort .= ':' . $headerPort;
+        }
+
+        return Installer::normalizeSiteUrl($scheme . '://' . $withPort);
+    }
+
+    private function browserSiteUrl(Request $request): ?string
+    {
+        foreach (['origin', 'referer'] as $header) {
+            $value = trim((string) $request->header($header, ''));
+            if ($value === '' || strcasecmp($value, 'null') === 0) {
+                continue;
+            }
+            $parts = parse_url($value);
+            if (!is_array($parts) || !isset($parts['host']) || !is_string($parts['host'])) {
+                continue;
+            }
+            $name = $this->bareHost($parts['host']);
+            if ($name === '' || $this->isUpstreamHost($name)) {
+                continue;
+            }
+            $scheme = strtolower((string) ($parts['scheme'] ?? 'http')) === 'https' ? 'https' : 'http';
+            $port = isset($parts['port']) ? (int) $parts['port'] : null;
+            $suffix = '';
+            if ($port !== null && $port > 0 && !($scheme === 'http' && $port === 80) && !($scheme === 'https' && $port === 443)) {
+                $suffix = ':' . $port;
+            }
+
+            return $scheme . '://' . $name . $suffix;
+        }
+
+        return null;
     }
 
     #[\core\permission\PermissionSkip]
@@ -105,14 +221,8 @@ class InstallController extends Controller
 
         $data = $this->validate((array) $request->all(), $this->runRules());
         $data['import_demo'] = Installer::wantsDemo($data['import_demo'] ?? null);
-        if ($data['import_demo'] === true) {
-            $proto = strtolower((string) $request->header('x-forwarded-proto', ''));
-            $scheme = $proto === 'https' || $proto === 'http'
-                ? $proto
-                : (((string) $request->header('https', '')) === 'on' ? 'https' : 'http');
-            $host = (string) $request->host();
-            $data['site_url'] = Installer::normalizeSiteUrl($host === '' ? '' : $scheme . '://' . $host);
-        }
+        // 反代常把 Host 换成 127.0.0.1。浏览器 Origin 才是安装时打开的域名，网站地址和演示封面都用它。
+        $data['site_url'] = $this->resolveSiteUrl($request);
         $this->installer->run($data);
 
         return $this->success(['restart' => true], lang('install.restart_hint'));

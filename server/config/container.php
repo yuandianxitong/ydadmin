@@ -16,7 +16,7 @@ $builder->addDefinitions([
             base_path() . '/database/install',
             base_path() . '/.env',
             base_path() . '/.env.example',
-            runtime_path() . '/install.lock',
+            (string) config('install.lock', base_path('config/install.lock')),
         );
     }),
 

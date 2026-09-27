@@ -79,6 +79,16 @@ final class InstallWizardTest extends ApiTestCase
             str_contains($body, 'license') || str_contains($body, '协议'),
             '未安装时应返回含 license 或「协议」的向导页'
         );
+        $this->assertStringContainsString('install-hero', $body);
+        $this->assertStringContainsString('#2563eb', $body);
+        $this->assertStringContainsString('#f7f8fb', $body);
+        foreach (['协议', '环境', '参数', '完成'] as $label) {
+            $this->assertStringContainsString($label, $body);
+        }
+        $this->assertStringContainsString('元点系统', $body);
+        preg_match('/yd_install_token=([0-9a-f]{32})/', (string) $response->header('Set-Cookie'), $token);
+        $this->assertNotSame('', $token[1] ?? '');
+        $this->assertStringContainsString('name="install-token" content="' . $token[1] . '"', $body);
         $this->assertStringContainsString('id="import_demo"', $response->body());
         $this->assertStringContainsString('value="1"', $response->body());
         $this->assertDoesNotMatchRegularExpression('/id="import_demo"[^>]*checked/', $response->body());
@@ -148,11 +158,74 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertNotSame(403, $withToken->code());
     }
 
+    /** 浏览器在非 80 端口会带上 Origin/Referer；和 Host 一致时应当放行。 */
+    public function test_browser_same_origin_with_port_can_test_connection(): void
+    {
+        $headers = $this->tokenHeaders();
+        $headers['Host'] = '127.0.0.1:8000';
+        $headers['Origin'] = 'http://127.0.0.1:8000';
+        $headers['Referer'] = 'http://127.0.0.1:8000/install/';
+
+        $this->post('/install/test-connection', $this->payload(), null, $headers)->assertOk();
+    }
+
+    /**
+     * nginx 的 proxy_set_header Host $host 会丢掉端口，浏览器 Origin 仍带着公网端口。
+     * 主机名一致时不能当成跨站。
+     */
+    public function test_origin_port_is_accepted_when_proxy_strips_host_port(): void
+    {
+        $headers = $this->tokenHeaders();
+        $headers['Host'] = '127.0.0.1';
+        $headers['Origin'] = 'http://127.0.0.1:8000';
+        $headers['Referer'] = 'http://127.0.0.1:8000/install/';
+
+        $this->post('/install/test-connection', $this->payload(), null, $headers)->assertOk();
+    }
+
+    /** IPv6 的 Host 带方括号，Origin 解析出来不带，不能因此拒绝向导页自己的请求。 */
+    public function test_ipv6_same_origin_can_test_connection(): void
+    {
+        $headers = $this->tokenHeaders();
+        $headers['Host'] = '[::1]:8000';
+        $headers['Origin'] = 'http://[::1]:8000';
+        $headers['Referer'] = 'http://[::1]:8000/install/';
+
+        $this->post('/install/test-connection', $this->payload(), null, $headers)->assertOk();
+    }
+
+    /**
+     * 线上反代经常把 Host 改成上游地址（127.0.0.1:8000），浏览器 Origin 仍是公网域名。
+     * 这种请求来自向导页本身，不能当成跨站。
+     */
+    public function test_public_origin_is_accepted_when_upstream_host_is_an_ip(): void
+    {
+        foreach (['127.0.0.1:8000', 'webman:8000'] as $host) {
+            $headers = $this->tokenHeaders();
+            $headers['Host'] = $host;
+            $headers['Origin'] = 'https://admin.dev007.cn';
+            $headers['Referer'] = 'https://admin.dev007.cn/install/';
+
+            $this->post('/install/test-connection', $this->payload(), null, $headers)->assertOk();
+        }
+    }
+
+    /** 主机名相同但端口不同，仍然是另一个来源。 */
+    public function test_different_port_origin_is_rejected(): void
+    {
+        $headers = $this->tokenHeaders();
+        $headers['Host'] = '127.0.0.1:8000';
+        $headers['Origin'] = 'http://127.0.0.1:9999';
+
+        $this->post('/install/test-connection', $this->payload(), null, $headers)->assertCode(403);
+    }
+
     /** 跨站来源即使拿到了令牌也要拒（令牌泄漏时的第二道）。 */
     public function test_cross_origin_requests_are_rejected(): void
     {
         $token = str_repeat('a', 32);
         $this->post('/install/run', $this->payload(), null, [
+            'Host'            => 'install.example',
             'Cookie'          => 'yd_install_token=' . $token,
             'X-Install-Token' => $token,
             'Origin'          => 'http://evil.example.com',
@@ -254,6 +327,50 @@ final class InstallWizardTest extends ApiTestCase
             $pdo = DatabaseInstaller::connect($mysql);
             $pdo->exec("USE `{$scratch}`");
             $this->assertSame('http://install.example:8443', $pdo->query('SELECT site_url FROM captured')->fetchColumn());
+        } finally {
+            DatabaseInstaller::connect($mysql)->exec("DROP DATABASE IF EXISTS `{$scratch}`");
+            Container::set(Installer::class, $original);
+            Container::set(InstallController::class, Container::make(InstallController::class));
+        }
+    }
+
+    /** nginx 把 Host 换成 127.0.0.1 时，网站地址用浏览器打开的域名，不用上游地址。 */
+    public function test_upstream_host_uses_browser_origin_as_site_url(): void
+    {
+        $mysql = (array) config('database.connections.mysql');
+        $scratch = (string) $mysql['database'] . '_wiz_' . bin2hex(random_bytes(4));
+        $installDir = $this->workDir . '/origin-fixture';
+        mkdir($installDir, 0o755, true);
+        file_put_contents($installDir . '/schema.sql', 'CREATE TABLE `captured` (`site_url` varchar(255) NOT NULL);');
+        file_put_contents($installDir . '/init.sql', "--\n");
+        file_put_contents($installDir . '/regions.sql', "--\n");
+        file_put_contents($installDir . '/demo.sql', "INSERT INTO `captured` (`site_url`) VALUES ('{{SITE_URL}}');\nTHIS IS NOT SQL;");
+
+        $original = Container::get(Installer::class);
+        Container::set(Installer::class, new Installer(
+            Container::get(SuperAdminInitializer::class),
+            $installDir,
+            $this->workDir . '/origin.env',
+            base_path() . '/.env.example',
+            $this->workDir . '/origin.lock',
+            $this->workDir . '/origin-storage',
+        ));
+        Container::set(InstallController::class, Container::make(InstallController::class));
+        try {
+            $headers = $this->tokenHeaders();
+            $headers['Host'] = '127.0.0.1:8000';
+            $headers['Origin'] = 'https://admin.dev007.cn';
+            $headers['Referer'] = 'https://admin.dev007.cn/install/';
+            $response = $this->post('/install/run', $this->payload([
+                'db_name'     => $scratch,
+                'import_demo' => '1',
+                'site_url'    => 'http://127.0.0.1',
+            ]), null, $headers);
+
+            $this->assertSame(400, $response->code());
+            $pdo = DatabaseInstaller::connect($mysql);
+            $pdo->exec("USE `{$scratch}`");
+            $this->assertSame('https://admin.dev007.cn', $pdo->query('SELECT site_url FROM captured')->fetchColumn());
         } finally {
             DatabaseInstaller::connect($mysql)->exec("DROP DATABASE IF EXISTS `{$scratch}`");
             Container::set(Installer::class, $original);

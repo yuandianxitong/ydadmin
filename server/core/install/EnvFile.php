@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace core\install;
 
+use core\exception\BusinessException;
+
 final class EnvFile
 {
     public const MANAGED_KEYS = [
@@ -29,14 +31,19 @@ final class EnvFile
     public function merge(string $path, string $examplePath, array $values): void
     {
         if (!is_file($path)) {
-            copy($examplePath, $path);
+            if (!is_file($examplePath) || !@copy($examplePath, $path)) {
+                throw new BusinessException(lang('install.env_not_writable'));
+            }
             @chmod($path, 0600);
         }
 
         $managed = array_fill_keys(self::MANAGED_KEYS, true);
         $seen = [];
         $out = [];
-        foreach (preg_split('/\R/', (string) file_get_contents($path)) ?: [] as $line) {
+        // 不用 \R：PCRE 会把字节 0x85 当成换行，而它是「必」这类字的最后一个字节。
+        // 注释会从字中间切开，.env 变成非法 UTF-8，phpdotenv 起不来。
+        $lines = preg_split("/\r\n|\n|\r/", (string) file_get_contents($path));
+        foreach ($lines === false ? [] : $lines as $line) {
             if (preg_match('/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/', $line, $m) === 1
                 && isset($managed[$m[1]])
                 && array_key_exists($m[1], $values)) {
@@ -56,7 +63,9 @@ final class EnvFile
             }
         }
 
-        file_put_contents($path, implode("\n", $out) . "\n");
+        if (@file_put_contents($path, implode("\n", $out) . "\n") === false) {
+            throw new BusinessException(lang('install.env_not_writable'));
+        }
         @chmod($path, 0600);
     }
 }

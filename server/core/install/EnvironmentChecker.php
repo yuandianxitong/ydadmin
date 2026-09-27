@@ -37,8 +37,8 @@ final class EnvironmentChecker
             $items[] = $this->item(
                 $extension,
                 lang('install.env_extension', ['name' => $extension]),
-                'installed',
-                $loaded ? 'installed' : 'missing',
+                lang('install.env_status_installed'),
+                $loaded ? lang('install.env_status_installed') : lang('install.env_status_missing'),
                 $loaded,
             );
         }
@@ -48,8 +48,8 @@ final class EnvironmentChecker
         $items[] = $this->item(
             'runtime',
             lang('install.env_writable', ['path' => 'runtime']),
-            'writable',
-            $runtimeOk ? 'writable' : 'not writable',
+            lang('install.env_status_writable'),
+            $runtimeOk ? lang('install.env_status_writable') : lang('install.env_status_not_writable'),
             $runtimeOk,
         );
 
@@ -58,9 +58,20 @@ final class EnvironmentChecker
         $items[] = $this->item(
             'env',
             lang('install.env_writable', ['path' => '.env']),
-            'writable',
-            $envOk ? 'writable' : 'not writable',
+            lang('install.env_status_writable'),
+            $envOk ? lang('install.env_status_writable') : lang('install.env_status_not_writable'),
             $envOk,
+        );
+
+        $lockPath = (string) config('install.lock', base_path('config/install.lock'));
+        $lockDir = dirname($lockPath);
+        $lockOk = is_dir($lockDir) && is_writable($lockDir);
+        $items[] = $this->item(
+            'install_lock',
+            lang('install.env_writable', ['path' => 'config/install.lock']),
+            lang('install.env_status_writable'),
+            $lockOk ? lang('install.env_status_writable') : lang('install.env_status_not_writable'),
+            $lockOk,
         );
 
         return $items;

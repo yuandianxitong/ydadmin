@@ -1,6 +1,8 @@
 /vendor/
 /.env
 /runtime/
+# 安装完成后写入，不进仓库
+/config/install.lock
 # 用户上传不进仓库。网站 Logo 与图标是安装默认图，配置种子指向这两个路径。
 /public/storage/*
 !/public/storage/uploads/

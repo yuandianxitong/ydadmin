@@ -34,19 +34,35 @@ export const useAppStore = defineStore('app', () => {
 
     const baseUrl = getMediaBaseUrl()
 
-    // 已是完整 URL：如果 base 已配置且 URL 含 /storage/，统一到站点域名
+    // 已是完整 URL。/storage/ 且落在 127.0.0.1、localhost 时，公网页面改用当前域名。
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      if (baseUrl) {
-        const pathMatch = url.match(/(\/storage\/.*)/)
-        if (pathMatch) {
-          return baseUrl + pathMatch[1]
-        }
+      const pathMatch = url.match(/(\/storage\/.*)/)
+      if (pathMatch) {
+        const origin = publicPageOrigin()
+        if (origin) return origin + pathMatch[1]
+        if (baseUrl && !isLoopbackBase(baseUrl)) return baseUrl + pathMatch[1]
       }
       return url
     }
 
     const path = url.startsWith('/') ? url : `/${url}`
     return baseUrl ? `${baseUrl}${path}` : path
+  }
+
+  function publicPageOrigin(): string {
+    if (typeof window === 'undefined') return ''
+    const host = window.location.hostname
+    if (host === '' || host === '127.0.0.1' || host === 'localhost') return ''
+    return window.location.origin
+  }
+
+  function isLoopbackBase(value: string): boolean {
+    try {
+      const host = new URL(value).hostname
+      return host === '127.0.0.1' || host === 'localhost'
+    } catch {
+      return false
+    }
   }
 
   /** 清理内存中的全局配置，下次调用 getConfig 时会重新拉取 */

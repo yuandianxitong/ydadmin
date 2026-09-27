@@ -67,7 +67,16 @@ final class Installer
 
         $text = (string) file_get_contents($this->envPath);
         foreach (['JWT_ADMIN_SECRET', 'JWT_USER_SECRET'] as $key) {
-            if (preg_match('/^\s*' . $key . '\s*=\s*"?([^"\r\n]*)"?\s*$/m', $text, $m) !== 1 || trim($m[1]) === '') {
+            // 不用 \s：它包含换行。空的「JWT_ADMIN_SECRET =」会把下一行吞进来，
+            // 复制 .env.example 时下一行不是空的，就会被当成已经写过密钥。
+            if (preg_match('/^[ \t]*' . $key . '[ \t]*=[ \t]*(.*)$/m', $text, $m) !== 1) {
+                return false;
+            }
+            $value = trim($m[1]);
+            if (strlen($value) >= 2 && $value[0] === '"' && str_ends_with($value, '"')) {
+                $value = substr($value, 1, -1);
+            }
+            if (trim($value) === '') {
                 return false;
             }
         }
@@ -83,6 +92,7 @@ final class Installer
         }
 
         $importDemo = self::wantsDemo($input['import_demo'] ?? null);
+        $this->assertInstallFilesWritable();
         if ($importDemo) {
             $this->assertStorageWritable();
         }
@@ -120,10 +130,14 @@ final class Installer
         $exists = $pdo->query(
             'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($database)
         )->fetch();
-        if ($exists === false) {
-            $pdo->exec("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
+        try {
+            if ($exists === false) {
+                $pdo->exec("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
+            }
+            $pdo->exec("USE `{$database}`");
+        } catch (\Throwable $e) {
+            throw new BusinessException(lang('install.database_create_failed'), 400, $e);
         }
-        $pdo->exec("USE `{$database}`");
         if ($pdo->query('SHOW TABLES')->fetchAll() !== []) {
             throw new BusinessException(lang('install.database_not_empty'));
         }
@@ -136,6 +150,10 @@ final class Installer
             }
         } catch (\Throwable $e) {
             throw new BusinessException(lang('install.sql_failed'), 400, $e);
+        }
+
+        if (array_key_exists('site_url', $input)) {
+            $this->writeSiteUrl($pdo, self::normalizeSiteUrl((string) $input['site_url']));
         }
 
         if ($importDemo) {
@@ -188,7 +206,27 @@ final class Installer
         // 写死 2.0.0 的话，之后每个新装都挂着一堆待升级，第一个 ALTER TABLE 会砸在本来就有那列的新库上。
         (new Upgrader(dirname($this->installDir) . '/updates'))
             ->run($pdo, (string) config('version.version', '2.0.0'), false);
-        file_put_contents($this->lockPath, date('c'));
+        if (@file_put_contents($this->lockPath, date('c')) === false) {
+            throw new BusinessException(lang('install.lock_not_writable'));
+        }
+    }
+
+    /** 灌库之前先确认 .env 和 install.lock 写得进去，避免写到一半才变成未捕获的 500。 */
+    private function assertInstallFilesWritable(): void
+    {
+        if (!is_file($this->envExamplePath)) {
+            throw new BusinessException(lang('install.env_not_writable'));
+        }
+        $envDir = dirname($this->envPath);
+        $envWritable = is_file($this->envPath) ? is_writable($this->envPath) : (is_dir($envDir) && is_writable($envDir));
+        if (!$envWritable) {
+            throw new BusinessException(lang('install.env_not_writable'));
+        }
+
+        $lockDir = dirname($this->lockPath);
+        if (!is_dir($lockDir) || !is_writable($lockDir)) {
+            throw new BusinessException(lang('install.lock_not_writable'));
+        }
     }
 
     public static function wantsDemo(mixed $value): bool
@@ -210,6 +248,15 @@ final class Installer
         return preg_match('#^https?://[A-Za-z0-9._\-]+(:\d{1,5})?$#', $url) === 1
             ? $url
             : 'http://localhost';
+    }
+
+    private function writeSiteUrl(\PDO $pdo, string $siteUrl): void
+    {
+        if ($pdo->query("SHOW TABLES LIKE 'system_configs'")->fetch() === false) {
+            return;
+        }
+        $stmt = $pdo->prepare('UPDATE system_configs SET config_value = ? WHERE config_key = ?');
+        $stmt->execute([$siteUrl, 'site_url']);
     }
 
     private function assertStorageWritable(): void

@@ -302,6 +302,29 @@ SQL, FILE_APPEND);
         $this->assertSame('http://localhost', $siteUrl);
     }
 
+    public function test_site_url_is_saved_on_system_config(): void
+    {
+        file_put_contents($this->workDir . '/schema.sql', <<<'SQL'
+CREATE TABLE `system_configs` (
+  `config_key` varchar(64) NOT NULL,
+  `config_value` text,
+  PRIMARY KEY (`config_key`)
+);
+SQL, FILE_APPEND);
+        file_put_contents(
+            $this->workDir . '/init.sql',
+            "INSERT INTO `system_configs` (`config_key`, `config_value`) VALUES ('site_url', 'http://localhost');\n",
+            FILE_APPEND
+        );
+
+        $this->makeInstaller()->run($this->input(['site_url' => 'https://admin.dev007.cn']));
+
+        $this->assertSame(
+            'https://admin.dev007.cn',
+            (string) $this->scratchPdo()->query("SELECT config_value FROM system_configs WHERE config_key = 'site_url'")->fetchColumn()
+        );
+    }
+
     public function test_non_empty_database_is_rejected_without_lock(): void
     {
         $pdo = DatabaseInstaller::connect($this->mysql);
@@ -388,6 +411,43 @@ SQL, FILE_APPEND);
         $this->overrideConfig('database.connections.mysql', $mysql);
 
         $this->assertFalse($this->makeInstaller()->isInstalled(), '还没装过（无密钥）→ 向导可用');
+    }
+
+    /** .env.example 里 JWT 是空的，但下一行不是。复制成 .env 不能被读成已安装。 */
+    public function test_copied_env_example_is_not_installed_when_database_is_unreachable(): void
+    {
+        copy(base_path('.env.example'), $this->envPath);
+        $mysql = $this->mysql;
+        $mysql['port'] = 1;
+        $mysql['database'] = $this->scratch;
+        $this->overrideConfig('database.connections.mysql', $mysql);
+
+        $this->assertFalse(is_file($this->lockPath));
+        $this->assertFalse($this->makeInstaller()->isInstalled(), '只复制 .env.example 必须还能安装');
+    }
+
+    public function test_unwritable_lock_directory_fails_before_creating_database(): void
+    {
+        $installer = new Installer(
+            $this->admins,
+            $this->workDir,
+            $this->envPath,
+            $this->workDir . '/.env.example',
+            $this->workDir . '/missing-lock-dir/install.lock',
+        );
+
+        try {
+            $installer->run($this->input());
+            $this->fail('install.lock 目录不存在必须拒绝');
+        } catch (BusinessException $e) {
+            $this->assertSame(lang('install.lock_not_writable'), $e->getMessage());
+        }
+
+        $pdo = DatabaseInstaller::connect($this->mysql);
+        $exists = $pdo->query(
+            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ' . $pdo->quote($this->scratch)
+        )->fetch();
+        $this->assertFalse($exists, '写不了 lock 不得先建库');
     }
 
     public function test_missing_upgrades_table_is_not_installed(): void

@@ -5,6 +5,21 @@ import { nextTick } from 'vue'
 
 import { getConfig } from '@/api/app'
 
+/** 演示封面若被装成 http://127.0.0.1/storage/...，浏览器访问公网时会连接被拒绝。 */
+function rewriteLoopbackStorage(url: string): string {
+    try {
+        const parsed = new URL(url)
+        const loopback = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost'
+        if (loopback && parsed.pathname.startsWith('/storage/') && typeof window !== 'undefined') {
+            return `${window.location.origin}${parsed.pathname}${parsed.search}`
+        }
+    } catch {
+        return url
+    }
+
+    return url
+}
+
 /**
  * AppStore 用于管理全局配置、移动端标识、侧边栏折叠状态等。
  */
@@ -29,9 +44,9 @@ export const useAppStore = defineStore('app', {
         getImageUrl(url: string): string {
             if (!url) return ''
 
-            // 如果已经是完整URL，直接返回
+            // 已经是完整 URL。安装向导若把封面写成 127.0.0.1 / localhost，改到当前访问域名。
             if (url.startsWith('http')) {
-                return url
+                return rewriteLoopbackStorage(url)
             }
 
             // 开发环境：直接返回相对路径，由 Vite proxy 转发到后端

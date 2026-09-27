@@ -14,7 +14,7 @@
           <SwiperSlide v-for="(item, idx) in bannerArticles" :key="item.id">
             <NuxtLink :to="`/article/${item.id}`" class="block w-full h-full relative">
               <img
-                :src="item.cover || defaultBanners[idx % defaultBanners.length]"
+                :src="mediaUrl(item.cover) || defaultBanners[idx % defaultBanners.length]"
                 :alt="item.title"
                 class="w-full h-full object-cover"
               />
@@ -44,7 +44,7 @@
           class="relative rounded-sm overflow-hidden group"
         >
           <img
-            :src="item.cover || '/pc/placeholder.svg'"
+            :src="mediaUrl(item.cover) || '/pc/placeholder.svg'"
             :alt="item.title"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -121,6 +121,7 @@ import 'swiper/css'
 import 'swiper/css/pagination'
 
 import { articleApi, type ArticleCategory, type ArticleItem } from '~/api/article'
+import { mediaUrl } from '~/utils/media'
 import { get } from '~/composables/useRequest'
 
 const defaultBanners = [

@@ -20,10 +20,17 @@ final class EnvironmentCheckerTest extends TestCase
             $byKey[$row['key']] = $row;
         }
 
-        foreach (['php', 'pdo_mysql', 'redis', 'pcntl', 'posix', 'runtime', 'env'] as $key) {
+        foreach (['php', 'pdo_mysql', 'redis', 'pcntl', 'posix', 'runtime', 'env', 'install_lock'] as $key) {
             $this->assertArrayHasKey($key, $byKey);
         }
         $this->assertTrue($byKey['php']['ok']);
+        $this->assertSame('已安装', $byKey['pdo_mysql']['required']);
+        $this->assertContains($byKey['pdo_mysql']['current'], ['已安装', '未安装']);
+        $this->assertSame('可写', $byKey['runtime']['required']);
+        $this->assertContains($byKey['runtime']['current'], ['可写', '不可写']);
+        $this->assertSame('可写', $byKey['env']['required']);
+        $this->assertNotSame('installed', $byKey['pdo_mysql']['current']);
+        $this->assertNotSame('writable', $byKey['runtime']['current']);
     }
 
     public function test_check_rows_have_shape_and_remaining_spec_extensions(): void
@@ -45,6 +52,8 @@ final class EnvironmentCheckerTest extends TestCase
         $keys = [
             'already_installed', 'database_not_empty', 'sql_failed', 'baseline_required',
             'invalid_update_dir', 'restart_hint', 'env_php', 'env_extension', 'env_writable',
+            'env_status_installed', 'env_status_missing', 'env_status_writable', 'env_status_not_writable',
+            'database_create_failed', 'env_not_writable', 'lock_not_writable',
         ];
         foreach ($keys as $key) {
             $full = 'install.' . $key;

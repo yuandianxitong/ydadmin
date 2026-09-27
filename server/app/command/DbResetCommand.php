@@ -18,7 +18,7 @@ final class DbResetCommand extends Command
 {
     /**
      * @param bool|null   $debug      测试注入用；null 时读 config('app.debug')
-     * @param string|null $lockPath   测试注入用；null 时写 runtime/install.lock
+     * @param string|null $lockPath   测试注入用；null 时写 config/install.lock
      * @param string|null $installDir 测试注入迷你 SQL；null 时用 database/install
      * @param string|null $database   测试注入隔离库；null 时用当前 config 库名
      */
@@ -59,7 +59,7 @@ final class DbResetCommand extends Command
         DatabaseInstaller::reinstall($pdo, $database, $this->installDir ?? base_path() . '/database/install');
         $pdo->exec("USE `{$database}`");
         $pdo->exec("INSERT IGNORE INTO system_upgrades (version, applied_at) VALUES ('2.0.0', NOW())");
-        file_put_contents($this->lockPath ?? runtime_path() . '/install.lock', date('c'));
+        file_put_contents($this->lockPath ?? (string) config('install.lock', base_path('config/install.lock')), date('c'));
         $output->writeln("<info>数据库 {$database} 已重建。lock 已写，超管用 admin:init 或安装向导</info>");
 
         return self::SUCCESS;

@@ -2,7 +2,7 @@
   <NuxtLink :to="`/article/${article.id}`" class="flex gap-4 py-5 border-b border-gray-100 hover:bg-gray-50/50 transition-colors -mx-4 px-4">
     <img
       v-if="article.cover"
-      :src="article.cover"
+      :src="mediaUrl(article.cover)"
       :alt="article.title"
       class="w-44 h-28 object-cover rounded-sm flex-shrink-0"
     />
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import type { ArticleItem } from '~/api/article'
+import { mediaUrl } from '~/utils/media'
 
 defineProps<{
   article: ArticleItem

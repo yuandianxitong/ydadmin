@@ -85,8 +85,9 @@ final class InstallCommand extends Command
                 'nickname'       => $this->nullableOption($input, 'nickname'),
                 'import_demo'    => (bool) $input->getOption('with-demo'),
             ];
-            if ($payload['import_demo'] === true) {
-                $payload['site_url'] = Installer::normalizeSiteUrl((string) ($input->getOption('site-url') ?? ''));
+            $siteUrlOption = trim((string) ($input->getOption('site-url') ?? ''));
+            if ($payload['import_demo'] === true || $siteUrlOption !== '') {
+                $payload['site_url'] = Installer::normalizeSiteUrl($siteUrlOption);
             }
             ValidatorFactory::validate($payload, [
                 'username' => 'required|string|min:3|max:20|alpha_dash:ascii',
