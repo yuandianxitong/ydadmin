@@ -62,6 +62,17 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('login_max_retry', '5', 'basic', 'number', '登录失败上限', '连续登录失败后锁定账号的次数', NULL, NULL, 17, 1, 1, NOW(), NOW()),
   ('login_lock_duration', '30', 'basic', 'number', '锁定时长(分钟)', '账号被锁定后的等待时间', NULL, NULL, 18, 1, 1, NOW(), NOW());
 
+-- email 分组 7 项，沿用 1.x。账号和授权码只能由管理员填写，端口、加密和发件人名称给出常用默认值。
+-- is_public 全部为 0：邮件配置不进 config/global，smtp_pass 另有凭据黑名单兜底。
+INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
+  ('smtp_host', '', 'email', 'string', 'SMTP服务器', '例如：smtp.qq.com、smtp.163.com', NULL, NULL, 1, 1, 0, NOW(), NOW()),
+  ('smtp_port', '465', 'email', 'number', 'SMTP端口', '常用端口：25(不加密)、465(SSL)、587(TLS)', NULL, NULL, 2, 1, 0, NOW(), NOW()),
+  ('smtp_user', '', 'email', 'string', 'SMTP用户名', '通常为发件人邮箱地址', NULL, NULL, 3, 1, 0, NOW(), NOW()),
+  ('smtp_pass', '', 'email', 'string', 'SMTP密码', 'SMTP授权码或密码', NULL, NULL, 4, 1, 0, NOW(), NOW()),
+  ('smtp_from_address', '', 'email', 'string', '发件人地址', '发件人邮箱地址', NULL, NULL, 5, 1, 0, NOW(), NOW()),
+  ('smtp_from_name', '元点Admin', 'email', 'string', '发件人名称', '收件人看到的发件人名称', NULL, NULL, 6, 1, 0, NOW(), NOW()),
+  ('smtp_encryption', 'ssl', 'email', 'select', '加密方式', '邮件传输加密方式', '{"ssl":"SSL","tls":"TLS","none":"不加密"}', NULL, 7, 1, 0, NOW(), NOW());
+
 -- ---------------------------------------------------------------- M1b：系统配置
 
 -- 菜单：沿用 TP8 的 id（100 系统配置，101 编辑按钮）
@@ -203,15 +214,16 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('sms_template_register', '', 'sms', 'string', '注册模板ID', '注册场景的模板 id', NULL, NULL, 11, 1, 0, NOW(), NOW());
 
 -- payment 分组 15 项（M5b spec §6）。is_public 全部为 0；非开关项都挂在本渠道开关下联动显示。
--- 1.x 未使用的 pay_wechat_api_key、pay_wechat_cert_path 不再种入。回调地址留空时按「网站地址」拼：
--- site_url + /api/payment/notify/{channel}（不用请求 Host 头拼，Host 可被伪造）。
+-- 1.x 未使用的 pay_wechat_api_key、pay_wechat_cert_path 不再种入。
+-- 异步通知地址默认是相对路径，下单时拼上「网站地址」（不用请求 Host 头，Host 可被伪造）。
+-- 管理员改成完整的 https 地址时按原样使用。
 INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `config_type`, `config_name`, `config_desc`, `config_options`, `config_depends`, `sort_order`, `status`, `is_public`, `created_at`, `updated_at`) VALUES
   ('pay_alipay_enabled', '0', 'payment', 'boolean', '启用支付宝', '是否开启支付宝支付（只影响新下单；关单、退款、回调照常处理）', NULL, NULL, 1, 1, 0, NOW(), NOW()),
   ('pay_alipay_sandbox', '0', 'payment', 'boolean', '沙箱环境', '开启后请求支付宝沙箱网关 openapi-sandbox.dl.alipaydev.com，仅用于联调', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 2, 1, 0, NOW(), NOW()),
   ('pay_alipay_app_id', '', 'payment', 'string', '支付宝AppID', '支付宝开放平台应用 AppID', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 3, 1, 0, NOW(), NOW()),
   ('pay_alipay_private_key', '', 'payment', 'string', '应用私钥', '应用私钥（RSA2），PEM 正文，可省略头尾行', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 4, 1, 0, NOW(), NOW()),
   ('pay_alipay_public_key', '', 'payment', 'string', '支付宝公钥', '支付宝公钥（公钥模式，不是应用公钥；不支持公钥证书模式）', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 5, 1, 0, NOW(), NOW()),
-  ('pay_alipay_notify_url', '', 'payment', 'string', '异步通知地址', '留空则使用「网站地址」+ /api/payment/notify/alipay', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 6, 1, 0, NOW(), NOW()),
+  ('pay_alipay_notify_url', '/api/payment/notify/alipay', 'payment', 'string', '异步通知地址', '默认相对路径，域名取网站地址。一般不用改；要换地址时填完整的 https 链接', NULL, '{"field":"pay_alipay_enabled","value":"1"}', 6, 1, 0, NOW(), NOW()),
   ('pay_wechat_enabled', '0', 'payment', 'boolean', '启用微信支付', '是否开启微信支付（只影响新下单；关单、退款、回调照常处理）', NULL, NULL, 11, 1, 0, NOW(), NOW()),
   ('pay_wechat_app_id', '', 'payment', 'string', '微信AppID', '与商户号绑定的公众号、小程序或移动应用 AppID', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 12, 1, 0, NOW(), NOW()),
   ('pay_wechat_mch_id', '', 'payment', 'string', '微信商户号', '微信支付商户号', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 13, 1, 0, NOW(), NOW()),
@@ -220,7 +232,7 @@ INSERT INTO `system_configs` (`config_key`, `config_value`, `config_group`, `con
   ('pay_wechat_private_key_path', '', 'payment', 'string', '商户私钥文件', '商户 API 私钥文件 apiclient_key.pem 的路径，相对路径从 server/ 目录算起', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 16, 1, 0, NOW(), NOW()),
   ('pay_wechat_public_key_id', '', 'payment', 'string', '微信支付公钥ID', '选填：填写后用微信支付公钥验签（PUB_KEY_ID_ 开头），须与公钥成对填写；都留空则自动下载平台证书', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 17, 1, 0, NOW(), NOW()),
   ('pay_wechat_public_key', '', 'payment', 'string', '微信支付公钥', '选填：微信支付公钥 PEM 正文，须与公钥ID成对填写', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 18, 1, 0, NOW(), NOW()),
-  ('pay_wechat_notify_url', '', 'payment', 'string', '异步通知地址', '留空则使用「网站地址」+ /api/payment/notify/wechat', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 19, 1, 0, NOW(), NOW());
+  ('pay_wechat_notify_url', '/api/payment/notify/wechat', 'payment', 'string', '异步通知地址', '默认相对路径，域名取网站地址。一般不用改；要换地址时填完整的 https 链接', NULL, '{"field":"pay_wechat_enabled","value":"1"}', 19, 1, 0, NOW(), NOW());
 
 -- ---------------------------------------------------------------- M5a：会员管理
 

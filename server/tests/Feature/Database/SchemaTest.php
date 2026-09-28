@@ -166,13 +166,40 @@ final class SchemaTest extends TestCase
             if ($key === 'pay_alipay_sandbox') {
                 $this->assertSame('boolean', (string) $row->config_type);
                 $this->assertSame('0', (string) $row->config_value);
+            } elseif (str_ends_with($key, '_notify_url')) {
+                $this->assertSame('string', (string) $row->config_type, $key);
+                $channel = str_contains($key, 'alipay') ? 'alipay' : 'wechat';
+                $this->assertSame('/api/payment/notify/' . $channel, (string) $row->config_value, '异步通知地址默认相对路径，域名取网站地址');
             } else {
                 $this->assertSame('string', (string) $row->config_type, $key);
-                $this->assertSame('', (string) $row->config_value, "{$key} 种子不带任何凭据或地址");
+                $this->assertSame('', (string) $row->config_value, "{$key} 种子不带任何凭据");
             }
         }
 
         $this->assertSame(0, Db::table('system_configs')->whereIn('config_key', ['pay_wechat_api_key', 'pay_wechat_cert_path'])->count(), '1.x 未使用的两项不再种入');
+    }
+
+    public function test_email_config_seeds(): void
+    {
+        $rows = Db::table('system_configs')->where('config_group', 'email')->orderBy('sort_order')->get()->all();
+        $this->assertSame(
+            ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from_address', 'smtp_from_name', 'smtp_encryption'],
+            array_map(static fn (object $row): string => (string) $row->config_key, $rows)
+        );
+
+        $byKey = [];
+        foreach ($rows as $row) {
+            $byKey[(string) $row->config_key] = $row;
+            $this->assertSame(0, (int) $row->is_public, "{$row->config_key} 不得出现在 config/global");
+            $this->assertSame(1, (int) $row->status);
+        }
+        $this->assertSame('465', (string) $byKey['smtp_port']->config_value);
+        $this->assertSame('number', (string) $byKey['smtp_port']->config_type);
+        $this->assertSame('元点Admin', (string) $byKey['smtp_from_name']->config_value);
+        $this->assertSame('ssl', (string) $byKey['smtp_encryption']->config_value);
+        $this->assertSame('select', (string) $byKey['smtp_encryption']->config_type);
+        $this->assertSame('', (string) $byKey['smtp_host']->config_value);
+        $this->assertSame('', (string) $byKey['smtp_pass']->config_value);
     }
 
     public function test_m3_cron_tables_and_menu_seeds(): void
@@ -647,9 +674,9 @@ final class SchemaTest extends TestCase
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
     }
 
-    public function test_release_version_stays_2_0_3(): void
+    public function test_release_version_is_2_0_4(): void
     {
-        $this->assertSame('2.0.3', (string) config('version.version'));
+        $this->assertSame('2.0.4', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

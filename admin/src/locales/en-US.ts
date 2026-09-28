@@ -552,6 +552,7 @@ export default {
         resetConfig: 'Reset',
         selectPlaceholder: 'Please select',
         fileTip: 'Supports jpg, png formats, max 2MB',
+        notifyAddress: 'Effective notify URL: {url}. Copy it to Alipay or WeChat Pay. The default is usually correct',
         validate: {
             siteNameRequired: 'Please enter site name',
             siteUrlRequired: 'Please enter site URL',
@@ -690,7 +691,7 @@ export default {
             pay_alipay_app_id: 'Alipay open platform App ID',
             pay_alipay_private_key: 'Alipay application private key (RSA2)',
             pay_alipay_public_key: 'Alipay public key',
-            pay_alipay_notify_url: 'Alipay async callback URL',
+            pay_alipay_notify_url: 'Defaults to a path under Site URL. Replace it only with a full https URL',
             pay_wechat_enabled: 'Enable WeChat payment',
             pay_wechat_app_id: 'WeChat Official/Mini Program AppID',
             pay_wechat_mch_id: 'WeChat Pay merchant ID',
@@ -703,7 +704,7 @@ export default {
             pay_wechat_public_key:
                 'WeChat Pay public key in PEM format. Fill in together with the public key ID',
             pay_wechat_cert_path: 'Merchant API certificate file path (apiclient_cert.pem)',
-            pay_wechat_notify_url: 'WeChat Pay async callback URL',
+            pay_wechat_notify_url: 'Defaults to a path under Site URL. Replace it only with a full https URL',
             storage_driver: 'Select file storage method',
             storage_upload_max_size: 'Maximum single file upload size in MB',
             storage_upload_allowed_ext: 'Allowed file extensions, comma separated',

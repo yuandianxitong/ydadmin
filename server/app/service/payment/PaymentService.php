@@ -441,15 +441,20 @@ class PaymentService extends Service
         }
     }
 
-    /** 回调地址（spec §5.1 步骤 5）：配置优先，否则 site_url 拼默认路径。不看请求 Host 头。 */
+    /**
+     * 回调地址（spec §5.1 步骤 5）。不看请求 Host 头。
+     * 配置为空或是以 / 开头的相对路径时，拼上网站地址；完整的 http(s) 地址按原样使用。
+     */
     private function notifyUrl(string $channel): string
     {
         $configured = trim((string) $this->config->getConfigValue("pay_{$channel}_notify_url", ''));
-        if ($configured !== '') {
+        if ($configured !== '' && !str_starts_with($configured, '/')) {
             return $configured;
         }
 
-        return rtrim(trim((string) $this->config->getConfigValue('site_url', '')), '/') . '/api/payment/notify/' . $channel;
+        $path = $configured !== '' ? $configured : '/api/payment/notify/' . $channel;
+
+        return rtrim(trim((string) $this->config->getConfigValue('site_url', '')), '/') . $path;
     }
 
     private function expireMinutes(): int

@@ -153,9 +153,14 @@ final class PaymentServiceTest extends ApiTestCase
         $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
         $this->service()->createOrder($userId, PaymentOrder::BIZ_RECHARGE, 'pc', 'alipay', 'page', '余额充值', 100, null, null);
 
+        $this->setConfig('pay_alipay_notify_url', '/api/payment/notify/alipay');
+        $this->alipay->queue('create', new CreateOrderResult('page', ['body' => '<form></form>']));
+        $this->service()->createOrder($userId, PaymentOrder::BIZ_RECHARGE, 'pc', 'alipay', 'page', '余额充值', 100, null, null);
+
         $calls = $this->alipay->callsTo('create');
         $this->assertSame('https://pay.example.com/alipay-callback', $calls[0][0]->notifyUrl);
         $this->assertSame('https://shop.example.com/api/payment/notify/alipay', $calls[1][0]->notifyUrl);
+        $this->assertSame('https://shop.example.com/api/payment/notify/alipay', $calls[2][0]->notifyUrl, '相对路径同样拼网站地址');
     }
 
     public function test_create_order_stores_and_passes_app_id(): void

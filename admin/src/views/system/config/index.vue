@@ -125,6 +125,9 @@
                                     >
                                         {{ getItemDesc(config) }}
                                     </div>
+                                    <div v-if="notifyAddress(config)" class="config-desc">
+                                        {{ $t('config.notifyAddress', { url: notifyAddress(config) }) }}
+                                    </div>
                                 </el-form-item>
                             </template>
                         </el-form>
@@ -175,6 +178,11 @@ const getOptionLabel = (configKey: string, optValue: string, fallback: string): 
     return te(key) ? t(key) : fallback
 }
 
+const NOTIFY_URL_DEFAULTS: Record<string, string> = {
+    pay_alipay_notify_url: '/api/payment/notify/alipay',
+    pay_wechat_notify_url: '/api/payment/notify/wechat'
+}
+
 const activeTab = ref('basic')
 const loading = ref(false)
 const formRef = ref<FormInstance>()
@@ -184,6 +192,21 @@ const configGroups = ref<Record<string, string>>({})
 const configsData = reactive<Record<string, any[]>>({})
 const formData = reactive<Record<string, any>>({})
 const originalFormData = reactive<Record<string, any>>({})
+
+/** 相对路径拼上网站地址，给管理员看到可直接复制的完整通知地址。完整 https 地址不再重复提示。 */
+const notifyAddress = (config: { config_key: string }): string => {
+    const fallback = NOTIFY_URL_DEFAULTS[config.config_key]
+    if (!fallback) return ''
+
+    const raw = String(formData[config.config_key] ?? '').trim()
+    if (/^https?:\/\//i.test(raw)) return ''
+
+    const path = raw.startsWith('/') ? raw : fallback
+    const site = String(appStore.config.site_url || '').replace(/\/$/, '')
+    const origin = site || (typeof window !== 'undefined' ? window.location.origin : '')
+
+    return origin ? `${origin}${path}` : path
+}
 
 // 上传相关配置（computed 确保 Token 刷新后仍有效）
 const uploadHeaders = computed(() => ({
@@ -291,6 +314,11 @@ const loadConfigs = async (group: string) => {
             // 根据类型转换值
             if (config.config_type === 'boolean') {
                 value = Number(value)
+            } else if (
+                NOTIFY_URL_DEFAULTS[config.config_key] &&
+                String(value ?? '').trim() === ''
+            ) {
+                value = NOTIFY_URL_DEFAULTS[config.config_key]
             } else if (config.config_type === 'number') {
                 value = Number(value)
             } else if (config.config_type === 'json') {
