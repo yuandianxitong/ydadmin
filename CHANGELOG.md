@@ -8,7 +8,7 @@
 
 Docker：仓库根 `docker/` 提供 nginx + webman（PHP 8.4 cli，反代 HTTP 8000 与 `/ws` → 8001）+ 空 MySQL 8 + Redis 7。`docker compose up` 后走 `/install/` 或 `docker compose exec webman php webman install`。不灌 init SQL，不挂宿主机开发库。
 
-发布：`scripts/release.sh` 构建 admin（`pnpm build`）与 pc（`pnpm generate`），打 `dist/ydadmin-2.0.0.zip`（`ydadmin-2.0.0/server/...`），不含 `vendor/`、`.env`、前端源码、`docker/`、`tests/`。用户解压后 `composer install` 再走向导。
+发布：`server/scripts/release.sh` 构建 admin（`pnpm build`）与 pc（`pnpm generate`），打 `dist/ydadmin-2.0.0.zip`（`ydadmin-2.0.0/server/...`），不含 `vendor/`、`.env`、前端源码、`docker/`、`tests/`。用户解压后 `composer install` 再走向导。
 
 ## [M7]
 

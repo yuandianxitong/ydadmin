@@ -4,7 +4,8 @@ set -eu
 LIST=0
 SKIP_BUILD=0
 SOURCE=""
-ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+# 脚本在 server/scripts/，仓库根在上两级（admin、pc、dist 都在根上）
+ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 
 while [ $# -gt 0 ]; do
   case "$1" in

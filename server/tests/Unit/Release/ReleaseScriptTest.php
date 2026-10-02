@@ -50,7 +50,7 @@ final class ReleaseScriptTest extends TestCase
 
     public function test_list_excludes_secrets_and_vendor(): void
     {
-        $script = dirname(__DIR__, 4) . '/scripts/release.sh';
+        $script = dirname(__DIR__, 3) . '/scripts/release.sh';
         $this->assertFileExists($script);
         $cmd = 'sh ' . escapeshellarg($script)
             . ' --list --skip-build --source ' . escapeshellarg($this->source);
