@@ -3,7 +3,9 @@
     <NMessageProvider>
       <NDialogProvider>
         <NuxtLayout>
-          <NuxtPage />
+          <SiteGate>
+            <NuxtPage />
+          </SiteGate>
         </NuxtLayout>
       </NDialogProvider>
     </NMessageProvider>

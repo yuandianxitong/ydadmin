@@ -28,6 +28,8 @@ class MessageLogRepository extends Repository
 
     public const CHANNEL_SITE = MessageLog::CHANNEL_SITE;
 
+    public const CHANNEL_EMAIL = MessageLog::CHANNEL_EMAIL;
+
     private const ERROR_MSG_MAX = 255;
 
     protected ?string $creatorColumn = null;

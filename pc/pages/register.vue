@@ -2,7 +2,11 @@
   <div class="w-full max-w-400px">
     <div class="card p-8">
       <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">注册</h2>
-      <form @submit.prevent="handleRegister">
+      <div v-if="loaded && !registrationOpen" class="text-center text-gray-600">
+        <p class="mb-6">暂未开放注册</p>
+        <NuxtLink to="/login" class="text-[var(--color-primary)]">返回登录</NuxtLink>
+      </div>
+      <form v-else @submit.prevent="handleRegister">
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">手机号</label>
           <input
@@ -79,10 +83,15 @@ definePageMeta({ layout: 'blank' })
 const message = useMessage()
 const userStore = useUserStore()
 const router = useRouter()
+const { load, loaded, registrationOpen } = usePublicConfig()
 const form = reactive({ mobile: '', code: '', password: '', password_confirmation: '' })
 const submitting = ref(false)
 const countdown = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  load()
+})
 
 async function handleSendCode() {
   if (!form.mobile) { message.warning('请输入手机号'); return }

@@ -674,9 +674,9 @@ final class SchemaTest extends TestCase
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
     }
 
-    public function test_release_version_is_2_0_4(): void
+    public function test_release_version_is_2_0_5(): void
     {
-        $this->assertSame('2.0.4', (string) config('version.version'));
+        $this->assertSame('2.0.5', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void
@@ -877,7 +877,8 @@ final class SchemaTest extends TestCase
                 'sms_enabled', 'sms_template_id', 'sms_content',
                 'wechat_official_enabled', 'wechat_official_template_id', 'wechat_official_url', 'wechat_official_data',
                 'wechat_mini_enabled', 'wechat_mini_template_id', 'wechat_mini_page', 'wechat_mini_data',
-                'site_enabled', 'site_title', 'site_content', 'variables',
+                'site_enabled', 'site_title', 'site_content',
+                'email_enabled', 'email_subject', 'email_content', 'variables',
                 'created_at', 'updated_at', 'deleted_at',
             ],
             'message_logs' => [
@@ -935,7 +936,7 @@ final class SchemaTest extends TestCase
         try {
             $template = Db::table('message_templates')->where('id', $templateId)->first();
             $this->assertSame(1, (int) $template->status);
-            foreach (['sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'site_enabled'] as $flag) {
+            foreach (['sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'site_enabled', 'email_enabled'] as $flag) {
                 $this->assertSame(0, (int) $template->{$flag}, "{$flag} 默认应为 0");
             }
             $this->assertSame('', $template->site_title);

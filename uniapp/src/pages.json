@@ -29,6 +29,12 @@
 			"style": {
 				"navigationBarTitleText": "页面"
 			}
+		},
+		{
+			"path": "pages/maintenance/index",
+			"style": {
+				"navigationBarTitleText": "网站维护中"
+			}
 		}
 	],
 	"tabBar": {

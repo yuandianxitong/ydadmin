@@ -121,7 +121,7 @@
         </div>
       </div>
 
-      <p class="text-center text-sm text-gray-400 mt-6">
+      <p v-if="registrationOpen" class="text-center text-sm text-gray-400 mt-6">
         还没有账号？<NuxtLink to="/register" class="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">立即注册</NuxtLink>
       </p>
     </div>
@@ -147,6 +147,11 @@ const redirectPath = computed(() => {
 })
 const submitting = ref(false)
 const loginType = ref<'password' | 'sms'>('password')
+const { load, registrationOpen } = usePublicConfig()
+
+onMounted(() => {
+  load()
+})
 const countdown = ref(0)
 const wechatAppId = ref('')
 let timer: ReturnType<typeof setInterval> | null = null

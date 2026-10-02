@@ -4,11 +4,17 @@
       <!-- 页面标题 -->
       <view class="page-header">
         <text class="page-title">创建账号</text>
-        <text class="page-subtitle">注册后即可使用全部功能</text>
+        <text class="page-subtitle">{{ registrationClosed ? '暂未开放注册' : '注册后即可使用全部功能' }}</text>
+      </view>
+
+      <view v-if="registrationClosed" class="form-card">
+        <view class="bottom-links">
+          <text class="link" @tap="goLogin">返回登录</text>
+        </view>
       </view>
 
       <!-- 注册表单 -->
-      <view class="form-card">
+      <view v-else class="form-card">
         <!-- 手机号 -->
         <view class="input-group">
           <view class="i-ri-smartphone-line input-prefix" style="font-size: 36rpx; color: #999" />
@@ -93,15 +99,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, ref, reactive } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { authApi } from '@/api/auth'
 import { isPassword, isMobile } from '@/utils/validate'
 import { useUserStore } from '@/store/user.store'
+import { useAppStore } from '@/store/app.store'
 import { useCountdown } from '@/hooks/useCountdown'
 import { useThemePage } from '@/hooks/useTheme'
+import { isSwitchOff } from '@/utils/siteSwitch'
 
 useThemePage()
 const userStore = useUserStore()
+const appStore = useAppStore()
+const registrationClosed = computed(() => appStore.isConfigLoaded && isSwitchOff(appStore.config.user_register))
+
+onShow(() => {
+  appStore.getConfig().catch(() => {})
+})
 
 const loading = ref(false)
 const agreed = ref(false)

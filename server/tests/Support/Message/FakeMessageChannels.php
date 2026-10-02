@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Support\Message;
 
+use core\message\channel\EmailChannel;
 use core\message\channel\SmsChannel;
 use core\message\channel\WechatMiniChannel;
 use core\message\channel\WechatOfficialChannel;
@@ -25,6 +26,7 @@ trait FakeMessageChannels
         'sms'             => SmsChannel::class,
         'wechat_official' => WechatOfficialChannel::class,
         'wechat_mini'     => WechatMiniChannel::class,
+        'email'           => EmailChannel::class,
     ];
 
     private const MESSAGE_SERVICE_CLASSES = [

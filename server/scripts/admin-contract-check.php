@@ -1676,7 +1676,7 @@ if (!array_key_exists('wechat_mini_app_id', $wechatKeys)) {
     // ---- common/config：公开、键集合是白名单子集、不含任何凭据类键
     $r = http('GET', "{$base}/api/common/config", $api);
     $commonKeys = is_array(respData($r)) ? array_keys((array) respData($r)) : null;
-    $whitelist = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'wechat_open_app_id'];
+    $whitelist = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register', 'wechat_open_app_id'];
     check(
         'common/config：code 200，键集合 ⊆ 白名单，不含 secret/token/aes_key/_key 类键',
         respCode($r) === 200

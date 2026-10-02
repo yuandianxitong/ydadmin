@@ -15,7 +15,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * 管理端消息模板（M6b spec §4.1）。全局运营数据，不受数据权限约束。
  *
- * 字段白名单：只写表单字段（name、code 仅新增、remark、status、三个外发通道的开关 / 模板 id / 预览或跳转）。
+ * 字段白名单：只写表单字段（name、code 仅新增、remark、status、外发通道的开关 / 模板 id / 预览或跳转、邮件主题与正文）。
  * wechat_official_data、wechat_mini_data、site_*、variables 管理端界面编辑不了，这里一律不写：
  * 编辑弹窗把整行回传时，这些列也不会被覆盖。控制器规则里本来就没有它们，这里再按固定列名挑一遍，两道保险。
  *
@@ -27,13 +27,14 @@ use Illuminate\Database\UniqueConstraintViolationException;
 class MessageTemplateService extends Service
 {
     /** 表单里的 0/1 开关列。 */
-    private const SWITCH_COLUMNS = ['status', 'sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled'];
+    private const SWITCH_COLUMNS = ['status', 'sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'email_enabled'];
 
     /** 表单里的文本列（表结构 NOT NULL DEFAULT ''：null 按空串写）。 */
     private const TEXT_COLUMNS = [
         'sms_template_id', 'sms_content',
         'wechat_official_template_id', 'wechat_official_url',
         'wechat_mini_template_id', 'wechat_mini_page',
+        'email_subject', 'email_content',
     ];
 
     #[Inject]
@@ -75,6 +76,9 @@ class MessageTemplateService extends Service
             'wechat_mini_enabled'         => 0,
             'wechat_mini_template_id'     => '',
             'wechat_mini_page'            => '',
+            'email_enabled'               => 0,
+            'email_subject'               => '',
+            'email_content'               => '',
         ], $this->formColumns($data));
 
         try {

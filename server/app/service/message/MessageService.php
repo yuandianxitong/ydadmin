@@ -139,12 +139,15 @@ class MessageService extends Service
     /**
      * @param array<string, mixed> $template
      * @param array<string, mixed> $user
-     * @param array{enabled: string, template_id: string, data: ?string, link: ?string, link_key: ?string, receiver: string} $fields
+     * @param array{enabled: string, template_id: string, data: ?string, link: ?string, link_key: ?string, receiver: string, content?: string} $fields
      * @param array<string, mixed> $vars
      */
     private function enqueue(array $template, array $user, string $channel, array $fields, array $vars): void
     {
-        if ((int) ($template[$fields['enabled']] ?? 0) !== 1 || (string) ($template[$fields['template_id']] ?? '') === '') {
+        if ((int) ($template[$fields['enabled']] ?? 0) !== 1 || trim((string) ($template[$fields['template_id']] ?? '')) === '') {
+            return;
+        }
+        if (isset($fields['content']) && trim((string) ($template[$fields['content']] ?? '')) === '') {
             return;
         }
         $receiver = (string) ($user[$fields['receiver']] ?? '');

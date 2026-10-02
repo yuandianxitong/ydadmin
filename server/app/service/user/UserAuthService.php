@@ -6,6 +6,7 @@ namespace app\service\user;
 
 use app\repository\user\UserRepository;
 use app\service\message\MessageService;
+use app\service\system\SystemConfigService;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
@@ -37,6 +38,9 @@ class UserAuthService extends Service
 
     #[Inject]
     protected MessageService $messageService;
+
+    #[Inject]
+    protected SystemConfigService $systemConfigService;
 
     /** @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}} */
     public function loginByPassword(string $account, string $password, string $ip): array
@@ -80,6 +84,10 @@ class UserAuthService extends Service
      */
     public function register(string $mobile, string $password, string $code, string $ip): array
     {
+        if (!$this->systemConfigService->isSecuritySwitchOn('user_register')) {
+            throw new BusinessException(lang('business.register_closed'));
+        }
+
         $this->smsCodeService->verify($mobile, 'register', $code);
         if ($this->userRepository->mobileExists($mobile)) {
             throw new BusinessException(lang('business.mobile_registered'));

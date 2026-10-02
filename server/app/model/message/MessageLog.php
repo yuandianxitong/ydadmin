@@ -28,6 +28,8 @@ class MessageLog extends Model
 
     public const CHANNEL_SITE = 'site';
 
+    public const CHANNEL_EMAIL = 'email';
+
     protected $table = 'message_logs';
 
     /** @var array<string, string> */

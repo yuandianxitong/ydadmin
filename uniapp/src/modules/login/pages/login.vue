@@ -119,7 +119,7 @@
       <!-- #endif -->
 
       <!-- 底部链接 -->
-      <view class="bottom-links">
+      <view v-if="registrationOpen" class="bottom-links">
         <text class="link" @tap="goRegister">立即注册</text>
       </view>
     </view>
@@ -131,6 +131,7 @@ import { computed, ref } from 'vue'
 import { useAppStore } from '@/store/app.store'
 import { useLogin } from '../composables/useLogin'
 import { useThemePage } from '@/hooks/useTheme'
+import { isSwitchOff } from '@/utils/siteSwitch'
 
 const {
   loading, loginType, countdown,
@@ -142,6 +143,7 @@ const {
 const { cssVars } = useThemePage()
 const appStore = useAppStore()
 const appName = computed(() => appStore.config.site_name || '元点Admin')
+const registrationOpen = computed(() => appStore.isConfigLoaded && !isSwitchOff(appStore.config.user_register))
 const logoSrc = computed(() => {
   const logo = appStore.config.site_logo
   return logo ? appStore.getImageUrl(logo) : '/static/logo.png'

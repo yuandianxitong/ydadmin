@@ -102,6 +102,27 @@
                     />
                 </el-form-item>
             </template>
+
+            <!-- 邮件通道 -->
+            <el-form-item :label="$t('messageTemplate.emailChannel')">
+                <el-switch v-model="form.email_enabled" :active-value="1" :inactive-value="0" />
+            </el-form-item>
+            <template v-if="form.email_enabled">
+                <el-form-item :label="$t('messageTemplate.emailSubject')">
+                    <el-input
+                        v-model="form.email_subject"
+                        :placeholder="$t('messageTemplate.emailSubjectPlaceholder')"
+                    />
+                </el-form-item>
+                <el-form-item :label="$t('messageTemplate.emailContent')">
+                    <el-input
+                        v-model="form.email_content"
+                        type="textarea"
+                        :rows="3"
+                        :placeholder="$t('messageTemplate.emailContentPlaceholder')"
+                    />
+                </el-form-item>
+            </template>
         </el-form>
 
         <template #footer>
@@ -138,6 +159,9 @@ interface MessageTemplateForm {
     wechat_mini_enabled: number
     wechat_mini_template_id: string
     wechat_mini_page: string
+    email_enabled: number
+    email_subject: string
+    email_content: string
 }
 
 const props = defineProps<{
@@ -166,7 +190,10 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
             wechat_official_url: '',
             wechat_mini_enabled: 0,
             wechat_mini_template_id: '',
-            wechat_mini_page: ''
+            wechat_mini_page: '',
+            email_enabled: 0,
+            email_subject: '',
+            email_content: ''
         },
         modelValue: () => props.modelValue,
         onUpdate: (v) => emit('update:modelValue', v),

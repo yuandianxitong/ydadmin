@@ -145,6 +145,22 @@ final class AuthApiTest extends ApiTestCase
         $this->assertSame(0, Db::table('users')->where('mobile', $mobile)->count(), '校验码错误时不建号');
     }
 
+    public function test_register_rejects_when_registration_is_closed(): void
+    {
+        $this->setConfig('user_register', '0');
+        $mobile = $this->mobile();
+
+        $response = $this->post('/api/auth/register', [
+            'mobile'                => $mobile,
+            'password'              => 'Passw0rd!',
+            'password_confirmation' => 'Passw0rd!',
+            'code'                  => '123456',
+        ])->assertCode(400);
+
+        $this->assertSame(lang('business.register_closed'), $response->message());
+        $this->assertSame(0, Db::table('users')->where('mobile', $mobile)->count());
+    }
+
     public function test_sms_login_rejects_an_unregistered_mobile_without_auto_registering(): void
     {
         $mobile = $this->mobile();

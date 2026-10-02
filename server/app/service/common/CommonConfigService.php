@@ -12,14 +12,14 @@ use DI\Attribute\Inject;
  * C 端公开配置（M6a spec §4.9）。固定白名单，不按 system_configs.is_public 动态放出：
  * 那个标记日后可能被误改，这个接口公开、不需要登录，漏一个 secret 就是事故。
  *
- * 字段来源：1.x 返回 basic 组的 site_name / site_logo / site_description / site_status / site_close_tip，
+ * 字段来源：1.x 返回 basic 组的 site_name / site_logo / site_description / site_status / site_close_tip / user_register，
  * uniapp app.store 另读 site_url 拼静态资源域名；pc 登录页读 wechat_open_app_id，缺键时显示「未配置」。
  *
  * 容器单例，无实例态。
  */
 class CommonConfigService extends Service
 {
-    private const ALWAYS = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip'];
+    private const ALWAYS = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register'];
 
     #[Inject]
     protected ConfigValueReader $config;

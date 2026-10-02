@@ -128,8 +128,11 @@ class MessageDeliveryService extends Service
         if ($template === null
             || (int) $template['status'] !== MessageTemplateRepository::STATUS_ENABLED
             || (int) ($template[$fields['enabled']] ?? 0) !== 1
-            || (string) ($template[$fields['template_id']] ?? '') === ''
+            || trim((string) ($template[$fields['template_id']] ?? '')) === ''
         ) {
+            throw new MessageDefiniteFailure(self::ERROR_TEMPLATE_UNAVAILABLE);
+        }
+        if (isset($fields['content']) && trim((string) ($template[$fields['content']] ?? '')) === '') {
             throw new MessageDefiniteFailure(self::ERROR_TEMPLATE_UNAVAILABLE);
         }
         $mapping = [];
@@ -148,6 +151,16 @@ class MessageDeliveryService extends Service
 
         $templateId = (string) $template[$fields['template_id']];
         $vars = is_array($log['variables'] ?? null) ? $log['variables'] : [];
+
+        if (isset($fields['content'])) {
+            $subject = $this->renderer->render($templateId, $vars);
+            $body = $this->renderer->render((string) ($template[$fields['content']] ?? ''), $vars);
+
+            return [
+                new ChannelMessage($receiver, $subject, [], $body),
+                (string) json_encode(['subject' => $subject, 'content' => $body], self::JSON_FLAGS),
+            ];
+        }
 
         if ($fields['data'] === null || $fields['link'] === null || $fields['link_key'] === null) {
             $variableDefs = is_array($template['variables'] ?? null) ? $template['variables'] : [];

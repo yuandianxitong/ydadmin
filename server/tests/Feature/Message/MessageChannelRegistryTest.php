@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Feature\Message;
 
 use app\service\message\MessageChannelRegistry;
+use core\message\channel\EmailChannel;
 use core\message\channel\SmsChannel;
 use core\message\channel\WechatMiniChannel;
 use core\message\channel\WechatOfficialChannel;
@@ -39,11 +40,12 @@ final class MessageChannelRegistryTest extends TestCase
         $this->assertInstanceOf(SmsChannel::class, $this->registry()->get('sms'));
         $this->assertInstanceOf(WechatOfficialChannel::class, $this->registry()->get('wechat_official'));
         $this->assertInstanceOf(WechatMiniChannel::class, $this->registry()->get('wechat_mini'));
+        $this->assertInstanceOf(EmailChannel::class, $this->registry()->get('email'));
     }
 
     public function test_site_and_unknown_channels_are_rejected(): void
     {
-        foreach (['site', 'email', ''] as $channel) {
+        foreach (['site', 'fax', ''] as $channel) {
             try {
                 $this->registry()->get($channel);
                 $this->fail("{$channel} 不是外发通道，应当拒绝");
@@ -55,10 +57,11 @@ final class MessageChannelRegistryTest extends TestCase
 
     public function test_external_channel_columns_cover_exactly_the_three_registered_channels(): void
     {
-        $this->assertSame(['sms', 'wechat_official', 'wechat_mini'], array_keys(MessageChannelRegistry::EXTERNAL_CHANNELS));
+        $this->assertSame(['sms', 'wechat_official', 'wechat_mini', 'email'], array_keys(MessageChannelRegistry::EXTERNAL_CHANNELS));
         $this->assertSame('mobile', MessageChannelRegistry::EXTERNAL_CHANNELS['sms']['receiver']);
         $this->assertSame('oa_openid', MessageChannelRegistry::EXTERNAL_CHANNELS['wechat_official']['receiver']);
         $this->assertSame('mini_openid', MessageChannelRegistry::EXTERNAL_CHANNELS['wechat_mini']['receiver']);
+        $this->assertSame('email', MessageChannelRegistry::EXTERNAL_CHANNELS['email']['receiver']);
     }
 
     public function test_fake_channels_record_calls_and_throw_queued_failures_once(): void

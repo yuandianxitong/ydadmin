@@ -6,6 +6,7 @@ namespace app\service\user;
 
 use app\repository\system\SystemConfigRepository;
 use app\repository\user\UserRepository;
+use app\service\system\SystemConfigService;
 use core\base\Service;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
@@ -89,6 +90,9 @@ class SmsCodeService extends Service
     #[Inject]
     protected SystemConfigRepository $systemConfigRepository;
 
+    #[Inject]
+    protected SystemConfigService $systemConfigService;
+
     /**
      * @param string $ip 由控制器经 core\http\ClientIp::resolve() 取得，服务层不接 Request（分层约定）
      *
@@ -98,6 +102,9 @@ class SmsCodeService extends Service
     public function send(string $mobile, string $scene, string $ip): void
     {
         $this->assertScene($scene);
+        if ($scene === 'register' && !$this->systemConfigService->isSecuritySwitchOn('user_register')) {
+            throw new BusinessException(lang('business.register_closed'));
+        }
         // 限流排在存在性校验之前（修复轮第 1 条）：未注册号码走 login 场景的探测请求也必须计入配额，
         // 否则攻击者可以无限速探测任意号码是否已注册。IP 闸门排最前——探测请求同样要消耗它。
         $this->assertWithinIpRateLimit($ip);

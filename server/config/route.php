@@ -289,6 +289,8 @@ Route::group('/api', function () use ($apiAuth) {
     Route::post('/common/sms-code', [CommonController::class, 'smsCode']);
     // M6a：C 端公开配置（spec §4.9），固定白名单
     Route::get('/common/config', [CommonController::class, 'config']);
+    // 会员上传图片：必须登录。头像和反馈都带 user token。
+    Route::post('/common/upload/image', [CommonController::class, 'uploadImage'])->middleware($apiAuth);
     Route::get('/article/list', [ApiArticleController::class, 'list']);
     Route::get('/article/detail/{id:\d+}', [ApiArticleController::class, 'detail']);
     Route::get('/article-category/list', [ApiArticleCategoryController::class, 'list']);

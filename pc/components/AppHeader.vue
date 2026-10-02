@@ -27,7 +27,7 @@
         </template>
         <template v-else>
           <NuxtLink to="/login" class="text-sm text-gray-600 hover:text-[var(--color-primary)]">登录</NuxtLink>
-          <NuxtLink to="/register" class="text-sm px-4 py-1 bg-[var(--color-primary)] text-white rounded-sm hover:opacity-90 transition-opacity">注册</NuxtLink>
+          <NuxtLink v-if="registrationOpen" to="/register" class="text-sm px-4 py-1 bg-[var(--color-primary)] text-white rounded-sm hover:opacity-90 transition-opacity">注册</NuxtLink>
         </template>
       </div>
     </div>
@@ -38,6 +38,11 @@
 import { useUserStore } from '~/store/user'
 
 const userStore = useUserStore()
+const { load, registrationOpen } = usePublicConfig()
+
+onMounted(() => {
+  load()
+})
 const router = useRouter()
 const route = useRoute()
 

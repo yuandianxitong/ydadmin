@@ -92,6 +92,7 @@ return [
 
     // Member (M5a)
     'mobile_registered'           => 'This mobile number is already registered',
+    'register_closed'             => 'Registration is currently closed',
 
     // Member assets (M5a)
     'balance_log_type_1' => 'Recharge',

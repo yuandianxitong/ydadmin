@@ -92,6 +92,7 @@ return [
 
     // 会员（M5a）
     'mobile_registered'          => '手机号已注册',
+    'register_closed'            => '暂未开放注册',
 
     // 会员资产（M5a）
     'balance_log_type_1' => '充值',

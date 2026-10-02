@@ -21,7 +21,8 @@ final class ReceiverMask
     {
         return match ($channel) {
             MessageLogRepository::CHANNEL_SITE => $receiver,
-            MessageLogRepository::CHANNEL_SMS  => self::mobile($receiver),
+            MessageLogRepository::CHANNEL_SMS   => self::mobile($receiver),
+            MessageLogRepository::CHANNEL_EMAIL => self::email($receiver),
             MessageLogRepository::CHANNEL_WECHAT_OFFICIAL,
             MessageLogRepository::CHANNEL_WECHAT_MINI => mb_strlen($receiver) > self::WECHAT_VISIBLE
                 ? mb_substr($receiver, 0, self::WECHAT_VISIBLE) . self::ELLIPSIS
@@ -37,5 +38,15 @@ final class ReceiverMask
         }
 
         return mb_strlen($mobile) > 4 ? mb_substr($mobile, 0, 2) . '****' . mb_substr($mobile, -2) : '****';
+    }
+
+    private static function email(string $email): string
+    {
+        $at = strrpos($email, '@');
+        if ($at === false || $at < 1) {
+            return self::ELLIPSIS;
+        }
+
+        return mb_substr($email, 0, 1) . '***' . substr($email, $at);
     }
 }

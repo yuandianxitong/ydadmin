@@ -6,6 +6,7 @@ namespace app\service\wechat;
 
 use app\repository\user\UserRepository;
 use app\service\message\MessageService;
+use app\service\system\SystemConfigService;
 use app\service\user\UserSessionIssuer;
 use core\base\Service;
 use core\contract\ConfigValueReader;
@@ -78,6 +79,9 @@ class WechatAuthService extends Service
 
     #[Inject]
     protected MessageService $messageService;
+
+    #[Inject]
+    protected SystemConfigService $systemConfigService;
 
     /**
      * PC 扫码登录（spec §4.2）：开放平台换 code → 按 openid 列匹配 → 未命中尽力取昵称头像后注册。
@@ -462,6 +466,10 @@ class WechatAuthService extends Service
      */
     private function register(string $column, string $openid, ?string $unionid, string $nickname, ?string $avatar, ?string $mobile): int
     {
+        if (!$this->systemConfigService->isSecuritySwitchOn('user_register')) {
+            throw new BusinessException(lang('business.register_closed'));
+        }
+
         if ($unionid === '' || ($unionid !== null && $this->users->findByUnionid($unionid) !== null)) {
             $unionid = null;
         }

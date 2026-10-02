@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\service\message;
 
 use app\repository\message\MessageLogRepository;
+use core\message\channel\EmailChannel;
 use core\message\channel\SmsChannel;
 use core\message\channel\WechatMiniChannel;
 use core\message\channel\WechatOfficialChannel;
@@ -26,7 +27,9 @@ class MessageChannelRegistry
      * - link / link_key：跳转地址所在列，以及写进 message_logs.content 时用的键名
      * - receiver：会员表上的真实接收人列
      *
-     * @var array<string, array{enabled: string, template_id: string, data: ?string, link: ?string, link_key: ?string, receiver: string}>
+     * content：邮件正文所在列。有这一列时，主题取 template_id 列，正文取 content 列，渲染后放进 ChannelMessage 的 link。
+     *
+     * @var array<string, array{enabled: string, template_id: string, data: ?string, link: ?string, link_key: ?string, receiver: string, content?: string}>
      */
     public const EXTERNAL_CHANNELS = [
         MessageLogRepository::CHANNEL_SMS => [
@@ -53,12 +56,22 @@ class MessageChannelRegistry
             'link_key'    => 'page',
             'receiver'    => 'mini_openid',
         ],
+        MessageLogRepository::CHANNEL_EMAIL => [
+            'enabled'     => 'email_enabled',
+            'template_id' => 'email_subject',
+            'data'        => null,
+            'link'        => null,
+            'link_key'    => null,
+            'receiver'    => 'email',
+            'content'     => 'email_content',
+        ],
     ];
 
     private const CLASSES = [
         MessageLogRepository::CHANNEL_SMS             => SmsChannel::class,
         MessageLogRepository::CHANNEL_WECHAT_OFFICIAL => WechatOfficialChannel::class,
         MessageLogRepository::CHANNEL_WECHAT_MINI     => WechatMiniChannel::class,
+        MessageLogRepository::CHANNEL_EMAIL           => EmailChannel::class,
     ];
 
     /** @throws \InvalidArgumentException 不是外发通道 */

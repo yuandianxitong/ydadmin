@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 消息模板（message_templates 表，M6b spec §2.1）。软删；code 唯一且含软删行（uk_code 不区分软删）。
- * 四通道各自一个开关；微信两通道的字段映射 {字段名: 含 ${var} 的文本} 存 JSON。
+ * 五通道各自一个开关；微信两通道的字段映射 {字段名: 含 ${var} 的文本} 存 JSON。邮件主题和正文可含变量。
  *
  * Service 禁止引用本类常量（check:context 规则三），经 MessageTemplateRepository 的转发常量取值。
  */
@@ -27,6 +27,7 @@ class MessageTemplate extends Model
         'sms_enabled'             => 'integer',
         'wechat_official_enabled' => 'integer',
         'wechat_mini_enabled'     => 'integer',
+        'email_enabled'           => 'integer',
         'site_enabled'            => 'integer',
         'wechat_official_data'    => 'array',
         'wechat_mini_data'        => 'array',

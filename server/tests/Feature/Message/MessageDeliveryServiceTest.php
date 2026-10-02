@@ -330,4 +330,44 @@ final class MessageDeliveryServiceTest extends ApiTestCase
         $this->assertSame('other-worker', $log['content']);
         $this->assertSame('', $log['error_msg']);
     }
+
+    public function test_email_is_rendered_and_sent_to_the_member_address(): void
+    {
+        $email = 'member' . bin2hex(random_bytes(3)) . '@example.com';
+        $user = $this->messageUser(['email' => $email]);
+        $template = $this->insertMessageTemplate([
+            'email_enabled' => 1,
+            'email_subject' => '欢迎 ${nickname}',
+            'email_content' => '你好 ${nickname}',
+        ]);
+
+        Container::get(MessageService::class)->sendToUser($user->id, $template['code'], ['nickname' => '张三']);
+
+        $sent = $this->sentMessages();
+        $this->assertCount(1, $sent);
+        $this->assertSame('email', $sent[0]['channel']);
+        $this->assertSame($email, $sent[0]['message']->receiver);
+        $this->assertSame('欢迎 张三', $sent[0]['message']->templateId);
+        $this->assertSame('你好 张三', $sent[0]['message']->link);
+
+        $logs = $this->messageLogsFor($user->id);
+        $this->assertCount(1, $logs);
+        $this->assertSame(1, (int) $logs[0]['status']);
+        $this->assertSame('m***@example.com', $logs[0]['receiver']);
+    }
+
+    public function test_email_is_skipped_when_the_member_has_no_address(): void
+    {
+        $user = $this->messageUser(['email' => null]);
+        $template = $this->insertMessageTemplate([
+            'email_enabled' => 1,
+            'email_subject' => '欢迎 ${nickname}',
+            'email_content' => '你好 ${nickname}',
+        ]);
+
+        Container::get(MessageService::class)->sendToUser($user->id, $template['code'], ['nickname' => '张三']);
+
+        $this->assertSame([], $this->sentMessages());
+        $this->assertSame([], $this->messageLogsFor($user->id));
+    }
 }

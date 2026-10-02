@@ -97,6 +97,9 @@ class MessageTemplateController extends Controller
             'wechat_mini_enabled'         => 'sometimes|required|integer|in:0,1',
             'wechat_mini_template_id'     => 'nullable|string|max:100',
             'wechat_mini_page'            => 'nullable|string|max:200',
+            'email_enabled'               => 'sometimes|required|integer|in:0,1',
+            'email_subject'               => 'nullable|string|max:200',
+            'email_content'               => 'nullable|string|max:2000',
         ];
     }
 
@@ -116,6 +119,9 @@ class MessageTemplateController extends Controller
             'wechat_mini_enabled'         => 'sometimes|required|integer|in:0,1',
             'wechat_mini_template_id'     => 'nullable|string|max:100',
             'wechat_mini_page'            => 'nullable|string|max:200',
+            'email_enabled'               => 'sometimes|required|integer|in:0,1',
+            'email_subject'               => 'nullable|string|max:200',
+            'email_content'               => 'nullable|string|max:2000',
         ];
     }
 

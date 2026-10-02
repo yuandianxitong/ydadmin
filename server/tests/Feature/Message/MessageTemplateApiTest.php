@@ -171,6 +171,9 @@ final class MessageTemplateApiTest extends ApiTestCase
             'wechat_mini_enabled'         => 0,
             'wechat_mini_template_id'     => '',
             'wechat_mini_page'            => 'pages/index/index',
+            'email_enabled'               => 1,
+            'email_subject'               => '欢迎 ${nickname}',
+            'email_content'               => '你好 ${nickname}',
             // 以下都不在表单白名单里，必须被丢弃
             'id'                          => 987654321,
             'site_enabled'                => 1,
@@ -191,6 +194,7 @@ final class MessageTemplateApiTest extends ApiTestCase
         $this->assertSame([1, 'SMS_12345', '您好 ${nickname}'], [(int) $row->sms_enabled, $row->sms_template_id, $row->sms_content]);
         $this->assertSame([1, 'tpl-official', 'https://example.com/order/${order_no}'], [(int) $row->wechat_official_enabled, $row->wechat_official_template_id, $row->wechat_official_url]);
         $this->assertSame([0, '', 'pages/index/index'], [(int) $row->wechat_mini_enabled, $row->wechat_mini_template_id, $row->wechat_mini_page]);
+        $this->assertSame([1, '欢迎 ${nickname}', '你好 ${nickname}'], [(int) $row->email_enabled, $row->email_subject, $row->email_content]);
         $this->assertSame([0, '', ''], [(int) $row->site_enabled, $row->site_title, $row->site_content]);
         $this->assertNull($row->wechat_official_data);
         $this->assertNull($row->wechat_mini_data);
@@ -205,10 +209,10 @@ final class MessageTemplateApiTest extends ApiTestCase
         $this->assertNotNull($row);
         $this->assertSame(1, (int) $row->status);
         $this->assertNull($row->remark);
-        foreach (['sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'site_enabled'] as $flag) {
+        foreach (['sms_enabled', 'wechat_official_enabled', 'wechat_mini_enabled', 'site_enabled', 'email_enabled'] as $flag) {
             $this->assertSame(0, (int) $row->{$flag}, $flag);
         }
-        foreach (['sms_template_id', 'sms_content', 'wechat_official_template_id', 'wechat_official_url', 'wechat_mini_template_id', 'wechat_mini_page'] as $text) {
+        foreach (['sms_template_id', 'sms_content', 'wechat_official_template_id', 'wechat_official_url', 'wechat_mini_template_id', 'wechat_mini_page', 'email_subject', 'email_content'] as $text) {
             $this->assertSame('', $row->{$text}, $text);
         }
     }

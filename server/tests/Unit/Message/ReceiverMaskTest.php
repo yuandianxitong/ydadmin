@@ -22,7 +22,8 @@ final class ReceiverMaskTest extends TestCase
         yield '恰 6 位也全替换'          => ['wechat_mini', 'abcdef', '…'];
         yield '不足 6 位全替换'          => ['wechat_official', 'abc', '…'];
         yield '站内信原样'               => ['site', 'user#12', 'user#12'];
-        yield '未知通道 fail closed'     => ['email', 'someone@example.com', '…'];
+        yield '邮箱保留首字符和域名'    => ['email', 'someone@example.com', 's***@example.com'];
+        yield '未知通道 fail closed'     => ['fax', 'someone@example.com', '…'];
     }
 
     #[DataProvider('cases')]

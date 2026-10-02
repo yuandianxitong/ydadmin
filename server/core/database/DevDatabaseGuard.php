@@ -41,7 +41,7 @@ final class DevDatabaseGuard
         'points_logs'        => ['user_id'],   // M5a
         'payment_orders'     => ['order_no', 'app_id'],  // M5b + M6a 的 app_id
         'refund_orders'      => ['refund_no'], // M5b
-        'message_templates'  => ['code', 'site_enabled', 'wechat_official_data'],  // M6b
+        'message_templates'  => ['code', 'site_enabled', 'wechat_official_data', 'email_enabled'],  // M6b + 邮件通道
         'message_logs'       => ['channel', 'attempts', 'sent_at'],                // M6b
         'user_notifications' => ['user_id', 'biz_id'],                             // M6b
         'user_notification_reads' => ['notification_id'],                          // M6b

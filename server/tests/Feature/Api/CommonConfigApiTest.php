@@ -9,7 +9,7 @@ use tests\Support\ApiTestCase;
 /** M6a spec §4.9 与设计决定 12：固定白名单，不按 is_public 动态放出。 */
 final class CommonConfigApiTest extends ApiTestCase
 {
-    private const ALWAYS = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip'];
+    private const ALWAYS = ['site_name', 'site_url', 'site_logo', 'site_description', 'site_status', 'site_close_tip', 'user_register'];
 
     public function test_is_public_and_returns_exact_whitelist_without_open_app_id_when_unset(): void
     {
