@@ -53,7 +53,7 @@ final class ApiDocProductionGateTest extends TestCase
 
         $this->assertNotContains('GET /adminapi/system/api-doc', $paths, 'debug=false 时独立 Swagger 页不应注册');
         $this->assertNotContains('GET /adminapi/system/api-doc/openapi.json', $paths, 'debug=false 时 openapi.json 不应注册');
-        $this->assertContains('GET /adminapi/health', $paths, '生产闸门只影响 M2b 这两条路由，其余公开路由应照常存在');
+        $this->assertContains('GET /', $paths, '生产闸门只影响 M2b 这两条路由，其余公开路由应照常存在');
     }
 
     public function test_api_doc_routes_are_present_when_debug_is_true(): void

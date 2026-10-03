@@ -47,16 +47,9 @@ use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
 use app\middleware\ApiAuthMiddleware;
-use app\middleware\CorsMiddleware;
-use app\middleware\InstallGuardMiddleware;
-use app\middleware\LocaleMiddleware;
 use app\middleware\LoginRateLimitMiddleware;
-use app\middleware\RequestContextMiddleware;
 use core\response\Api;
 use Webman\Route;
-
-// 所有 API 路由组的外层中间件：先种 trace，再定 locale，再处理跨域（fallback 同样挂载）。
-$apiOuter = [InstallGuardMiddleware::class, RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddleware::class];
 
 // 认证组：先认身份，再按 #[Permission]/#[PermissionSkip] 判定（默认拒绝），最内层记操作日志（只记写请求）。
 // 除下方三个公开路由外，/adminapi 下的路由都必须挂在这个组里——Test6 会逐条检查。
@@ -280,7 +273,7 @@ Route::group('/adminapi', function () use ($adminAuth) {
     foreach (glob(config_path() . '/route/*.php') ?: [] as $moduleRoute) {
         require $moduleRoute;
     }
-})->middleware($apiOuter);
+});
 
 // ---- M5a：C 端 /api。与 /adminapi 并列，外层中间件相同；公开段与认证段分开写。
 // 认证段按子组挂 $apiAuth（与 /adminapi 下各子组挂 $adminAuth 同一写法），不预先建一个空的无前缀组。
@@ -361,24 +354,24 @@ Route::group('/api', function () use ($apiAuth) {
         Route::get('/list', [ApiFeedbackController::class, 'list']);
         Route::get('/detail/{id:\d+}', [ApiFeedbackController::class, 'detail']);
     })->middleware($apiAuth);
-})->middleware($apiOuter);
+});
 
-// M8：浏览器安装向导。挂在 /adminapi、/api 之外，只套 $apiOuter（不进认证组、不进 config/route/*.php 的 adminapi glob）。
+// M8：浏览器安装向导。挂在 /adminapi、/api 之外（不进认证组、不进 config/route/*.php 的 adminapi glob）。
 Route::group('/install', function () {
     Route::get('', [InstallController::class, 'index']);
     Route::get('/', [InstallController::class, 'index']);
     Route::get('/environment', [InstallController::class, 'environment']);
     Route::post('/test-connection', [InstallController::class, 'testConnection']);
     Route::post('/run', [InstallController::class, 'run']);
-})->middleware($apiOuter);
+});
 
 // SPA：public/ 下真实存在的文件已被 webman 当静态资源返回，这里只收前端路由路径
-Route::get('/', [SpaController::class, 'home'])->middleware([InstallGuardMiddleware::class]);
-Route::get('/admin[/{path:.*}]', [SpaController::class, 'admin'])->middleware([InstallGuardMiddleware::class]);
-Route::get('/pc[/{path:.*}]', [SpaController::class, 'pc'])->middleware([InstallGuardMiddleware::class]);
-Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile'])->middleware([InstallGuardMiddleware::class]);
+Route::get('/', [SpaController::class, 'home']);
+Route::get('/admin[/{path:.*}]', [SpaController::class, 'admin']);
+Route::get('/pc[/{path:.*}]', [SpaController::class, 'pc']);
+Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile']);
 
 // 未匹配的路由：HTTP 404 + 统一响应体（TP8 版未知路由同样是 HTTP 404）；关闭 webman 的「/控制器/方法」自动路由。
 // 注意与「记录不存在」区分：后者是业务错误，HTTP 200 + code 404。
-Route::fallback(fn () => Api::errorWithStatus(lang('messages.api_not_found'), 404))->middleware($apiOuter);
+Route::fallback(fn () => Api::errorWithStatus(lang('messages.api_not_found'), 404));
 Route::disableDefaultRoute();

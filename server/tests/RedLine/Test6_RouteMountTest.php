@@ -8,8 +8,11 @@ use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
 use app\middleware\CorsMiddleware;
+use app\middleware\InstallGuardMiddleware;
 use app\middleware\LocaleMiddleware;
+use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
+use tests\Support\RouteStack;
 use tests\TestCase;
 use Webman\Route;
 use Webman\Route\Route as RouteObject;
@@ -52,7 +55,7 @@ final class Test6_RouteMountTest extends TestCase
                 continue;
             }
             $checked++;
-            $missing = array_diff($required, $route->getMiddleware());
+            $missing = array_diff($required, RouteStack::outerToInner($route));
             if ($missing !== []) {
                 $short = array_map(static fn (string $class): string => substr((string) strrchr($class, '\\'), 1), $missing);
                 $offenders[] = implode('|', $route->getMethods()) . ' ' . $route->getPath() . ' 缺少 ' . implode(', ', $short);
@@ -67,7 +70,7 @@ final class Test6_RouteMountTest extends TestCase
     {
         $byPath = [];
         foreach ($this->adminapiRoutes() as $route) {
-            $byPath[$route->getPath()] = $route->getMiddleware();
+            $byPath[$route->getPath()] = RouteStack::outerToInner($route);
         }
         foreach (self::PUBLIC_ROUTES as $path) {
             $this->assertArrayHasKey($path, $byPath, "公开路由 {$path} 不存在");
@@ -76,12 +79,73 @@ final class Test6_RouteMountTest extends TestCase
         }
     }
 
-    public function test_every_adminapi_route_carries_the_outer_middlewares(): void
+    public function test_menu_index_stack_is_outer_four_then_admin_auth_once_each(): void
     {
-        foreach ($this->adminapiRoutes() as $route) {
-            foreach ([RequestContextMiddleware::class, LocaleMiddleware::class, CorsMiddleware::class] as $middleware) {
-                $this->assertContains($middleware, $route->getMiddleware(), "{$route->getPath()} 缺少 {$middleware}");
+        $route = $this->routeBy('GET', '/adminapi/system/menu');
+        $this->assertSame([
+            InstallGuardMiddleware::class,
+            RequestContextMiddleware::class,
+            LocaleMiddleware::class,
+            CorsMiddleware::class,
+            AdminAuthMiddleware::class,
+            AdminPermissionMiddleware::class,
+            AdminLogMiddleware::class,
+        ], RouteStack::outerToInner($route));
+        $this->assertSame(
+            RouteStack::outerToInner($route),
+            RouteStack::outerToInner($this->routeBy('GET', '/adminapi/auth/info')),
+        );
+    }
+
+    private function routeBy(string $method, string $path): RouteObject
+    {
+        self::ensureRoutesLoaded();
+        foreach (Route::getRoutes() as $route) {
+            if ($route->getPath() === $path && in_array($method, $route->getMethods(), true)) {
+                return $route;
             }
         }
+        $this->fail("找不到 {$method} {$path}");
+    }
+
+    public function test_health_stack_is_only_the_outer_four(): void
+    {
+        $this->assertSame([
+            InstallGuardMiddleware::class,
+            RequestContextMiddleware::class,
+            LocaleMiddleware::class,
+            CorsMiddleware::class,
+        ], RouteStack::outerToInner($this->routeBy('GET', '/adminapi/health')));
+    }
+
+    public function test_admin_login_has_rate_limit_and_no_auth(): void
+    {
+        $names = RouteStack::outerToInner($this->routeBy('POST', '/adminapi/auth/login'));
+        $this->assertSame(LoginRateLimitMiddleware::class, $names[4] ?? null);
+        $this->assertNotContains(AdminAuthMiddleware::class, $names);
+    }
+
+    public function test_spa_home_stack_is_only_the_outer_four(): void
+    {
+        $this->assertSame([
+            InstallGuardMiddleware::class,
+            RequestContextMiddleware::class,
+            LocaleMiddleware::class,
+            CorsMiddleware::class,
+        ], RouteStack::outerToInner($this->routeBy('GET', '/')));
+    }
+
+    public function test_fallback_stack_is_only_the_outer_four(): void
+    {
+        self::ensureRoutesLoaded();
+        $property = new \ReflectionProperty(Route::class, 'fallbackRoutes');
+        $stored = $property->getValue();
+        $this->assertArrayHasKey('', $stored);
+        $this->assertSame([
+            InstallGuardMiddleware::class,
+            RequestContextMiddleware::class,
+            LocaleMiddleware::class,
+            CorsMiddleware::class,
+        ], RouteStack::outerToInner($stored['']));
     }
 }

@@ -14,6 +14,7 @@ use Webman\Route\Route as RouteObject;
  * 从 Webman\Route::getRoutes() 问活的路由表要 /adminapi（或 /api）下的端点。
  * 不猜：callback 不是 [控制器类, 动作] 数组、或控制器/动作无法反射的路由一律跳过并记录理由，
  * 供 x-doc-warnings 用——一条坏路由绝不能把整份文档打成 500（spec §9）。
+ * requiresAuth 看运行时栈，不看路由对象。
  */
 final class RouteHarvester
 {
@@ -103,8 +104,13 @@ final class RouteHarvester
             return null;
         }
 
-        // getMiddleware() 含路由组挂载的中间件（tests/RedLine/Test6_RouteMountTest.php 同样靠它判定组归属）。
-        $routeMiddleware = array_values(array_filter($route->getMiddleware(), 'is_string'));
+        $stack = \Webman\Middleware::getMiddleware('', '', [$controller, $action], $route);
+        $names = [];
+        foreach ($stack as $item) {
+            if (is_array($item) && isset($item[0]) && is_string($item[0])) {
+                $names[] = $item[0];
+            }
+        }
 
         return new EndpointDescriptor(
             method: $method,
@@ -114,7 +120,7 @@ final class RouteHarvester
             permission: $permission,
             permissionSkipped: $permissionSkipped,
             tag: $this->tagFor($route->getPath()),
-            requiresAuth: array_intersect($this->authMiddleware, $routeMiddleware) !== [],
+            requiresAuth: array_intersect($this->authMiddleware, $names) !== [],
         );
     }
 
