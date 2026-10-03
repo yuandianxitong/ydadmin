@@ -8,6 +8,8 @@ use app\service\article\ArticleCategoryService;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 
 /**
@@ -17,11 +19,13 @@ use support\Response;
  *
  * 权限点体系是管理端的，C 端方法一律 #[PermissionSkip]。
  */
+#[RouteGroup('/api/article-category')]
 class ArticleCategoryController extends Controller
 {
     #[Inject]
     protected ArticleCategoryService $articleCategoryService;
 
+    #[Get('/list')]
     #[PermissionSkip]
     public function list(): Response
     {

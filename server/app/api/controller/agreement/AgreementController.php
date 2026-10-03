@@ -8,6 +8,8 @@ use app\service\agreement\AgreementService;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -18,11 +20,13 @@ use Webman\Http\Request;
  *
  * 权限点体系是管理端的，C 端方法一律 #[PermissionSkip]。
  */
+#[RouteGroup('/api/agreement')]
 class AgreementController extends Controller
 {
     #[Inject]
     protected AgreementService $agreementService;
 
+    #[Get('/{code:[a-z][a-z0-9_]{1,49}}')]
     #[PermissionSkip]
     public function show(Request $request, string $code): Response
     {

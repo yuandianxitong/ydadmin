@@ -8,6 +8,8 @@ use app\service\version\AppVersionService;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -18,11 +20,13 @@ use Webman\Http\Request;
  *
  * 权限点体系是管理端的，C 端方法一律 #[PermissionSkip]。
  */
+#[RouteGroup('/api/version')]
 class VersionController extends Controller
 {
     #[Inject]
     protected AppVersionService $appVersionService;
 
+    #[Get('/check')]
     #[PermissionSkip]
     public function check(Request $request): Response
     {

@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace app\api\controller\auth;
 
+use app\middleware\ApiAuthMiddleware;
+use app\middleware\LoginRateLimitMiddleware;
 use app\service\user\UserAuthService;
 use core\auth\TokenManager;
 use core\base\Controller;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\Middleware;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -26,11 +32,14 @@ use Webman\Http\Request;
  *
  * C 端没有权限体系（计划设计决定 2），全部方法标 #[PermissionSkip]，认证只由 ApiAuthMiddleware 负责。
  */
+#[RouteGroup('/api/auth')]
 class AuthController extends Controller
 {
     #[Inject]
     protected UserAuthService $userAuthService;
 
+    #[Middleware(LoginRateLimitMiddleware::class)]
+    #[Post('/login')]
     #[PermissionSkip]
     public function login(Request $request): Response
     {
@@ -42,6 +51,7 @@ class AuthController extends Controller
         );
     }
 
+    #[Post('/register')]
     #[PermissionSkip]
     public function register(Request $request): Response
     {
@@ -53,6 +63,7 @@ class AuthController extends Controller
         );
     }
 
+    #[Post('/sms-login')]
     #[PermissionSkip]
     public function smsLogin(Request $request): Response
     {
@@ -64,6 +75,8 @@ class AuthController extends Controller
         );
     }
 
+    #[Middleware(ApiAuthMiddleware::class)]
+    #[Post('/refresh-token')]
     #[PermissionSkip]
     public function refreshToken(Request $request): Response
     {
@@ -72,12 +85,16 @@ class AuthController extends Controller
         return $this->success(['token' => $this->userAuthService->refresh($token)], lang('messages.refresh_success'));
     }
 
+    #[Middleware(ApiAuthMiddleware::class)]
+    #[Get('/info')]
     #[PermissionSkip]
     public function info(Request $request): Response
     {
         return $this->success($this->userAuthService->getSelfInfo((int) $request->userId), lang('messages.get_success'));
     }
 
+    #[Middleware(ApiAuthMiddleware::class)]
+    #[Post('/logout')]
     #[PermissionSkip]
     public function logout(Request $request): Response
     {

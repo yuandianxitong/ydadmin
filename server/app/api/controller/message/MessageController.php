@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace app\api\controller\message;
 
+use app\api\controller\AuthenticatedController;
 use app\service\message\UserNotificationService;
-use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -19,11 +22,13 @@ use Webman\Http\Request;
  *   GET  /api/message/unread-count   unreadCount  {count}
  *   POST /api/message/read           read         {ids?: int[]}；缺省、null 或 [] → 本人全部未读；返回 []
  */
-class MessageController extends Controller
+#[RouteGroup('/api/message')]
+class MessageController extends AuthenticatedController
 {
     #[Inject]
     protected UserNotificationService $userNotificationService;
 
+    #[Get('/list')]
     #[PermissionSkip]
     public function list(Request $request): Response
     {
@@ -32,12 +37,14 @@ class MessageController extends Controller
         return $this->paginate($this->userNotificationService->getList((int) $request->userId, $page, $limit));
     }
 
+    #[Get('/unread-count')]
     #[PermissionSkip]
     public function unreadCount(Request $request): Response
     {
         return $this->success(['count' => $this->userNotificationService->unreadCount((int) $request->userId)], lang('messages.get_success'));
     }
 
+    #[Post('/read')]
     #[PermissionSkip]
     public function read(Request $request): Response
     {

@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace app\api\controller\user;
 
+use app\api\controller\AuthenticatedController;
 use app\service\payment\RechargeService;
 use app\service\user\UserService;
 use app\service\wechat\WechatAuthService;
 use app\service\wechat\WechatOaBindCookie;
-use core\base\Controller;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -20,7 +24,8 @@ use Webman\Http\Request;
  * （中间件写入，不是 core\context\RequestContext——那是管理端概念）。C 端没有权限体系，
  * 全部方法标 #[PermissionSkip]。
  */
-class UserController extends Controller
+#[RouteGroup('/api/user')]
+class UserController extends AuthenticatedController
 {
     #[Inject]
     protected UserService $userService;
@@ -34,12 +39,14 @@ class UserController extends Controller
     #[Inject]
     protected WechatOaBindCookie $oaBindCookie;
 
+    #[Get('/profile')]
     #[PermissionSkip]
     public function profile(Request $request): Response
     {
         return $this->success($this->userService->getProfile((int) $request->userId), lang('messages.get_success'));
     }
 
+    #[Put('/profile')]
     #[PermissionSkip]
     public function updateProfile(Request $request): Response
     {
@@ -49,6 +56,7 @@ class UserController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Put('/change-password')]
     #[PermissionSkip]
     public function changePassword(Request $request): Response
     {
@@ -58,18 +66,21 @@ class UserController extends Controller
         return $this->success([], lang('messages.password_change_success'));
     }
 
+    #[Get('/balance')]
     #[PermissionSkip]
     public function balance(Request $request): Response
     {
         return $this->success(['balance' => $this->userService->getBalance((int) $request->userId)], lang('messages.get_success'));
     }
 
+    #[Get('/points')]
     #[PermissionSkip]
     public function points(Request $request): Response
     {
         return $this->success(['points' => $this->userService->getPoints((int) $request->userId)], lang('messages.get_success'));
     }
 
+    #[Get('/balance-logs')]
     #[PermissionSkip]
     public function balanceLogs(Request $request): Response
     {
@@ -78,6 +89,7 @@ class UserController extends Controller
         return $this->paginate($this->userService->getBalanceLogs((int) $request->userId, $page, $limit));
     }
 
+    #[Get('/points-logs')]
     #[PermissionSkip]
     public function pointsLogs(Request $request): Response
     {
@@ -90,6 +102,7 @@ class UserController extends Controller
      * 余额充值（M5b spec §5.1）。端类型只看 X-Client-Type；客户端 IP 用 ClientIp::resolve()，
      * 不用 getRealIp()（直连地址是私网时它会信任客户端伪造的 X-Forwarded-For）。
      */
+    #[Post('/recharge')]
     #[PermissionSkip]
     public function recharge(Request $request): Response
     {
@@ -109,6 +122,7 @@ class UserController extends Controller
     /**
      * POST /api/user/bind-oa-openid（spec §4.8）。openid 的可信来源是 HttpOnly cookie，不是请求体。
      */
+    #[Post('/bind-oa-openid')]
     #[PermissionSkip]
     public function bindOaOpenid(Request $request): Response
     {

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace app\api\controller\feedback;
 
+use app\api\controller\AuthenticatedController;
 use app\service\feedback\FeedbackService;
-use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -19,11 +22,13 @@ use Webman\Http\Request;
  *   GET  /api/feedback/list            list    分页（page_no/page_size，默认 10），只含本人
  *   GET  /api/feedback/detail/{id}     detail  本人详情；他人 / 不存在 → body.code 404
  */
-class FeedbackController extends Controller
+#[RouteGroup('/api/feedback')]
+class FeedbackController extends AuthenticatedController
 {
     #[Inject]
     protected FeedbackService $feedbackService;
 
+    #[Post('/submit')]
     #[PermissionSkip]
     public function submit(Request $request): Response
     {
@@ -32,6 +37,7 @@ class FeedbackController extends Controller
         return $this->success($this->feedbackService->submit((int) $request->userId, $data), lang('messages.create_success'));
     }
 
+    #[Get('/list')]
     #[PermissionSkip]
     public function list(Request $request): Response
     {
@@ -40,6 +46,7 @@ class FeedbackController extends Controller
         return $this->paginate($this->feedbackService->getUserList((int) $request->userId, $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[PermissionSkip]
     public function detail(Request $request, string $id): Response
     {

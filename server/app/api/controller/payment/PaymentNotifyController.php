@@ -10,6 +10,8 @@ use core\payment\Channel;
 use core\payment\dto\NotifyRequest;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -20,17 +22,20 @@ use Webman\Http\Request;
  * 控制器只负责把 webman 请求翻成 NotifyRequest：头名一律小写，body 原样（验签覆盖原始字节，不能重新编码），
  * form 是框架解析出的表单（支付宝验签用）。整段 try/catch 兜底：回调端点不允许冒出统一异常处理器的 JSON。
  */
+#[RouteGroup('/api/payment/notify')]
 class PaymentNotifyController extends Controller
 {
     #[Inject]
     protected PaymentService $paymentService;
 
+    #[Post('/wechat')]
     #[PermissionSkip]
     public function wechat(Request $request): Response
     {
         return $this->handle(Channel::WECHAT, $request);
     }
 
+    #[Post('/alipay')]
     #[PermissionSkip]
     public function alipay(Request $request): Response
     {

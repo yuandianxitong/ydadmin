@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\api\controller\common;
 
+use app\middleware\ApiAuthMiddleware;
 use app\service\common\CommonConfigService;
 use app\service\system\UploadService;
 use app\service\user\SmsCodeService;
@@ -11,6 +12,10 @@ use core\base\Controller;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\Middleware;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -24,6 +29,7 @@ use Webman\Http\Request;
  * C 端控制器一律 #[PermissionSkip]（计划「设计决定」第 2 条）：权限点体系是管理端的，
  * C 端的准入由路由组挂不挂 ApiAuthMiddleware 决定。也不经 AdminLogMiddleware，不登记操作日志文案。
  */
+#[RouteGroup('/api/common')]
 class CommonController extends Controller
 {
     #[Inject]
@@ -35,6 +41,7 @@ class CommonController extends Controller
     #[Inject]
     protected UploadService $uploadService;
 
+    #[Post('/sms-code')]
     #[PermissionSkip]
     public function smsCode(Request $request): Response
     {
@@ -50,6 +57,7 @@ class CommonController extends Controller
         return $this->success([], lang('messages.sms_code_sent'));
     }
 
+    #[Get('/config')]
     #[PermissionSkip]
     public function config(): Response
     {
@@ -60,6 +68,8 @@ class CommonController extends Controller
      * 会员上传图片（头像、反馈）。校验和落盘与管理端同一套，upload_by 保持 0：
      * acting user 只代表管理员，不把会员 id 写进那一列。
      */
+    #[Middleware(ApiAuthMiddleware::class)]
+    #[Post('/upload/image')]
     #[PermissionSkip]
     public function uploadImage(Request $request): Response
     {

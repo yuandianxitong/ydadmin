@@ -9,6 +9,9 @@ use app\service\wechat\WechatServeService;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Route;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -20,6 +23,7 @@ use Webman\Http\Request;
  *
  * 1.x 的 oauth-callback / get-openid 不做：前端不调用，且那一对是开放跳转。
  */
+#[RouteGroup('/api/wechat')]
 class WechatController extends Controller
 {
     #[Inject]
@@ -28,6 +32,7 @@ class WechatController extends Controller
     #[Inject]
     protected WechatServeService $wechatServeService;
 
+    #[Get('/oauth-url')]
     #[PermissionSkip]
     public function oauthUrl(Request $request): Response
     {
@@ -37,6 +42,7 @@ class WechatController extends Controller
         return $this->success(['url' => $this->wechatAuthService->oauthUrl((string) $data['redirect_url'], $scope)], lang('messages.get_success'));
     }
 
+    #[Route('/serve', ['GET', 'POST'])]
     #[PermissionSkip]
     public function serve(Request $request): Response
     {

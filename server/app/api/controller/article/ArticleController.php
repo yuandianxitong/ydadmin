@@ -8,6 +8,8 @@ use app\service\article\ArticleService;
 use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -19,11 +21,13 @@ use Webman\Http\Request;
  *
  * 权限点体系是管理端的，C 端方法一律 #[PermissionSkip]。
  */
+#[RouteGroup('/api/article')]
 class ArticleController extends Controller
 {
     #[Inject]
     protected ArticleService $articleService;
 
+    #[Get('/list')]
     #[PermissionSkip]
     public function list(Request $request): Response
     {
@@ -32,6 +36,7 @@ class ArticleController extends Controller
         return $this->paginate($this->articleService->getPublishedList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[PermissionSkip]
     public function detail(Request $request, string $id): Response
     {

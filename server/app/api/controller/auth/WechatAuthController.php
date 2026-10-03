@@ -12,6 +12,8 @@ use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use core\wechat\exception\WechatNotConfiguredException;
 use DI\Attribute\Inject;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -25,6 +27,7 @@ use Webman\Http\Request;
  *   POST /api/auth/wechat-bindphone   bindPhone   用 temp_token + 手机号授权码完成登录
  *   POST /api/auth/wechat-h5-login    h5Login     公众号静默登录（未绑定返回 need_login，并下发绑定证明 cookie）
  */
+#[RouteGroup('/api/auth')]
 class WechatAuthController extends Controller
 {
     #[Inject]
@@ -33,6 +36,7 @@ class WechatAuthController extends Controller
     #[Inject]
     protected WechatOaBindCookie $oaBindCookie;
 
+    #[Post('/wechat-web-login')]
     #[PermissionSkip]
     public function webLogin(Request $request): Response
     {
@@ -44,6 +48,7 @@ class WechatAuthController extends Controller
         );
     }
 
+    #[Post('/wechat-login')]
     #[PermissionSkip]
     public function miniLogin(Request $request): Response
     {
@@ -55,6 +60,7 @@ class WechatAuthController extends Controller
         );
     }
 
+    #[Post('/wechat-quick-login')]
     #[PermissionSkip]
     public function quickLogin(Request $request): Response
     {
@@ -66,6 +72,7 @@ class WechatAuthController extends Controller
         );
     }
 
+    #[Post('/wechat-bindphone')]
     #[PermissionSkip]
     public function bindPhone(Request $request): Response
     {
@@ -81,6 +88,7 @@ class WechatAuthController extends Controller
      * 未绑定时在同一响应下发绑定证明 cookie（spec §5）。用户 JWT 密钥为空签不出证明：回「微信登录未配置」，
      * 不让 WechatNotConfiguredException 漏成 HTTP 500，也不下发 cookie。
      */
+    #[Post('/wechat-h5-login')]
     #[PermissionSkip]
     public function h5Login(Request $request): Response
     {

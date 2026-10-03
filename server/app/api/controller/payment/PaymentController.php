@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace app\api\controller\payment;
 
+use app\api\controller\AuthenticatedController;
 use app\service\payment\PaymentService;
-use core\base\Controller;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -16,11 +18,13 @@ use Webman\Http\Request;
  * 只能查自己的订单：非本人与不存在同一个 404，不泄漏订单是否存在。
  * 回调是另一个公开控制器（PaymentNotifyController），不放在这里。
  */
-class PaymentController extends Controller
+#[RouteGroup('/api/payment')]
+class PaymentController extends AuthenticatedController
 {
     #[Inject]
     protected PaymentService $paymentService;
 
+    #[Get('/query')]
     #[PermissionSkip]
     public function query(Request $request): Response
     {
