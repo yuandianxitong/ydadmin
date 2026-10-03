@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\region;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\region\RegionService;
-use core\base\Controller;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 地区。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/region.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/region/list              index   region.list
  *   GET    /adminapi/region/tree              tree    PermissionSkip
  *   GET    /adminapi/common/regions           tree    PermissionSkip（与 tree 同一动作）
@@ -30,11 +35,13 @@ use Webman\Http\Request;
  *
  * store()/update() 各自的校验规则由同名的 xxxRules() 无参私有方法提供。
  */
-class RegionController extends Controller
+#[RouteGroup('/adminapi')]
+class RegionController extends AuthenticatedController
 {
     #[Inject]
     protected RegionService $regionService;
 
+    #[Get('/region/list')]
     #[Permission('region.list')]
     public function index(Request $request): Response
     {
@@ -43,18 +50,22 @@ class RegionController extends Controller
         return $this->paginate($this->regionService->getList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/region/tree')]
+    #[Get('/common/regions')]
     #[PermissionSkip]
     public function tree(): Response
     {
         return $this->success($this->regionService->getTree());
     }
 
+    #[Get('/region/detail/{id:\d+}')]
     #[Permission('region.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->regionService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('/region')]
     #[Permission('region.create')]
     public function store(Request $request): Response
     {
@@ -63,6 +74,7 @@ class RegionController extends Controller
         return $this->success($this->regionService->create($data), lang('messages.create_success'));
     }
 
+    #[Put('/region/{id:\d+}')]
     #[Permission('region.update')]
     public function update(Request $request, string $id): Response
     {
@@ -72,6 +84,7 @@ class RegionController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/region/{id:\d+}')]
     #[Permission('region.delete')]
     public function delete(Request $request, string $id): Response
     {

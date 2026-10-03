@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\article;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\article\ArticleCategoryService;
-use core\base\Controller;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 文章栏目（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/article_category.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/article-category/list            index    article_category.list
  *   GET    /adminapi/article-category/options         options  PermissionSkip
  *   POST   /adminapi/article-category                 store    article_category.create
@@ -31,11 +36,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class ArticleCategoryController extends Controller
+#[RouteGroup('/adminapi/article-category')]
+class ArticleCategoryController extends AuthenticatedController
 {
     #[Inject]
     protected ArticleCategoryService $articleCategoryService;
 
+    #[Get('/list')]
     #[Permission('article_category.list')]
     public function index(Request $request): Response
     {
@@ -44,6 +51,7 @@ class ArticleCategoryController extends Controller
         return $this->success($this->articleCategoryService->getTree($params));
     }
 
+    #[Get('/options')]
     #[PermissionSkip]
     public function options(Request $request): Response
     {
@@ -56,6 +64,7 @@ class ArticleCategoryController extends Controller
         return $this->success($this->articleCategoryService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('article_category.create')]
     public function store(Request $request): Response
     {
@@ -64,6 +73,7 @@ class ArticleCategoryController extends Controller
         return $this->success($this->articleCategoryService->create($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('article_category.update')]
     public function update(Request $request, string $id): Response
     {
@@ -73,6 +83,7 @@ class ArticleCategoryController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('article_category.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -95,6 +106,7 @@ class ArticleCategoryController extends Controller
         return $this->success([], lang('messages.batch_delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('article_category.update')]
     public function status(Request $request, string $id): Response
     {

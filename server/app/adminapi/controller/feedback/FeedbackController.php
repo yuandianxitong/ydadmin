@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\feedback;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\feedback\FeedbackService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 管理端反馈（M7a spec §5）。无创建路由：反馈只由 C 端提交。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/feedback.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/feedback/list          index   feedback.list
  *   GET    /adminapi/feedback/detail/{id}   show    feedback.list
  *   POST   /adminapi/feedback/reply         reply   feedback.reply
@@ -23,11 +27,13 @@ use Webman\Http\Request;
  *
  * reply() 的校验规则由 replyRules() 提供：M2b 的 RuleReflector 按动作名反射调用 "{action}Rules"。
  */
-class FeedbackController extends Controller
+#[RouteGroup('/adminapi/feedback')]
+class FeedbackController extends AuthenticatedController
 {
     #[Inject]
     protected FeedbackService $feedbackService;
 
+    #[Get('/list')]
     #[Permission('feedback.list')]
     public function index(Request $request): Response
     {
@@ -36,12 +42,14 @@ class FeedbackController extends Controller
         return $this->paginate($this->feedbackService->getList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[Permission('feedback.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->feedbackService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('/reply')]
     #[Permission('feedback.reply')]
     public function reply(Request $request): Response
     {
@@ -51,6 +59,7 @@ class FeedbackController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Post('/close/{id:\d+}')]
     #[Permission('feedback.close')]
     public function close(Request $request, string $id): Response
     {
@@ -59,6 +68,7 @@ class FeedbackController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('feedback.delete')]
     public function delete(Request $request, string $id): Response
     {

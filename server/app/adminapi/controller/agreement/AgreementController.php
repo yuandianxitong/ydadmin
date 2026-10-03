@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\agreement;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\agreement\AgreementService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 协议（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/agreement.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/agreement/list              index   agreement.list
  *   GET    /adminapi/agreement/detail/{id}       show    agreement.list
  *   POST   /adminapi/agreement                   store   agreement.create
@@ -31,11 +36,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class AgreementController extends Controller
+#[RouteGroup('/adminapi/agreement')]
+class AgreementController extends AuthenticatedController
 {
     #[Inject]
     protected AgreementService $agreementService;
 
+    #[Get('/list')]
     #[Permission('agreement.list')]
     public function index(Request $request): Response
     {
@@ -44,12 +51,14 @@ class AgreementController extends Controller
         return $this->paginate($this->agreementService->getAgreementList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[Permission('agreement.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->agreementService->getAgreementDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('agreement.create')]
     public function store(Request $request): Response
     {
@@ -58,6 +67,7 @@ class AgreementController extends Controller
         return $this->success($this->agreementService->createAgreement($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('agreement.update')]
     public function update(Request $request, string $id): Response
     {
@@ -67,6 +77,7 @@ class AgreementController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('agreement.delete')]
     public function delete(Request $request, string $id): Response
     {

@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\diy;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\diy\DiyLinkService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 装修链接库。
  *
- * 端点（见 config/route/diy.php）：
+ * 端点：
  *   GET    /adminapi/diy/links            index   diy.link.list
  *   POST   /adminapi/diy/links            store   diy.link.create
  *   PUT    /adminapi/diy/links/{id}       update  diy.link.update
@@ -23,17 +28,20 @@ use Webman\Http\Request;
  * store()/update() 的校验规则由同名的 xxxRules() 无参私有方法提供。
  * index 返回裸数组，禁止 $this->paginate()。
  */
-class DiyLinkController extends Controller
+#[RouteGroup('/adminapi/diy')]
+class DiyLinkController extends AuthenticatedController
 {
     #[Inject]
     protected DiyLinkService $diyLinkService;
 
+    #[Get('/links')]
     #[Permission('diy.link.list')]
     public function index(): Response
     {
         return $this->success($this->diyLinkService->list());
     }
 
+    #[Post('/links')]
     #[Permission('diy.link.create')]
     public function store(Request $request): Response
     {
@@ -42,6 +50,7 @@ class DiyLinkController extends Controller
         return $this->success($this->diyLinkService->create($data), lang('messages.create_success'));
     }
 
+    #[Put('/links/{id:\d+}')]
     #[Permission('diy.link.update')]
     public function update(Request $request, string $id): Response
     {
@@ -51,6 +60,7 @@ class DiyLinkController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/links/{id:\d+}')]
     #[Permission('diy.link.delete')]
     public function delete(Request $request, string $id): Response
     {

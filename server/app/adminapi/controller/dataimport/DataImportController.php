@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\dataimport;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\dataimport\DataImportService;
 use app\service\system\SystemConfigService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\exception\BusinessException;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 use Webman\Http\UploadFile;
@@ -25,7 +28,8 @@ use Webman\Http\UploadFile;
  * 不写 files 表：上传文件自行移到 runtime/imports/。不调 UploadService / FileService。
  * upload() 的校验规则由 uploadRules() 提供（规则七：validate 第二参必须是 $this->uploadRules()）。
  */
-class DataImportController extends Controller
+#[RouteGroup('/adminapi/dataimport')]
+class DataImportController extends AuthenticatedController
 {
     private const DEFAULT_FILE_MAX_MB = 10;
 
@@ -35,6 +39,7 @@ class DataImportController extends Controller
     #[Inject]
     protected SystemConfigService $systemConfigService;
 
+    #[Post('/upload')]
     #[Permission('dataimport.upload')]
     public function upload(Request $request): Response
     {
@@ -79,6 +84,7 @@ class DataImportController extends Controller
         return $this->success($result);
     }
 
+    #[Get('/history')]
     #[Permission('dataimport.history')]
     public function history(Request $request): Response
     {

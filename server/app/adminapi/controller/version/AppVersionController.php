@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\version;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\version\AppVersionService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 应用版本（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/version.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/version/list              index   version.list
  *   GET    /adminapi/version/detail/{id}       show    version.list
  *   POST   /adminapi/version                   store   version.create
@@ -30,11 +35,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class AppVersionController extends Controller
+#[RouteGroup('/adminapi/version')]
+class AppVersionController extends AuthenticatedController
 {
     #[Inject]
     protected AppVersionService $appVersionService;
 
+    #[Get('/list')]
     #[Permission('version.list')]
     public function index(Request $request): Response
     {
@@ -43,12 +50,14 @@ class AppVersionController extends Controller
         return $this->paginate($this->appVersionService->getAppVersionList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[Permission('version.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->appVersionService->getAppVersionDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('version.create')]
     public function store(Request $request): Response
     {
@@ -57,6 +66,7 @@ class AppVersionController extends Controller
         return $this->success($this->appVersionService->createAppVersion($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('version.update')]
     public function update(Request $request, string $id): Response
     {
@@ -66,6 +76,7 @@ class AppVersionController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('version.delete')]
     public function delete(Request $request, string $id): Response
     {

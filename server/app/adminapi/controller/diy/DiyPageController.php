@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\diy;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\diy\DiyPageService;
 use app\service\diy\LinkCatalogService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\exception\ForbiddenException;
 use core\permission\Permission;
 use core\permission\PermissionCheckerInterface;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 装修页面。
  *
- * 端点（具名/静态路径必须排在裸 /home 之前；pages/{key} 必须排在 pages/{id} 之前，见 config/route/diy.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/diy/home/summary                         homeSummary           diy.home.view
  *   POST   /adminapi/diy/home/publish                         publishHome           diy.home.publish
  *   GET    /adminapi/diy/home/versions                        versions              diy.home.version.view
@@ -43,7 +48,8 @@ use Webman\Http\Request;
  * saveHome()/saveDraftByKey()/createPage()/updatePage()/previewWidget() 的校验规则由同名的 xxxRules() 无参私有方法提供。
  * listPages 禁止 $this->paginate()：前端冻的是 {list,total}。
  */
-class DiyPageController extends Controller
+#[RouteGroup('/adminapi/diy')]
+class DiyPageController extends AuthenticatedController
 {
     #[Inject]
     protected DiyPageService $diyPageService;
@@ -72,18 +78,21 @@ class DiyPageController extends Controller
         }
     }
 
+    #[Get('/home/summary')]
     #[Permission('diy.home.view')]
     public function homeSummary(): Response
     {
         return $this->success($this->diyPageService->getHomeSummary());
     }
 
+    #[Get('/home')]
     #[Permission('diy.home.view')]
     public function getHome(): Response
     {
         return $this->success($this->diyPageService->getHomeDraft());
     }
 
+    #[Put('/home')]
     #[Permission('diy.home.save')]
     public function saveHome(Request $request): Response
     {
@@ -96,6 +105,7 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Post('/home/publish')]
     #[Permission('diy.home.publish')]
     public function publishHome(): Response
     {
@@ -104,12 +114,14 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Get('/home/versions')]
     #[Permission('diy.home.version.view')]
     public function versions(): Response
     {
         return $this->success($this->diyPageService->listHomeVersions());
     }
 
+    #[Post('/home/versions/{id:\d+}/restore')]
     #[Permission('diy.home.version.restore')]
     public function restoreVersion(Request $request, string $id): Response
     {
@@ -118,18 +130,21 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Get('/pages/{key:[a-z0-9-]+}/summary')]
     #[Permission('diy.home.view')]
     public function pageSummary(Request $request, string $key): Response
     {
         return $this->success($this->diyPageService->getPageSummary($key));
     }
 
+    #[Get('/pages/{key:[a-z0-9-]+}/draft')]
     #[Permission('diy.page.view')]
     public function getDraftByKey(Request $request, string $key): Response
     {
         return $this->success($this->diyPageService->getDraft($key));
     }
 
+    #[Put('/pages/{key:[a-z0-9-]+}/draft')]
     #[Permission('diy.page.save')]
     public function saveDraftByKey(Request $request, string $key): Response
     {
@@ -144,6 +159,7 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Post('/pages/{key:[a-z0-9-]+}/publish')]
     #[Permission('diy.page.publish')]
     public function publishByKey(Request $request, string $key): Response
     {
@@ -153,12 +169,14 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Get('/pages/{key:[a-z0-9-]+}/versions')]
     #[Permission('diy.page.view')]
     public function versionsByKey(Request $request, string $key): Response
     {
         return $this->success($this->diyPageService->listPageVersions($key));
     }
 
+    #[Post('/pages/{key:[a-z0-9-]+}/versions/{id:\d+}/restore')]
     #[Permission('diy.page.save')]
     public function restoreVersionByKey(Request $request, string $key, string $id): Response
     {
@@ -168,12 +186,14 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.success'));
     }
 
+    #[Get('/widgets')]
     #[Permission('diy.home.view')]
     public function widgets(): Response
     {
         return $this->success($this->diyPageService->widgets());
     }
 
+    #[Post('/widget-preview')]
     #[Permission('diy.home.view')]
     public function previewWidget(Request $request): Response
     {
@@ -185,12 +205,14 @@ class DiyPageController extends Controller
         ));
     }
 
+    #[Get('/link-catalog')]
     #[Permission('diy.home.view')]
     public function linkCatalog(): Response
     {
         return $this->success(['links' => $this->linkCatalogService->catalog()]);
     }
 
+    #[Get('/pages')]
     #[Permission('diy.page.view')]
     public function listPages(Request $request): Response
     {
@@ -205,6 +227,7 @@ class DiyPageController extends Controller
         ));
     }
 
+    #[Post('/pages')]
     #[Permission('diy.page.create')]
     public function createPage(Request $request): Response
     {
@@ -213,12 +236,14 @@ class DiyPageController extends Controller
         return $this->success($this->diyPageService->createPage($data), lang('messages.create_success'));
     }
 
+    #[Post('/pages/{id:\d+}/copy')]
     #[Permission('diy.page.create')]
     public function copyPage(Request $request, string $id): Response
     {
         return $this->success($this->diyPageService->copyPage((int) $id), lang('messages.create_success'));
     }
 
+    #[Put('/pages/{id:\d+}')]
     #[Permission('diy.page.update')]
     public function updatePage(Request $request, string $id): Response
     {
@@ -228,6 +253,7 @@ class DiyPageController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/pages/{id:\d+}')]
     #[Permission('diy.page.delete')]
     public function deletePage(Request $request, string $id): Response
     {

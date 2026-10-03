@@ -97,6 +97,21 @@ final class Test6_RouteMountTest extends TestCase
         );
     }
 
+    public function test_region_tree_and_common_regions_share_the_admin_stack(): void
+    {
+        $expected = [
+            InstallGuardMiddleware::class,
+            RequestContextMiddleware::class,
+            LocaleMiddleware::class,
+            CorsMiddleware::class,
+            AdminAuthMiddleware::class,
+            AdminPermissionMiddleware::class,
+            AdminLogMiddleware::class,
+        ];
+        $this->assertSame($expected, RouteStack::outerToInner($this->routeBy('GET', '/adminapi/region/tree')));
+        $this->assertSame($expected, RouteStack::outerToInner($this->routeBy('GET', '/adminapi/common/regions')));
+    }
+
     private function routeBy(string $method, string $path): RouteObject
     {
         self::ensureRoutesLoaded();

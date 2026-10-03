@@ -9,7 +9,6 @@ use app\api\controller\user\UserController;
 use app\api\controller\wechat\WechatController;
 use app\adminapi\controller\HealthController;
 use app\adminapi\controller\system\ApiDocController;
-use app\adminapi\controller\region\RegionController;
 use app\api\controller\agreement\AgreementController as ApiAgreementController;
 use app\api\controller\announcement\AnnouncementController as ApiAnnouncementController;
 use app\api\controller\article\ArticleCategoryController as ApiArticleCategoryController;
@@ -62,15 +61,6 @@ Route::group('/adminapi', function () use ($adminAuth) {
         Route::post('/logout', [AuthController::class, 'logout']);
     })->middleware($adminAuth);
 
-    // M7b：级联选择器（admin Region 组件走 /common/regions；与 /region/tree 同一动作）
-    Route::get('/common/regions', [RegionController::class, 'tree'])->middleware($adminAuth);
-
-    // 生成的模块路由：代码生成器每个模块产出一个文件，这里统一 require。
-    // 被 require 的文件在本闭包体内执行（require 不新开作用域），因此文件里能直接用外层 use
-    // 进来的 $adminAuth——这也是它必须被 require 进这个闭包、而不是在别处独立注册的原因。
-    foreach (glob(config_path() . '/route/*.php') ?: [] as $moduleRoute) {
-        require $moduleRoute;
-    }
 });
 
 // ---- M5a：C 端 /api。与 /adminapi 并列，外层中间件相同；公开段与认证段分开写。
@@ -154,7 +144,7 @@ Route::group('/api', function () use ($apiAuth) {
     })->middleware($apiAuth);
 });
 
-// M8：浏览器安装向导。挂在 /adminapi、/api 之外（不进认证组、不进 config/route/*.php 的 adminapi glob）。
+// M8：浏览器安装向导。挂在 /adminapi、/api 之外（不进认证组）。
 Route::group('/install', function () {
     Route::get('', [InstallController::class, 'index']);
     Route::get('/', [InstallController::class, 'index']);

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\mobile;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\mobile\MobileConfigService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -21,23 +24,27 @@ use Webman\Http\Request;
  * update() 的校验规则由 updateRules() 提供。未知键被 validate 白名单丢掉；
  * tabbar 条数与单项必填由 Service 再验。
  */
-class MobileConfigController extends Controller
+#[RouteGroup('/adminapi/mobile')]
+class MobileConfigController extends AuthenticatedController
 {
     #[Inject]
     protected MobileConfigService $mobileConfigService;
 
+    #[Get('/config')]
     #[Permission('mobile.config.view')]
     public function show(): Response
     {
         return $this->success($this->mobileConfigService->get());
     }
 
+    #[Get('/config/eligible')]
     #[Permission('mobile.config.view')]
     public function eligible(): Response
     {
         return $this->success($this->mobileConfigService->listEligible());
     }
 
+    #[Put('/config')]
     #[Permission('mobile.config.update')]
     public function update(Request $request): Response
     {

@@ -4,24 +4,29 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\payment;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\payment\PaymentAdminService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\exception\BusinessException;
 use core\payment\Money;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 管理端充值订单。退款写路径复用 RefundService，操作人 admin:{id}。
  */
-class PaymentOrderController extends Controller
+#[RouteGroup('/adminapi/payment/order')]
+class PaymentOrderController extends AuthenticatedController
 {
     #[Inject]
     protected PaymentAdminService $paymentAdminService;
 
+    #[Get('/list')]
     #[Permission('payment.order.list')]
     public function index(Request $request): Response
     {
@@ -30,12 +35,14 @@ class PaymentOrderController extends Controller
         return $this->paginate($this->paymentAdminService->getList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{orderNo:[A-Za-z0-9]+}')]
     #[Permission('payment.order.detail')]
     public function show(string $orderNo): Response
     {
         return $this->success($this->paymentAdminService->getDetail($orderNo), lang('messages.get_success'));
     }
 
+    #[Post('/refund')]
     #[Permission('payment.order.refund')]
     public function refund(Request $request): Response
     {

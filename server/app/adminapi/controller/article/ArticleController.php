@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\article;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\article\ArticleService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 文章（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/article.php）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/article/list              index   article.list
  *   GET    /adminapi/article/detail/{id}       show    article.list
  *   POST   /adminapi/article                   store   article.create
@@ -30,11 +35,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class ArticleController extends Controller
+#[RouteGroup('/adminapi/article')]
+class ArticleController extends AuthenticatedController
 {
     #[Inject]
     protected ArticleService $articleService;
 
+    #[Get('/list')]
     #[Permission('article.list')]
     public function index(Request $request): Response
     {
@@ -43,12 +50,14 @@ class ArticleController extends Controller
         return $this->paginate($this->articleService->getArticleList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[Permission('article.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->articleService->getArticleDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('article.create')]
     public function store(Request $request): Response
     {
@@ -57,6 +66,7 @@ class ArticleController extends Controller
         return $this->success($this->articleService->createArticle($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('article.update')]
     public function update(Request $request, string $id): Response
     {
@@ -66,6 +76,7 @@ class ArticleController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('article.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -88,6 +99,7 @@ class ArticleController extends Controller
         return $this->success([], lang('messages.batch_delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('article.status')]
     public function status(Request $request, string $id): Response
     {
