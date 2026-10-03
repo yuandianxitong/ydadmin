@@ -977,6 +977,8 @@ export default {
         previewCode: 'Preview Code',
         confirmGenerate: 'Confirm Generate',
         resultTitle: 'Generation Result',
+        reloadRequired:
+            'Run php start.php reload on the server before the new controller routes take effect.',
         filePath: 'File Path',
         statusLabel: 'Status',
         statusCreated: 'Created',

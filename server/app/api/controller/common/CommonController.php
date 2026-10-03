@@ -27,7 +27,7 @@ use Webman\Http\Request;
  *   POST /api/common/upload/image    uploadImage  已登录会员
  *
  * C 端控制器一律 #[PermissionSkip]（计划「设计决定」第 2 条）：权限点体系是管理端的，
- * C 端的准入由路由组挂不挂 ApiAuthMiddleware 决定。也不经 AdminLogMiddleware，不登记操作日志文案。
+ * C 端的准入由方法上挂不挂 #[Middleware(ApiAuthMiddleware::class)] 决定（如 uploadImage）。也不经 AdminLogMiddleware，不登记操作日志文案。
  */
 #[RouteGroup('/api/common')]
 class CommonController extends Controller

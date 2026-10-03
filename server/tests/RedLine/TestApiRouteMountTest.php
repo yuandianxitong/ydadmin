@@ -97,7 +97,7 @@ final class TestApiRouteMountTest extends TestCase
             }
         }
 
-        $this->assertGreaterThanOrEqual(19, $checked, '认证段：auth 3、user 9、payment 1、message 3、feedback 3、upload 1');
+        $this->assertGreaterThanOrEqual(20, $checked, '认证段：auth 3、user 9、payment 1、message 3、feedback 3、upload 1');
         $this->assertSame([], $offenders, "以下 /api 路由没有 ApiAuthMiddleware：\n" . implode("\n", $offenders));
     }
 

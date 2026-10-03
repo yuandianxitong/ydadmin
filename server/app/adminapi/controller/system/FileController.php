@@ -20,7 +20,7 @@ use Webman\Http\Request;
 /**
  * 文件管理（契约 §2.9.1）。
  *
- * 端点（具名路由在 {id} 通配路由之前注册）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/system/file                index        system.file.list
  *   GET    /adminapi/system/file/groups          groups       PermissionSkip
  *   POST   /adminapi/system/file/move-group      moveGroup    system.file.update

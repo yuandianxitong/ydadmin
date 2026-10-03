@@ -79,7 +79,7 @@ final class RouteHarvester
 
         [$controller, $action] = $callback;
 
-        // webman 会保留 callback 不可调用的路由（例如删了生成的控制器、config/route/{module}.php 还在），
+        // webman 会保留 callback 不可调用的路由（例如控制器文件已删除，但进程内仍保留着它的路由），
         // 只在控制台打一行 "is not callable"。反射与注解实例化的任何异常都只影响这一条路由。
         // 只记异常类名，不回显异常原文。
         try {

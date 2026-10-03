@@ -23,7 +23,7 @@ use Webman\Http\UploadFile;
 /**
  * 管理端会员管理（spec §6.3）。
  *
- * 端点（具名路由都在 {id} 通配路由之前注册）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET  /adminapi/user/list             index          user.list
  *   GET  /adminapi/user/balance-logs     balanceLogs    user.balance-logs
  *   GET  /adminapi/user/points-logs      pointsLogs     user.points-logs

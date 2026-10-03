@@ -20,7 +20,7 @@ final class OpenApiDocumentTest extends TestCase
     }
 
     /**
-     * 'show' 故意用路由表里真实的原始写法 `{id:\d+}`(见 server/config/route.php 第 117 行)
+     * 'show' 故意用路由表里真实的原始写法 `{id:\d+}`(控制器路由注解里保留的写法)
      * 而不是契约注释里简化过的 `{id}`:EndpointDescriptor::pathParameters() 的文档明写
      * 「从 path 里的 {id:\d+} 解析,\d+ → integer」,这条推断规则要成立,$path 就必须保留
      * 原始的类型约束写法,否则 pathParameters() 无从判断 integer 还是 string。据此,

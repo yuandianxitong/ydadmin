@@ -8,7 +8,7 @@ namespace core\apidoc;
 final class EndpointDescriptor
 {
     /**
-     * @param bool $requiresAuth 路由实际挂载的中间件（含路由组挂载的）里是否有「需登录」的认证中间件。
+     * @param bool $requiresAuth 运行期实际中间件栈（全局、控制器与方法上的，由 RouteStack 解析）里是否有「需登录」的认证中间件。
      *                           与注解无关：#[PermissionSkip] 只免权限节点，不免登录；公开路由不经任何认证。
      *                           必填、无默认值——漏传就该在构造时报错，而不是静默当成公开或需登录。
      */

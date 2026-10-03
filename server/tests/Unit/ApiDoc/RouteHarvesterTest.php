@@ -131,7 +131,7 @@ final class RouteHarvesterTest extends TestCase
     }
 
     /**
-     * F2：requiresAuth 看路由实际挂的中间件（含路由组挂载的），不看注解。认证中间件类名由调用方
+     * F2：requiresAuth 看运行期实际中间件栈（不是路由对象上的 middleware），不看注解。认证中间件类名由调用方
      * 注入——core/ 不写死 app\ 类名。
      */
     public function test_requires_auth_is_derived_from_the_routes_real_middleware(): void

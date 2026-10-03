@@ -19,7 +19,7 @@ use Webman\Http\Request;
 /**
  * 定时任务（spec §3、§7）。
  *
- * 端点（具名子路由在 {id} 通配路由之前注册）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/system/cron-job                    index      system.cron_job.list
  *   GET    /adminapi/system/cron-job/{id}/logs          logs       system.cron_job.list
  *   POST   /adminapi/system/cron-job/{id}/clear-logs    clearLogs  system.cron_job.clear

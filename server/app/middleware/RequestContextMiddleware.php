@@ -9,7 +9,7 @@ use Webman\Http\Request;
 use Webman\Http\Response;
 use Webman\MiddlewareInterface;
 
-/** 挂在每个 API 路由组的最外层：先种下 trace，后续中间件与控制器的日志都能带上它。 */
+/** 全局中间件（config/middleware.php），先于业务种下 trace，后续中间件与控制器的日志都能带上它。 */
 class RequestContextMiddleware implements MiddlewareInterface
 {
     public function process(Request $request, callable $handler): Response

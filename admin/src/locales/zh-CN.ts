@@ -965,6 +965,7 @@ export default {
         previewCode: '预览代码',
         confirmGenerate: '确认生成',
         resultTitle: '生成结果',
+        reloadRequired: '新控制器的路由需先在服务端执行 php start.php reload 才会生效。',
         filePath: '文件路径',
         statusLabel: '状态',
         statusCreated: '已创建',

@@ -27,7 +27,7 @@ use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
-/** 认证（契约 §2.1）。captcha/login 在公开组；info/refresh/logout 在认证组，登录即可访问。 */
+/** 认证（契约 §2.1）。captcha/login 不挂认证中间件；info/refresh/logout 在方法上挂 AdminAuthMiddleware，登录即可访问。 */
 #[RouteGroup('/adminapi/auth')]
 class AuthController extends Controller
 {

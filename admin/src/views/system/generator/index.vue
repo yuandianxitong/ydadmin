@@ -190,6 +190,7 @@
                 </el-table-column>
                 <el-table-column prop="reason" :label="$t('generator.reason')" width="120" />
             </el-table>
+            <p class="mt-3 text-sm text-gray-500">{{ $t('generator.reloadRequired') }}</p>
         </el-dialog>
     </div>
 </template>

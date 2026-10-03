@@ -20,7 +20,7 @@ use Webman\Http\Request;
 /**
  * 站内通知（契约 §2.10；M4 spec §6 指定管理员）。
  *
- * 端点（具名路由在 {id} 通配路由之前注册）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/system/notification                 index         system.notification.list
  *   GET    /adminapi/system/notification/mine            mine          PermissionSkip
  *   GET    /adminapi/system/notification/unread-count    unreadCount   PermissionSkip

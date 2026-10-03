@@ -20,7 +20,7 @@ use Webman\Http\Request;
 /**
  * 数据字典（契约 §2.6）。
  *
- * 端点（具名路由在 {id} 通配路由之前注册）：
+ * 端点（静态路径由 FastRoute 先匹配，不靠方法声明顺序）：
  *   GET    /adminapi/system/dictionary                 index         system.dictionary.list
  *   GET    /adminapi/system/dictionary/options          options       PermissionSkip
  *   GET    /adminapi/system/dictionary/batch-options    batchOptions  PermissionSkip
