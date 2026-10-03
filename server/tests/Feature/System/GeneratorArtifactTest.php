@@ -37,7 +37,7 @@ final class GeneratorArtifactTest extends TestCase
 
     /** 底稿 §4 的产物顺序，一个字都不能差：前端取 Object.keys(data)[0] 作默认页签。 */
     private const KEYS = [
-        'model', 'repository', 'service', 'controller', 'route',
+        'model', 'repository', 'service', 'controller',
         'lang_zh', 'lang_en', 'api', 'page', 'form', 'menu',
     ];
 
@@ -83,7 +83,6 @@ final class GeneratorArtifactTest extends TestCase
         $preview = $this->service()->preview($this->request());
 
         $this->assertSame('server/app/model/demo/GenArticle.php', $preview['model']['path']);
-        $this->assertSame('server/config/route/demo.php', $preview['route']['path']);
         $this->assertSame('server/database/generated/demo-menu.sql', $preview['menu']['path']);
         $this->assertSame('admin/src/api/gen-article.ts', $preview['api']['path']);
         $this->assertSame('admin/src/views/demo/gen-article/index.vue', $preview['page']['path']);
@@ -129,20 +128,25 @@ final class GeneratorArtifactTest extends TestCase
         $this->assertSame('<?php // 手改过的文件，生成器不许碰', (string) file_get_contents($target), '生成器只创建新文件，从不修改已有文件');
     }
 
-    public function test_route_field_carries_the_reload_hint_and_the_file_content(): void
+    public function test_generated_controller_declares_attribute_routes(): void
     {
-        $service = $this->service();
-        $preview = $service->preview($this->request());
-        $route = $service->generate($this->request())['route'];
-
-        $firstLine = strtok($route, "\n");
-        $this->assertStringStartsWith('//', (string) $firstLine, 'route 首行必须是注释');
-        $this->assertStringContainsString(lang('generator.reload_hint'), (string) $firstLine, '提示文案走语言包');
-        $this->assertStringEndsWith($preview['route']['content'], $route, 'route 字段就是路由文件内容加一行注释');
+        $content = $this->service()->preview($this->request())['controller']['content'];
+        $this->assertStringContainsString('extends AuthenticatedController', $content);
+        $this->assertStringContainsString("#[RouteGroup('/adminapi/demo/gen-article')]", $content);
+        $this->assertStringContainsString("#[Get('')]", $content);
+        $this->assertStringContainsString("#[Post('/batch-delete')]", $content);
+        $this->assertStringContainsString("#[Put('/{id:\\d+}/status')]", $content);
+        $this->assertStringContainsString("#[Get('/{id:\\d+}')]", $content);
+        $this->assertStringContainsString("#[Post('')]", $content);
+        $this->assertStringContainsString("#[Put('/{id:\\d+}')]", $content);
+        $this->assertStringContainsString("#[Delete('/{id:\\d+}')]", $content);
+        $this->assertStringContainsString('reload', $content);
+        $this->assertStringNotContainsString('config/route/', $content);
+        $this->assertArrayNotHasKey('route', $this->service()->generate($this->request()));
     }
 
-    /** spec §10：路由文件最后写——路由先注册而控制器没落盘，请求进来直接 500。 */
-    public function test_the_route_artifact_is_always_written_last(): void
+    /** 控制器最后写：它被扫描之后路由才存在。 */
+    public function test_the_controller_artifact_is_always_written_last(): void
     {
         $files = [];
         foreach (self::KEYS as $key) {
@@ -150,7 +154,7 @@ final class GeneratorArtifactTest extends TestCase
         }
         $order = (new \ReflectionMethod(ArtifactWriter::class, 'writeOrder'))->invoke(new ArtifactWriter(), $files);
 
-        $this->assertSame('route', end($order));
+        $this->assertSame('controller', end($order));
         $this->assertSame(count(self::KEYS), count($order), '落盘顺序不得丢产物');
     }
 

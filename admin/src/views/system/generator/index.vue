@@ -190,12 +190,6 @@
                 </el-table-column>
                 <el-table-column prop="reason" :label="$t('generator.reason')" width="120" />
             </el-table>
-            <div v-if="routeSnippet" class="mt-4">
-                <h4 class="mb-2">{{ $t('generator.routeHint') }}</h4>
-                <div class="code-block">
-                    <pre><code>{{ routeSnippet }}</code></pre>
-                </div>
-            </div>
         </el-dialog>
     </div>
 </template>
@@ -222,7 +216,6 @@ const previewFiles = ref<Record<string, any>>({})
 const activeTab = ref('controller')
 const showResult = ref(false)
 const generateResult = ref<any[]>([])
-const routeSnippet = ref('')
 
 const config = reactive({
     table_name: '',
@@ -297,7 +290,6 @@ const handleGenerate = async () => {
     try {
         const res = await generatorApi.generate({ ...config, columns: columns.value })
         generateResult.value = res.data.files || []
-        routeSnippet.value = res.data.route || ''
         showResult.value = true
         ElMessage.success(t('generator.generateSuccess'))
     } finally {
@@ -311,23 +303,5 @@ onMounted(fetchTables)
 <style lang="scss" scoped>
 .generator-page {
     width: 100%;
-}
-
-.code-block {
-    background: var(--gray-100);
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 16px;
-    max-height: 500px;
-    overflow: auto;
-
-    pre {
-        margin: 0;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 13px;
-        line-height: 1.6;
-    }
 }
 </style>

@@ -982,7 +982,6 @@ export default {
         statusCreated: 'Created',
         statusSkipped: 'Skipped',
         reason: 'Reason',
-        routeHint: 'Please manually add the following route to the corresponding route file:',
         getColumnsFailed: 'Failed to get column information',
         fillModuleAndModel: 'Please fill in module name and model name',
         formShow: 'Show in Form',

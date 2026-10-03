@@ -127,12 +127,8 @@ final class GeneratedCodeGateTest extends TestCase
     public function test_generated_php_files_pass_phpstan_level_6(): void
     {
         // 只扫 app/：真实 phpstan.neon 的 paths 只有 app、core、scripts（见 server/phpstan.neon），
-        // 生成器只往 app/ 落 PHP 文件（model/repository/service/controller），config/ 与
-        // resource/ 从不在真实门禁的扫描范围内——若把 config/route/{module}.php 也塞进 paths，
-        // 会撞上一个跟生成器质量无关的假阳性：该文件设计上要被 config/route.php 的闭包
-        // `require`（$adminAuth 由外层 use 进来，见 config/route.php 那段注释），脱离那个闭包
-        // 单独跑 phpstan 必然报 "$adminAuth might not be defined"——这是路由文件的分发方式决定的、
-        // 真实门禁也从未检查过的东西，不是生成产物的缺陷，不该出现在这条测试里。
+        // 生成器只往 app/ 落 PHP 文件（model/repository/service/controller）。phpstan 的 paths
+        // 仍然只有生成出来的 app/。
         $neonPath = self::$tmpRoot . '/phpstan-generated.neon';
         $neon = "parameters:\n"
             . "    level: 6\n"

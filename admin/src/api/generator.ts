@@ -16,7 +16,6 @@ export const generatorApi = {
     generate(data: GeneratorConfig) {
         return myRequest.post<{
             files: Array<{ path: string; status: string; reason?: string }>
-            route?: string
         }>('/adminapi/system/generator/generate', data)
     }
 }

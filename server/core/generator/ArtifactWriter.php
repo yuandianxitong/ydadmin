@@ -9,7 +9,7 @@ namespace core\generator;
  * GeneratorService::buildArtifacts() 里完成，任一产物渲染失败就整批不进这里。
  *
  * 三条硬规则：
- *   1. 路由文件最后写。路由已注册而控制器还没落盘，进来的请求直接 500（spec 决策 10）。
+ *   1. 控制器最后写，因为它被扫描之后路由才存在。
  *   2. 单个文件失败不中断整批，逐条记状态（与 M1c 批量删除同一语义）。
  *   3. 已写入的文件不回滚（spec 决策 11）：删文件比留文件危险，半成品靠响应里的逐条 status 让人看见。
  *
@@ -24,8 +24,8 @@ namespace core\generator;
  */
 final class ArtifactWriter
 {
-    /** 最后写的产物 key（spec §10 落盘顺序）。 */
-    private const LAST = 'route';
+    /** 最后写的产物 key。控制器最后写，因为它被扫描之后路由才存在。 */
+    private const LAST = 'controller';
 
     /**
      * @param array<string, array{path: string, content: string}> $files key → 绝对路径与内容
@@ -48,7 +48,7 @@ final class ArtifactWriter
     }
 
     /**
-     * 落盘顺序：路由排最后，其余保持原序。
+     * 落盘顺序：控制器排最后，其余保持原序。控制器最后写，因为它被扫描之后路由才存在。
      *
      * @param array<string, array{path: string, content: string}> $files
      * @return list<string>

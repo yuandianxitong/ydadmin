@@ -1,26 +1,33 @@
 <?php
 
+// 由代码生成器生成，`php start.php reload` 后生效。
+
 declare(strict_types=1);
 
 namespace app\adminapi\controller\catalog;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\catalog\GenCategoryService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 生成器夹具表二（无状态列/图片列/创建人列）（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/catalog.php）：
+ * 端点：
  *   GET    /adminapi/catalog/gen-category               index        catalog.gen_category.list
  *   POST   /adminapi/catalog/gen-category/batch-delete  batchDelete  catalog.gen_category.delete
- *   GET    /adminapi/catalog/gen-category/{id}          show         catalog.gen_category.list
+ *   GET    /adminapi/catalog/gen-category/{id:\d+}      show         catalog.gen_category.list
  *   POST   /adminapi/catalog/gen-category               store        catalog.gen_category.create
- *   PUT    /adminapi/catalog/gen-category/{id}          update       catalog.gen_category.update
- *   DELETE /adminapi/catalog/gen-category/{id}          delete       catalog.gen_category.delete
+ *   PUT    /adminapi/catalog/gen-category/{id:\d+}      update       catalog.gen_category.update
+ *   DELETE /adminapi/catalog/gen-category/{id:\d+}      delete       catalog.gen_category.delete
  *
  * update 场景用 sometimes|required：字段不传时跳过（局部更新），传了空值必须校验失败。
  * 唯一性不在这里做成校验规则，由 GenCategoryService 查重 + 唯一索引异常兜底（spec 决策 12）。
@@ -30,11 +37,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class GenCategoryController extends Controller
+#[RouteGroup('/adminapi/catalog/gen-category')]
+class GenCategoryController extends AuthenticatedController
 {
     #[Inject]
     protected GenCategoryService $genCategoryService;
 
+    #[Get('')]
     #[Permission('catalog.gen_category.list')]
     public function index(Request $request): Response
     {
@@ -43,12 +52,14 @@ class GenCategoryController extends Controller
         return $this->paginate($this->genCategoryService->getGenCategoryList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('catalog.gen_category.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->genCategoryService->getGenCategoryDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('catalog.gen_category.create')]
     public function store(Request $request): Response
     {
@@ -57,6 +68,7 @@ class GenCategoryController extends Controller
         return $this->success($this->genCategoryService->createGenCategory($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('catalog.gen_category.update')]
     public function update(Request $request, string $id): Response
     {
@@ -66,6 +78,7 @@ class GenCategoryController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('catalog.gen_category.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -74,6 +87,7 @@ class GenCategoryController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('catalog.gen_category.delete')]
     public function batchDelete(Request $request): Response
     {

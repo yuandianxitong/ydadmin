@@ -98,13 +98,13 @@ class GeneratorService extends Service
      * 生成：buildArtifacts() 再落盘，没有第二条渲染路径（spec §5.3）。
      * 「预览即所得」（spec §11.3）靠的就是两个端点渲染的是同一份字节。
      *
-     * @return array{files: list<array{path: string, status: string, reason?: string}>, route: string}
+     * @return array{files: list<array{path: string, status: string, reason?: string}>}
      */
     public function generate(GeneratorRequest $request): array
     {
         $this->assertWritesEnabled();
 
-        // 第一阶段：十一个产物全部渲染成功才往下走；任一渲染抛异常则整批不落盘
+        // 第一阶段：十个产物全部渲染成功才往下走；任一渲染抛异常则整批不落盘
         $artifacts = $this->buildArtifacts($request);
 
         $toWrite = [];
@@ -112,7 +112,7 @@ class GeneratorService extends Service
             $toWrite[$key] = ['path' => $this->absolutePath($artifact['base'], $artifact['path']), 'content' => $artifact['content']];
         }
 
-        // 第二阶段：落盘，路由最后写，单文件失败不中断整批，已写的不回滚
+        // 第二阶段：落盘，控制器最后写，单文件失败不中断整批，已写的不回滚
         $statuses = (new ArtifactWriter())->write($toWrite);
 
         $files = [];
@@ -126,8 +126,6 @@ class GeneratorService extends Service
 
         return [
             'files' => $files,
-            // 首行注释说明要 reload 才生效（spec §4.4）：文案走语言包，注释符号在这里拼
-            'route' => '// ' . lang('generator.reload_hint') . "\n" . ($artifacts['route']['content'] ?? ''),
         ];
     }
 
@@ -170,7 +168,7 @@ class GeneratorService extends Service
 
     /**
      * 唯一的渲染路径（spec §5.3）：preview() 与 generate() 都只经过这里。
-     * 十一个产物全部渲染成功才返回，任一渲染抛异常就整批失败、一个字节都不落盘。
+     * 十个产物全部渲染成功才返回，任一渲染抛异常就整批失败、一个字节都不落盘。
      *
      * @return array<string, array{base: string, path: string, content: string}>
      */

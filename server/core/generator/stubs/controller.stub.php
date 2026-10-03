@@ -56,13 +56,13 @@ foreach (array_keys($messageKeys) as $key) {
 $endpoints = [
     ['GET', '', 'index', 'list'],
     ['POST', '/batch-delete', 'batchDelete', 'delete'],
-    ['GET', '/{id}', 'show', 'list'],
+    ['GET', '/{id:\d+}', 'show', 'list'],
     ['POST', '', 'store', 'create'],
-    ['PUT', '/{id}', 'update', 'update'],
-    ['DELETE', '/{id}', 'delete', 'delete'],
+    ['PUT', '/{id:\d+}', 'update', 'update'],
+    ['DELETE', '/{id:\d+}', 'delete', 'delete'],
 ];
 if ($hasStatus) {
-    $endpoints[] = ['PUT', '/{id}/status', 'status', 'status'];
+    $endpoints[] = ['PUT', '/{id:\d+}/status', 'status', 'status'];
 }
 $base = '/adminapi/' . $module . '/' . $modelKebab;
 $pathPad = 0;
@@ -73,21 +73,28 @@ foreach ($endpoints as $endpoint) {
 <?= '<?php' ?>
 
 
+// 由代码生成器生成，`php start.php reload` 后生效。
+
 declare(strict_types=1);
 
 namespace app\adminapi\controller\<?= $module ?>;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\<?= $module ?>\<?= $model ?>Service;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * <?= $tableCommentPhpDoc ?>（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/<?= $module ?>.php）：
+ * 端点：
 <?php foreach ($endpoints as $endpoint) { ?>
  *   <?= str_pad($endpoint[0], 7) . str_pad($base . $endpoint[1], $pathPad) . str_pad($endpoint[2], 13) . $permission . '.' . $endpoint[3] ?>
 
@@ -101,11 +108,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class <?= $model ?>Controller extends Controller
+#[RouteGroup('/adminapi/<?= $module ?>/<?= $modelKebab ?>')]
+class <?= $model ?>Controller extends AuthenticatedController
 {
     #[Inject]
     protected <?= $model ?>Service $<?= $service ?>;
 
+    #[Get('')]
     #[Permission('<?= $permission ?>.list')]
     public function index(Request $request): Response
     {
@@ -114,12 +123,14 @@ class <?= $model ?>Controller extends Controller
         return $this->paginate($this-><?= $service ?>->get<?= $model ?>List((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('<?= $permission ?>.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this-><?= $service ?>->get<?= $model ?>Detail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('<?= $permission ?>.create')]
     public function store(Request $request): Response
     {
@@ -128,6 +139,7 @@ class <?= $model ?>Controller extends Controller
         return $this->success($this-><?= $service ?>->create<?= $model ?>($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('<?= $permission ?>.update')]
     public function update(Request $request, string $id): Response
     {
@@ -137,6 +149,7 @@ class <?= $model ?>Controller extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('<?= $permission ?>.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -145,6 +158,7 @@ class <?= $model ?>Controller extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('<?= $permission ?>.delete')]
     public function batchDelete(Request $request): Response
     {
@@ -160,6 +174,7 @@ class <?= $model ?>Controller extends Controller
     }
 <?php if ($hasStatus) { ?>
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('<?= $permission ?>.status')]
     public function status(Request $request, string $id): Response
     {

@@ -970,7 +970,6 @@ export default {
         statusCreated: '已创建',
         statusSkipped: '已跳过',
         reason: '原因',
-        routeHint: '请手动添加以下路由到对应的路由文件：',
         getColumnsFailed: '获取字段信息失败',
         fillModuleAndModel: '请填写模块名和模型名',
         formShow: '表单显示',

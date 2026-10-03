@@ -1,27 +1,34 @@
 <?php
 
+// 由代码生成器生成，`php start.php reload` 后生效。
+
 declare(strict_types=1);
 
 namespace app\adminapi\controller\demo;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\demo\GenArticleService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /**
  * 生成器夹具表（由代码生成器生成）。
  *
- * 端点（具名/静态路径必须排在 {id} 通配路由之前注册，见 config/route/demo.php）：
- *   GET    /adminapi/demo/gen-article               index        demo.gen_article.list
- *   POST   /adminapi/demo/gen-article/batch-delete  batchDelete  demo.gen_article.delete
- *   GET    /adminapi/demo/gen-article/{id}          show         demo.gen_article.list
- *   POST   /adminapi/demo/gen-article               store        demo.gen_article.create
- *   PUT    /adminapi/demo/gen-article/{id}          update       demo.gen_article.update
- *   DELETE /adminapi/demo/gen-article/{id}          delete       demo.gen_article.delete
- *   PUT    /adminapi/demo/gen-article/{id}/status   status       demo.gen_article.status
+ * 端点：
+ *   GET    /adminapi/demo/gen-article                  index        demo.gen_article.list
+ *   POST   /adminapi/demo/gen-article/batch-delete     batchDelete  demo.gen_article.delete
+ *   GET    /adminapi/demo/gen-article/{id:\d+}         show         demo.gen_article.list
+ *   POST   /adminapi/demo/gen-article                  store        demo.gen_article.create
+ *   PUT    /adminapi/demo/gen-article/{id:\d+}         update       demo.gen_article.update
+ *   DELETE /adminapi/demo/gen-article/{id:\d+}         delete       demo.gen_article.delete
+ *   PUT    /adminapi/demo/gen-article/{id:\d+}/status  status       demo.gen_article.status
  *
  * update 场景用 sometimes|required：字段不传时跳过（局部更新），传了空值必须校验失败。
  * 唯一性不在这里做成校验规则，由 GenArticleService 查重 + 唯一索引异常兜底（spec 决策 12）。
@@ -31,11 +38,13 @@ use Webman\Http\Request;
  * 纯函数——少了任何一个动作的这层包装，文档就会静默漏掉那个端点的参数，且不会有任何报错
  * （check:context 规则七拦这个，见 scripts/check-context-discipline.sh）。
  */
-class GenArticleController extends Controller
+#[RouteGroup('/adminapi/demo/gen-article')]
+class GenArticleController extends AuthenticatedController
 {
     #[Inject]
     protected GenArticleService $genArticleService;
 
+    #[Get('')]
     #[Permission('demo.gen_article.list')]
     public function index(Request $request): Response
     {
@@ -44,12 +53,14 @@ class GenArticleController extends Controller
         return $this->paginate($this->genArticleService->getGenArticleList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('demo.gen_article.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->genArticleService->getGenArticleDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('demo.gen_article.create')]
     public function store(Request $request): Response
     {
@@ -58,6 +69,7 @@ class GenArticleController extends Controller
         return $this->success($this->genArticleService->createGenArticle($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('demo.gen_article.update')]
     public function update(Request $request, string $id): Response
     {
@@ -67,6 +79,7 @@ class GenArticleController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('demo.gen_article.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -75,6 +88,7 @@ class GenArticleController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('demo.gen_article.delete')]
     public function batchDelete(Request $request): Response
     {
@@ -89,6 +103,7 @@ class GenArticleController extends Controller
         return $this->success([], lang('messages.batch_delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('demo.gen_article.status')]
     public function status(Request $request, string $id): Response
     {

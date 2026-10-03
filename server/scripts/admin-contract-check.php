@@ -1301,8 +1301,8 @@ echo "\n=== M2a：代码生成器 ===\n";
 // module_name 用契约后缀（十六进制小写字符）天然满足 ^[a-z][a-z0-9_]{0,30}$；
 // model_name 首字母大写、其余只允许字母数字（不允许下划线），拼上同一个后缀天然满足
 // ^[A-Z][A-Za-z0-9]{0,40}$。
-// 注意：本段刻意不调用一次成功的 generate——那会往真实仓库路径（server/app/…、admin/src/views/…、
-// config/route/… 等十一个文件）写入生成产物，而这些正是三道门禁的扫描路径；清理只要失败一次
+// 注意：本段刻意不调用一次成功的 generate——那会往真实仓库路径（server/app/…、admin/src/views/…
+// 等十个文件）写入生成产物，而这些正是三道门禁的扫描路径；清理只要失败一次
 // （进程被杀、shutdown 注册前崩溃、磁盘写满），残留就会让之后每一轮 lint/analyse/check:context 变红，
 // 且很难定位到是契约脚本留下的。该端到端路径（真实落盘、状态三态、幂等）已由 Task 8/9 的 PHPUnit
 // 测试在 runtime/ 临时根里完整覆盖，这里只断言只读端点、无副作用的 preview、以及 generate 的拒绝路径。
@@ -1338,9 +1338,9 @@ check('generator/columns：不存在的表 → 业务错误 generator.table_not_
 $r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, $genPayload);
 $genPreviewData = (array) respData($r);
 check(
-    'generator/preview：按固定顺序返回十一个产物，model 在最前',
+    'generator/preview：按固定顺序返回十个产物，model 在最前',
     respCode($r) === 200
-        && array_keys($genPreviewData) === ['model', 'repository', 'service', 'controller', 'route', 'lang_zh', 'lang_en', 'api', 'page', 'form', 'menu']
+        && array_keys($genPreviewData) === ['model', 'repository', 'service', 'controller', 'lang_zh', 'lang_en', 'api', 'page', 'form', 'menu']
         && is_string($genPreviewData['model']['path'] ?? null)
         && is_string($genPreviewData['model']['content'] ?? null)
         && str_contains((string) $genPreviewData['model']['content'], "namespace app\\model\\{$genModule};"),
