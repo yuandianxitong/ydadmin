@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\LogService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -15,11 +19,13 @@ use Webman\Http\Request;
  * 登录日志与操作日志（契约 §2.8）。列表、删除、清空都只作用于当前管理员数据范围内的日志（spec §5.5）。
  * 筛选条件先经 validate()，返回值即筛选白名单；清空返回 {count}（与批量删除一致，前端不读 data）。
  */
-class LogController extends Controller
+#[RouteGroup('/adminapi/system/log')]
+class LogController extends AuthenticatedController
 {
     #[Inject]
     protected LogService $logService;
 
+    #[Get('/login')]
     #[Permission('system.log.login')]
     public function loginLog(Request $request): Response
     {
@@ -29,6 +35,7 @@ class LogController extends Controller
         return $this->paginate($this->logService->getLoginLogList($params, $page, $limit));
     }
 
+    #[Get('/operation')]
     #[Permission('system.log.operation')]
     public function operationLog(Request $request): Response
     {
@@ -38,6 +45,7 @@ class LogController extends Controller
         return $this->paginate($this->logService->getOperationLogList($params, $page, $limit));
     }
 
+    #[Delete('/login/{id:\d+}')]
     #[Permission('system.log.delete')]
     public function deleteLoginLog(Request $request, string $id): Response
     {
@@ -46,6 +54,7 @@ class LogController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Delete('/operation/{id:\d+}')]
     #[Permission('system.log.delete')]
     public function deleteOperationLog(Request $request, string $id): Response
     {
@@ -54,12 +63,14 @@ class LogController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/login/clear')]
     #[Permission('system.log.clear')]
     public function clearLoginLog(): Response
     {
         return $this->success(['count' => $this->logService->clearLoginLogs()], lang('messages.clear_success'));
     }
 
+    #[Post('/operation/clear')]
     #[Permission('system.log.clear')]
     public function clearOperationLog(): Response
     {

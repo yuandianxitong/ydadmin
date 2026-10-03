@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\CronJobService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -28,11 +33,13 @@ use Webman\Http\Request;
  * 表达式的请求字段叫 cron_expression（前端表单），入库列叫 expression；响应两个键都给（见 CronJobService）。
  * update 用 sometimes|required：不传跳过（部分更新），传了空值必须校验失败。
  */
-class CronJobController extends Controller
+#[RouteGroup('/adminapi/system/cron-job')]
+class CronJobController extends AuthenticatedController
 {
     #[Inject]
     protected CronJobService $cronJobService;
 
+    #[Get('')]
     #[Permission('system.cron_job.list')]
     public function index(Request $request): Response
     {
@@ -42,12 +49,14 @@ class CronJobController extends Controller
         return $this->paginate($this->cronJobService->getList($params, $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('system.cron_job.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->cronJobService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('system.cron_job.create')]
     public function store(Request $request): Response
     {
@@ -56,6 +65,7 @@ class CronJobController extends Controller
         return $this->success($this->cronJobService->create($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('system.cron_job.update')]
     public function update(Request $request, string $id): Response
     {
@@ -65,6 +75,7 @@ class CronJobController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.cron_job.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -73,6 +84,7 @@ class CronJobController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('system.cron_job.update')]
     public function status(Request $request, string $id): Response
     {
@@ -82,6 +94,7 @@ class CronJobController extends Controller
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    #[Get('/{id:\d+}/logs')]
     #[Permission('system.cron_job.list')]
     public function logs(Request $request, string $id): Response
     {
@@ -90,6 +103,7 @@ class CronJobController extends Controller
         return $this->paginate($this->cronJobService->getLogs((int) $id, $page, $limit));
     }
 
+    #[Post('/{id:\d+}/clear-logs')]
     #[Permission('system.cron_job.clear')]
     public function clearLogs(Request $request, string $id): Response
     {
@@ -100,6 +114,7 @@ class CronJobController extends Controller
     }
 
     /** 手动执行：data = {status: 0|1, output}（前端 status === 1 才提示成功）。 */
+    #[Post('/{id:\d+}/run')]
     #[Permission('system.cron_job.run')]
     public function run(Request $request, string $id): Response
     {

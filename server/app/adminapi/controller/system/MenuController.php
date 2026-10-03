@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\AdminService;
 use app\service\system\MenuService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
-class MenuController extends Controller
+#[RouteGroup('/adminapi/system/menu')]
+class MenuController extends AuthenticatedController
 {
     #[Inject]
     protected MenuService $menuService;
@@ -23,6 +29,7 @@ class MenuController extends Controller
     protected AdminService $adminService;
 
     /** 契约 §2.4：默认返回全部（含禁用），only_enabled 为真时只返回启用的。 */
+    #[Get('')]
     #[Permission('system.menu.list')]
     public function index(Request $request): Response
     {
@@ -33,6 +40,7 @@ class MenuController extends Controller
     }
 
     /** 菜单选项树（表单选择用，含虚拟根节点「根目录」）。 */
+    #[Get('/options')]
     #[PermissionSkip]
     public function options(Request $request): Response
     {
@@ -42,6 +50,7 @@ class MenuController extends Controller
     }
 
     /** 当前管理员的前端路由树，与 auth/info.routes 同源（契约 §4.3）。 */
+    #[Get('/routes')]
     #[PermissionSkip]
     public function routes(): Response
     {
@@ -50,6 +59,7 @@ class MenuController extends Controller
         return $this->success($this->menuService->getFrontendRoutes((array) $admin['menu_ids']), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('system.menu.create')]
     public function store(Request $request): Response
     {
@@ -58,6 +68,7 @@ class MenuController extends Controller
         return $this->success($this->menuService->createMenu($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('system.menu.update')]
     public function update(Request $request, string $id): Response
     {
@@ -67,6 +78,7 @@ class MenuController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.menu.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -75,6 +87,7 @@ class MenuController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('system.menu.delete')]
     public function batchDelete(Request $request): Response
     {
@@ -89,6 +102,7 @@ class MenuController extends Controller
         return $this->success([], lang('messages.batch_delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('system.menu.update')]
     public function status(Request $request, string $id): Response
     {
@@ -102,6 +116,7 @@ class MenuController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Post('/batch-sort')]
     #[Permission('system.menu.update')]
     public function batchSort(Request $request): Response
     {

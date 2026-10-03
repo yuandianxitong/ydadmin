@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\DepartmentService;
-use core\base\Controller;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -28,11 +33,13 @@ use Webman\Http\Request;
  * 传了空字符串则必须校验失败——不能像 nullable 那样对 '' 直接放行（会写出非法 parent_id/status/sort，
  * 触发 MySQL 严格模式 500，见 Task 12 复盘）。
  */
-class DepartmentController extends Controller
+#[RouteGroup('/adminapi/system/department')]
+class DepartmentController extends AuthenticatedController
 {
     #[Inject]
     protected DepartmentService $departmentService;
 
+    #[Get('')]
     #[Permission('system.department.list')]
     public function index(Request $request): Response
     {
@@ -41,6 +48,7 @@ class DepartmentController extends Controller
         return $this->success($result, lang('messages.get_success'));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('system.department.list')]
     public function show(Request $request, string $id): Response
     {
@@ -49,6 +57,7 @@ class DepartmentController extends Controller
         return $this->success($result, lang('messages.get_success'));
     }
 
+    #[Get('/options')]
     #[PermissionSkip]
     public function options(): Response
     {
@@ -57,6 +66,7 @@ class DepartmentController extends Controller
         return $this->success($result, lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('system.department.create')]
     public function store(Request $request): Response
     {
@@ -67,6 +77,7 @@ class DepartmentController extends Controller
         return $this->success($result, lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('system.department.update')]
     public function update(Request $request, string $id): Response
     {
@@ -77,6 +88,7 @@ class DepartmentController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('system.department.update')]
     public function status(Request $request, string $id): Response
     {
@@ -91,6 +103,7 @@ class DepartmentController extends Controller
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.department.delete')]
     public function delete(Request $request, string $id): Response
     {

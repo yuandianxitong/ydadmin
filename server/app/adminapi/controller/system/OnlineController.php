@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\OnlineAdminService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -20,11 +23,13 @@ use Webman\Http\Request;
  *
  * 两个动作都不调 validate()：index 只用 pageParams()，logout 的 id 由路由正则约束，规则七不适用。
  */
-class OnlineController extends Controller
+#[RouteGroup('/adminapi/system/online')]
+class OnlineController extends AuthenticatedController
 {
     #[Inject]
     protected OnlineAdminService $onlineAdminService;
 
+    #[Get('')]
     #[Permission('system.online.list')]
     public function index(Request $request): Response
     {
@@ -33,6 +38,7 @@ class OnlineController extends Controller
         return $this->paginate($this->onlineAdminService->getList($page, $limit));
     }
 
+    #[Post('/{adminId:\d+}/logout')]
     #[Permission('system.online.logout')]
     public function logout(Request $request, string $adminId): Response
     {

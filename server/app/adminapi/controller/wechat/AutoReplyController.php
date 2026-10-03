@@ -4,18 +4,25 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\wechat;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\wechat\AutoReplyService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
-class AutoReplyController extends Controller
+#[RouteGroup('/adminapi/wechat/auto-reply')]
+class AutoReplyController extends AuthenticatedController
 {
     #[Inject]
     protected AutoReplyService $autoReplyService;
 
+    #[Get('')]
     #[Permission('channel.official.auto_reply')]
     public function index(Request $request): Response
     {
@@ -25,12 +32,14 @@ class AutoReplyController extends Controller
         return $this->paginate($this->autoReplyService->getList($params, $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('channel.official.auto_reply')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->autoReplyService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('channel.official.auto_reply.create')]
     public function store(Request $request): Response
     {
@@ -40,6 +49,7 @@ class AutoReplyController extends Controller
         return $this->success([], lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('channel.official.auto_reply.update')]
     public function update(Request $request, string $id): Response
     {
@@ -49,6 +59,7 @@ class AutoReplyController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('channel.official.auto_reply.delete')]
     public function delete(Request $request, string $id): Response
     {

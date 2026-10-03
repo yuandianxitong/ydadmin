@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\FileService;
-use core\base\Controller;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -26,11 +31,13 @@ use Webman\Http\Request;
  * groups 是 PermissionSkip：素材选择器在没有 system.file.list 的页面里也要能列分组。
  * mime_type 是前端左侧「文件类型」的 6 个桶名，值域在这里锁死，翻译成查询条件由仓储完成。
  */
-class FileController extends Controller
+#[RouteGroup('/adminapi/system/file')]
+class FileController extends AuthenticatedController
 {
     #[Inject]
     protected FileService $fileService;
 
+    #[Get('')]
     #[Permission('system.file.list')]
     public function index(Request $request): Response
     {
@@ -44,12 +51,14 @@ class FileController extends Controller
         return $this->paginate($this->fileService->getFileList($params, $page, $limit));
     }
 
+    #[Get('/groups')]
     #[PermissionSkip]
     public function groups(): Response
     {
         return $this->success($this->fileService->getGroups(), lang('messages.get_success'));
     }
 
+    #[Post('/move-group')]
     #[Permission('system.file.update')]
     public function moveGroup(Request $request): Response
     {
@@ -67,6 +76,7 @@ class FileController extends Controller
         return $this->success([], lang('messages.move_success'));
     }
 
+    #[Put('/{id:\d+}/rename')]
     #[Permission('system.file.update')]
     public function rename(Request $request, string $id): Response
     {
@@ -80,6 +90,7 @@ class FileController extends Controller
         return $this->success([], lang('messages.rename_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.file.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -88,6 +99,7 @@ class FileController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('system.file.delete')]
     public function batchDelete(Request $request): Response
     {

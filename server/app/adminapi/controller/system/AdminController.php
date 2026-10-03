@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\AdminService;
 use app\service\system\RoleService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /** 管理员（契约 §2.2）。唯一性交给 Service（排除自身、含软删行），这里只做格式校验。 */
-class AdminController extends Controller
+#[RouteGroup('/adminapi/system/admin')]
+class AdminController extends AuthenticatedController
 {
     #[Inject]
     protected AdminService $adminService;
@@ -23,6 +29,7 @@ class AdminController extends Controller
     #[Inject]
     protected RoleService $roleService;
 
+    #[Get('')]
     #[Permission('system.admin.list')]
     public function index(Request $request): Response
     {
@@ -31,12 +38,14 @@ class AdminController extends Controller
         return $this->paginate($this->adminService->getAdminList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('system.admin.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->adminService->getAdminInfo((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('system.admin.create')]
     public function store(Request $request): Response
     {
@@ -45,6 +54,7 @@ class AdminController extends Controller
         return $this->success($this->adminService->createAdmin($data), lang('messages.create_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('system.admin.update')]
     public function update(Request $request, string $id): Response
     {
@@ -54,6 +64,7 @@ class AdminController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.admin.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -62,6 +73,7 @@ class AdminController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Post('/batch-delete')]
     #[Permission('system.admin.delete')]
     public function batchDelete(Request $request): Response
     {
@@ -74,6 +86,7 @@ class AdminController extends Controller
         return $this->success(['count' => $count], lang('messages.batch_delete_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('system.admin.status')]
     public function status(Request $request, string $id): Response
     {
@@ -87,6 +100,7 @@ class AdminController extends Controller
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    #[Put('/{id:\d+}/reset-password')]
     #[Permission('system.admin.update')]
     public function resetPassword(Request $request, string $id): Response
     {
@@ -99,6 +113,7 @@ class AdminController extends Controller
         return $this->success([], lang('messages.password_reset_success'));
     }
 
+    #[Put('/change-password')]
     #[PermissionSkip]
     public function changePassword(Request $request): Response
     {
@@ -113,6 +128,7 @@ class AdminController extends Controller
         return $this->success([], lang('messages.password_change_success'));
     }
 
+    #[Get('/role/options')]
     #[PermissionSkip]
     public function roleOptions(): Response
     {

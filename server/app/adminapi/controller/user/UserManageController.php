@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\user;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\dataimport\DataImportService;
 use app\service\system\SystemConfigService;
 use app\service\user\UserManageService;
-use core\base\Controller;
 use core\context\RequestContext;
 use core\exception\BusinessException;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 use Webman\Http\UploadFile;
@@ -36,7 +40,8 @@ use Webman\Http\UploadFile;
  * BalanceService / PointsService 抛 422。amount 额外限制最多两位小数（decimal:0,2）：
  * BalanceService::toCents() 会把更细的精度静默四舍五入到分，从入口挡住比事后发现强。
  */
-class UserManageController extends Controller
+#[RouteGroup('/adminapi/user')]
+class UserManageController extends AuthenticatedController
 {
     private const DEFAULT_FILE_MAX_MB = 10;
 
@@ -59,6 +64,7 @@ class UserManageController extends Controller
     #[Inject]
     protected SystemConfigService $systemConfigService;
 
+    #[Get('/list')]
     #[Permission('user.list')]
     public function index(Request $request): Response
     {
@@ -67,12 +73,14 @@ class UserManageController extends Controller
         return $this->paginate($this->userManageService->getList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/detail/{id:\d+}')]
     #[Permission('user.detail')]
     public function detail(Request $request, string $id): Response
     {
         return $this->success($this->userManageService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('/adjust-balance')]
     #[Permission('user.adjust-balance')]
     public function adjustBalance(Request $request): Response
     {
@@ -97,6 +105,7 @@ class UserManageController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Post('/adjust-points')]
     #[Permission('user.adjust-points')]
     public function adjustPoints(Request $request): Response
     {
@@ -120,6 +129,7 @@ class UserManageController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Put('/{id:\d+}/status')]
     #[Permission('user.status')]
     public function updateStatus(Request $request, string $id): Response
     {
@@ -133,6 +143,7 @@ class UserManageController extends Controller
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    #[Get('/balance-logs')]
     #[Permission('user.balance-logs')]
     public function balanceLogs(Request $request): Response
     {
@@ -141,6 +152,7 @@ class UserManageController extends Controller
         return $this->paginate($this->userManageService->getBalanceLogs((array) $request->get(), $page, $limit));
     }
 
+    #[Post('/import')]
     #[Permission('user.import')]
     public function import(Request $request): Response
     {
@@ -175,6 +187,7 @@ class UserManageController extends Controller
         ));
     }
 
+    #[Get('/import-template')]
     #[Permission('user.import')]
     public function importTemplate(): Response
     {
@@ -186,6 +199,7 @@ class UserManageController extends Controller
         ], $csv);
     }
 
+    #[Get('/points-logs')]
     #[Permission('user.points-logs')]
     public function pointsLogs(Request $request): Response
     {

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\message;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\message\MessageLogService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -20,11 +22,13 @@ use Webman\Http\Request;
  * 筛选：channel（sms / wechat_official / wechat_mini / site）、status（0 待发 1 成功 2 失败）、
  * receiver（对遮蔽后的值 LIKE）、template_code（精确匹配）；id 倒序。
  */
-class MessageLogController extends Controller
+#[RouteGroup('/adminapi/message')]
+class MessageLogController extends AuthenticatedController
 {
     #[Inject]
     protected MessageLogService $messageLogService;
 
+    #[Get('/log')]
     #[Permission('system.message.log.list')]
     public function index(Request $request): Response
     {

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\GeneratorService;
-use core\base\Controller;
 use core\generator\GeneratorRequest;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -23,17 +26,20 @@ use Webman\Http\Request;
  * 转调）与 buildGeneratorRequest()；真正的安全判定（生产禁用、名称白名单、
  * 表名白名单）都在 GeneratorService 里，控制器这层的校验只是第一道。
  */
-class GeneratorController extends Controller
+#[RouteGroup('/adminapi/system/generator')]
+class GeneratorController extends AuthenticatedController
 {
     #[Inject]
     protected GeneratorService $generatorService;
 
+    #[Get('/tables')]
     #[Permission('system.generator.list')]
     public function tables(): Response
     {
         return $this->success($this->generatorService->getTables(), lang('messages.get_success'));
     }
 
+    #[Get('/columns')]
     #[Permission('system.generator.list')]
     public function columns(Request $request): Response
     {
@@ -42,6 +48,7 @@ class GeneratorController extends Controller
         return $this->success($this->generatorService->getColumns((string) $data['table']), lang('messages.get_success'));
     }
 
+    #[Post('/preview')]
     #[Permission('system.generator.generate')]
     public function preview(Request $request): Response
     {
@@ -50,6 +57,7 @@ class GeneratorController extends Controller
         return $this->success($this->generatorService->preview($this->buildGeneratorRequest($data)), lang('messages.get_success'));
     }
 
+    #[Post('/generate')]
     #[Permission('system.generator.generate')]
     public function generate(Request $request): Response
     {

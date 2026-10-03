@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\message;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\message\MessageTemplateService;
-use core\base\Controller;
 use core\permission\Permission;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -25,11 +30,13 @@ use Webman\Http\Request;
  * 会被丢掉。code 只出现在 storeRules 里，编辑时传了也会被丢弃。
  * update 用 sometimes|required：不传就跳过（部分更新），传了空值必须校验失败。
  */
-class MessageTemplateController extends Controller
+#[RouteGroup('/adminapi/message')]
+class MessageTemplateController extends AuthenticatedController
 {
     #[Inject]
     protected MessageTemplateService $messageTemplateService;
 
+    #[Get('/template')]
     #[Permission('system.message.template.list')]
     public function index(Request $request): Response
     {
@@ -39,12 +46,14 @@ class MessageTemplateController extends Controller
         return $this->paginate($this->messageTemplateService->getList($params, $page, $limit));
     }
 
+    #[Get('/template/{id:\d+}')]
     #[Permission('system.message.template.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->messageTemplateService->getDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('/template')]
     #[Permission('system.message.template.create')]
     public function store(Request $request): Response
     {
@@ -54,6 +63,7 @@ class MessageTemplateController extends Controller
         return $this->success([], lang('messages.create_success'));
     }
 
+    #[Put('/template/{id:\d+}')]
     #[Permission('system.message.template.update')]
     public function update(Request $request, string $id): Response
     {
@@ -63,6 +73,7 @@ class MessageTemplateController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/template/{id:\d+}')]
     #[Permission('system.message.template.delete')]
     public function delete(Request $request, string $id): Response
     {

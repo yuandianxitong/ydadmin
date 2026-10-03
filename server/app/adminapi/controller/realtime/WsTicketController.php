@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\realtime;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\realtime\WsTicketService;
-use core\base\Controller;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -19,11 +21,13 @@ use Webman\Http\Request;
  *
  * 不记操作日志（config/admin_log.php 的 skip）：前端每次重连都会取票据，不改变任何业务数据。
  */
-class WsTicketController extends Controller
+#[RouteGroup('/adminapi')]
+class WsTicketController extends AuthenticatedController
 {
     #[Inject]
     protected WsTicketService $wsTicketService;
 
+    #[Post('/ws/ticket')]
     #[PermissionSkip]
     public function store(Request $request): Response
     {

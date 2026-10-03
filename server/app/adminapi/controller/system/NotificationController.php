@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\system;
 
+use app\adminapi\controller\AuthenticatedController;
 use app\service\system\NotificationService;
-use core\base\Controller;
 use core\permission\Permission;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\route\Delete;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\Put;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
@@ -29,11 +34,13 @@ use Webman\Http\Request;
  *
  * target_type：1 全员广播，2 指定管理员（admin_ids 必填，范围与存在性由服务层判定）；发布后不能修改。
  */
-class NotificationController extends Controller
+#[RouteGroup('/adminapi/system/notification')]
+class NotificationController extends AuthenticatedController
 {
     #[Inject]
     protected NotificationService $notificationService;
 
+    #[Get('')]
     #[Permission('system.notification.list')]
     public function index(Request $request): Response
     {
@@ -42,12 +49,14 @@ class NotificationController extends Controller
         return $this->paginate($this->notificationService->getNotificationList((array) $request->get(), $page, $limit));
     }
 
+    #[Get('/{id:\d+}')]
     #[Permission('system.notification.list')]
     public function show(Request $request, string $id): Response
     {
         return $this->success($this->notificationService->getNotificationDetail((int) $id), lang('messages.get_success'));
     }
 
+    #[Post('')]
     #[Permission('system.notification.create')]
     public function store(Request $request): Response
     {
@@ -56,6 +65,7 @@ class NotificationController extends Controller
         return $this->success($this->notificationService->createNotification($data), lang('messages.publish_success'));
     }
 
+    #[Put('/{id:\d+}')]
     #[Permission('system.notification.update')]
     public function update(Request $request, string $id): Response
     {
@@ -65,6 +75,7 @@ class NotificationController extends Controller
         return $this->success([], lang('messages.update_success'));
     }
 
+    #[Delete('/{id:\d+}')]
     #[Permission('system.notification.delete')]
     public function delete(Request $request, string $id): Response
     {
@@ -73,6 +84,7 @@ class NotificationController extends Controller
         return $this->success([], lang('messages.delete_success'));
     }
 
+    #[Get('/mine')]
     #[PermissionSkip]
     public function mine(Request $request): Response
     {
@@ -84,12 +96,14 @@ class NotificationController extends Controller
         return $this->paginate($this->notificationService->getMyNotifications($params, $page, $limit));
     }
 
+    #[Get('/unread-count')]
     #[PermissionSkip]
     public function unreadCount(): Response
     {
         return $this->success(['count' => $this->notificationService->getUnreadCount()], lang('messages.get_success'));
     }
 
+    #[Get('/admin-options')]
     #[Permission('system.notification.create')]
     public function adminOptions(Request $request): Response
     {
@@ -101,6 +115,7 @@ class NotificationController extends Controller
         return $this->success($this->notificationService->adminOptions((string) ($params['keyword'] ?? '')), lang('messages.get_success'));
     }
 
+    #[Post('/{id:\d+}/read')]
     #[PermissionSkip]
     public function read(Request $request, string $id): Response
     {
@@ -109,6 +124,7 @@ class NotificationController extends Controller
         return $this->success([], lang('messages.mark_read_success'));
     }
 
+    #[Post('/read-all')]
     #[PermissionSkip]
     public function readAll(): Response
     {
