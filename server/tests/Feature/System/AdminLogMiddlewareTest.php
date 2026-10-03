@@ -8,6 +8,7 @@ use app\middleware\AdminLogMiddleware;
 use core\validation\ValidatorFactory;
 use support\Db;
 use tests\Support\ApiTestCase;
+use tests\Support\RouteStack;
 use Webman\Route;
 use Webman\Route\Route as RouteObject;
 
@@ -142,7 +143,7 @@ final class AdminLogMiddlewareTest extends ApiTestCase
         $missing = [];
         /** @var RouteObject $route */
         foreach (Route::getRoutes() as $route) {
-            if (!in_array(AdminLogMiddleware::class, $route->getMiddleware(), true)
+            if (!in_array(AdminLogMiddleware::class, RouteStack::outerToInner($route), true)
                 || array_intersect($route->getMethods(), ['POST', 'PUT', 'DELETE']) === []) {
                 continue;
             }

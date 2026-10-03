@@ -9,6 +9,7 @@ use app\middleware\ApiAuthMiddleware;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Console\Attribute\AsCommand;
 use tests\Support\ApiTestCase;
+use tests\Support\RouteStack;
 use Webman\Route;
 use Webman\Route\Route as RouteObject;
 
@@ -52,7 +53,7 @@ final class Test25_PaymentSurfaceNotExposedTest extends ApiTestCase
             /** @var RouteObject $route */
             $path = $route->getPath();
             if (str_starts_with($path, '/api/') && (str_starts_with($path, '/api/payment') || str_contains($path, 'refund') || str_contains($path, 'recharge'))) {
-                $routes[$path] = $route->getMiddleware();
+                $routes[$path] = RouteStack::outerToInner($route);
             }
         }
         ksort($routes);
