@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\auth;
 
+use app\middleware\AdminAuthMiddleware;
+use app\middleware\AdminLogMiddleware;
+use app\middleware\AdminPermissionMiddleware;
+use app\middleware\LoginRateLimitMiddleware;
 use app\service\common\CaptchaService;
 use app\service\system\AdminService;
 use app\service\system\MenuService;
@@ -16,10 +20,15 @@ use core\exception\BusinessException;
 use core\http\ClientIp;
 use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
+use support\annotation\Middleware;
+use support\annotation\route\Get;
+use support\annotation\route\Post;
+use support\annotation\route\RouteGroup;
 use support\Response;
 use Webman\Http\Request;
 
 /** 认证（契约 §2.1）。captcha/login 在公开组；info/refresh/logout 在认证组，登录即可访问。 */
+#[RouteGroup('/adminapi/auth')]
 class AuthController extends Controller
 {
     #[Inject]
@@ -34,12 +43,15 @@ class AuthController extends Controller
     #[Inject]
     protected SystemConfigService $systemConfigService;
 
+    #[Get('/captcha')]
     #[PermissionSkip]
     public function captcha(): Response
     {
         return $this->success($this->captchaService->generate(), lang('messages.get_success'));
     }
 
+    #[Middleware(LoginRateLimitMiddleware::class)]
+    #[Post('/login')]
     #[PermissionSkip]
     public function login(Request $request): Response
     {
@@ -61,6 +73,8 @@ class AuthController extends Controller
         return $this->success($result, lang('messages.login_success'));
     }
 
+    #[Middleware(AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class)]
+    #[Get('/info')]
     #[PermissionSkip]
     public function info(): Response
     {
@@ -73,6 +87,8 @@ class AuthController extends Controller
         ], lang('messages.get_success'));
     }
 
+    #[Middleware(AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class)]
+    #[Post('/refresh')]
     #[PermissionSkip]
     public function refresh(Request $request): Response
     {
@@ -83,6 +99,8 @@ class AuthController extends Controller
         return $this->success(['token' => $newToken], lang('messages.refresh_success'));
     }
 
+    #[Middleware(AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class)]
+    #[Post('/logout')]
     #[PermissionSkip]
     public function logout(Request $request): Response
     {
