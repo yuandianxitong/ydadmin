@@ -163,7 +163,7 @@ final class MakeCrudCommand extends Command
             }
             $output->writeln($line);
         }
-        $output->writeln('<info>路由文件已生成，需要 php start.php reload 后接口才生效。</info>');
+        $output->writeln('<info>控制器路由在 php start.php reload 后生效。</info>');
 
         if ($input->getOption('reload')) {
             $output->writeln('<info>正在执行 php start.php reload……</info>');
