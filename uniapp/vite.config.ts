@@ -12,16 +12,16 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:8005",
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
       "/storage": {
-        target: "http://localhost:8005",
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
       // 装修默认素材 public/static/diy/*
       "/static": {
-        target: "http://localhost:8005",
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
     },

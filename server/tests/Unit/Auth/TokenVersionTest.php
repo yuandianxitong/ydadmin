@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Unit\Auth;
 
 use core\auth\TokenVersion;
+use support\Db;
 use support\Redis;
 use tests\TestCase;
 
@@ -85,5 +86,31 @@ final class TokenVersionTest extends TestCase
         $this->assertGreaterThanOrEqual(1_000_000, $userVersion, 'C 端同样从随机基数起步');
         $this->assertSame($userVersion + 1, TokenVersion::bump(self::USER_ID, 'user'));
         $this->assertSame($adminVersion, TokenVersion::current(self::ADMIN_ID), '禁用一个会员不能把同 id 的管理员踢下线');
+    }
+
+    public function test_existing_account_keeps_its_version_when_redis_loses_the_key(): void
+    {
+        $id = 424243;
+        Db::table('admins')->where('id', $id)->delete();
+        Db::table('admins')->insert([
+            'id' => $id,
+            'username' => 'token_ver_424243',
+            'password' => 'x',
+            'status' => 1,
+            'token_version' => 0,
+        ]);
+        try {
+            $seeded = TokenVersion::current($id);
+            $this->assertGreaterThanOrEqual(1_000_000, $seeded);
+            $this->assertSame($seeded, (int) Db::table('admins')->where('id', $id)->value('token_version'));
+            Redis::del('admin_token_ver:' . $id);
+            $this->assertSame($seeded, TokenVersion::current($id), '账号在库里时，Redis 丢键不能改版本号');
+            $this->assertSame($seeded + 1, TokenVersion::bump($id));
+            Redis::del('admin_token_ver:' . $id);
+            $this->assertSame($seeded + 1, TokenVersion::current($id));
+        } finally {
+            Db::table('admins')->where('id', $id)->delete();
+            Redis::del('admin_token_ver:' . $id);
+        }
     }
 }

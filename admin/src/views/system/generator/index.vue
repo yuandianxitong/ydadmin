@@ -258,7 +258,7 @@ const goStep2 = async () => {
     config.model_name =
         config.model_name ||
         parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join('')
-    config.module_name = config.module_name || 'business'
+    // 不预填 business：那是手写语言分组，生成器会直接拒绝
     config.table_comment = config.table_comment || config.model_name
 
     try {

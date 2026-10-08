@@ -14,12 +14,13 @@ final class SpaController
 {
     private const MOBILE_UA = '/Mobile|Android|iPhone|iPad|iPod|MicroMessenger/i';
 
-    /** 站点根：按 UA 跳转到移动端或 PC 端（沿用 TP8 版 app/index 行为）。 */
+    /** 站点根：移动端产物在时按 UA 跳 /mobile/，否则一律 /pc/，避免手机打开未部署的 404。 */
     public function home(Request $request): Response
     {
         $ua = (string) $request->header('user-agent', '');
+        $mobileReady = is_file(public_path() . '/mobile/index.html');
 
-        return redirect(preg_match(self::MOBILE_UA, $ua) === 1 ? '/mobile/' : '/pc/');
+        return redirect($mobileReady && preg_match(self::MOBILE_UA, $ua) === 1 ? '/mobile/' : '/pc/');
     }
 
     public function admin(Request $request, string $path = ''): Response

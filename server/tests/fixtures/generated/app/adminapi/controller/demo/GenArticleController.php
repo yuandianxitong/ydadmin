@@ -93,10 +93,10 @@ class GenArticleController extends AuthenticatedController
     public function batchDelete(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
-            'ids.required'  => 'demo.gen_article_ids_require',
-            'ids.array'     => 'demo.gen_article_ids_require',
-            'ids.min'       => 'demo.gen_article_ids_require',
-            'ids.*.integer' => 'demo.gen_article_ids_integer',
+            'ids.required'  => 'demo/gen_article.ids_require',
+            'ids.array'     => 'demo/gen_article.ids_require',
+            'ids.min'       => 'demo/gen_article.ids_require',
+            'ids.*.integer' => 'demo/gen_article.ids_integer',
         ]);
         $this->genArticleService->batchDelete(array_map('intval', (array) $data['ids']));
 
@@ -108,9 +108,9 @@ class GenArticleController extends AuthenticatedController
     public function status(Request $request, string $id): Response
     {
         $data = $this->validate($this->body($request), $this->statusRules(), [
-            'status.required' => 'demo.gen_article_status_require',
-            'status.integer'  => 'demo.gen_article_status_integer',
-            'status.in'       => 'demo.gen_article_status_invalid',
+            'status.required' => 'demo/gen_article.status_require',
+            'status.integer'  => 'demo/gen_article.status_integer',
+            'status.in'       => 'demo/gen_article.status_invalid',
         ]);
         $this->genArticleService->updateStatus((int) $id, (int) $data['status']);
 
@@ -200,25 +200,25 @@ class GenArticleController extends AuthenticatedController
     private function messages(): array
     {
         return [
-            'title.required'      => 'demo.gen_article_title_require',
-            'title.max'           => 'demo.gen_article_title_length',
-            'summary.max'         => 'demo.gen_article_summary_length',
-            'cover_image.max'     => 'demo.gen_article_cover_image_length',
-            'category.required'   => 'demo.gen_article_category_require',
-            'category.in'         => 'demo.gen_article_category_invalid',
-            'price.required'      => 'demo.gen_article_price_require',
-            'price.numeric'       => 'demo.gen_article_price_numeric',
-            'view_count.required' => 'demo.gen_article_view_count_require',
-            'view_count.integer'  => 'demo.gen_article_view_count_integer',
-            'slug.required'       => 'demo.gen_article_slug_require',
-            'slug.max'            => 'demo.gen_article_slug_length',
-            'published_at.date'   => 'demo.gen_article_published_at_date',
-            'status.required'     => 'demo.gen_article_status_require',
-            'status.integer'      => 'demo.gen_article_status_integer',
-            'status.in'           => 'demo.gen_article_status_invalid',
-            'sort.required'       => 'demo.gen_article_sort_require',
-            'sort.integer'        => 'demo.gen_article_sort_integer',
-            'sort.min'            => 'demo.gen_article_sort_min',
+            'title.required'      => 'demo/gen_article.title_require',
+            'title.max'           => 'demo/gen_article.title_length',
+            'summary.max'         => 'demo/gen_article.summary_length',
+            'cover_image.max'     => 'demo/gen_article.cover_image_length',
+            'category.required'   => 'demo/gen_article.category_require',
+            'category.in'         => 'demo/gen_article.category_invalid',
+            'price.required'      => 'demo/gen_article.price_require',
+            'price.numeric'       => 'demo/gen_article.price_numeric',
+            'view_count.required' => 'demo/gen_article.view_count_require',
+            'view_count.integer'  => 'demo/gen_article.view_count_integer',
+            'slug.required'       => 'demo/gen_article.slug_require',
+            'slug.max'            => 'demo/gen_article.slug_length',
+            'published_at.date'   => 'demo/gen_article.published_at_date',
+            'status.required'     => 'demo/gen_article.status_require',
+            'status.integer'      => 'demo/gen_article.status_integer',
+            'status.in'           => 'demo/gen_article.status_invalid',
+            'sort.required'       => 'demo/gen_article.sort_require',
+            'sort.integer'        => 'demo/gen_article.sort_integer',
+            'sort.min'            => 'demo/gen_article.sort_min',
         ];
     }
 }

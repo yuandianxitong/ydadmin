@@ -50,13 +50,13 @@ class GenArticleService extends Service
     {
         $row = array_intersect_key($data, array_flip(['title', 'summary', 'content', 'cover_image', 'category', 'price', 'view_count', 'slug', 'published_at', 'status', 'sort']));
         if (isset($row['slug']) && $this->genArticleRepository->existsBySlug((string) $row['slug'])) {
-            throw new BusinessException(lang('demo.gen_article_slug_exists'));
+            throw new BusinessException(lang('demo/gen_article.slug_exists'));
         }
 
         try {
             return $this->runInTransaction(fn (): array => $this->genArticleRepository->create($row));
         } catch (UniqueConstraintViolationException) {
-            throw new BusinessException(lang('demo.gen_article_slug_exists'));
+            throw new BusinessException(lang('demo/gen_article.slug_exists'));
         }
     }
 
@@ -78,7 +78,7 @@ class GenArticleService extends Service
         // 自己这一行由 $excludeId 排除，不必先比较值有没有改动：那次字符串比较依赖 find() 的返回值，
         // 而 find() 受数据权限约束，取不到该列时 ?? '' 会把「没改」误判成「改了」，白跑一次查重。
         if (isset($update['slug']) && $this->genArticleRepository->existsBySlug((string) $update['slug'], $id)) {
-            throw new BusinessException(lang('demo.gen_article_slug_exists'));
+            throw new BusinessException(lang('demo/gen_article.slug_exists'));
         }
 
         try {
@@ -86,7 +86,7 @@ class GenArticleService extends Service
                 $this->genArticleRepository->update($id, $update);
             });
         } catch (UniqueConstraintViolationException) {
-            throw new BusinessException(lang('demo.gen_article_slug_exists'));
+            throw new BusinessException(lang('demo/gen_article.slug_exists'));
         }
     }
 
@@ -126,6 +126,6 @@ class GenArticleService extends Service
     /** @return array<string, mixed> */
     private function findGenArticleOrFail(int $id): array
     {
-        return $this->genArticleRepository->find($id) ?? throw new BusinessException(lang('demo.gen_article_not_found'));
+        return $this->genArticleRepository->find($id) ?? throw new BusinessException(lang('demo/gen_article.not_found'));
     }
 }

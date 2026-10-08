@@ -64,6 +64,27 @@ class SmsCodeService extends Service
     /** 计数 +1 并保证带过期时间，一段 Lua 原子执行（与 LoginRateLimitMiddleware 同一写法）。 */
     private const INCR_WITH_TTL = "local n = redis.call('INCR', KEYS[1]) if n == 1 or redis.call('TTL', KEYS[1]) == -1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return n";
 
+    /**
+     * 比对、删除、失败计数放在同一段 Lua 里。先 GET 再 DEL 时，两个 worker 会同时看到验证码还在，各成功一次。
+     * 命中返回 1；未命中或验证码不存在返回负的失败次数。
+     */
+    private const VERIFY_AND_CONSUME = <<<'LUA'
+local stored = redis.call('GET', KEYS[1])
+if stored and stored == ARGV[1] then
+  redis.call('DEL', KEYS[1])
+  redis.call('DEL', KEYS[2])
+  return 1
+end
+local fails = redis.call('INCR', KEYS[2])
+if fails == 1 then
+  redis.call('EXPIRE', KEYS[2], tonumber(ARGV[2]))
+end
+if stored and fails > tonumber(ARGV[3]) then
+  redis.call('DEL', KEYS[1])
+end
+return -fails
+LUA;
+
     /** @var array<string, string> scene => 模板 id 的配置键（spec §7.1） */
     private const TEMPLATE_KEYS = [
         'login'    => 'sms_template_login',
@@ -148,18 +169,23 @@ class SmsCodeService extends Service
     public function verify(string $mobile, string $scene, string $code): void
     {
         $this->assertScene($scene);
-        $cached = Redis::get(self::codeKey($mobile, $scene));
-        if (!is_string($cached) || $cached === '' || !hash_equals($cached, $code)) {
-            $fails = (int) Redis::eval(self::INCR_WITH_TTL, 1, self::verifyFailKey($mobile, $scene), self::CODE_TTL);
-            if ($fails > self::VERIFY_FAIL_LIMIT) {
-                Redis::del(self::codeKey($mobile, $scene));
-
-                throw new BusinessException(lang('business.sms_verify_too_many_attempts'), 429);
-            }
-
-            throw new ValidationException(['code' => lang('validation.sms_code_invalid')]);
+        $result = Redis::eval(
+            self::VERIFY_AND_CONSUME,
+            2,
+            self::codeKey($mobile, $scene),
+            self::verifyFailKey($mobile, $scene),
+            $code,
+            (string) self::CODE_TTL,
+            (string) self::VERIFY_FAIL_LIMIT,
+        );
+        if ((int) $result === 1) {
+            return;
         }
-        Redis::del(self::codeKey($mobile, $scene), self::verifyFailKey($mobile, $scene));
+        if ((int) $result < -self::VERIFY_FAIL_LIMIT) {
+            throw new BusinessException(lang('business.sms_verify_too_many_attempts'), 429);
+        }
+
+        throw new ValidationException(['code' => lang('validation.sms_code_invalid')]);
     }
 
     private function assertScene(string $scene): void

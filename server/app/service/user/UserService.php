@@ -48,7 +48,7 @@ class UserService extends Service
 
     /**
      * 改密成功后当前会话失效（spec §4.2）：其余端已登录的 token 也一起失效，前端下次请求收到 401
-     * 回登录页。TokenVersion::bump 放进 afterCommit：避免事务还没提交、密码其实没改成功时就先吊销。
+     * 回登录页。版本号和改密在同一个事务里自增：事务回滚时吊销也回去。
      */
     public function changePassword(int $userId, string $old, string $new): bool
     {
@@ -59,7 +59,7 @@ class UserService extends Service
 
         return $this->runInTransaction(function () use ($userId, $new): bool {
             $ok = $this->userRepository->update($userId, ['password' => password_hash($new, PASSWORD_DEFAULT)]);
-            $this->afterCommit(fn () => TokenVersion::bump($userId, 'user'));
+            TokenVersion::bump($userId, 'user');
 
             return $ok;
         });

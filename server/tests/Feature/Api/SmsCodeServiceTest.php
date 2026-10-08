@@ -426,4 +426,30 @@ final class SmsCodeServiceTest extends ApiTestCase
         $this->service()->verify(self::MOBILE, 'register', $fresh);
         $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE), '校验成功后这串码即作废');
     }
+
+    public function test_verify_consumes_a_cached_code_in_one_step(): void
+    {
+        Redis::setEx('sms_code:register:' . self::MOBILE, SmsCodeService::CODE_TTL, '123456');
+        try {
+            try {
+                $this->service()->verify(self::MOBILE, 'register', '000000');
+                $this->fail('错码必须被拒绝');
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors());
+            }
+            $this->assertSame('123456', (string) Redis::get('sms_code:register:' . self::MOBILE));
+
+            $this->service()->verify(self::MOBILE, 'register', '123456');
+            $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE));
+
+            try {
+                $this->service()->verify(self::MOBILE, 'register', '123456');
+                $this->fail('同一个验证码不能用第二次');
+            } catch (ValidationException $e) {
+                $this->assertSame(['code' => lang('validation.sms_code_invalid')], $e->errors());
+            }
+        } finally {
+            Redis::del('sms_code:register:' . self::MOBILE, 'sms_verify_fail:register:' . self::MOBILE);
+        }
+    }
 }

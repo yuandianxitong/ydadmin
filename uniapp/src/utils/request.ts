@@ -3,8 +3,8 @@ import type { ApiResponse } from '@/types/api'
 
 let BASE_URL = import.meta.env.VITE_APP_API_URL || ''
 // #ifdef H5
-// H5 开发模式通过 Vite 代理转发，使用相对路径避免跨域
-if (import.meta.env.DEV) BASE_URL = ''
+// H5 与站点同源：开发走 Vite 代理，生产由 webman 托管。不要打到示例域名。
+BASE_URL = ''
 // #endif
 
 function getClientType(): string {

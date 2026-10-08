@@ -674,9 +674,9 @@ final class SchemaTest extends TestCase
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
     }
 
-    public function test_release_version_is_2_0_5(): void
+    public function test_release_version_is_2_0_6(): void
     {
-        $this->assertSame('2.0.5', (string) config('version.version'));
+        $this->assertSame('2.0.6', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

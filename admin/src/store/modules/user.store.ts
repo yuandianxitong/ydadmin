@@ -101,6 +101,7 @@ export const useUserStore = defineStore('user', () => {
     }
 
     async function refreshToken() {
+        const previous = getToken()
         try {
             const response = await authApi.refreshToken()
             const newToken = response.data.token
@@ -108,9 +109,16 @@ export const useUserStore = defineStore('user', () => {
             cache.set(TOKEN_KEY, newToken)
             return response
         } catch (error) {
-            console.error('刷新Token失败:', error)
-            resetState()
-            clearAuthInfo()
+            const latest = getToken()
+            if (latest && latest !== previous) {
+                token.value = latest
+                throw error
+            }
+            const code = (error as { code?: number }).code
+            if (code === 401) {
+                resetState()
+                clearAuthInfo()
+            }
             throw error
         }
     }

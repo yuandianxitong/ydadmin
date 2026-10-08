@@ -54,4 +54,20 @@ final class DiyWidgetRegistryTest extends TestCase
             }
         }
     }
+
+    public function test_rich_text_drops_scripts_and_event_handlers(): void
+    {
+        $reg = new DiyWidgetRegistry();
+        $clean = $reg->validate([
+            ['id' => 'a', 'type' => 'rich-text', 'props' => [
+                'content' => '<p onclick="alert(1)">你好</p><script>alert(1)</script><a href="javascript:alert(1)">x</a>',
+            ]],
+        ]);
+
+        $html = (string) $clean[0]['props']['content'];
+        $this->assertStringContainsString('你好', $html);
+        $this->assertStringNotContainsString('script', strtolower($html));
+        $this->assertStringNotContainsString('onclick', strtolower($html));
+        $this->assertStringNotContainsString('javascript:', strtolower($html));
+    }
 }

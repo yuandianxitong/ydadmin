@@ -3,6 +3,7 @@
 use app\adminapi\controller\system\ApiDocController;
 use app\controller\InstallController;
 use app\controller\SpaController;
+use app\middleware\CorsMiddleware;
 use core\response\Api;
 use Webman\Route;
 
@@ -39,5 +40,8 @@ Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile']);
 
 // 未匹配的路由：HTTP 404 + 统一响应体（TP8 版未知路由同样是 HTTP 404）；关闭 webman 的「/控制器/方法」自动路由。
 // 注意与「记录不存在」区分：后者是业务错误，HTTP 200 + code 404。
-Route::fallback(fn () => Api::errorWithStatus(lang('messages.api_not_found'), 404));
+// 框架组装 fallback 时关掉全局中间件。浏览器预检是 OPTIONS，对不上只登记了实际动词的业务路由，会落到这里。
+// 只挂 CORS：允许的来源在进 404 之前返回 204，其余来源 403；普通未命中请求在来源允许时带上同一套跨域头。
+Route::fallback(fn () => Api::errorWithStatus(lang('messages.api_not_found'), 404))
+    ->middleware([CorsMiddleware::class]);
 Route::disableDefaultRoute();

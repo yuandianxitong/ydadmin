@@ -14,6 +14,7 @@ use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
 use tests\Support\RouteStack;
 use tests\TestCase;
+use Webman\Middleware;
 use Webman\Route;
 use Webman\Route\Route as RouteObject;
 
@@ -150,17 +151,20 @@ final class Test6_RouteMountTest extends TestCase
         ], RouteStack::outerToInner($this->routeBy('GET', '/')));
     }
 
-    public function test_fallback_stack_is_only_the_outer_four(): void
+    public function test_fallback_runs_cors_without_the_global_stack(): void
     {
         self::ensureRoutesLoaded();
         $property = new \ReflectionProperty(Route::class, 'fallbackRoutes');
         $stored = $property->getValue();
         $this->assertArrayHasKey('', $stored);
-        $this->assertSame([
-            InstallGuardMiddleware::class,
-            RequestContextMiddleware::class,
-            LocaleMiddleware::class,
-            CorsMiddleware::class,
-        ], RouteStack::outerToInner($stored['']));
+        $route = $stored[''];
+        // 框架组装 fallback 时关掉全局中间件，RouteStack 那条算法对不上真实调用。
+        $stack = Middleware::getMiddleware('', 'NOT_FOUND', $route->getCallback(), $route, false);
+        $names = [];
+        foreach ($stack as $item) {
+            $names[] = is_array($item) ? (string) $item[0] : (string) $item;
+        }
+
+        $this->assertSame([CorsMiddleware::class], array_reverse($names));
     }
 }

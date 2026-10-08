@@ -56,14 +56,29 @@ function shouldRefresh(token: string): boolean {
 /**
  * 执行 token 刷新（带并发锁）
  */
+const REFRESH_LOCK = 'ydadmin-token-refresh'
+
+function isRefreshRequest(config: { url?: string } | undefined): boolean {
+    return config?.url === REFRESH_URL
+}
+
 async function doRefresh(): Promise<void> {
     if (refreshingPromise) return refreshingPromise
 
     refreshingPromise = (async () => {
-        try {
+        const run = async () => {
+            const current = getToken()
+            if (!current || !shouldRefresh(current)) return
             const { useUserStore } = await import('@/store/modules/user.store')
-            const userStore = useUserStore()
-            await userStore.refreshToken()
+            await useUserStore().refreshToken()
+        }
+        try {
+            // 各标签页共用 localStorage 里的 token。锁住之后再看一眼，避免两个标签页各换一次。
+            if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+                await navigator.locks.request(REFRESH_LOCK, run)
+            } else {
+                await run()
+            }
         } finally {
             refreshingPromise = null
         }
@@ -82,10 +97,10 @@ request.interceptors.request.use(
         if (token && config.url !== REFRESH_URL && shouldRefresh(token)) {
             try {
                 await doRefresh()
-                token = getToken() // 刷新后重新读取新 token
             } catch {
-                // 刷新失败，继续使用旧 token（响应拦截器会处理 401）
+                // 网络失败时保留当前登录。别的标签页可能已经写好新 token。
             }
+            token = getToken()
         }
 
         if (token && config.headers) {
@@ -128,14 +143,16 @@ request.interceptors.response.use(
             data.message?.includes('Token验证失败') ||
             data.message?.includes('Expired token')
         ) {
-            // 使用统一的认证清理函数
-            clearAuthInfo()
-            // 避免在登录页面时重复跳转
-            if (router.currentRoute.value.path !== PageEnum.LOGIN) {
-                router.push(PageEnum.LOGIN)
-            }
             const err = new Error(t('http.loginExpired'))
             ;(err as any).__handled = true
+            ;(err as any).code = 401
+            // 刷新接口自己的 401 交给 refreshToken 决定要不要清登录，这里清掉会把别的标签页刚写入的 token 一起抹掉
+            if (!isRefreshRequest(response.config)) {
+                clearAuthInfo()
+                if (router.currentRoute.value.path !== PageEnum.LOGIN) {
+                    router.push(PageEnum.LOGIN)
+                }
+            }
             return Promise.reject(err)
         }
 
@@ -154,11 +171,12 @@ request.interceptors.response.use(
             switch (status) {
                 case 401:
                     message = t('http.loginExpired')
-                    // 使用统一的认证清理函数
-                    clearAuthInfo()
-                    // 避免在登录页面时重复跳转
-                    if (router.currentRoute.value.path !== PageEnum.LOGIN) {
-                        router.push(PageEnum.LOGIN)
+                    ;(error as any).code = 401
+                    if (!isRefreshRequest(error.config)) {
+                        clearAuthInfo()
+                        if (router.currentRoute.value.path !== PageEnum.LOGIN) {
+                            router.push(PageEnum.LOGIN)
+                        }
                     }
                     break
                 case 403:

@@ -83,7 +83,7 @@ final class GeneratorArtifactTest extends TestCase
         $preview = $this->service()->preview($this->request());
 
         $this->assertSame('server/app/model/demo/GenArticle.php', $preview['model']['path']);
-        $this->assertSame('server/database/generated/demo-menu.sql', $preview['menu']['path']);
+        $this->assertSame('server/database/generated/demo-gen_article-menu.sql', $preview['menu']['path']);
         $this->assertSame('admin/src/api/gen-article.ts', $preview['api']['path']);
         $this->assertSame('admin/src/views/demo/gen-article/index.vue', $preview['page']['path']);
         $this->assertSame('admin/src/views/demo/gen-article/components/GenArticleForm.vue', $preview['form']['path']);

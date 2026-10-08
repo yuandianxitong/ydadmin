@@ -95,16 +95,18 @@ final class PermissionTest extends ApiTestCase
     public function test_clear_all_only_removes_permission_keys(): void
     {
         $admin = $this->actingAsAdmin(['system.admin.list']);
+        $epoch = (int) (Redis::get('perm.epoch') ?: 0);
+        $userEpoch = (int) (Redis::get('perm.user.' . $admin->id) ?: 0);
         $this->permission()->check($admin->id, 'system.admin.list');
-        $this->assertSame(1, (int) Redis::exists("perm.list.{$admin->id}"));
 
         $mgr = TokenManager::scope('admin');
-        $token = $mgr->generate(['admin_id' => $admin->id, 'username' => $admin->username]);
+        $token = $mgr->generate(['admin_id' => $admin->id, 'username' => $admin->username, 'ver' => \core\auth\TokenVersion::current($admin->id)]);
         $mgr->blacklist($token);
 
         $this->permission()->clearAllCache();
+        Redis::setEx("perm.list.{$admin->id}.{$epoch}.{$userEpoch}", 60, (string) json_encode(['planted.permission']));
 
-        $this->assertSame(0, (int) Redis::exists("perm.list.{$admin->id}"));
+        $this->assertNotContains('planted.permission', $this->permission()->getUserPermissions($admin->id));
         try {
             $mgr->verify($token);
             $this->fail('clearAllCache 不得清掉 token 黑名单');

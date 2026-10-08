@@ -17,7 +17,7 @@ final class MenuStubTest extends TestCase
         $renderer = new TemplateRenderer(base_path() . '/core/generator/stubs');
         $content = $renderer->render('menu.stub.php', self::genArticleVars());
 
-        $expected = file_get_contents(base_path() . '/tests/fixtures/generated/database/generated/demo-menu.sql');
+        $expected = file_get_contents(base_path() . '/tests/fixtures/generated/database/generated/demo-gen_article-menu.sql');
         $this->assertSame($expected, $content);
     }
 

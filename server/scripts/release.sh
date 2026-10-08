@@ -51,6 +51,12 @@ copy_tree() {
 if [ "$SKIP_BUILD" -eq 0 ]; then
   (cd "$ROOT/admin" && pnpm build)
   (cd "$ROOT/pc" && pnpm generate)
+  if [ -f "$ROOT/uniapp/package.json" ]; then
+    (cd "$ROOT/uniapp" && pnpm build:h5)
+    rm -rf "$SOURCE/public/mobile"
+    mkdir -p "$SOURCE/public/mobile"
+    cp -R "$ROOT/uniapp/dist/build/h5/." "$SOURCE/public/mobile/"
+  fi
 fi
 
 STAGE=$(mktemp -d)

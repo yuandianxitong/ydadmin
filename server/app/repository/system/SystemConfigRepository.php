@@ -10,13 +10,14 @@ use core\base\Repository;
 use core\contract\ConfigValueReader;
 use Illuminate\Database\Eloquent\Builder;
 use support\Cache;
+use support\Redis;
 
 /**
  * 系统配置仓储。有三份缓存：
  *   - system_config.all：全部启用配置（已按 config_type 转换），供后端读配置用（登录安全、密码长度等）；
  *   - system_config.public：启用且 is_public=1 的配置，供 config/global 用；
  *   - system_config.raw：全部启用配置的原始字符串，供需要分辨「明确关闭」与「值写坏了」的开关用。
- * 写配置的路径必须经 forgetCache()，它同时清三份；clear-cache 也只清这三份。
+ * 实际 key 带上 system_config.epoch。forgetCache() 只把代次加一，计算途中写回的旧值留在旧 key 上。
  */
 class SystemConfigRepository extends Repository implements ConfigValueReader
 {
@@ -27,6 +28,8 @@ class SystemConfigRepository extends Repository implements ConfigValueReader
     private const RAW_CACHE_KEY = 'system_config.raw';
 
     private const CACHE_TTL = 3600;
+
+    private const EPOCH_KEY = 'system_config.epoch';
 
     /** @var list<string> */
     protected array $sortable = ['id', 'sort_order'];
@@ -112,7 +115,7 @@ class SystemConfigRepository extends Repository implements ConfigValueReader
 
     public function forgetCache(): void
     {
-        Cache::deleteMultiple([self::CACHE_KEY, self::PUBLIC_CACHE_KEY, self::RAW_CACHE_KEY]);
+        Redis::incr(self::EPOCH_KEY);
     }
 
     /** @return Builder<Model> */
@@ -130,12 +133,14 @@ class SystemConfigRepository extends Repository implements ConfigValueReader
      */
     private function remember(string $key, \Closure $load): array
     {
-        $cached = Cache::get($key);
+        $epoch = Redis::get(self::EPOCH_KEY);
+        $versioned = $key . '.' . (is_numeric($epoch) ? (int) $epoch : 0);
+        $cached = Cache::get($versioned);
         if (is_array($cached)) {
             return $cached;
         }
         $result = $load();
-        Cache::set($key, $result, self::CACHE_TTL);
+        Cache::set($versioned, $result, self::CACHE_TTL);
 
         return $result;
     }

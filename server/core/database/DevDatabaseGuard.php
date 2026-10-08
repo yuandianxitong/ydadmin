@@ -36,7 +36,8 @@ final class DevDatabaseGuard
         'dictionary_items'   => [],            // M1b
         'notifications'      => [],            // M1b
         'notification_reads' => [],            // M1b
-        'users'              => ['mobile', 'mini_openid', 'oa_openid', 'unionid'],  // M5a + M6a 的微信列
+        'admins'             => ['token_version'],  // 令牌版本跟账号走同一个事务
+        'users'              => ['mobile', 'mini_openid', 'oa_openid', 'unionid', 'token_version'],  // M5a + M6a 的微信列
         'balance_logs'       => ['user_id'],   // M5a
         'points_logs'        => ['user_id'],   // M5a
         'payment_orders'     => ['order_no', 'app_id'],  // M5b + M6a 的 app_id

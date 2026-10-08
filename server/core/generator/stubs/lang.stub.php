@@ -12,10 +12,9 @@ $maxLength = static function (\core\generator\ColumnDescriptor $c): string {
     return preg_match('/\((\d+)/', $c->rawType, $m) ? $m[1] : '';
 };
 
-// 生成模块一个语言文件对应一个模块（而不是一个模型）：键统一加 {modelSnake}_ 前缀，
-// 同一模块以后再生成别的模型时，不含字段名的键（not_found/{col}_exists/ids_require）与
-// 字段级键（{col}_{token}）都不会互相覆盖。
-$key = static fn (string $suffix): string => "{$modelSnake}_{$suffix}";
+// 一个模型一个文件：resource/lang/{locale}/{module}/{modelSnake}.php。
+// 同模块的下一个模型写到另一个文件。生成器只创建新文件，写进同一个文件会被跳过，第二个模型的键就丢了。
+$key = static fn (string $suffix): string => $suffix;
 
 $phrases = $locale === 'en' ? [
     'require' => '%s is required',
@@ -75,12 +74,12 @@ foreach ($formColumns as $col) {
     }
 }
 
-// 批量删除是每个生成模块固定有的端点，ids 校验消息不挂在任何字段上，同样加模型前缀。
+// 批量删除是每个生成模块固定有的端点，ids 校验消息不挂在任何字段上。
 $lines[$key('ids_require')] = $locale === 'en' ? 'Please select records to delete' : '请选择要删除的数据';
 $lines[$key('ids_integer')] = $locale === 'en' ? 'ID must be an integer' : 'ID必须是整数';
 
-$out = "// 由代码生成器生成（{$locale}）。business.php / validation.php 是手写模块共用文件，\n"
-    . "// 生成模块用独立分组 {$module}.*，键统一加 {$modelSnake}_ 前缀，同模块以后生成别的模型不会互相覆盖。\n"
+$out = "// 由代码生成器生成（{$locale}）。一个模型一个文件，键不再加模型前缀。\n"
+    . "// 调用方用 lang('{$module}/{$modelSnake}.键名')，同模块的下一个模型落到另一个文件。\n"
     . "return [\n";
 foreach ($lines as $k => $text) {
     $out .= "    '{$k}' => '" . addslashes($text) . "',\n";

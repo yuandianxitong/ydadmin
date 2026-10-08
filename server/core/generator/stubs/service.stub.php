@@ -30,9 +30,10 @@ $writable = implode(', ', array_map(
     $formColumns
 ));
 // 兜底用的重复键：只有一个唯一列时就用它自己的键，多个唯一列时异常里分不出是哪一列，用统一的键
+$langGroup = $module . '/' . $modelSnake;
 $duplicateKey = count($uniqueColumns) === 1
-    ? $module . '.' . $modelSnake . '_' . $uniqueColumns[0] . '_exists'
-    : $module . '.' . $modelSnake . '_duplicate';
+    ? $langGroup . '.' . $uniqueColumns[0] . '_exists'
+    : $langGroup . '.duplicate';
 ?>
 <?= '<?php' ?>
 
@@ -92,7 +93,7 @@ class <?= $model ?>Service extends Service
         $row = array_intersect_key($data, array_flip([<?= $writable ?>]));
 <?php foreach ($uniqueColumns as $unique) { ?>
         if (isset($row['<?= $unique ?>']) && $this-><?= $repository ?>->existsBy<?= $studly($unique) ?>((string) $row['<?= $unique ?>'])) {
-            throw new BusinessException(lang('<?= $module ?>.<?= $modelSnake ?>_<?= $unique ?>_exists'));
+            throw new BusinessException(lang('<?= $module ?>/<?= $modelSnake ?>.<?= $unique ?>_exists'));
         }
 <?php } ?>
 <?php if ($uniqueColumns === []) { ?>
@@ -127,7 +128,7 @@ class <?= $model ?>Service extends Service
         // 自己这一行由 $excludeId 排除，不必先比较值有没有改动：那次字符串比较依赖 find() 的返回值，
         // 而 find() 受数据权限约束，取不到该列时 ?? '' 会把「没改」误判成「改了」，白跑一次查重。
         if (isset($update['<?= $unique ?>']) && $this-><?= $repository ?>->existsBy<?= $studly($unique) ?>((string) $update['<?= $unique ?>'], $id)) {
-            throw new BusinessException(lang('<?= $module ?>.<?= $modelSnake ?>_<?= $unique ?>_exists'));
+            throw new BusinessException(lang('<?= $module ?>/<?= $modelSnake ?>.<?= $unique ?>_exists'));
         }
 <?php } ?>
 <?php if ($uniqueColumns === []) { ?>
@@ -185,6 +186,6 @@ class <?= $model ?>Service extends Service
     /** @return array<string, mixed> */
     private function find<?= $model ?>OrFail(int $id): array
     {
-        return $this-><?= $repository ?>->find($id) ?? throw new BusinessException(lang('<?= $module ?>.<?= $modelSnake ?>_not_found'));
+        return $this-><?= $repository ?>->find($id) ?? throw new BusinessException(lang('<?= $module ?>/<?= $modelSnake ?>.not_found'));
     }
 }

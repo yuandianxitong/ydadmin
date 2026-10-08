@@ -35,13 +35,9 @@ class GeneratorService extends Service
     private const MODEL_PATTERN = '/^[A-Z][A-Za-z0-9]{0,40}$/';
 
     /**
-     * 保留模块名。生成的语言包落在 resource/lang/{locale}/{module}.php，模块名撞上仓库现有的
-     * 语言分组，这个产物就会被判「已存在」而跳过（生成器只创建新文件，spec 决策 3），于是生成
-     * 代码里所有 lang() 都取不到翻译、原样回显 key——不报错、也没有任何线索指向原因，只能在
-     * 入口挡住。清单 = resource/lang/zh_CN 下的现有分组 + 生成器自己的 generator。
-     *
-     * 前端模块名的默认值恰好就是 business（generator/index.vue 里硬编码），用户不填直接下一步
-     * 就会踩中，所以这条不是理论风险。
+     * 语言包现在按模型拆到 resource/lang/{locale}/{module}/{model}.php，不再覆盖手写的
+     * {module}.php。模块名仍然不能用现有分组：lang('article.xxx') 读的是 article.php，
+     * 生成代码若再占用这个分组，手写键和生成键会缠在一起。清单 = 下面这几条 + zh_CN 目录里的文件名。
      */
     private const RESERVED_MODULES = ['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'];
 
@@ -224,7 +220,7 @@ class GeneratorService extends Service
         $errors = [];
         if (preg_match(self::MODULE_PATTERN, $request->moduleName) !== 1) {
             $errors['module_name'] = lang('generator.invalid_module_name');
-        } elseif (in_array($request->moduleName, self::RESERVED_MODULES, true)) {
+        } elseif (in_array($request->moduleName, $this->reservedModules(), true)) {
             $errors['module_name'] = lang('generator.module_name_reserved');
         }
         if (preg_match(self::MODEL_PATTERN, $request->modelName) !== 1) {
@@ -233,6 +229,17 @@ class GeneratorService extends Service
         if ($errors !== []) {
             throw new ValidationException($errors);
         }
+    }
+
+    /** @return list<string> */
+    private function reservedModules(): array
+    {
+        $reserved = self::RESERVED_MODULES;
+        foreach (glob(base_path('resource/lang/zh_CN/*.php')) ?: [] as $file) {
+            $reserved[] = basename($file, '.php');
+        }
+
+        return array_values(array_unique($reserved));
     }
 
     /** 实时查表得到表定义；表注释取 SHOW TABLE STATUS 的值。 */

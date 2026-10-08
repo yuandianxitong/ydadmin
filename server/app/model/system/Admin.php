@@ -15,7 +15,7 @@ class Admin extends Model
 
     protected $table = 'admins';
 
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'token_version'];
 
     /** @var array<string, string> */
     protected $casts = [

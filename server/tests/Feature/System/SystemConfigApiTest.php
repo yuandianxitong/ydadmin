@@ -7,6 +7,7 @@ namespace tests\Feature\System;
 use app\repository\system\SystemConfigRepository;
 use support\Cache;
 use support\Db;
+use support\Redis;
 use tests\Support\ApiTestCase;
 
 final class SystemConfigApiTest extends ApiTestCase
@@ -216,17 +217,22 @@ final class SystemConfigApiTest extends ApiTestCase
     {
         $admin = $this->actingAsAdmin(); // PermissionSkip：登录即可（照 TP8）
         $repo = new SystemConfigRepository();
+        $epoch = (int) (Redis::get('system_config.epoch') ?: 0);
         $repo->getAllConfigs();
         $repo->getPublicConfigs();
-        $this->assertTrue(Cache::has('system_config.all'));
-        $this->assertTrue(Cache::has('system_config.public'));
+        $this->assertTrue(Cache::has('system_config.all.' . $epoch));
+        $this->assertTrue(Cache::has('system_config.public.' . $epoch));
         Cache::set('dict.cfg_canary', ['x'], 300);
 
         try {
             $this->post(self::BASE . '/clear-cache', [], $admin->token)->assertOk();
 
-            $this->assertFalse(Cache::has('system_config.all'));
-            $this->assertFalse(Cache::has('system_config.public'));
+            $next = (int) (Redis::get('system_config.epoch') ?: 0);
+            $this->assertNotSame($epoch, $next);
+            $this->assertFalse(Cache::has('system_config.all.' . $next));
+            $this->assertFalse(Cache::has('system_config.public.' . $next));
+            Cache::set('system_config.all.' . $epoch, ['site_name' => 'stale-plant'], 60);
+            $this->assertNotSame('stale-plant', $repo->getAllConfigs()['site_name'] ?? null);
             $this->assertSame(['x'], Cache::get('dict.cfg_canary'), '配置以外的缓存不受影响');
             $this->get('/adminapi/auth/info', [], $admin->token)->assertOk();
         } finally {

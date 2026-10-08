@@ -96,17 +96,15 @@ final class Test16_GeneratorSafetyTest extends ApiTestCase
     }
 
     /**
-     * 保留模块名必须被拒。生成的语言包落在 resource/lang/{locale}/{module}.php，撞上仓库现有的
-     * 语言分组，该产物就会被判「已存在」跳过，于是生成代码里所有 lang() 原样回显 key，既不报错
-     * 也无从排查。而前端模块名的默认值恰好就是 business（generator/index.vue 里硬编码），
-     * 用户不填直接下一步就会踩——这条不是理论风险，是默认路径上的坑。
+     * 保留模块名必须被拒。模块名撞上 resource/lang/zh_CN 里已有的分组时，生成代码的 lang()
+     * 会去读那份手写文件。article / payment / wechat 和原来那 7 个名字一样要挡住。
      */
     public function test_module_names_that_collide_with_existing_language_groups_are_rejected(): void
     {
         $admin = $this->actingAsAdmin('super');
         $before = $this->snapshot();
 
-        foreach (['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'] as $reserved) {
+        foreach (['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc', 'article', 'payment', 'wechat'] as $reserved) {
             foreach ([self::PREVIEW, self::GENERATE] as $uri) {
                 $response = $this->post($uri, $this->payload(module: $reserved), $admin->token);
                 $response->assertCode(422);

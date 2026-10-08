@@ -10,7 +10,8 @@ use support\Redis;
 /**
  * 把管理员全部启用角色合并为 DataScopeSnapshot（spec §5.1）：
  * 超管或任一角色为「全部」→ all；2 取本部门；3 取本部门及全部下级；5 取 role_departments；任一「仅本人」→ self。
- * 结果缓存在 Redis，角色、角色部门、部门树、管理员所属部门变更时由业务经 afterCommit 清除。
+ * 结果缓存在 Redis，key 带上读取前的代次。角色、角色部门、部门树、管理员所属部门变更时只把代次加一，
+ * 计算途中写回的旧结果落在旧 key 上，之后的请求读不到。
  * simulate() 用同一套合并规则预演「给定部门 + 给定角色」的范围，不读管理员当前的部门与角色、不读写缓存
  * （M1b 防提权：授权前先算出目标改完之后能看到什么）。
  * 容器单例，没有实例状态。
@@ -19,19 +20,16 @@ final class DataScopeResolver
 {
     private const TTL = 3600;
 
-    private const REGISTRY = 'datascope.registry';
-
     public function resolve(int $adminId): DataScopeSnapshot
     {
-        $key = self::key($adminId);
+        $epoch = self::counter('datascope.epoch');
+        $userEpoch = self::counter('datascope.user.' . $adminId);
+        $key = 'datascope.' . $adminId . '.' . $epoch . '.' . $userEpoch;
         $cached = Redis::get($key);
         if (is_string($cached)) {
             return DataScopeSnapshot::fromArray((array) json_decode($cached, true));
         }
         $snapshot = $this->compute($adminId);
-        // 先登记再写值，且注册表永不整体清空：forgetAll() 与本方法并发时，
-        // 不会出现「registry 已清、这个 key 还没登记」的窗口，forgetAll() 总能覆盖到它。
-        Redis::sAdd(self::REGISTRY, $key);
         Redis::setEx($key, self::TTL, (string) json_encode($snapshot->toArray()));
 
         return $snapshot;
@@ -64,25 +62,20 @@ final class DataScopeResolver
 
     public function forget(int $adminId): void
     {
-        Redis::del(self::key($adminId));
+        Redis::incr('datascope.user.' . $adminId);
     }
 
-    /**
-     * 角色/部门变更会影响所有人的数据范围时调用。
-     * 注册表只增不删（见 resolve()），所以这里能覆盖到当前所有存活的 key；
-     * 唯一的残留是已经过期的 key 的名字留在集合里，无害——DEL 一个不存在的 key 是空操作。
-     */
+    /** 角色/部门变更会影响所有人的数据范围时调用。只推进代次。 */
     public function forgetAll(): void
     {
-        $keys = (array) Redis::sMembers(self::REGISTRY);
-        if ($keys !== []) {
-            Redis::del(...$keys);
-        }
+        Redis::incr('datascope.epoch');
     }
 
-    private static function key(int $adminId): string
+    private static function counter(string $key): int
     {
-        return "datascope.{$adminId}";
+        $value = Redis::get($key);
+
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private function compute(int $adminId): DataScopeSnapshot

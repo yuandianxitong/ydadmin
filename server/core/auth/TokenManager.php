@@ -89,12 +89,18 @@ final class TokenManager
     public function generate(array $payload, ?int $loginAt = null): string
     {
         $now = time();
+        $login = $loginAt ?? $now;
+        // 访问令牌的 exp 不能越过 login_at + refresh_expire，否则刷新会把 7 天会话无限续下去
+        $exp = min($now + $this->expire, $login + $this->refreshExpire);
+        if ($exp <= $now) {
+            throw new AuthException(lang('auth.login_expired'));
+        }
 
         return JWT::encode([
             'iss'      => $this->issuer,
             'iat'      => $now,
-            'exp'      => $now + $this->expire,
-            'login_at' => $loginAt ?? $now,
+            'exp'      => $exp,
+            'login_at' => $login,
             'jti'      => bin2hex(random_bytes(16)),
             'scope'    => $this->scope,
             'data'     => $payload,
@@ -125,12 +131,20 @@ final class TokenManager
         if ($this->isBlacklisted($claims)) {
             throw new AuthException(lang('auth.token_expired'));
         }
+        $sessionExpiresAt = isset($claims['login_at']) ? (int) $claims['login_at'] + $this->refreshExpire : (int) $claims['exp'];
+        if (time() > $sessionExpiresAt) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
+        $sid = (string) ($this->payloadOf($claims)['sid'] ?? '');
+        if ($sid !== '' && $this->isSessionRevoked($sid)) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
 
         return [
             'payload'            => $this->payloadOf($claims),
             'jti'                => (string) $claims['jti'],
             'exp'                => (int) $claims['exp'],
-            'session_expires_at' => isset($claims['login_at']) ? (int) $claims['login_at'] + $this->refreshExpire : (int) $claims['exp'],
+            'session_expires_at' => $sessionExpiresAt,
         ];
     }
 
@@ -179,6 +193,10 @@ final class TokenManager
     {
         $claims = $this->decode($token);
         if ($this->isBlacklisted($claims)) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
+        $sid = (string) ($this->payloadOf($claims)['sid'] ?? '');
+        if ($sid !== '' && $this->isSessionRevoked($sid)) {
             throw new AuthException(lang('auth.token_expired'));
         }
         $loginAt = (int) ($claims['login_at'] ?? $claims['iat']);

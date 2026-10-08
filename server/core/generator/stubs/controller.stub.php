@@ -18,7 +18,7 @@
 $service = lcfirst($model) . 'Service';
 $rulesMethod = lcfirst($model) . 'Rules';
 $permission = $module . '.' . $modelSnake;
-$langPrefix = $module . '.' . $modelSnake;
+$langPrefix = $module . '/' . $modelSnake;
 
 // 规则值与消息键在这里一次算好：规则片段自带 nullable / sometimes 前导的原样单引号输出；
 // 其余片段属于「必填类」，用双引号拼 {$required}，让两个场景切换必填写法。
@@ -40,7 +40,7 @@ foreach ($formColumns as $column) {
 
     foreach ($inference->ruleTokens($column) as $token) {
         $rule = $ruleOfToken[$token] ?? $token;
-        $messageKeys["'" . $column->name . '.' . $rule . "'"] = $langPrefix . '_' . $column->name . '_' . $token;
+        $messageKeys["'" . $column->name . '.' . $rule . "'"] = $langPrefix . '.' . $column->name . '_' . $token;
     }
 }
 $rulePad = 0;
@@ -163,10 +163,10 @@ class <?= $model ?>Controller extends AuthenticatedController
     public function batchDelete(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
-            'ids.required'  => '<?= $langPrefix ?>_ids_require',
-            'ids.array'     => '<?= $langPrefix ?>_ids_require',
-            'ids.min'       => '<?= $langPrefix ?>_ids_require',
-            'ids.*.integer' => '<?= $langPrefix ?>_ids_integer',
+            'ids.required'  => '<?= $langPrefix ?>.ids_require',
+            'ids.array'     => '<?= $langPrefix ?>.ids_require',
+            'ids.min'       => '<?= $langPrefix ?>.ids_require',
+            'ids.*.integer' => '<?= $langPrefix ?>.ids_integer',
         ]);
         $this-><?= $service ?>->batchDelete(array_map('intval', (array) $data['ids']));
 
@@ -179,9 +179,9 @@ class <?= $model ?>Controller extends AuthenticatedController
     public function status(Request $request, string $id): Response
     {
         $data = $this->validate($this->body($request), $this->statusRules(), [
-            'status.required' => '<?= $langPrefix ?>_status_require',
-            'status.integer'  => '<?= $langPrefix ?>_status_integer',
-            'status.in'       => '<?= $langPrefix ?>_status_invalid',
+            'status.required' => '<?= $langPrefix ?>.status_require',
+            'status.integer'  => '<?= $langPrefix ?>.status_integer',
+            'status.in'       => '<?= $langPrefix ?>.status_invalid',
         ]);
         $this-><?= $service ?>->updateStatus((int) $id, (int) $data['status']);
 

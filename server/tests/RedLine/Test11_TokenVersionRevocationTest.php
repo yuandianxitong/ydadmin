@@ -11,7 +11,7 @@ use support\Db;
 use support\Redis;
 use tests\Support\ApiTestCase;
 
-/** 红线：禁用、删除、重置/修改密码后，该管理员已签发的 token 立即失效（spec §4.4）；Redis 丢了版本号时 fail closed。 */
+/** 红线：禁用、删除、重置/修改密码后，该管理员已签发的 token 立即失效（spec §4.4）。版本号在账号行上，Redis 丢键不改变它。 */
 final class Test11_TokenVersionRevocationTest extends ApiTestCase
 {
     private const BASE = '/adminapi/system/admin';
@@ -70,17 +70,20 @@ final class Test11_TokenVersionRevocationTest extends ApiTestCase
         $this->get('/adminapi/auth/info', [], $member->token)->assertOk(); // 只清权限缓存，不自增版本号
     }
 
-    /** Redis 丢了版本号 key（淘汰、FLUSHDB、未持久化就重启）：重新播种出另一个随机基数，旧 token 一律失效。 */
-    public function test_losing_the_version_key_fails_closed(): void
+    /** 版本号以账号行为准。删掉 Redis 里的旧 key，已登录的人不该被踢，已吊销的 token 也不该复活。 */
+    public function test_losing_the_redis_key_does_not_change_the_account_version(): void
     {
         $target = $this->actingAsAdmin();
-        $this->get('/adminapi/auth/info', [], $target->token)->assertOk();
+        $version = TokenVersion::current($target->id);
 
         Redis::del("admin_token_ver:{$target->id}");
-        $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
 
-        $fresh = $this->login($target->username, $target->password)->assertOk()->data()['token'];
-        $this->get('/adminapi/auth/info', [], $fresh)->assertOk();
+        $this->assertSame($version, TokenVersion::current($target->id));
+        $this->get('/adminapi/auth/info', [], $target->token)->assertOk();
+
+        TokenVersion::bump($target->id);
+        Redis::del("admin_token_ver:{$target->id}");
+        $this->get('/adminapi/auth/info', [], $target->token)->assertCode(401);
     }
 
     /**

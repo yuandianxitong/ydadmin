@@ -249,7 +249,7 @@ final class GeneratedCodeRunnableTest extends TestCase
             $controller->store($this->request('POST', '/adminapi/demo/gen-article', $payload));
             $this->fail('被软删行占着的 slug 必须给出业务提示，不能当成可用值放行');
         } catch (BusinessException $e) {
-            $this->assertSame(lang('demo.gen_article_slug_exists'), $e->getMessage());
+            $this->assertSame(lang('demo/gen_article.slug_exists'), $e->getMessage());
         }
 
         $this->assertSame(
@@ -261,18 +261,12 @@ final class GeneratedCodeRunnableTest extends TestCase
 
     /**
      * lang.stub.php 与 controller.stub.php 按设计都迭代同一个 TypeInference::ruleTokens() 的
-     * 推断结果，来产出「字段级」校验消息键（{modelSnake}_{字段}_{token}）：这部分运行时不应该
-     * 分叉，也是本条测试真正要钉住的不变量。
+     * 推断结果，来产出「字段级」校验消息键（{字段}_{token}）：这部分运行时不应该分叉。
      *
-     * 语言包产物里另外还有三类键，两份模板设计上就不共享、天然不会出现在控制器 messages() 里，
-     * 提前列出来是为了不把它们错判成「模板分叉」（look at core/generator/stubs/lang.stub.php /
-     * service.stub.php 就能看到它们各自的落点）：
-     *   - {modelSnake}_not_found：GenArticleService::find 系列方法直接 lang() 抛 BusinessException，
-     *     不经过 Controller::validate()/messages()；
-     *   - {modelSnake}_{唯一列}_exists：同样由 Service 层查重逻辑直接 lang()（spec 决策 12：
-     *     唯一性不做成校验规则，改由 Service 查重 + 唯一索引异常兜底）；
-     *   - {modelSnake}_ids_require / {modelSnake}_ids_integer：批量删除的消息数组是 Controller
-     *     里内联在 batchDelete() 方法体的字面量（"$data['ids']" 那段），不经过 messages()。
+     * 语言包产物里另外还有三类键，两份模板设计上就不共享、天然不会出现在控制器 messages() 里：
+     *   - not_found：Service 直接 lang()；
+     *   - {唯一列}_exists：Service 查重直接 lang()；
+     *   - ids_require / ids_integer：写在 batchDelete() 的消息数组里，不经过 messages()。
      *
      * 断言分两层：字段级键必须与 messages() 完全一致（多一个少一个都报）；语言包里出现的、
      * 既不在 messages() 也不在上面这份「已知非 messages() 键」清单里的键一律视为多余/分叉，
@@ -289,12 +283,11 @@ final class GeneratedCodeRunnableTest extends TestCase
 
         // 黄金夹具表 gen_articles 固定只有一个唯一索引列 slug（uk_slug），与 GeneratorFixture /
         // GoldenModuleTest 里对 uniqueColumns() 的断言一致；不是从产物文本里推的，是这张固定表的已知事实。
-        $modelSnake = 'gen_article';
         $knownNonMessageKeys = [
-            "{$modelSnake}_not_found",
-            "{$modelSnake}_slug_exists",
-            "{$modelSnake}_ids_require",
-            "{$modelSnake}_ids_integer",
+            'not_found',
+            'slug_exists',
+            'ids_require',
+            'ids_integer',
         ];
         $missingKnownKeys = array_values(array_diff($knownNonMessageKeys, $langKeys));
         $this->assertSame(
@@ -357,7 +350,7 @@ final class GeneratedCodeRunnableTest extends TestCase
         if (preg_match('/private function messages\(\): array\s*\{(.*?)\n    \}/s', $content, $methodMatch) !== 1) {
             return [];
         }
-        preg_match_all('/=>\s*\'' . preg_quote($module, '/') . '\.([a-zA-Z0-9_]+)\'/', $methodMatch[1], $keyMatches);
+        preg_match_all('/=>\s*\'' . preg_quote($module, '/') . '\/[a-z0-9_]+\.([a-zA-Z0-9_]+)\'/', $methodMatch[1], $keyMatches);
 
         return array_values(array_unique($keyMatches[1]));
     }

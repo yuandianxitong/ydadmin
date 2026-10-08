@@ -125,7 +125,7 @@ final class GoldenModuleSecondaryTest extends TestCase
     {
         [$path, $content] = $this->renderGoldenSecondary('lang_zh');
 
-        $this->assertSame('resource/lang/zh_CN/catalog.php', $path);
+        $this->assertSame('resource/lang/zh_CN/catalog/gen_category.php', $path);
         $this->assertStringContainsString('格式不正确', $content, 'email 文案分支没有被走到');
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
@@ -134,7 +134,7 @@ final class GoldenModuleSecondaryTest extends TestCase
     {
         [$path, $content] = $this->renderGoldenSecondary('lang_en');
 
-        $this->assertSame('resource/lang/en/catalog.php', $path);
+        $this->assertSame('resource/lang/en/catalog/gen_category.php', $path);
         $this->assertStringContainsString('format is invalid', $content, 'email 文案分支没有被走到');
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }

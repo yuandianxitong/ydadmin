@@ -708,14 +708,16 @@ $r = http('POST', "{$base}/adminapi/system/config/batch-update", $auth, ['config
 check('config batch-update：site_name 写回原值', respCode($r) === 200, $r['body']);
 
 http('GET', "{$base}/adminapi/system/config/global", $auth); // 预热配置缓存
-$warmed = support\Cache::has('system_config.all') || support\Cache::has('system_config.public');
+$epoch = (int) (support\Redis::get('system_config.epoch') ?: 0);
+$warmed = support\Cache::has('system_config.all.' . $epoch) || support\Cache::has('system_config.public.' . $epoch);
 $r = http('POST', "{$base}/adminapi/system/config/clear-cache", $auth);
+$nextEpoch = (int) (support\Redis::get('system_config.epoch') ?: 0);
 check(
     'config clear-cache：配置缓存被清掉，当前 token 仍然有效（不再清全站缓存）',
     $warmed
         && respCode($r) === 200
-        && !support\Cache::has('system_config.all')
-        && !support\Cache::has('system_config.public')
+        && !support\Cache::has('system_config.all.' . $nextEpoch)
+        && !support\Cache::has('system_config.public.' . $nextEpoch)
         && respCode(http('GET', "{$base}/adminapi/auth/info", $auth)) === 200,
     $r['body']
 );

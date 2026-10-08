@@ -56,12 +56,12 @@ final class ModuleBlueprint
             'repository' => $this->server("app/repository/{$module}/{$model}Repository.php", 'repository.stub.php', $vars),
             'service'    => $this->server("app/service/{$module}/{$model}Service.php", 'service.stub.php', $vars),
             'controller' => $this->server("app/adminapi/controller/{$module}/{$model}Controller.php", 'controller.stub.php', $vars),
-            'lang_zh'    => $this->server("resource/lang/zh_CN/{$module}.php", 'lang.stub.php', ['locale' => 'zh_CN'] + $vars),
-            'lang_en'    => $this->server("resource/lang/en/{$module}.php", 'lang.stub.php', ['locale' => 'en'] + $vars),
+            'lang_zh'    => $this->server("resource/lang/zh_CN/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'zh_CN'] + $vars),
+            'lang_en'    => $this->server("resource/lang/en/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'en'] + $vars),
             'api'        => $this->repo("admin/src/api/{$kebab}.ts", 'api.stub.php', $vars),
             'page'       => $this->repo("admin/src/views/{$module}/{$kebab}/index.vue", 'page.stub.php', $vars),
             'form'       => $this->repo("admin/src/views/{$module}/{$kebab}/components/{$model}Form.vue", 'form.stub.php', $vars),
-            'menu'       => $this->server("database/generated/{$module}-menu.sql", 'menu.stub.php', $vars),
+            'menu'       => $this->server("database/generated/{$module}-{$convention->snake($model)}-menu.sql", 'menu.stub.php', $vars),
         ];
     }
 

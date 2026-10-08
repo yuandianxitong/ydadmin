@@ -279,7 +279,7 @@ class AdminService extends Service implements SuperAdminInitializer
             if ($roleIds !== null) {
                 $this->adminRepository->assignRoles($id, $roleIds);
             }
-            $this->afterCommit(fn () => $this->forgetAdmin($id, $passwordChanged || $disabling));
+            $this->revokeAndForget($id, $passwordChanged || $disabling);
         });
     }
 
@@ -297,7 +297,7 @@ class AdminService extends Service implements SuperAdminInitializer
 
         $this->runInTransaction(function () use ($id): void {
             $this->adminRepository->delete($id);
-            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+            $this->revokeAndForget($id, true);
         });
     }
 
@@ -330,7 +330,7 @@ class AdminService extends Service implements SuperAdminInitializer
 
         $this->runInTransaction(function () use ($id, $status): void {
             $this->adminRepository->update($id, ['status' => $status, 'updated_by' => RequestContext::actingUser() ?: null]);
-            $this->afterCommit(fn () => $this->forgetAdmin($id, $status === 0));
+            $this->revokeAndForget($id, $status === 0);
         });
     }
 
@@ -346,7 +346,7 @@ class AdminService extends Service implements SuperAdminInitializer
                 'password'   => password_hash($password, PASSWORD_DEFAULT),
                 'updated_by' => RequestContext::actingUser() ?: null,
             ]);
-            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+            $this->revokeAndForget($id, true);
         });
     }
 
@@ -360,7 +360,7 @@ class AdminService extends Service implements SuperAdminInitializer
 
         $this->runInTransaction(function () use ($id, $newPassword): void {
             DataScope::bypass(fn (): bool => $this->adminRepository->update($id, ['password' => password_hash($newPassword, PASSWORD_DEFAULT)]));
-            $this->afterCommit(fn () => $this->forgetAdmin($id, true));
+            $this->revokeAndForget($id, true);
         });
     }
 
@@ -576,14 +576,20 @@ class AdminService extends Service implements SuperAdminInitializer
     }
 
     /**
-     * 管理员变更后的收尾：$revokeTokens 为真时（禁用、删除、改密码）先自增 token 版本号，再清权限与数据范围缓存。
-     * 吊销必须放在最前面：清缓存抛异常会中止后面的语句，吊销放在后面就会被跳过。
+     * 禁用、删除、改密码时，版本号和账号 UPDATE 在同一个事务里自增。
+     * 权限与数据范围缓存放到提交之后再清：清缓存失败不能把已经提交的吊销撤掉，
+     * 反过来，事务回滚时版本号也一起回去。
      */
-    private function forgetAdmin(int $id, bool $revokeTokens): void
+    private function revokeAndForget(int $id, bool $revokeTokens): void
     {
         if ($revokeTokens) {
             TokenVersion::bump($id);
         }
+        $this->afterCommit(fn () => $this->forgetAdmin($id));
+    }
+
+    private function forgetAdmin(int $id): void
+    {
         $this->permission->clearUserCache($id);
         $this->dataScopeResolver->forget($id);
     }
@@ -626,11 +632,7 @@ class AdminService extends Service implements SuperAdminInitializer
         $created = $this->runInTransaction(function () use ($data, $username): bool {
             $created = $this->adminRepository->upsertById(self::SUPER_ADMIN_ID, $data, ['nickname' => $username]);
             $this->adminRepository->assignRoles(self::SUPER_ADMIN_ID, [self::SUPER_ROLE_ID]);
-            $this->afterCommit(function (): void {
-                TokenVersion::bump(self::SUPER_ADMIN_ID);
-                $this->permission->clearUserCache(self::SUPER_ADMIN_ID);
-                $this->dataScopeResolver->forget(self::SUPER_ADMIN_ID);
-            });
+            $this->revokeAndForget(self::SUPER_ADMIN_ID, true);
 
             return $created;
         });

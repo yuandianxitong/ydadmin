@@ -104,4 +104,36 @@ final class TokenManagerClaimsTest extends TestCase
 
         $this->assertFalse($manager->isSessionRevoked(''), '空 sid 永不视为已吊销');
     }
+
+    public function test_exp_is_clamped_to_the_absolute_session_end(): void
+    {
+        $manager = TokenManager::scope('admin');
+        $loginAt = time() - 604800 + 30;
+
+        $claims = $manager->verifyClaims($manager->generate(['admin_id' => 5], $loginAt));
+
+        $this->assertLessThanOrEqual($loginAt + 604800, $claims['exp']);
+        $this->assertGreaterThan(time(), $claims['exp']);
+    }
+
+    public function test_a_revoked_session_cannot_be_used_or_refreshed(): void
+    {
+        $manager = TokenManager::scope('admin');
+        $sid = bin2hex(random_bytes(16));
+        $token = $manager->generate(['admin_id' => 5, 'ver' => 0, 'sid' => $sid]);
+        $manager->revokeSession($token);
+
+        try {
+            $manager->verify($token);
+            $this->fail('已登出的会话不能再通过校验');
+        } catch (AuthException) {
+            $this->addToAssertionCount(1);
+        }
+        try {
+            $manager->refresh($token, ['ver' => 0]);
+            $this->fail('已登出的会话不能换发新 token');
+        } catch (AuthException) {
+            $this->addToAssertionCount(1);
+        }
+    }
 }

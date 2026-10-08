@@ -48,6 +48,13 @@ class DiyWidgetRegistry
             if (!is_array($props)) {
                 throw new ValidationException(['components' => lang('diy.widget_props_invalid')]);
             }
+            if ($type === 'rich-text') {
+                foreach (['content', 'html'] as $field) {
+                    if (isset($props[$field]) && is_string($props[$field])) {
+                        $props[$field] = RichTextSanitizer::clean($props[$field]);
+                    }
+                }
+            }
             $item = ['id' => $id, 'type' => $type, 'props' => $props];
             if (array_key_exists('hidden', $c)) {
                 $item['hidden'] = (bool) $c['hidden'];

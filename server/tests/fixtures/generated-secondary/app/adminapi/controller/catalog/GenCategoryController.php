@@ -92,10 +92,10 @@ class GenCategoryController extends AuthenticatedController
     public function batchDelete(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->batchDeleteRules(), [
-            'ids.required'  => 'catalog.gen_category_ids_require',
-            'ids.array'     => 'catalog.gen_category_ids_require',
-            'ids.min'       => 'catalog.gen_category_ids_require',
-            'ids.*.integer' => 'catalog.gen_category_ids_integer',
+            'ids.required'  => 'catalog/gen_category.ids_require',
+            'ids.array'     => 'catalog/gen_category.ids_require',
+            'ids.min'       => 'catalog/gen_category.ids_require',
+            'ids.*.integer' => 'catalog/gen_category.ids_integer',
         ]);
         $this->genCategoryService->batchDelete(array_map('intval', (array) $data['ids']));
 
@@ -169,16 +169,16 @@ class GenCategoryController extends AuthenticatedController
     private function messages(): array
     {
         return [
-            'name.required'        => 'catalog.gen_category_name_require',
-            'name.max'             => 'catalog.gen_category_name_length',
-            'is_featured.required' => 'catalog.gen_category_is_featured_require',
-            'is_featured.boolean'  => 'catalog.gen_category_is_featured_boolean',
-            'settings.array'       => 'catalog.gen_category_settings_array',
-            'contact_email.max'    => 'catalog.gen_category_contact_email_length',
-            'contact_email.email'  => 'catalog.gen_category_contact_email_email',
-            'sort.required'        => 'catalog.gen_category_sort_require',
-            'sort.integer'         => 'catalog.gen_category_sort_integer',
-            'sort.min'             => 'catalog.gen_category_sort_min',
+            'name.required'        => 'catalog/gen_category.name_require',
+            'name.max'             => 'catalog/gen_category.name_length',
+            'is_featured.required' => 'catalog/gen_category.is_featured_require',
+            'is_featured.boolean'  => 'catalog/gen_category.is_featured_boolean',
+            'settings.array'       => 'catalog/gen_category.settings_array',
+            'contact_email.max'    => 'catalog/gen_category.contact_email_length',
+            'contact_email.email'  => 'catalog/gen_category.contact_email_email',
+            'sort.required'        => 'catalog/gen_category.sort_require',
+            'sort.integer'         => 'catalog/gen_category.sort_integer',
+            'sort.min'             => 'catalog/gen_category.sort_min',
         ];
     }
 }

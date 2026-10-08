@@ -49,7 +49,7 @@ final class GeneratorRulesLiteralTest extends TestCase
         self::assertNotSame([], $lines, '消息数组是空的');
         foreach ($lines as $line) {
             self::assertMatchesRegularExpression(
-                '/^ {12}\'[a-z0-9_.*]+\'\s+=> \'[a-z_]+\.[a-z0-9_]+\',$/',
+                '/^ {12}\'[a-z0-9_.*]+\'\s+=> \'[a-z0-9_\/]+\.[a-z0-9_]+\',$/',
                 $line,
                 "messages() 的值必须是 lang key 字符串，这一行不是：{$line}"
             );

@@ -58,8 +58,11 @@ export function usePaging<T = any>(options: Options<T>) {
         lists: [] as T[]
     })
 
-    /** 请求分页数据 */
+    let requestSeq = 0
+
+    /** 请求分页数据。后发出的请求先回来时，丢弃更早的那一次。 */
     const getLists = () => {
+        const seq = ++requestSeq
         pager.loading = true
         return fetchFun({
             page: pager.page,
@@ -68,19 +71,17 @@ export function usePaging<T = any>(options: Options<T>) {
             ...fixedParams
         })
             .then((res) => {
+                if (seq !== requestSeq) return res
                 const payload = res?.data
                 if (payload) {
                     pager.lists = (payload.list ?? []) as any
                     pager.total = payload.pagination?.total ?? 0
                     pager.lastPage = payload.pagination?.last_page ?? 1
                 }
-                return Promise.resolve(res)
-            })
-            .catch((err: any) => {
-                return Promise.reject(err)
+                return res
             })
             .finally(() => {
-                pager.loading = false
+                if (seq === requestSeq) pager.loading = false
             })
     }
 

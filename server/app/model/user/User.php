@@ -19,7 +19,7 @@ class User extends Model
     protected $table = 'users';
 
     /** @var list<string> */
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'token_version'];
 
     /** @var array<string, string> */
     protected $casts = [

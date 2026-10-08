@@ -104,7 +104,7 @@ class UserManageService extends Service
         $this->pointsService->change($userId, $points, PointsLogRepository::TYPE_ADMIN_ADJUST, self::SOURCE_ADMIN_ADJUST, $remark, $operatorId);
     }
 
-    /** 启用 / 禁用。置 0 时在提交后自增 user scope 的 token 版本号，该会员已签发的 token 全部失效。 */
+    /** 启用 / 禁用。置 0 时在同一个事务里自增 user scope 的 token 版本号，该会员已签发的 token 全部失效。 */
     public function updateStatus(int $id, int $status): bool
     {
         if ($this->userRepository->find($id) === null) {
@@ -114,7 +114,7 @@ class UserManageService extends Service
         return $this->runInTransaction(function () use ($id, $status): bool {
             $updated = $this->userRepository->update($id, ['status' => $status]);
             if ($status === 0) {
-                $this->afterCommit(static fn () => TokenVersion::bump($id, 'user'));
+                TokenVersion::bump($id, 'user');
             }
 
             return $updated;

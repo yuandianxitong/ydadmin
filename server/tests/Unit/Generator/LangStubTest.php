@@ -5,20 +5,22 @@ declare(strict_types=1);
 namespace tests\Unit\Generator;
 
 use core\generator\TemplateRenderer;
+use tests\Support\GoldenFile;
 use tests\TestCase;
 
 final class LangStubTest extends TestCase
 {
     use GenArticleFixtureColumns;
+    use GoldenFile;
 
     public function test_zh_cn_renders_byte_identical_to_golden_fixture(): void
     {
-        $this->assertRendersToFixture('zh_CN', 'zh_CN/demo.php');
+        $this->assertRendersToFixture('zh_CN', 'zh_CN/demo/gen_article.php');
     }
 
     public function test_en_renders_byte_identical_to_golden_fixture(): void
     {
-        $this->assertRendersToFixture('en', 'en/demo.php');
+        $this->assertRendersToFixture('en', 'en/demo/gen_article.php');
     }
 
     public function test_zh_cn_and_en_have_identical_key_sets(): void
@@ -39,8 +41,7 @@ final class LangStubTest extends TestCase
         $renderer = new TemplateRenderer(base_path() . '/core/generator/stubs');
         $content = $renderer->render('lang.stub.php', self::genArticleVars($locale));
 
-        $expected = file_get_contents(base_path() . "/tests/fixtures/generated/resource/lang/{$fixtureRelativePath}");
-        $this->assertSame($expected, $content);
+        $this->assertGoldenFile('resource/lang/' . $fixtureRelativePath, $content);
     }
 
     /** @return array<string, string> */

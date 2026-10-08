@@ -10,8 +10,9 @@ use Webman\Http\Response as HttpResponse;
 use Webman\MiddlewareInterface;
 
 /**
- * CORS（spec §4.5）：按来源白名单放行并允许携带凭据。是全局中间件（config/middleware.php），fallback 也经过它，
- * 所以 OPTIONS 预检在这里直接返回（命中 204，否则 403），不进入业务。
+ * CORS（spec §4.5）：按来源白名单放行并允许携带凭据。
+ * 命中的路由经由 config/middleware.php 的全局栈。未命中的路由不走全局栈，由 config/route.php 的 fallback 单独挂上本类。
+ * OPTIONS 预检在这里直接返回（允许的来源 204，否则 403），不进入业务。
  */
 class CorsMiddleware implements MiddlewareInterface
 {

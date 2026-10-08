@@ -41,7 +41,8 @@ final class SpaControllerTest extends TestCase
         $desktop = (new SpaController())->home($this->request('/'));
 
         $this->assertSame(302, $mobile->getStatusCode());
-        $this->assertSame('/mobile/', $mobile->getHeader('Location'));
+        $mobileHome = is_file(public_path() . '/mobile/index.html') ? '/mobile/' : '/pc/';
+        $this->assertSame($mobileHome, $mobile->getHeader('Location'));
         $this->assertSame('/pc/', $desktop->getHeader('Location'));
     }
 }

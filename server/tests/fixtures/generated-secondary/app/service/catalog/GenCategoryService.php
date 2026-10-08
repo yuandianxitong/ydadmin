@@ -96,6 +96,6 @@ class GenCategoryService extends Service
     /** @return array<string, mixed> */
     private function findGenCategoryOrFail(int $id): array
     {
-        return $this->genCategoryRepository->find($id) ?? throw new BusinessException(lang('catalog.gen_category_not_found'));
+        return $this->genCategoryRepository->find($id) ?? throw new BusinessException(lang('catalog/gen_category.not_found'));
     }
 }

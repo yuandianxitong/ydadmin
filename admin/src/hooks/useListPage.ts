@@ -69,9 +69,11 @@ export function useListPage<T = any, Q extends Record<string, any> = Record<stri
     // 浅拷贝初始搜索表单，resetSearch 时用于重置
     const initialForm = { ...(defaultSearchForm || {}) } as Q
     const searchForm = reactive({ ...initialForm }) as Q
+    let requestSeq = 0
 
-    /** 加载列表数据 */
+    /** 加载列表数据。后发出的请求先回来时，丢弃更早的那一次。 */
     async function getList() {
+        const seq = ++requestSeq
         loading.value = true
         try {
             const params = {
@@ -80,13 +82,14 @@ export function useListPage<T = any, Q extends Record<string, any> = Record<stri
                 limit: pagination.limit
             }
             const res = await fetchFn(params)
+            if (seq !== requestSeq) return
             const payload = res?.data
             if (payload) {
                 list.value = (payload.list || []) as any
                 pagination.total = payload.pagination?.total ?? 0
             }
         } finally {
-            loading.value = false
+            if (seq === requestSeq) loading.value = false
         }
     }
 

@@ -41,6 +41,14 @@ final class CorsTest extends ApiTestCase
         $this->assertSame(403, $this->call('OPTIONS', '/adminapi/auth/login', [], null, ['Origin' => 'http://evil.test'])->status());
     }
 
+    public function test_unmatched_route_from_allowed_origin_carries_cors_headers(): void
+    {
+        $response = $this->call('GET', '/adminapi/no-such-route', [], null, ['Origin' => self::ALLOWED]);
+
+        $this->assertSame(404, $response->status());
+        $this->assertSame(self::ALLOWED, $response->header('Access-Control-Allow-Origin'));
+    }
+
     public function test_error_responses_also_carry_cors_headers(): void
     {
         // 跨域部署时前端要能读到 401 才会跳登录页
