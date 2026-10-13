@@ -135,7 +135,7 @@ final class GoldenModuleTest extends TestCase
     {
         [$path, $content] = $this->renderGolden('api');
 
-        $this->assertSame('admin/src/api/gen-article.ts', $path);
+        $this->assertSame('admin/src/api/demo/gen-article.ts', $path);
         $this->assertGoldenFile($path, $content);
     }
 

@@ -36,7 +36,7 @@ class GeneratorService extends Service
 
     /**
      * 语言包现在按模型拆到 resource/lang/{locale}/{module}/{model}.php，不再覆盖手写的
-     * {module}.php。模块名仍然不能用现有分组：lang('article.xxx') 读的是 article.php，
+     * {module}.php。模块名仍然不能用现有分组：文章的手写语言键读的是 article.php，
      * 生成代码若再占用这个分组，手写键和生成键会缠在一起。清单 = 下面这几条 + zh_CN 目录里的文件名。
      */
     private const RESERVED_MODULES = ['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'];

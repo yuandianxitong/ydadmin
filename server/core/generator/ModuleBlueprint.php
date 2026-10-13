@@ -8,7 +8,7 @@ namespace core\generator;
  * 一个模块的全部产物：key → (相对基准的落盘路径, 基准, stub 文件名, 模板变量)。
  *
  * 路径只有一种权威形态：**相对其基准的路径**（`app/model/demo/GenArticle.php`、
- * `admin/src/api/gen-article.ts`），另配一个 base 标明挂在哪个基准下。另外两种形态都由它现算：
+ * `admin/src/api/demo/gen-article.ts`），另配一个 base 标明挂在哪个基准下。另外两种形态都由它现算：
  *   - 绝对路径（落盘用）= GeneratorService::absolutePath()，用 Service 自己的 serverRoot() / repoRoot()
  *   - 展示路径（API 响应用）= base === 'server' ? 'server/' . path : path
  *   - 夹具路径（黄金测试用）= tests/fixtures/generated/ . path —— 夹具树因此天然镜像产物树
@@ -58,7 +58,7 @@ final class ModuleBlueprint
             'controller' => $this->server("app/adminapi/controller/{$module}/{$model}Controller.php", 'controller.stub.php', $vars),
             'lang_zh'    => $this->server("resource/lang/zh_CN/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'zh_CN'] + $vars),
             'lang_en'    => $this->server("resource/lang/en/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'en'] + $vars),
-            'api'        => $this->repo("admin/src/api/{$kebab}.ts", 'api.stub.php', $vars),
+            'api'        => $this->repo("admin/src/api/{$module}/{$kebab}.ts", 'api.stub.php', $vars),
             'page'       => $this->repo("admin/src/views/{$module}/{$kebab}/index.vue", 'page.stub.php', $vars),
             'form'       => $this->repo("admin/src/views/{$module}/{$kebab}/components/{$model}Form.vue", 'form.stub.php', $vars),
             'menu'       => $this->server("database/generated/{$module}-{$convention->snake($model)}-menu.sql", 'menu.stub.php', $vars),

@@ -91,7 +91,8 @@ final class Permission implements PermissionCheckerInterface
     {
         $epoch = self::counter('perm.epoch');
         $userEpoch = self::counter('perm.user.' . $adminId);
-        $key = $base . '.' . $epoch . '.' . $userEpoch;
+        // 数据库版本与授权变更原子提交，afterCommit/Redis 失效失败也不会命中旧授权。
+        $key = $base . '.' . $epoch . '.' . $userEpoch . '.db.' . AuthorizationVersion::current();
         $cached = Redis::get($key);
         if (is_string($cached)) {
             return json_decode($cached, true);

@@ -1,5 +1,10 @@
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import axios from 'axios'
+import type {
+    AxiosInstance,
+    AxiosRequestConfig,
+    AxiosResponse,
+    InternalAxiosRequestConfig
+} from 'axios'
+import axios, { CanceledError } from 'axios'
 import { ElMessage } from 'element-plus'
 
 import { PageEnum } from '@/constants/page'
@@ -8,6 +13,34 @@ import router from '@/router'
 import type { ApiResponse } from '@/types/common'
 import { clearAuthInfo, getToken } from '@/utils/auth'
 import { t } from '@/utils/i18n'
+import { getAuthRevision, pendingGetRequests, trackRequest } from '@/utils/request-context'
+
+type ContextRequestConfig = InternalAxiosRequestConfig & {
+    authRevision?: number
+    authToken?: string | null
+    requestLocale?: string
+    releaseRequest?: () => void
+}
+
+function staleRequest(): CanceledError<unknown> {
+    return Object.assign(new CanceledError('请求所属的登录会话或语言已改变'), { __handled: true })
+}
+
+function isStaleRequest(config: ContextRequestConfig | undefined): boolean {
+    return (
+        config?.authRevision !== undefined &&
+        (config.authRevision !== getAuthRevision() || config.requestLocale !== getLocale())
+    )
+}
+
+function shouldClearAuth(config: ContextRequestConfig | undefined): boolean {
+    return (
+        !isRefreshRequest(config) &&
+        !isStaleRequest(config) &&
+        !!config?.authToken &&
+        config.authToken === getToken()
+    )
+}
 
 // 创建axios实例
 // 开发环境：留空，通过 vite proxy 代理
@@ -89,7 +122,10 @@ async function doRefresh(): Promise<void> {
 
 // 请求拦截器
 request.interceptors.request.use(
-    async (config: any) => {
+    async (config: ContextRequestConfig) => {
+        const revision = config.authRevision ?? getAuthRevision()
+        const locale = config.requestLocale ?? getLocale()
+        if (revision !== getAuthRevision() || locale !== getLocale()) throw staleRequest()
         // 添加Token（从统一缓存读取）
         let token = getToken()
 
@@ -103,12 +139,28 @@ request.interceptors.request.use(
             token = getToken()
         }
 
+        if (revision !== getAuthRevision() || locale !== getLocale() || config.signal?.aborted) {
+            throw staleRequest()
+        }
+        const controller = new AbortController()
+        const signal = config.signal
+        const abort = () => controller.abort()
+        signal?.addEventListener?.('abort', abort)
+        const untrack = trackRequest(controller)
+        config.releaseRequest = () => {
+            untrack()
+            signal?.removeEventListener?.('abort', abort)
+        }
+        config.signal = controller.signal
+        config.authRevision = revision
+        config.authToken = token
+
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
         }
 
         // 添加当前语言（同步前后端多语言）
-        const locale = getLocale()
+        config.requestLocale = locale
         if (config.headers) {
             const thinkLang = locale === 'zh-CN' ? 'zh-cn' : 'en'
             config.headers['think-lang'] = thinkLang
@@ -131,6 +183,9 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
     (response: AxiosResponse<ApiResponse>) => {
+        const config = response.config as ContextRequestConfig
+        config.releaseRequest?.()
+        if (isStaleRequest(config)) return Promise.reject(staleRequest())
         const { data } = response
         // 检查业务状态码
         if (data.code === 200 || data.code === 0) {
@@ -143,11 +198,14 @@ request.interceptors.response.use(
             data.message?.includes('Token验证失败') ||
             data.message?.includes('Expired token')
         ) {
+            if (config.authToken && config.authToken !== getToken()) {
+                return Promise.reject(staleRequest())
+            }
             const err = new Error(t('http.loginExpired'))
             ;(err as any).__handled = true
             ;(err as any).code = 401
             // 刷新接口自己的 401 交给 refreshToken 决定要不要清登录，这里清掉会把别的标签页刚写入的 token 一起抹掉
-            if (!isRefreshRequest(response.config)) {
+            if (shouldClearAuth(config)) {
                 clearAuthInfo()
                 if (router.currentRoute.value.path !== PageEnum.LOGIN) {
                     router.push(PageEnum.LOGIN)
@@ -163,6 +221,10 @@ request.interceptors.response.use(
         return Promise.reject(err)
     },
     (error) => {
+        const config = error.config as ContextRequestConfig | undefined
+        config?.releaseRequest?.()
+        if (axios.isCancel(error)) return Promise.reject(error)
+        if (isStaleRequest(config)) return Promise.reject(staleRequest())
         let message = t('http.requestFailed')
 
         if (error.response) {
@@ -170,9 +232,12 @@ request.interceptors.response.use(
 
             switch (status) {
                 case 401:
+                    if (config?.authToken && config.authToken !== getToken()) {
+                        return Promise.reject(staleRequest())
+                    }
                     message = t('http.loginExpired')
                     ;(error as any).code = 401
-                    if (!isRefreshRequest(error.config)) {
+                    if (shouldClearAuth(config)) {
                         clearAuthInfo()
                         if (router.currentRoute.value.path !== PageEnum.LOGIN) {
                             router.push(PageEnum.LOGIN)
@@ -219,43 +284,52 @@ function generateTraceId(): string {
     return 'trace_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11)
 }
 
-// ========== GET 请求去重 ==========
-const pendingGetRequests = new Map<string, Promise<any>>()
-
 function buildDedupKey(url: string, config?: AxiosRequestConfig): string {
     const params = config?.params ? JSON.stringify(config.params) : ''
-    return `${url}:${params}`
+    return `${getAuthRevision()}:${getLocale()}:${url}:${params}`
+}
+
+function bindRequestContext(config?: AxiosRequestConfig): AxiosRequestConfig & {
+    authRevision: number
+    requestLocale: string
+} {
+    // 在调用时固定上下文，避免请求拦截器进入异步队列前已切换账号或语言。
+    return { ...config, authRevision: getAuthRevision(), requestLocale: getLocale() }
 }
 
 // 封装请求方法
 export const myRequest = {
     get<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+        // signal、headers、responseType 等配置具有调用方语义，各自发送，避免串用响应或取消权。
+        if (config && Object.keys(config).some((key) => key !== 'params')) {
+            return request.get(url, bindRequestContext(config))
+        }
         const key = buildDedupKey(url, config)
         const pending = pendingGetRequests.get(key)
         if (pending) {
             return pending as Promise<ApiResponse<T>>
         }
-        const req = request.get(url, config).finally(() => {
-            pendingGetRequests.delete(key)
+        const req = request.get(url, bindRequestContext(config)).finally(() => {
+            if (pendingGetRequests.get(key) === req) pendingGetRequests.delete(key)
         }) as unknown as Promise<ApiResponse<T>>
         pendingGetRequests.set(key, req)
         return req
     },
 
     post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-        return request.post(url, data, config)
+        return request.post(url, data, bindRequestContext(config))
     },
 
     put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-        return request.put(url, data, config)
+        return request.put(url, data, bindRequestContext(config))
     },
 
     delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-        return request.delete(url, config)
+        return request.delete(url, bindRequestContext(config))
     },
 
     patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-        return request.patch(url, data, config)
+        return request.patch(url, data, bindRequestContext(config))
     }
 }
 

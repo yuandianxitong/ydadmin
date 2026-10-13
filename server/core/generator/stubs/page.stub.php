@@ -281,8 +281,8 @@ __COLUMNS_BLOCK__
 import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 
-import { __MODEL_CAMEL__Api } from '@/api/__MODEL_KEBAB__'
-import type { __MODEL__Info, __MODEL__Query } from '@/api/__MODEL_KEBAB__'
+import { __MODEL_CAMEL__Api } from '@/api/__MODULE__/__MODEL_KEBAB__'
+import type { __MODEL__Info, __MODEL__Query } from '@/api/__MODULE__/__MODEL_KEBAB__'
 import { useListPage } from '@/hooks/useListPage'
 __STORE_IMPORT_LINE__
 
@@ -321,6 +321,7 @@ $listPageKeysBlock = implode(",\n", array_map(static fn (string $k): string => "
 $optionLinesBlock = implode(",\n", $optionLines);
 
 $replacements = [
+    '__MODULE__' => $module,
     '__MODEL_KEBAB__' => $modelKebab,
     // 本模板里 __TABLE_COMMENT__ 只有一处落点：<div class="table-title">…</div>，即 HTML 文本节点。
     // 用 HTML 实体转义而不是 JS 转义——这里危险的是尖括号（能开出新标签），引号无害；

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\Auth;
 
+use core\auth\AuthorizationVersion;
 use core\auth\Permission;
 use core\auth\TokenManager;
 use core\exception\AuthException;
@@ -104,7 +105,7 @@ final class PermissionTest extends ApiTestCase
         $mgr->blacklist($token);
 
         $this->permission()->clearAllCache();
-        Redis::setEx("perm.list.{$admin->id}.{$epoch}.{$userEpoch}", 60, (string) json_encode(['planted.permission']));
+        Redis::setEx("perm.list.{$admin->id}.{$epoch}.{$userEpoch}.db." . AuthorizationVersion::current(), 60, (string) json_encode(['planted.permission']));
 
         $this->assertNotContains('planted.permission', $this->permission()->getUserPermissions($admin->id));
         try {

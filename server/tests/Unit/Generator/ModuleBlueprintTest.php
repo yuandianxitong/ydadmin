@@ -143,4 +143,21 @@ final class ModuleBlueprintTest extends TestCase
             $tablePrefix,
         );
     }
+
+    public function test_models_with_the_same_name_use_separate_api_paths_and_imports_per_module(): void
+    {
+        $table = $this->articlesBlueprint()->table;
+        $renderer = new TemplateRenderer(base_path('core/generator/stubs'));
+        $paths = [];
+        foreach (['sales', 'warehouse'] as $module) {
+            $artifacts = (new ModuleBlueprint($table, new GeneratorRequest($table->name, $module, 'Article', '文章', [])))->artifacts();
+            $paths[] = $artifacts['api']['path'];
+            $this->assertSame("admin/src/api/{$module}/article.ts", $artifacts['api']['path']);
+            foreach (['page', 'form'] as $key) {
+                $content = $renderer->render($artifacts[$key]['stub'], $artifacts[$key]['vars']);
+                $this->assertStringContainsString("from '@/api/{$module}/article'", $content);
+            }
+        }
+        $this->assertCount(2, array_unique($paths));
+    }
 }

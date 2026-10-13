@@ -68,6 +68,31 @@ final class ValidatorTest extends TestCase
         }
     }
 
+    public function test_generated_module_language_keys_are_translated_in_both_locales(): void
+    {
+        $translatorProperty = new \ReflectionProperty(ValidatorFactory::class, 'translator');
+        $factoryProperty = new \ReflectionProperty(ValidatorFactory::class, 'factory');
+        $originalTranslator = $translatorProperty->getValue();
+        $originalFactory = $factoryProperty->getValue();
+        $translatorProperty->setValue(null, null);
+        $factoryProperty->setValue(null, null);
+        try {
+            ValidatorFactory::translator()->getLoader()->addPath(base_path('tests/fixtures/generated/resource/lang'));
+            foreach (['zh_CN' => '标题不能为空', 'en' => 'Title is required'] as $locale => $expected) {
+                Context::set('locale', $locale);
+                try {
+                    ValidatorFactory::validate([], ['title' => 'required'], ['title.required' => 'demo/gen_article.title_require']);
+                    $this->fail('应抛出 ValidationException');
+                } catch (ValidationException $e) {
+                    $this->assertSame($expected, $e->errors()['title']);
+                }
+            }
+        } finally {
+            $translatorProperty->setValue(null, $originalTranslator);
+            $factoryProperty->setValue(null, $originalFactory);
+        }
+    }
+
     public function test_unique_and_exists_rules_use_the_database(): void
     {
         // 依赖 init.sql 种子：departments 有 id=1，system_configs 有 site_name

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\service\system;
 
 use app\repository\system\MenuRepository;
+use core\auth\AuthorizationVersion;
 use core\auth\Permission;
 use core\auth\SuperAdminGuard;
 use core\base\Service;
@@ -123,6 +124,7 @@ class MenuService extends Service
         ];
 
         return $this->runInTransaction(function () use ($menuData) {
+            AuthorizationVersion::bump();
             $menu = $this->menuRepository->create($menuData);
             $this->afterCommit(fn () => $this->permission->clearAllCache());
 
@@ -194,6 +196,7 @@ class MenuService extends Service
         ], static fn ($value) => $value !== null);
 
         $this->runInTransaction(function () use ($id, $updateData): void {
+            AuthorizationVersion::bump();
             $this->menuRepository->update($id, $updateData);
             $this->afterCommit(fn () => $this->permission->clearAllCache());
         });
@@ -218,6 +221,7 @@ class MenuService extends Service
         }
 
         $this->runInTransaction(function () use ($id): void {
+            AuthorizationVersion::bump();
             $this->menuRepository->delete($id);
             $this->afterCommit(fn () => $this->permission->clearAllCache());
         });
@@ -237,6 +241,7 @@ class MenuService extends Service
         }
 
         $this->runInTransaction(function () use ($ids): void {
+            AuthorizationVersion::bump();
             foreach ($ids as $id) {
                 $this->deleteMenu((int) $id);
             }
@@ -277,6 +282,7 @@ class MenuService extends Service
         }
 
         $this->runInTransaction(function () use ($groups): void {
+            AuthorizationVersion::bump();
             foreach ($groups as $parentId => $rows) {
                 $dbChildren = $this->menuRepository->getChildrenIdsByParent((int) $parentId);
 

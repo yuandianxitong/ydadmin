@@ -8,6 +8,7 @@ use app\repository\user\UserRepository;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
+use core\exception\AuthException;
 use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 use support\Log;
@@ -25,17 +26,22 @@ class UserSessionIssuer extends Service
     /**
      * @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}
      */
-    public function issue(int $userId, string $ip): array
+    public function issue(int $userId, string $ip, ?int $credentialVersion = null): array
     {
+        // 先固定版本，再读账号状态。后续发生的禁用/改密无法升级这次签发的版本。
+        $version = $credentialVersion ?? TokenVersion::current($userId, 'user');
+        $user = $this->userRepository->find($userId) ?? throw new NotFoundException();
+        if ((int) $user['status'] !== 1 || $version !== TokenVersion::current($userId, 'user')) {
+            throw new AuthException(lang('auth.token_expired'));
+        }
         try {
             $this->userRepository->updateLastLogin($userId, $ip);
         } catch (\Throwable $e) {
             Log::warning('更新会员最后登录信息失败：' . $e->getMessage());
         }
-        $user = $this->userRepository->find($userId) ?? throw new NotFoundException();
         $token = TokenManager::scope('user')->generate([
             'user_id' => $userId,
-            'ver'     => TokenVersion::current($userId, 'user'),
+            'ver'     => $version,
         ]);
 
         return [

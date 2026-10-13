@@ -81,7 +81,7 @@ final class GoldenModuleSecondaryTest extends TestCase
     {
         [$path, $content] = $this->renderGoldenSecondary('api');
 
-        $this->assertSame('admin/src/api/gen-category.ts', $path);
+        $this->assertSame('admin/src/api/catalog/gen-category.ts', $path);
         $this->assertStringContainsString('updateStatus: _updateStatus', $content, 'hasStatus=false 时必须剔除 updateStatus 导出');
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }

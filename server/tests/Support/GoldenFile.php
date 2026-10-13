@@ -11,8 +11,8 @@ namespace tests\Support;
  *
  *     产物 app/model/demo/GenArticle.php
  *       → tests/fixtures/generated/app/model/demo/GenArticle.php
- *     产物 admin/src/api/gen-article.ts
- *       → tests/fixtures/generated/admin/src/api/gen-article.ts
+ *     产物 admin/src/api/demo/gen-article.ts
+ *       → tests/fixtures/generated/admin/src/api/demo/gen-article.ts
  *
  * 所以夹具路径由产物路径直接拼出来，没有 key → 夹具路径的映射表要维护，也就没有「新增产物
  * 忘了同步映射」这种失配。后端产物相对 server/、前端产物相对仓库根，两组顶层目录不相交。

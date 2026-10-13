@@ -9,6 +9,7 @@ use app\repository\system\AdminRepository;
 use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
+use core\auth\AuthorizationVersion;
 use core\auth\Permission;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
@@ -74,6 +75,11 @@ class AdminService extends Service implements SuperAdminInitializer
     public function login(string $username, string $password, string $ip, string $userAgent): array
     {
         $admin = $this->adminRepository->findByUsername($username);
+        // 旧账号可能尚未播种。播种后必须重新读取凭据，不能给旧密码快照配上新版本。
+        if ($admin !== null && (int) $admin['token_version'] === 0) {
+            TokenVersion::current((int) $admin['id']);
+            $admin = $this->adminRepository->findByUsername($username);
+        }
         if ($admin === null) {
             password_verify($password, self::DUMMY_PASSWORD_HASH);
             $this->recordLoginLog(0, $username, $ip, $userAgent, false, '用户名不存在');
@@ -89,7 +95,11 @@ class AdminService extends Service implements SuperAdminInitializer
             throw new BusinessException(lang('auth.login_failed'));
         }
 
-        $token = $this->issueToken($adminId, (string) $admin['username']);
+        $credentialVersion = (int) $admin['token_version'];
+        if ($credentialVersion !== TokenVersion::current($adminId)) {
+            throw new BusinessException(lang('auth.login_failed'));
+        }
+        $token = $this->issueToken($adminId, (string) $admin['username'], $credentialVersion);
         try {
             $this->adminRepository->updateLastLogin($adminId, $ip);
         } catch (\Throwable $e) {
@@ -214,6 +224,7 @@ class AdminService extends Service implements SuperAdminInitializer
         ];
 
         return $this->runInTransaction(function () use ($row, $roleIds): array {
+            AuthorizationVersion::bump();
             $admin = $this->adminRepository->create($row); // created_by 由 Repository 自动填
             $this->adminRepository->assignRoles((int) $admin['id'], $roleIds);
 
@@ -275,6 +286,7 @@ class AdminService extends Service implements SuperAdminInitializer
         }
 
         $this->runInTransaction(function () use ($id, $update, $roleIds, $passwordChanged, $disabling): void {
+            AuthorizationVersion::bump();
             $this->adminRepository->update($id, $update);
             if ($roleIds !== null) {
                 $this->adminRepository->assignRoles($id, $roleIds);
@@ -296,6 +308,7 @@ class AdminService extends Service implements SuperAdminInitializer
         $this->assertTargetNotMorePowerful($id);
 
         $this->runInTransaction(function () use ($id): void {
+            AuthorizationVersion::bump();
             $this->adminRepository->delete($id);
             $this->revokeAndForget($id, true);
         });
@@ -311,6 +324,7 @@ class AdminService extends Service implements SuperAdminInitializer
     {
         $visible = $this->adminRepository->visibleIds($ids);
         $this->runInTransaction(function () use ($visible): void {
+            AuthorizationVersion::bump();
             foreach ($visible as $id) {
                 $this->deleteAdmin($id);
             }
@@ -329,6 +343,7 @@ class AdminService extends Service implements SuperAdminInitializer
         }
 
         $this->runInTransaction(function () use ($id, $status): void {
+            AuthorizationVersion::bump();
             $this->adminRepository->update($id, ['status' => $status, 'updated_by' => RequestContext::actingUser() ?: null]);
             $this->revokeAndForget($id, $status === 0);
         });
@@ -342,6 +357,7 @@ class AdminService extends Service implements SuperAdminInitializer
         $this->assertTargetNotMorePowerful($id);
 
         $this->runInTransaction(function () use ($id, $password): void {
+            AuthorizationVersion::bump();
             $this->adminRepository->update($id, [
                 'password'   => password_hash($password, PASSWORD_DEFAULT),
                 'updated_by' => RequestContext::actingUser() ?: null,
@@ -359,6 +375,7 @@ class AdminService extends Service implements SuperAdminInitializer
         }
 
         $this->runInTransaction(function () use ($id, $newPassword): void {
+            AuthorizationVersion::bump();
             DataScope::bypass(fn (): bool => $this->adminRepository->update($id, ['password' => password_hash($newPassword, PASSWORD_DEFAULT)]));
             $this->revokeAndForget($id, true);
         });
@@ -630,6 +647,7 @@ class AdminService extends Service implements SuperAdminInitializer
         ], static fn ($value) => $value !== null);
 
         $created = $this->runInTransaction(function () use ($data, $username): bool {
+            AuthorizationVersion::bump();
             $created = $this->adminRepository->upsertById(self::SUPER_ADMIN_ID, $data, ['nickname' => $username]);
             $this->adminRepository->assignRoles(self::SUPER_ADMIN_ID, [self::SUPER_ROLE_ID]);
             $this->revokeAndForget(self::SUPER_ADMIN_ID, true);
@@ -640,13 +658,13 @@ class AdminService extends Service implements SuperAdminInitializer
         return ['id' => self::SUPER_ADMIN_ID, 'username' => $username, 'created' => $created];
     }
 
-    protected function issueToken(int $adminId, string $username): string
+    protected function issueToken(int $adminId, string $username, int $credentialVersion): string
     {
         // sid：本次登录的会话 id，刷新原样沿用，登出时整体吊销（M4：WS 连接按它区分「刷新」与「登出」）
         return TokenManager::scope('admin')->generate([
             'admin_id' => $adminId,
             'username' => $username,
-            'ver'      => TokenVersion::current($adminId),
+            'ver'      => $credentialVersion,
             'sid'      => bin2hex(random_bytes(16)),
         ]);
     }

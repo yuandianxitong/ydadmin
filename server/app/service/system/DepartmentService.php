@@ -6,6 +6,7 @@ namespace app\service\system;
 
 use app\repository\system\AdminRepository;
 use app\repository\system\DepartmentRepository;
+use core\auth\AuthorizationVersion;
 use core\auth\Permission;
 use core\base\Service;
 use core\context\RequestContext;
@@ -133,6 +134,7 @@ class DepartmentService extends Service
         ];
 
         return $this->runInTransaction(function () use ($departmentData): array {
+            AuthorizationVersion::bump();
             $department = $this->departmentRepository->create($departmentData);
             $this->afterCommit(fn () => $this->dataScopeResolver->forgetAll());
 
@@ -202,6 +204,7 @@ class DepartmentService extends Service
         }
 
         $this->runInTransaction(function () use ($id, $updateData): void {
+            AuthorizationVersion::bump();
             $this->departmentRepository->update($id, $updateData);
             $this->afterCommit(fn () => $this->dataScopeResolver->forgetAll());
         });
@@ -230,6 +233,7 @@ class DepartmentService extends Service
         }
 
         $this->runInTransaction(function () use ($id): void {
+            AuthorizationVersion::bump();
             $this->departmentRepository->delete($id);
             $this->afterCommit(fn () => $this->dataScopeResolver->forgetAll());
         });

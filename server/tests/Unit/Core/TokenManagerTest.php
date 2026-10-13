@@ -66,7 +66,7 @@ final class TokenManagerTest extends TestCase
     {
         $forged = JWT::encode([
             'iss' => 'evil', 'iat' => time(), 'exp' => time() + 60, 'login_at' => time(),
-            'jti' => bin2hex(random_bytes(16)), 'scope' => 'admin', 'data' => ['admin_id' => 1],
+            'jti' => bin2hex(random_bytes(16)), 'scope' => 'admin', 'revocation_version' => 1, 'data' => ['admin_id' => 1],
         ], (string) config('auth.jwt.admin.key'), 'HS256');
 
         $this->expectException(AuthException::class);
@@ -77,7 +77,7 @@ final class TokenManagerTest extends TestCase
     {
         $expired = JWT::encode([
             'iss' => 'ydadmin-admin', 'iat' => time() - 100, 'exp' => time() - 10, 'login_at' => time() - 100,
-            'jti' => bin2hex(random_bytes(16)), 'scope' => 'admin', 'data' => ['admin_id' => 1],
+            'jti' => bin2hex(random_bytes(16)), 'scope' => 'admin', 'revocation_version' => 1, 'data' => ['admin_id' => 1],
         ], (string) config('auth.jwt.admin.key'), 'HS256');
 
         $this->expectException(AuthException::class);
@@ -132,7 +132,11 @@ final class TokenManagerTest extends TestCase
     public function test_refresh_beyond_seven_days_requires_login(): void
     {
         $mgr = TokenManager::scope('admin');
-        $token = $mgr->generate(['admin_id' => 1], time() - 604801);
+        // generate 已提前拒绝过期会话；手工签名覆盖 refresh 自身的绝对上限校验。
+        $token = JWT::encode([
+            'iss' => 'ydadmin-admin', 'iat' => time(), 'exp' => time() + 600, 'login_at' => time() - 604801,
+            'jti' => bin2hex(random_bytes(16)), 'scope' => 'admin', 'revocation_version' => 1, 'data' => ['admin_id' => 1],
+        ], (string) config('auth.jwt.admin.key'), 'HS256');
 
         try {
             $mgr->refresh($token);

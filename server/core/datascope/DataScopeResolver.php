@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace core\datascope;
 
+use core\auth\AuthorizationVersion;
 use support\Db;
 use support\Redis;
 
 /**
  * 把管理员全部启用角色合并为 DataScopeSnapshot（spec §5.1）：
  * 超管或任一角色为「全部」→ all；2 取本部门；3 取本部门及全部下级；5 取 role_departments；任一「仅本人」→ self。
- * 结果缓存在 Redis，key 带上读取前的代次。角色、角色部门、部门树、管理员所属部门变更时只把代次加一，
+ * 结果缓存在 Redis，key 包含数据库与 Redis 代次。授权变更在同一个事务中递增数据库代次，
+ * 即使提交后 Redis 失效失败，后续请求仍不会命中旧结果。
  * 计算途中写回的旧结果落在旧 key 上，之后的请求读不到。
  * simulate() 用同一套合并规则预演「给定部门 + 给定角色」的范围，不读管理员当前的部门与角色、不读写缓存
  * （M1b 防提权：授权前先算出目标改完之后能看到什么）。
@@ -24,7 +26,7 @@ final class DataScopeResolver
     {
         $epoch = self::counter('datascope.epoch');
         $userEpoch = self::counter('datascope.user.' . $adminId);
-        $key = 'datascope.' . $adminId . '.' . $epoch . '.' . $userEpoch;
+        $key = 'datascope.' . $adminId . '.' . $epoch . '.' . $userEpoch . '.db.' . AuthorizationVersion::current();
         $cached = Redis::get($key);
         if (is_string($cached)) {
             return DataScopeSnapshot::fromArray((array) json_decode($cached, true));

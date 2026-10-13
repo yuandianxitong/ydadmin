@@ -38,7 +38,7 @@ class AdminRepository extends Repository
      */
     public function findByUsername(string $username): ?array
     {
-        return DataScope::bypass(fn (): ?array => $this->query()->where($this->qualify('username'), $username)->first()?->makeVisible('password')->toArray());
+        return DataScope::bypass(fn (): ?array => $this->query()->where($this->qualify('username'), $username)->first()?->makeVisible(['password', 'token_version'])->toArray());
     }
 
     /**

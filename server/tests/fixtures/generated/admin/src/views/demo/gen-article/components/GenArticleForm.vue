@@ -104,7 +104,7 @@ import { ElMessage } from 'element-plus'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { genArticleApi } from '@/api/gen-article'
+import { genArticleApi } from '@/api/demo/gen-article'
 import { useFormDialog } from '@/hooks/useFormDialog'
 import { useAppStore } from '@/store'
 import { getToken } from '@/utils/auth'

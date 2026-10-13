@@ -7,6 +7,8 @@ namespace tests\Unit\Auth;
 use core\auth\TokenManager;
 use core\exception\AuthException;
 use Firebase\JWT\JWT;
+use support\Cache;
+use support\Db;
 use tests\TestCase;
 
 final class TokenManagerClaimsTest extends TestCase
@@ -64,6 +66,7 @@ final class TokenManagerClaimsTest extends TestCase
             'exp'   => $exp,
             'jti'   => bin2hex(random_bytes(16)),
             'scope' => 'admin',
+            'revocation_version' => 1,
             'data'  => ['admin_id' => 5],
         ], (string) $config['admin']['key'], 'HS256');
 
@@ -135,5 +138,35 @@ final class TokenManagerClaimsTest extends TestCase
         } catch (AuthException) {
             $this->addToAssertionCount(1);
         }
+    }
+
+    public function test_tokens_issued_before_durable_revocation_was_enabled_are_rejected(): void
+    {
+        $config = (array) (config('auth', [])['jwt'] ?? []);
+        $token = JWT::encode([
+            'iss' => 'ydadmin-admin',
+            'iat' => time(),
+            'exp' => time() + 600,
+            'jti' => bin2hex(random_bytes(16)),
+            'scope' => 'admin',
+            'data' => ['admin_id' => 5],
+        ], (string) $config['admin']['key'], 'HS256');
+
+        $this->expectException(AuthException::class);
+        TokenManager::scope('admin')->verify($token);
+    }
+
+    public function test_refresh_revocation_survives_redis_loss_and_covers_websocket_session_lifetime(): void
+    {
+        $manager = TokenManager::scope('admin');
+        $old = $manager->generate(['admin_id' => 5, 'sid' => bin2hex(random_bytes(16))]);
+        $claims = $manager->verifyClaims($old);
+        $new = $manager->refresh($old);
+        Cache::delete('jwt_blacklist_admin_' . $claims['jti']);
+        $this->assertSame($claims['session_expires_at'], (int) Db::table('auth_revocations')
+            ->where('scope', 'admin')->where('kind', 'jti')->where('identifier', $claims['jti'])->value('expires_at'));
+        $this->assertSame(5, $manager->verify($new)['admin_id']);
+        $this->expectException(AuthException::class);
+        $manager->verify($old);
     }
 }

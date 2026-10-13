@@ -110,8 +110,8 @@
 import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 
-import { genCategoryApi } from '@/api/gen-category'
-import type { GenCategoryInfo, GenCategoryQuery } from '@/api/gen-category'
+import { genCategoryApi } from '@/api/catalog/gen-category'
+import type { GenCategoryInfo, GenCategoryQuery } from '@/api/catalog/gen-category'
 import { useListPage } from '@/hooks/useListPage'
 
 import GenCategoryForm from './components/GenCategoryForm.vue'

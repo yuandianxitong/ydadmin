@@ -46,6 +46,10 @@ class UserAuthService extends Service
     public function loginByPassword(string $account, string $password, string $ip): array
     {
         $user = $this->userRepository->findByAccount($account);
+        if ($user !== null && (int) $user['token_version'] === 0) {
+            TokenVersion::current((int) $user['id'], 'user');
+            $user = $this->userRepository->findByAccount($account);
+        }
         if ($user === null) {
             password_verify($password, self::DUMMY_PASSWORD_HASH);
             throw new BusinessException(lang('auth.account_login_failed'));
@@ -57,7 +61,7 @@ class UserAuthService extends Service
             throw new BusinessException(lang('auth.account_login_failed'));
         }
 
-        return $this->userSessionIssuer->issue((int) $user['id'], $ip);
+        return $this->userSessionIssuer->issue((int) $user['id'], $ip, (int) $user['token_version']);
     }
 
     /** @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}} */

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace tests\Feature\Database;
 
+use core\auth\AuthorizationVersion;
+use core\auth\TokenRevocation;
+use core\database\SqlScript;
 use support\Db;
 use tests\TestCase;
 
@@ -16,6 +19,35 @@ final class SchemaTest extends TestCase
         }
         $this->assertFalse(Db::schema()->hasTable('permissions'));
         $this->assertFalse(Db::schema()->hasTable('role_permissions'));
+    }
+
+    public function test_durable_authorization_and_revocation_tables_are_installed(): void
+    {
+        $this->assertTrue(Db::schema()->hasColumn('authorization_state', 'version'));
+        $this->assertGreaterThan(0, (int) Db::table('authorization_state')->where('id', 1)->value('version'));
+        foreach (['scope', 'kind', 'identifier', 'expires_at'] as $column) {
+            $this->assertTrue(Db::schema()->hasColumn('auth_revocations', $column));
+        }
+    }
+
+    public function test_security_migration_is_repeatable_without_resetting_authorization_or_revocations(): void
+    {
+        Db::connection()->transaction(static fn () => AuthorizationVersion::bump());
+        $before = AuthorizationVersion::current();
+        $identifier = bin2hex(random_bytes(16));
+        TokenRevocation::record('admin', 'jti', $identifier, time() + 3600);
+        try {
+            $statements = SqlScript::split((string) file_get_contents(base_path('database/updates/v2.0.7/update.sql')));
+            for ($attempt = 0; $attempt < 2; $attempt++) {
+                foreach ($statements as $statement) {
+                    Db::unprepared($statement);
+                }
+                $this->assertSame($before, AuthorizationVersion::current());
+                $this->assertTrue(TokenRevocation::contains('admin', 'jti', $identifier));
+            }
+        } finally {
+            Db::table('auth_revocations')->where('scope', 'admin')->where('kind', 'jti')->where('identifier', $identifier)->delete();
+        }
     }
 
     public function test_tenant_and_legacy_columns_are_gone(): void
@@ -674,9 +706,9 @@ final class SchemaTest extends TestCase
         $this->assertFileExists(base_path('public/static/diy/tabbar/home.png'));
     }
 
-    public function test_release_version_is_2_0_6(): void
+    public function test_release_version_is_2_0_7(): void
     {
-        $this->assertSame('2.0.6', (string) config('version.version'));
+        $this->assertSame('2.0.7', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

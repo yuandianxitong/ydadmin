@@ -39,7 +39,7 @@ class UserRepository extends Repository
      */
     public function findByAccount(string $account): ?array
     {
-        return $this->query()->where($this->qualify('mobile'), $account)->first()?->makeVisible('password')->toArray();
+        return $this->query()->where($this->qualify('mobile'), $account)->first()?->makeVisible(['password', 'token_version'])->toArray();
     }
 
     /**

@@ -88,7 +88,7 @@ final class ValidatorFactory
     /** 自定义消息若本身是一个已存在的 lang key（如 'auth.please_login'）则翻译，否则原样返回。 */
     private static function resolveMessage(string $message): string
     {
-        if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$/', $message) === 1
+        if (preg_match('#^[a-zA-Z_][a-zA-Z0-9_]*(/[a-zA-Z_][a-zA-Z0-9_]*)*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$#', $message) === 1
             && self::translator()->has($message)) {
             return self::translator()->get($message);
         }

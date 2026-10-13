@@ -15,4 +15,4 @@
 - 新增目录后记得把 `config/version.php` 的 `version` 提到 ≥ 该目录版本，
   否则新装会挂着一个永远待应用的升级（`SchemaTest` 会拦这个）。
 - 表结构变化同时要改 `database/install/schema.sql`（新装走它）和 `core/database/DevDatabaseGuard`
-  的 `REQUIRED`（开发库过期时才会提示重建）。
+  的 `REQUIRED`（开发库过期时会提示升级）。

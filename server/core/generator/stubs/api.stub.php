@@ -1,6 +1,6 @@
 <?php
 /**
- * 前端 API 文件模板 → admin/src/api/{kebab}.ts，基于 createCrudApi()（spec 决策 13）。
+ * 前端 API 文件模板 → admin/src/api/{module}/{kebab}.ts，基于 createCrudApi()。
  * 只使用 ModuleBlueprint::artifacts() 提供的模板变量，见 core/generator/stubs/README。
  *
  * @var string $module

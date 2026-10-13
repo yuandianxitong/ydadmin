@@ -137,8 +137,8 @@
 import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 
-import { genArticleApi } from '@/api/gen-article'
-import type { GenArticleInfo, GenArticleQuery } from '@/api/gen-article'
+import { genArticleApi } from '@/api/demo/gen-article'
+import type { GenArticleInfo, GenArticleQuery } from '@/api/demo/gen-article'
 import { useListPage } from '@/hooks/useListPage'
 import { useAppStore, useUserStore } from '@/store'
 

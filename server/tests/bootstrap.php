@@ -79,11 +79,10 @@ if ($testStale !== []) {
 }
 
 // 4.6 开发库过期提醒：只提醒、不阻断。测试连的是上面的 $testDb，从不触碰这个库，卡住整条测试流水线
-//     换不来任何保护，而唯一能解除阻断的手段是对开发者本地库做破坏性 db:reset——谁都没有权限替开发者
-//     做这个决定，所以这里只打一行清楚的警告，把决定权交还给开发者。
+//     换不来额外保护。这里只提醒在运行本地业务前执行升级，不替开发者修改业务库。
 $devStale = core\database\DevDatabaseGuard::missing($pdo, $devDatabase);
 if ($devStale !== []) {
-    fwrite(STDERR, "警告：开发库 {$devDatabase} 结构已过期（" . implode('；', $devStale) . "），下次要跑本地业务前请执行 php webman db:reset\n");
+    fwrite(STDERR, "警告：开发库 {$devDatabase} 结构已过期（" . implode('；', $devStale) . "），下次要跑本地业务前请执行 php webman yd:update\n");
 }
 
 // 5. 执行 config/bootstrap.php 注册的引导类（Eloquent 等）

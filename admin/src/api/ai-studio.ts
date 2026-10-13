@@ -2,6 +2,7 @@ import { PageEnum } from '@/constants/page'
 import router from '@/router'
 import { clearAuthInfo, getToken } from '@/utils/auth'
 import { myRequest } from '@/utils/request'
+import { getAuthRevision, trackRequest } from '@/utils/request-context'
 
 export interface StageFile {
     path: string
@@ -36,87 +37,112 @@ export async function streamGenerate(
     callbacks: StreamCallbacks,
     signal?: AbortSignal
 ): Promise<void> {
-    // 开发环境：留空，通过 vite proxy 代理；生产环境：读取 VITE_APP_API_URL（对齐 utils/request.ts baseURL 逻辑）
-    const base = import.meta.env.DEV ? '' : import.meta.env.VITE_APP_API_URL || ''
-    const resp = await fetch(`${base}/adminapi/system/ai-studio/stream`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`
-        },
-        body: JSON.stringify(payload),
-        signal
-    })
-    // admin 后端鉴权失败为 HTTP 200 + body {code:401}（core/http/Response 形态），
-    // 需先看 Content-Type 判断是不是 SSE 流，不是则按普通 JSON 错误处理
-    const contentType = resp.headers.get('Content-Type') || ''
-    if (!contentType.includes('text/event-stream')) {
-        let json: any = {}
-        try {
-            json = await resp.json()
-        } catch {
-            // ignore parse error, fall through to generic error handling
-        }
-        if (json.code === 401) {
-            clearAuthInfo()
-            if (router.currentRoute.value.path !== PageEnum.LOGIN) {
-                router.push(PageEnum.LOGIN)
+    const revision = getAuthRevision()
+    const requestToken = getToken()
+    const controller = new AbortController()
+    const abort = () => controller.abort()
+    if (signal?.aborted) return
+    signal?.addEventListener('abort', abort)
+    const release = trackRequest(controller)
+    try {
+        // 开发环境：留空，通过 vite proxy 代理；生产环境：读取 VITE_APP_API_URL（对齐 utils/request.ts baseURL 逻辑）
+        const base = import.meta.env.DEV ? '' : import.meta.env.VITE_APP_API_URL || ''
+        const resp = await fetch(`${base}/adminapi/system/ai-studio/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${requestToken}`
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        })
+        if (revision !== getAuthRevision() || controller.signal.aborted) return
+        // admin 后端鉴权失败为 HTTP 200 + body {code:401}（core/http/Response 形态），
+        // 需先看 Content-Type 判断是不是 SSE 流，不是则按普通 JSON 错误处理
+        const contentType = resp.headers.get('Content-Type') || ''
+        if (!contentType.includes('text/event-stream')) {
+            let json: any = {}
+            try {
+                json = await resp.json()
+            } catch {
+                // ignore parse error, fall through to generic error handling
             }
-            callbacks.onError('登录已过期，请重新登录')
+            if (revision !== getAuthRevision() || controller.signal.aborted) return
+            if (json.code === 401 || resp.status === 401) {
+                if (requestToken !== getToken()) return
+                clearAuthInfo()
+                if (router.currentRoute.value.path !== PageEnum.LOGIN) {
+                    router.push(PageEnum.LOGIN)
+                }
+                callbacks.onError('登录已过期，请重新登录')
+                return
+            }
+            callbacks.onError(json.message || '请求失败')
             return
         }
-        callbacks.onError(json.message || '请求失败')
-        return
-    }
-    if (!resp.ok || !resp.body) {
-        callbacks.onError(`请求失败（HTTP ${resp.status}）`)
-        return
-    }
-    const reader = resp.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let currentEvent = ''
-    let receivedTerminal = false
-    for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-            if (line.startsWith('event: ')) {
-                currentEvent = line.slice(7).trim()
-            } else if (line.startsWith('data: ')) {
-                let data: any
-                try {
-                    data = JSON.parse(line.slice(6))
-                } catch {
-                    continue
+        if (!resp.ok || !resp.body) {
+            callbacks.onError(`请求失败（HTTP ${resp.status}）`)
+            return
+        }
+        const reader = resp.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let currentEvent = ''
+        let receivedTerminal = false
+        for (;;) {
+            const { done, value } = await reader.read()
+            if (revision !== getAuthRevision() || controller.signal.aborted) {
+                await reader.cancel()
+                return
+            }
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+            for (const line of lines) {
+                if (revision !== getAuthRevision() || controller.signal.aborted) {
+                    await reader.cancel()
+                    return
                 }
-                if (currentEvent === 'chunk') callbacks.onChunk(data.content ?? '')
-                else if (currentEvent === 'done') {
-                    receivedTerminal = true
-                    callbacks.onDone(data)
-                } else if (currentEvent === 'error') {
-                    receivedTerminal = true
-                    const err: StreamError = {
-                        code: data.code ?? 'ENGINE_INTERNAL_ERROR',
-                        message: data.message ?? '生成失败',
-                        request_id: data.request_id ?? ''
+                if (line.startsWith('event: ')) {
+                    currentEvent = line.slice(7).trim()
+                } else if (line.startsWith('data: ')) {
+                    let data: any
+                    try {
+                        data = JSON.parse(line.slice(6))
+                    } catch {
+                        continue
                     }
-                    const suffix = err.request_id ? `（追踪 ID：${err.request_id}）` : ''
-                    callbacks.onError(
-                        err.message.includes(err.request_id) || !err.request_id
-                            ? err.message
-                            : err.message + suffix,
-                        err
-                    )
+                    if (currentEvent === 'chunk') callbacks.onChunk(data.content ?? '')
+                    else if (currentEvent === 'done') {
+                        receivedTerminal = true
+                        callbacks.onDone(data)
+                    } else if (currentEvent === 'error') {
+                        receivedTerminal = true
+                        const err: StreamError = {
+                            code: data.code ?? 'ENGINE_INTERNAL_ERROR',
+                            message: data.message ?? '生成失败',
+                            request_id: data.request_id ?? ''
+                        }
+                        const suffix = err.request_id ? `（追踪 ID：${err.request_id}）` : ''
+                        callbacks.onError(
+                            err.message.includes(err.request_id) || !err.request_id
+                                ? err.message
+                                : err.message + suffix,
+                            err
+                        )
+                    }
                 }
             }
         }
-    }
-    if (!receivedTerminal && !signal?.aborted) {
-        callbacks.onError('连接中断，请重试')
+        if (!receivedTerminal && !controller.signal.aborted) {
+            callbacks.onError('连接中断，请重试')
+        }
+    } catch (error) {
+        if (!controller.signal.aborted && revision === getAuthRevision()) throw error
+    } finally {
+        release()
+        signal?.removeEventListener('abort', abort)
     }
 }
 

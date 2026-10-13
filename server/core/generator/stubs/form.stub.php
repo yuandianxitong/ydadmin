@@ -335,7 +335,7 @@ __IMAGE_IMPORT__import type { FormRules } from 'element-plus'
 __EL_MESSAGE_IMPORT__import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { __MODEL_CAMEL__Api } from '@/api/__MODEL_KEBAB__'
+import { __MODEL_CAMEL__Api } from '@/api/__MODULE__/__MODEL_KEBAB__'
 import { useFormDialog } from '@/hooks/useFormDialog'
 __STORE_IMPORT__
 const { t } = useI18n()
@@ -377,6 +377,7 @@ __RULES_BLOCK__
 VUE;
 
 $replacements = [
+    '__MODULE__' => $module,
     // 落点是 Vue 单引号字符串字面量（:title="form.id ? '编辑X' : '新增X'"），必须用 JS 转义过的那个变量
     '__TABLE_COMMENT__' => $tableCommentJs,
     '__ITEMS_BLOCK__' => $itemsBlock,

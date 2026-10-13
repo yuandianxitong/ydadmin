@@ -1,6 +1,8 @@
 -- 元点Admin 初始数据（菜单、角色、部门、配置）
 -- 按里程碑追加。不含管理员账号：安装后执行 php webman admin:init 建立超级管理员。
 
+INSERT INTO `authorization_state` (`id`, `version`) VALUES (1, 1);
+
 -- ---------------------------------------------------------------- M1a
 
 -- 超级管理员角色：拥有 is_system=1 角色的管理员即超管（spec §4.2）

@@ -10,6 +10,7 @@ import router from '@/router'
 import type { AdminInfo, AuthInfoRes, MenuInfo, RoleInfo } from '@/types/system'
 import { clearAuthInfo, getToken } from '@/utils/auth'
 import cache from '@/utils/cache'
+import { getAuthRevision, invalidateAuthRequests } from '@/utils/request-context'
 
 export const useUserStore = defineStore('user', () => {
     // ========== State ==========
@@ -50,6 +51,7 @@ export const useUserStore = defineStore('user', () => {
         captcha: string
         captcha_key: string
     }) {
+        const revision = getAuthRevision()
         try {
             const response = await authApi.login({
                 username: payload.username.trim(),
@@ -57,10 +59,12 @@ export const useUserStore = defineStore('user', () => {
                 captcha: payload.captcha,
                 captcha_key: payload.captcha_key
             })
+            if (revision !== getAuthRevision()) throw new Error('登录会话已改变')
+            cache.set(TOKEN_KEY, response.data.token)
+            invalidateAuthRequests()
             token.value = response.data.token
             userInfo.value = response.data.admin
             permissions.value = response.data.admin?.permissions || []
-            cache.set(TOKEN_KEY, response.data.token)
             return response.data
         } catch (error) {
             return Promise.reject(error)
@@ -68,8 +72,10 @@ export const useUserStore = defineStore('user', () => {
     }
 
     async function logout() {
+        const revision = getAuthRevision()
         try {
             await authApi.logout()
+            if (revision !== getAuthRevision()) throw new Error('登录会话已改变')
             resetState()
             clearAuthInfo()
             await router.push(PageEnum.LOGIN)
@@ -80,8 +86,10 @@ export const useUserStore = defineStore('user', () => {
     }
 
     async function getUserInfo() {
+        const revision = getAuthRevision()
         try {
             const response = await authApi.getAdminInfo()
+            if (revision !== getAuthRevision()) throw new Error('登录会话已改变')
             const data = response.data as unknown as AuthInfoRes
             userInfo.value = data.admin || {}
             permissions.value = data.permissions || userInfo.value.permissions || []
@@ -102,13 +110,16 @@ export const useUserStore = defineStore('user', () => {
 
     async function refreshToken() {
         const previous = getToken()
+        const revision = getAuthRevision()
         try {
             const response = await authApi.refreshToken()
             const newToken = response.data.token
+            if (revision !== getAuthRevision()) throw new Error('登录会话已改变')
             token.value = newToken
             cache.set(TOKEN_KEY, newToken)
             return response
         } catch (error) {
+            if (revision !== getAuthRevision()) throw error
             const latest = getToken()
             if (latest && latest !== previous) {
                 token.value = latest

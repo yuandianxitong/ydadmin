@@ -16,11 +16,14 @@ use Webman\Http\Request;
  *
  * 与 TP8 版保持的契约（admin 前端依赖）：claims 顶层含 iat/exp，前端在剩余有效期不足 50% 时
  * 静默刷新；exp - iat = 24 小时；刷新时自 login_at 起 7 天为绝对上限。
- * 黑名单以 jti 为 key 存 Redis，TTL = token 剩余有效期。
+ * 吊销记录持久化到数据库，Redis 缓存命中可提前拒绝；丢失缓存仍以数据库为准。
  */
 final class TokenManager
 {
     private const SCOPES = ['admin', 'user'];
+
+    // 旧协议的退出记录仅在 Redis 中，无法补齐持久化记录。升级后要求重新登录。
+    private const REVOCATION_VERSION = 1;
 
     /** @var array<string, self> scope → 实例：由部署期配置构造，构造后只读（check:context 白名单） */
     private static array $instances = [];
@@ -103,6 +106,7 @@ final class TokenManager
             'login_at' => $login,
             'jti'      => bin2hex(random_bytes(16)),
             'scope'    => $this->scope,
+            'revocation_version' => self::REVOCATION_VERSION,
             'data'     => $payload,
         ], $this->key, $this->algorithm);
     }
@@ -151,7 +155,7 @@ final class TokenManager
     /** jti 是否已被拉黑（M4：WS 进程定期复查已建立的连接用，连接本身不再持有 token）。 */
     public function isJtiRevoked(string $jti): bool
     {
-        return Cache::has($this->blacklistKey($jti));
+        return Cache::has($this->blacklistKey($jti)) || TokenRevocation::contains($this->scope, 'jti', $jti);
     }
 
     /**
@@ -168,6 +172,7 @@ final class TokenManager
             return;
         }
         if (is_string($sid) && $sid !== '') {
+            TokenRevocation::record($this->scope, 'sid', $sid, time() + $this->refreshExpire);
             Cache::set($this->sessionRevokedKey($sid), 1, max(1, $this->refreshExpire));
         }
     }
@@ -175,7 +180,7 @@ final class TokenManager
     /** 会话是否已被登出吊销（M4：WS 进程判定用）。空 sid 永远返回 false。 */
     public function isSessionRevoked(string $sid): bool
     {
-        return $sid !== '' && Cache::has($this->sessionRevokedKey($sid));
+        return $sid !== '' && (Cache::has($this->sessionRevokedKey($sid)) || TokenRevocation::contains($this->scope, 'sid', $sid));
     }
 
     /**
@@ -243,6 +248,7 @@ final class TokenManager
             throw new AuthException(lang('auth.token_invalid'));
         }
         if (($claims['scope'] ?? null) !== $this->scope
+            || ($claims['revocation_version'] ?? null) !== self::REVOCATION_VERSION
             || ($claims['iss'] ?? null) !== $this->issuer
             || !isset($claims['jti'], $claims['exp'], $claims['data'])) {
             throw new AuthException(lang('auth.token_invalid'));
@@ -263,6 +269,9 @@ final class TokenManager
     /** @param array<string, mixed> $claims */
     private function blacklistClaims(array $claims): void
     {
+        // WS 可在访问 token 到期后保持连接，吊销依据需覆盖整个会话的绝对有效期。
+        $expiresAt = isset($claims['login_at']) ? (int) $claims['login_at'] + $this->refreshExpire : (int) $claims['exp'];
+        TokenRevocation::record($this->scope, 'jti', (string) $claims['jti'], max($expiresAt, (int) $claims['exp']));
         Cache::set($this->blacklistKey((string) $claims['jti']), 1, max(1, (int) $claims['exp'] - time()));
     }
 

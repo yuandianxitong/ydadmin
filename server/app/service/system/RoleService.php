@@ -7,6 +7,7 @@ namespace app\service\system;
 use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
+use core\auth\AuthorizationVersion;
 use core\auth\Permission;
 use core\auth\SuperAdminGuard;
 use core\base\Service;
@@ -112,6 +113,7 @@ class RoleService extends Service
         ];
 
         return $this->runInTransaction(function () use ($row, $menuIds, $deptIds): array {
+            AuthorizationVersion::bump();
             $role = $this->roleRepository->create($row);
             $this->roleRepository->assignMenus((int) $role['id'], $menuIds);
             $this->roleRepository->assignDepartments((int) $role['id'], $deptIds);
@@ -153,6 +155,7 @@ class RoleService extends Service
         }
 
         $this->runInTransaction(function () use ($id, $update, $deptIds): void {
+            AuthorizationVersion::bump();
             $this->roleRepository->update($id, $update);
             if ($deptIds !== null) {
                 $this->roleRepository->assignDepartments($id, $deptIds);
@@ -172,7 +175,10 @@ class RoleService extends Service
         if ($this->roleRepository->isUsedByAdmin($id)) {
             throw new BusinessException(lang('business.role_has_admins'));
         }
-        $this->roleRepository->delete($id);
+        $this->runInTransaction(function () use ($id): void {
+            AuthorizationVersion::bump();
+            $this->roleRepository->delete($id);
+        });
     }
 
     /**
@@ -185,6 +191,7 @@ class RoleService extends Service
         $this->superAdminGuard->assert();
 
         $this->runInTransaction(function () use ($ids): void {
+            AuthorizationVersion::bump();
             foreach ($ids as $id) {
                 $this->deleteRole((int) $id);
             }
@@ -207,6 +214,7 @@ class RoleService extends Service
         $menuIds = $this->validMenuIds($menuIds);
 
         $this->runInTransaction(function () use ($id, $menuIds): void {
+            AuthorizationVersion::bump();
             $this->roleRepository->assignMenus($id, $menuIds);
             $this->afterCommit(fn () => $this->forgetRoleMembers($id));
         });
@@ -222,6 +230,7 @@ class RoleService extends Service
         }
 
         $this->runInTransaction(function () use ($id, $status): void {
+            AuthorizationVersion::bump();
             $this->roleRepository->update($id, ['status' => $status, 'updated_by' => RequestContext::actingUser() ?: null]);
             $this->afterCommit(fn () => $this->forgetRoleMembers($id));
         });

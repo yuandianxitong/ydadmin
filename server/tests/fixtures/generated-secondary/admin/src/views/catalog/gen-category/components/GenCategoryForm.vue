@@ -47,7 +47,7 @@ import type { FormRules } from 'element-plus'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { genCategoryApi } from '@/api/gen-category'
+import { genCategoryApi } from '@/api/catalog/gen-category'
 import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()

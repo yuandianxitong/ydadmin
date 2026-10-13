@@ -2,6 +2,7 @@
 
 import 'nprogress/nprogress.css'
 
+import axios from 'axios'
 import NProgress from 'nprogress'
 import type { Router, RouteRecordRaw } from 'vue-router'
 
@@ -13,8 +14,9 @@ import { INDEX_ROUTE, INDEX_ROUTE_NAME } from '@/router/routes.config' // 从 ro
 import useTabsStore from '@/store/modules/multipleTabs.store'
 import useRealtimeStore from '@/store/modules/realtime.store'
 import useUserStore from '@/store/modules/user.store' // Pinia: 用户信息 store
-import { clearAuthInfo } from '@/utils/auth' // 清除本地登录态（比如清空 Token)
+import { clearAuthInfo, getToken } from '@/utils/auth' // 清除本地登录态（比如清空 Token)
 import { translateRouteTitle } from '@/utils/i18n'
+import { getAuthRevision } from '@/utils/request-context'
 import { isExternal } from '@/utils/validate' // 工具：判断 URL 是否外部链接
 
 /**
@@ -51,7 +53,8 @@ export default function createPermissionGuard(router: Router): void {
             return
         }
 
-        const token = userStore.token
+        const revision = getAuthRevision()
+        const token = getToken()
         if (token) {
             // 同时检查用户信息和动态路由是否已初始化
             // login() 会设置 userInfo 但不会加载路由，因此必须同时检查 isRoutesInited
@@ -66,9 +69,17 @@ export default function createPermissionGuard(router: Router): void {
                 try {
                     // 拉取用户信息与菜单（原始菜单结构）
                     await userStore.getUserInfo()
+                    if (revision !== getAuthRevision()) {
+                        next(false)
+                        return
+                    }
                     // 登录后首次导航与刷新页面都走这里：身份确认后建立实时通道（connect 幂等）
                     useRealtimeStore().connect()
                     const rawRoutes = await userStore.fetchMenus()
+                    if (revision !== getAuthRevision()) {
+                        next(false)
+                        return
+                    }
 
                     // 先根据 rawRoutes 生成 RouteRecordRaw[]（包含 component 动态加载）
                     const accessedRoutes: RouteRecordRaw[] = filterAsyncRoutes(rawRoutes)
@@ -104,6 +115,14 @@ export default function createPermissionGuard(router: Router): void {
                     // 导航到原目标，并 replace，避免多余的历史记录
                     next({ ...to, replace: true })
                 } catch (error) {
+                    if (
+                        axios.isCancel(error) ||
+                        revision !== getAuthRevision() ||
+                        token !== getToken()
+                    ) {
+                        next(false)
+                        return
+                    }
                     clearAuthInfo()
                     next({ path: PageEnum.LOGIN, query: { redirect: to.fullPath } })
                 }
