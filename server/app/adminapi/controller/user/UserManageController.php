@@ -8,9 +8,10 @@ use app\adminapi\controller\AuthenticatedController;
 use app\service\dataimport\DataImportService;
 use app\service\system\SystemConfigService;
 use app\service\user\UserManageService;
+use core\auth\Permission;
 use core\context\RequestContext;
 use core\exception\BusinessException;
-use core\permission\Permission;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
@@ -82,6 +83,7 @@ class UserManageController extends AuthenticatedController
 
     #[Post('/adjust-balance')]
     #[Permission('user.adjust-balance')]
+    #[\core\http\Idempotent]
     public function adjustBalance(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->adjustBalanceRules(), [
@@ -107,6 +109,7 @@ class UserManageController extends AuthenticatedController
 
     #[Post('/adjust-points')]
     #[Permission('user.adjust-points')]
+    #[\core\http\Idempotent]
     public function adjustPoints(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->adjustPointsRules(), [
@@ -231,6 +234,6 @@ class UserManageController extends AuthenticatedController
     /** @return array<string, string> */
     private function updateStatusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 }

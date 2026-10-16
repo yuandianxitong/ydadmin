@@ -6,8 +6,8 @@ namespace app\service\system;
 
 use app\repository\system\FailedJobRepository;
 use core\base\Service;
-use core\helper\SensitiveDataMasker;
 use core\queue\QueueDispatcher;
+use core\support\SensitiveDataMasker;
 use DI\Attribute\Inject;
 use support\Log;
 

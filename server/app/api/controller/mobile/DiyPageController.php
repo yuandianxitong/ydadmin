@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace app\api\controller\mobile;
 
 use app\service\diy\DiyPageService;
+use core\auth\PermissionSkip;
 use core\base\Controller;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;

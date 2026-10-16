@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace tests\RedLine;
 
-use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\exception\BusinessException;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use support\Db;
 use tests\TestCase;
 
@@ -34,6 +34,8 @@ final class Test55_InstallerNeverDropsDatabaseTest extends TestCase
         $this->assertNotSame('dev007_ydadmin', $this->scratch);
         $this->workDir = sys_get_temp_dir() . '/yd-rl55-' . bin2hex(random_bytes(4));
         mkdir($this->workDir, 0o755, true);
+        // 满足安装文件前置检查，让本用例实际执行到「拒绝非空库」保护。
+        copy(base_path() . '/.env.example', $this->workDir . '/.env.example');
         // 测试引导会给当前库打 2.0.0，isInstalled() 看的是当前库不是 scratch；先清掉才能测到「非空库拒绝」。
         Db::table('system_upgrades')->delete();
         $this->dropScratch();
@@ -67,6 +69,7 @@ final class Test55_InstallerNeverDropsDatabaseTest extends TestCase
         $pdo->exec('CREATE DATABASE `' . $this->scratch . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci');
         $pdo->exec('USE `' . $this->scratch . '`');
         $pdo->exec('CREATE TABLE `keep_me` (`id` int unsigned NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`))');
+        $pdo->exec('INSERT INTO `keep_me` (`id`) VALUES (7)');
 
         try {
             $this->makeInstaller()->run($this->input());
@@ -77,6 +80,9 @@ final class Test55_InstallerNeverDropsDatabaseTest extends TestCase
 
         $names = $pdo->query('SHOW DATABASES')->fetchAll(\PDO::FETCH_COLUMN);
         $this->assertContains($this->scratch, $names);
+        $this->assertSame(1, (int) $pdo->query('SELECT COUNT(*) FROM `keep_me` WHERE `id` = 7')->fetchColumn());
+        $this->assertFileDoesNotExist($this->workDir . '/.env');
+        $this->assertFileDoesNotExist($this->workDir . '/install.lock');
     }
 
     private function makeInstaller(): Installer

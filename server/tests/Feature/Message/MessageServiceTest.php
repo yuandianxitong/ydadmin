@@ -60,7 +60,7 @@ final class MessageServiceTest extends ApiTestCase
     {
         $this->restoreConfig();
 
-        $this->assertSame(['consumer' => 'app\queue\redis_slow\MessageSendConsumer', 'max_attempts' => 3], config('queue.queues.message-send'));
+        $this->assertSame(['consumer' => 'app\queue\redis_messages\MessageSendConsumer', 'max_attempts' => 3], config('queue.queues.message-send'));
     }
 
     // ---------------------------------------------------------------- site

@@ -6,10 +6,10 @@ namespace app\adminapi\controller\payment;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\payment\PaymentAdminService;
+use core\auth\Permission;
 use core\context\RequestContext;
 use core\exception\BusinessException;
 use core\payment\Money;
-use core\permission\Permission;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\Post;

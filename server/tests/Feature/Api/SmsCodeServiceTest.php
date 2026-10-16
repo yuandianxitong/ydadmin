@@ -83,6 +83,7 @@ final class SmsCodeServiceTest extends ApiTestCase
             'smsDriver'              => $this->driver,
             'userRepository'         => new UserRepository(),
             'systemConfigRepository' => new SystemConfigRepository(),
+            'systemConfigService' => \support\Container::get(\app\service\system\SystemConfigService::class),
         ];
         foreach ($dependencies as $name => $value) {
             (new \ReflectionProperty(SmsCodeService::class, $name))->setValue($service, $value);

@@ -6,8 +6,9 @@ namespace app\adminapi\controller\system;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\FileService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -143,9 +144,6 @@ class FileController extends AuthenticatedController
     /** @return array<string, string> */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 }

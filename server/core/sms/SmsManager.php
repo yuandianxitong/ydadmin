@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace core\sms;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\sms\driver\AliyunSmsDriver;
 use core\sms\driver\TencentSmsDriver;
@@ -23,21 +23,32 @@ use core\sms\driver\TencentSmsDriver;
  * final（与 StorageManager、TokenManager 一致）：本类只负责选驱动，要假驱动的地方实现 SmsInterface，
  * 不继承本类——仓库里没有继承 Manager 做替身的先例。
  */
-final class SmsManager
+final class SmsManager implements SmsInterface
 {
     public function __construct(private readonly ConfigValueReader $configReader)
     {
     }
 
+    public function send(string $mobile, string $templateId, array $vars): void
+    {
+        $this->driver()->send($mobile, $templateId, $vars);
+    }
+
     /** 按当前 `sms_driver` 配置取驱动实例（每次现读、现 new）。 */
     public function driver(): SmsInterface
     {
+        if ($this->configReader instanceof \core\config\ConfigSnapshotProvider) {
+            return (new self($this->configReader->snapshot()))->driver();
+        }
         return $this->driverFor($this->driverName());
     }
 
     /** 按显式驱动名取驱动实例（凭据取的仍是当前系统配置）。 */
     public function driverFor(string $driver): SmsInterface
     {
+        if ($this->configReader instanceof \core\config\ConfigSnapshotProvider) {
+            return (new self($this->configReader->snapshot()))->driverFor($driver);
+        }
         return match ($driver) {
             'aliyun'  => new AliyunSmsDriver($this->credentials()),
             'tencent' => new TencentSmsDriver($this->credentials()),

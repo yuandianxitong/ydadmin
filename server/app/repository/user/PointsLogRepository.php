@@ -7,7 +7,7 @@ namespace app\repository\user;
 use app\model\user\PointsLog;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 积分流水仓储（points_logs 表，spec §8）：不设 $dataScoped，理由同 BalanceLogRepository。

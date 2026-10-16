@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace tests\Support;
 
 use app\repository\system\SystemConfigRepository;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
@@ -254,7 +254,7 @@ abstract class ApiTestCase extends TestCase
     /** 清掉某个管理员在 Redis 里的派生状态。 */
     protected function forgetAdminCaches(int $adminId): void
     {
-        Container::get(Permission::class)->clearUserCache($adminId);
+        Container::get(PermissionChecker::class)->clearUserCache($adminId);
         Redis::del("admin_token_ver:{$adminId}");
         Container::get(DataScopeResolver::class)->forget($adminId);
         // 仪表盘缓存不用在这里手工清：键里带数据范围指纹（DashboardService::remember()），范围一变键就变；
@@ -280,7 +280,10 @@ abstract class ApiTestCase extends TestCase
     protected function setConfig(string $key, string $value): void
     {
         $this->rememberConfig($key);
-        Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+        Db::connection()->transaction(static function () use ($key, $value): void {
+            Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+            (new \app\repository\system\ConfigurationStateRepository())->advance();
+        });
         (new SystemConfigRepository())->forgetCache();
     }
 
@@ -299,10 +302,13 @@ abstract class ApiTestCase extends TestCase
 
     private function cleanupFixtures(): void
     {
-        foreach ($this->originalConfigs as $key => $value) {
-            Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
-        }
         if ($this->originalConfigs !== []) {
+            Db::connection()->transaction(function (): void {
+                foreach ($this->originalConfigs as $key => $value) {
+                    Db::table('system_configs')->where('config_key', $key)->update(['config_value' => $value]);
+                }
+                (new \app\repository\system\ConfigurationStateRepository())->advance();
+            });
             (new SystemConfigRepository())->forgetCache();
         }
         $this->originalConfigs = [];
@@ -355,7 +361,7 @@ abstract class ApiTestCase extends TestCase
         }
         $this->createdUserIds = [];
         // 夹具建的角色、菜单会影响别人的权限集合
-        Container::get(Permission::class)->clearAllCache();
+        Container::get(PermissionChecker::class)->clearAllCache();
         // 夹具建的部门、角色会改变别人的数据范围
         Container::get(DataScopeResolver::class)->forgetAll();
         $this->created = [];

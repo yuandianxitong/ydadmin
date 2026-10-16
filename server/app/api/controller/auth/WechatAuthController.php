@@ -6,10 +6,10 @@ namespace app\api\controller\auth;
 
 use app\service\wechat\WechatAuthService;
 use app\service\wechat\WechatOaBindCookie;
+use core\auth\PermissionSkip;
 use core\base\Controller;
 use core\exception\BusinessException;
 use core\http\ClientIp;
-use core\permission\PermissionSkip;
 use core\wechat\exception\WechatNotConfiguredException;
 use DI\Attribute\Inject;
 use support\annotation\route\Post;

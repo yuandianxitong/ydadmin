@@ -7,7 +7,7 @@ namespace app\repository\message;
 use app\model\message\MessageLog;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 消息发送日志仓储（M6b spec §2.2、§4.4）。不设 $dataScoped：日志是全局运营数据（spec §2.5）。

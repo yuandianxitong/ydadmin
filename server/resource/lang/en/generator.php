@@ -4,6 +4,16 @@
 // the rest are registered here up front for the later preview()/generate() tasks to reuse,
 // so the language file is not created twice by concurrent tasks.
 return [
+    'path_changed' => 'Artifact path changed; migrate it manually first',
+    'generated_file_deleted' => 'Generated file was deleted; review whether to restore it',
+    'baseline_missing' => 'Existing file has no trusted generation baseline and cannot be overwritten automatically',
+    'merge_conflict' => 'Custom and generated edits overlap, or exceed the automatic merge budget',
+    'invalid_merge' => 'Merged output failed PHP or module descriptor validation',
+    'plan_expired' => 'Generation plan expired; preview it again',
+    'source_changed' => 'Source changed during the update; preview it again',
+    'frontend_preserved' => 'Preserved custom frontend page code',
+    'backup' => 'Backup',
+    'module_busy' => 'This module is being generated; try again later',
     'table_require'           => 'Please select a table',
     'table_not_found'         => 'Table not found',
     'disabled_in_production'  => 'Code generator is disabled in production',

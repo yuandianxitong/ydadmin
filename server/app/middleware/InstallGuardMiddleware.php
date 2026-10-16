@@ -22,7 +22,7 @@ class InstallGuardMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $handler): HttpResponse
     {
         $path = $request->path();
-        if (str_starts_with($path, '/install')) {
+        if (str_starts_with($path, '/install') || in_array($path, ['/adminapi/health', '/adminapi/health/ready'], true)) {
             return $handler($request);
         }
 

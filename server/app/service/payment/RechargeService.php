@@ -7,7 +7,7 @@ namespace app\service\payment;
 use app\repository\payment\PaymentOrderRepository;
 use app\repository\user\UserRepository;
 use core\base\Service;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\payment\Channel;
 use core\payment\GatewayResolver;

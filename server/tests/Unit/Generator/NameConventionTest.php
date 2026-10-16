@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Generator;
 
-use core\generator\NameConvention;
+use core\module\NameConvention;
 use tests\TestCase;
 
 final class NameConventionTest extends TestCase

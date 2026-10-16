@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace core\payment;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\payment\config\AlipayConfig;
 use core\payment\config\WechatPayConfig;
 use core\payment\driver\AlipayDriver;
@@ -19,7 +19,7 @@ use core\payment\exception\PaymentConfigException;
  *   写配置的路径会失效它，所以改支付配置不需要 reload。
  * - gateway() 不看 enabled 开关，只要求凭据齐全：关单、退款、对账、回调验签都要在渠道被关掉之后继续工作，
  *   否则在途订单与退款无人处理。开关只由下单方经 isEnabled() 判断。
- * - 构造期不读配置、不抛异常：服务可以放心 #[Inject] 本类（与短信工厂绑定不同，见 container.php）。
+ * - 构造期不读配置、不抛异常：服务可以放心 #[Inject] 本类；单次 gateway 使用一致的配置快照。
  * - PaymentConfigException 的消息只给日志（写明缺哪个键），调用方对外统一转成 payment.unavailable。
  */
 final class PaymentManager implements GatewayResolver
@@ -51,6 +51,9 @@ final class PaymentManager implements GatewayResolver
 
     public function gateway(string $channel): PaymentGatewayInterface
     {
+        if ($this->config instanceof \core\config\ConfigSnapshotProvider) {
+            return (new self($this->config->snapshot()))->gateway($channel);
+        }
         return match ($channel) {
             Channel::ALIPAY => new AlipayDriver($this->alipayConfig()),
             Channel::WECHAT => new WechatPayDriver($this->wechatConfig()),

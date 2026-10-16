@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace app\service\common;
 
 use core\base\Service;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use DI\Attribute\Inject;
 
 /**

@@ -7,7 +7,7 @@ namespace app\repository\system;
 use app\model\system\AdminLoginLog;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 管理员登录日志仓储。

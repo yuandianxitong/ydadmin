@@ -3,6 +3,16 @@
 // 代码生成器（spec §10）。本任务只用到 table_require / table_not_found；
 // 其余键先在此登记，供 preview()/generate() 的后续任务直接引用，避免语言包文件被多个任务并发新建。
 return [
+    'path_changed' => '产物路径发生变化，请先人工迁移',
+    'generated_file_deleted' => '已生成的文件被删除，请确认是否恢复',
+    'baseline_missing' => '已有文件缺少可信生成基线，不能自动覆盖',
+    'merge_conflict' => '自定义代码与生成改动重叠，或超过自动合并预算',
+    'invalid_merge' => '合并结果未通过 PHP/模块描述语法检查',
+    'plan_expired' => '生成计划已过期，请重新预览',
+    'source_changed' => '源文件在更新时发生变化，请重新预览',
+    'frontend_preserved' => '保留前端页面自定义代码',
+    'backup' => '备份',
+    'module_busy' => '同一模块正在生成，请稍后重试',
     'table_require'           => '请选择数据表',
     'table_not_found'         => '数据表不存在',
     'disabled_in_production'  => '生产环境已禁用代码生成器',

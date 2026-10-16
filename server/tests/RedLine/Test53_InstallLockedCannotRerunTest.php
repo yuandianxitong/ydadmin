@@ -6,8 +6,8 @@ namespace tests\RedLine;
 
 use app\command\InstallCommand;
 use app\controller\InstallController;
-use core\contract\SuperAdminInitializer;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use support\Container;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;

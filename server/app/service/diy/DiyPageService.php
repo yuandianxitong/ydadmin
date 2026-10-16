@@ -9,7 +9,6 @@ use app\repository\diy\DiyPageRepository;
 use app\repository\diy\DiyPageVersionRepository;
 use core\base\Service;
 use core\context\RequestContext;
-use core\diy\DiyWidgetRegistry;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
 use core\exception\ValidationException;

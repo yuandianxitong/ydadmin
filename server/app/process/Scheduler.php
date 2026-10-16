@@ -15,7 +15,7 @@ use Workerman\Worker;
  *
  * 只管时间：1 秒定时器发现分钟变了，就把判定交给 CronScheduleService::tick()。
  * 分钟游标是进程**实例**属性（不是静态属性，check:context 规则一无需登记）；reload 后游标归零，
- * 只算当前分钟，已处理过的分钟由 Redis 触发锁去重。
+ * 只算当前分钟，已处理过的分钟由数据库 outbox 去重。
  * Timer 回调里的未捕获异常会让进程退出，所以 tickIfMinuteChanged() 吞掉全部 \Throwable 并记日志；
  * 失败的这一分钟不每秒重试，游标照样前移，下一分钟重试。
  */
@@ -34,8 +34,21 @@ class Scheduler
 
     public function onWorkerStart(Worker $worker): void
     {
+        Timer::add(15, static function (): void {
+            try {
+                Container::get(\core\observability\Heartbeat::class)->beat('scheduler');
+            } catch (\Throwable $e) {
+                Log::warning('scheduler.heartbeat_failed', ['exception' => $e::class]);
+            } finally {
+                \support\Context::destroy();
+            }
+        });
         Timer::add(1, function (): void {
-            $this->tickIfMinuteChanged(new \DateTimeImmutable('now'));
+            try {
+                $this->tickIfMinuteChanged(new \DateTimeImmutable('now'));
+            } finally {
+                \support\Context::destroy();
+            }
         });
     }
 

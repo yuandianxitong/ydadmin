@@ -22,6 +22,12 @@ use Webman\RedisQueue\Redis as QueueRedis;
  */
 class QueueDispatcher
 {
+    /** @param array<string, mixed> $data */
+    public function dispatchReliable(string $queue, array $data, ?string $dedupKey = null): int
+    {
+        return Container::get(ReliableQueue::class)->enqueue($queue, $data, $dedupKey);
+    }
+
     /**
      * @param array<string, mixed> $data 必须可 JSON 编码（非法 UTF-8、资源等）：两个驱动都先带 JSON_THROW_ON_ERROR 编码一次，
      *                                   不可编码直接抛 RuntimeException。redis-queue 的 send() 自己编码时不带 flag，失败得到 false，
@@ -87,7 +93,11 @@ class QueueDispatcher
         $payload = (array) json_decode($json, true);
 
         try {
-            $consumer->handle($payload);
+            if ($consumer instanceof DeliveryHandler) {
+                $consumer->deliver($payload);
+            } else {
+                $consumer->handle($payload);
+            }
         } catch (\Throwable $e) {
             Log::error("队列 {$queue} 同步消费失败：" . $e->getMessage(), ['queue' => $queue]);
             $package = [

@@ -7,8 +7,12 @@ declare(strict_types=1);
 namespace app\adminapi\controller\demo;
 
 use app\adminapi\controller\AuthenticatedController;
+use app\resource\demo\GenArticleResource;
 use app\service\demo\GenArticleService;
-use core\permission\Permission;
+use core\auth\Permission;
+use core\query\QueryInput;
+use core\response\ResponseSchema;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -46,27 +50,31 @@ class GenArticleController extends AuthenticatedController
 
     #[Get('')]
     #[Permission('demo.gen_article.list')]
+    #[ResponseSchema(GenArticleResource::class, paginated: true)]
     public function index(Request $request): Response
     {
+        $params = $this->validate(QueryInput::normalize((array) $request->get(), array_keys($this->indexRules())), $this->indexRules());
         [$page, $limit] = $this->pageParams($request);
 
-        return $this->paginate($this->genArticleService->getGenArticleList((array) $request->get(), $page, $limit));
+        return $this->paginate(GenArticleResource::page($this->genArticleService->getGenArticleList($params, $page, $limit)));
     }
 
     #[Get('/{id:\d+}')]
     #[Permission('demo.gen_article.list')]
+    #[ResponseSchema(GenArticleResource::class)]
     public function show(Request $request, string $id): Response
     {
-        return $this->success($this->genArticleService->getGenArticleDetail((int) $id), lang('messages.get_success'));
+        return $this->success(GenArticleResource::make($this->genArticleService->getGenArticleDetail((int) $id)), lang('messages.get_success'));
     }
 
     #[Post('')]
     #[Permission('demo.gen_article.create')]
+    #[ResponseSchema(GenArticleResource::class)]
     public function store(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
-        return $this->success($this->genArticleService->createGenArticle($data), lang('messages.create_success'));
+        return $this->success(GenArticleResource::make($this->genArticleService->createGenArticle($data)), lang('messages.create_success'));
     }
 
     #[Put('/{id:\d+}')]
@@ -117,6 +125,15 @@ class GenArticleController extends AuthenticatedController
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return CommonRules::pagination() + [
+            'title' => 'sometimes|string|max:500',
+            'status' => 'sometimes|integer',
+        ];
+    }
+
     /**
      * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14），
      * 这里薄包装委派给 genArticleRules()：规则表只在那一处维护，不重复写。
@@ -145,10 +162,7 @@ class GenArticleController extends AuthenticatedController
      */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 
     /**
@@ -158,7 +172,7 @@ class GenArticleController extends AuthenticatedController
      */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 
     /**

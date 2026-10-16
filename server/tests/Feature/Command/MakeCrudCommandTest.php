@@ -170,11 +170,33 @@ final class MakeCrudCommandTest extends TestCase
 
         $withForce = $this->runCommand(['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model, '--force' => true]);
         $this->assertSame(Command::SUCCESS, $withForce->getStatusCode(), $withForce->getDisplay());
-        $this->assertStringContainsString('created', $withForce->getDisplay());
+        $this->assertStringContainsString('updated', $withForce->getDisplay());
         foreach ($protected as $key => $file) {
             $this->assertSame($file['content'], file_get_contents($file['path']), "--force 也不能覆盖前端页面文件：{$key}");
         }
         $this->assertStringNotContainsString($marker, (string) file_get_contents($modelPath), '--force 应当重新生成后端产物');
+        $backups = glob(self::$tempRoot . '/server/generator-state/demo/' . (new \core\module\NameConvention())->snake($model) . '/backups/*/model.txt') ?: [];
+        $this->assertCount(1, $backups);
+        $this->assertStringContainsString($marker, file_get_contents($backups[0]), '--force 必须保留替换前的完整源码');
+    }
+
+    public function test_incremental_json_preview_and_reviewed_token_preserve_custom_code(): void
+    {
+        $model = 'CrudCmdIncremental';
+        $args = ['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model];
+        $this->assertSame(Command::SUCCESS, $this->runCommand($args + ['--comment' => 'initial'])->getStatusCode());
+        $artifacts = $this->previewArtifacts($model);
+        $path = $this->absolutePathOf($artifacts['model']['path']);
+        file_put_contents($path, "\n// custom CLI extension\n", FILE_APPEND);
+        $preview = $this->runCommand($args + ['--update' => true, '--preview' => true, '--json' => true, '--comment' => 'new title']);
+        $this->assertSame(Command::SUCCESS, $preview->getStatusCode(), $preview->getDisplay());
+        $plan = json_decode($preview->getDisplay(), true, 64, JSON_THROW_ON_ERROR);
+        $updated = $this->runCommand($args + ['--update' => true, '--comment' => 'new title', '--plan-token' => $plan['plan_token']]);
+        $this->assertSame(Command::SUCCESS, $updated->getStatusCode(), $updated->getDisplay());
+        $this->assertStringContainsString('custom CLI extension', file_get_contents($path));
+        $this->assertStringContainsString('new title', file_get_contents($path));
+        $stale = $this->runCommand($args + ['--update' => true, '--comment' => 'new title', '--plan-token' => $plan['plan_token']]);
+        $this->assertSame(Command::FAILURE, $stale->getStatusCode());
     }
 
     public function test_rejects_unknown_table(): void

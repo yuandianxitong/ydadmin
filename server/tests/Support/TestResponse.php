@@ -75,4 +75,11 @@ final class TestResponse
     {
         return $this->assertCode(200);
     }
+
+    public function assertStatus(int $status): self
+    {
+        Assert::assertSame($status, $this->status(), 'HTTP 状态不符');
+
+        return $this;
+    }
 }

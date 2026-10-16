@@ -16,11 +16,8 @@ namespace core\generator;
  * 所有文件系统调用都带 @ 并检查返回值：phpunit.xml 开了 failOnWarning，一个 E_WARNING 就会让测试失败，
  * 而「目标目录不可写」恰恰是本类要正常处理并转成 failed 状态的情况。
  *
- * 路径：本类信任调用方给的绝对路径，自己不做任何路径校验——校验在上游的
- * GeneratorService::assertNames()（module_name / model_name 是唯一会进入路径的请求字段，
- * 两条正则在那里判过，且 buildArtifacts() 起手就调它）。本类是 final、包内唯一调用点是
- * GeneratorService::generate()、入参是 Service 现拼的绝对路径，在这里再加一道校验收益不高，
- * 但这条信任关系必须写出来：换了调用方就得自己先过 assertNames()。
+ * 路径：本类只接收可信绝对路径。应用入口由 GeneratorService 校验名称、构造路径，
+ * ManagedArtifacts 再执行路径检查和模块锁；其他独立调用方必须自行校验路径。
  */
 final class ArtifactWriter
 {

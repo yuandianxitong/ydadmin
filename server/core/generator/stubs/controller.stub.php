@@ -53,17 +53,7 @@ foreach (array_keys($messageKeys) as $key) {
 }
 
 // 类注释里的端点表：路径列与方法列对齐，宽度由最长的一条算出来
-$endpoints = [
-    ['GET', '', 'index', 'list'],
-    ['POST', '/batch-delete', 'batchDelete', 'delete'],
-    ['GET', '/{id:\d+}', 'show', 'list'],
-    ['POST', '', 'store', 'create'],
-    ['PUT', '/{id:\d+}', 'update', 'update'],
-    ['DELETE', '/{id:\d+}', 'delete', 'delete'],
-];
-if ($hasStatus) {
-    $endpoints[] = ['PUT', '/{id:\d+}/status', 'status', 'status'];
-}
+// $endpoints 来自 ModuleBlueprint，与模块描述使用同一份路由与权限定义。
 $base = '/adminapi/' . $module . '/' . $modelKebab;
 $pathPad = 0;
 foreach ($endpoints as $endpoint) {
@@ -80,8 +70,12 @@ declare(strict_types=1);
 namespace app\adminapi\controller\<?= $module ?>;
 
 use app\adminapi\controller\AuthenticatedController;
+use app\resource\<?= $module ?>\<?= $model ?>Resource;
 use app\service\<?= $module ?>\<?= $model ?>Service;
-use core\permission\Permission;
+use core\auth\Permission;
+use core\query\QueryInput;
+use core\response\ResponseSchema;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -116,27 +110,41 @@ class <?= $model ?>Controller extends AuthenticatedController
 
     #[Get('')]
     #[Permission('<?= $permission ?>.list')]
+    #[ResponseSchema(<?= $model ?>Resource::class, paginated: true)]
     public function index(Request $request): Response
     {
+        $params = $this->validate(QueryInput::normalize((array) $request->get(), array_keys($this->indexRules())), $this->indexRules());
+<?php
+$ranges = [];
+foreach ($searchColumns as $searchColumn) {
+    if ($inference->queryStrategy($searchColumn) === 'range') {
+        $ranges[] = "['{$searchColumn->name}_start', '{$searchColumn->name}_end']";
+    }
+}
+if ($ranges !== []): ?>
+        QueryInput::assertDateRanges($params, [<?= implode(', ', $ranges) ?>]);
+<?php endif; ?>
         [$page, $limit] = $this->pageParams($request);
 
-        return $this->paginate($this-><?= $service ?>->get<?= $model ?>List((array) $request->get(), $page, $limit));
+        return $this->paginate(<?= $model ?>Resource::page($this-><?= $service ?>->get<?= $model ?>List($params, $page, $limit)));
     }
 
     #[Get('/{id:\d+}')]
     #[Permission('<?= $permission ?>.list')]
+    #[ResponseSchema(<?= $model ?>Resource::class)]
     public function show(Request $request, string $id): Response
     {
-        return $this->success($this-><?= $service ?>->get<?= $model ?>Detail((int) $id), lang('messages.get_success'));
+        return $this->success(<?= $model ?>Resource::make($this-><?= $service ?>->get<?= $model ?>Detail((int) $id)), lang('messages.get_success'));
     }
 
     #[Post('')]
     #[Permission('<?= $permission ?>.create')]
+    #[ResponseSchema(<?= $model ?>Resource::class)]
     public function store(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
-        return $this->success($this-><?= $service ?>->create<?= $model ?>($data), lang('messages.create_success'));
+        return $this->success(<?= $model ?>Resource::make($this-><?= $service ?>->create<?= $model ?>($data)), lang('messages.create_success'));
     }
 
     #[Put('/{id:\d+}')]
@@ -189,6 +197,21 @@ class <?= $model ?>Controller extends AuthenticatedController
     }
 <?php } ?>
 
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return CommonRules::pagination() + [
+<?php foreach ($searchColumns as $column): ?>
+<?php if ($inference->queryStrategy($column) === 'range'): ?>
+            '<?= $column->name ?>_start' => 'sometimes|date',
+            '<?= $column->name ?>_end' => 'sometimes|date',
+<?php else: ?>
+            '<?= $column->name ?>' => 'sometimes|<?= $column->type === 'integer' ? 'integer' : ($column->type === 'decimal' ? 'numeric' : 'string|max:500') ?>',
+<?php endif; ?>
+<?php endforeach; ?>
+        ];
+    }
+
     /**
      * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14），
      * 这里薄包装委派给 <?= $rulesMethod ?>()：规则表只在那一处维护，不重复写。
@@ -217,10 +240,7 @@ class <?= $model ?>Controller extends AuthenticatedController
      */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 <?php if ($hasStatus) { ?>
 
@@ -231,7 +251,7 @@ class <?= $model ?>Controller extends AuthenticatedController
      */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 <?php } ?>
 

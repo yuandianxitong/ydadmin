@@ -7,10 +7,11 @@ namespace app\adminapi\controller;
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
+use app\middleware\IdempotencyMiddleware;
 use core\base\Controller;
 use support\annotation\Middleware;
 
-#[Middleware(AdminAuthMiddleware::class, AdminPermissionMiddleware::class, AdminLogMiddleware::class)]
+#[Middleware(AdminAuthMiddleware::class, AdminPermissionMiddleware::class, IdempotencyMiddleware::class, AdminLogMiddleware::class)]
 abstract class AuthenticatedController extends Controller
 {
 }

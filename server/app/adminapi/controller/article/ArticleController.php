@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace app\adminapi\controller\article;
 
 use app\adminapi\controller\AuthenticatedController;
+use app\resource\article\ArticleResource;
 use app\service\article\ArticleService;
-use core\permission\Permission;
+use core\auth\Permission;
+use core\query\QueryInput;
+use core\response\ResponseSchema;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -43,27 +47,31 @@ class ArticleController extends AuthenticatedController
 
     #[Get('/list')]
     #[Permission('article.list')]
+    #[ResponseSchema(ArticleResource::class, paginated: true)]
     public function index(Request $request): Response
     {
+        $params = $this->validate(QueryInput::normalize((array) $request->get(), ['keyword', 'category_id', 'status', 'page', 'limit', 'page_no', 'page_size']), $this->indexRules());
         [$page, $limit] = $this->pageParams($request, 20);
 
-        return $this->paginate($this->articleService->getArticleList((array) $request->get(), $page, $limit));
+        return $this->paginate(ArticleResource::page($this->articleService->getArticleList($params, $page, $limit)));
     }
 
     #[Get('/detail/{id:\d+}')]
     #[Permission('article.list')]
+    #[ResponseSchema(ArticleResource::class)]
     public function show(Request $request, string $id): Response
     {
-        return $this->success($this->articleService->getArticleDetail((int) $id), lang('messages.get_success'));
+        return $this->success(ArticleResource::make($this->articleService->getArticleDetail((int) $id)), lang('messages.get_success'));
     }
 
     #[Post('')]
     #[Permission('article.create')]
+    #[ResponseSchema(ArticleResource::class)]
     public function store(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
 
-        return $this->success($this->articleService->createArticle($data), lang('messages.create_success'));
+        return $this->success(ArticleResource::make($this->articleService->createArticle($data)), lang('messages.create_success'));
     }
 
     #[Put('/{id:\d+}')]
@@ -113,6 +121,16 @@ class ArticleController extends AuthenticatedController
         return $this->success([], lang('messages.status_update_success'));
     }
 
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return CommonRules::pagination() + [
+            'keyword' => 'sometimes|string|max:200',
+            'category_id' => 'sometimes|integer|min:1',
+            'status' => 'sometimes|integer|in:0,1',
+        ];
+    }
+
     /**
      * store 场景的字段校验规则。M2b 的 RuleReflector 按动作名反射调用 "storeRules"（spec §5、§14），
      * 这里薄包装委派给 articleRules()：规则表只在那一处维护，不重复写。
@@ -141,10 +159,7 @@ class ArticleController extends AuthenticatedController
      */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 
     /**
@@ -154,7 +169,7 @@ class ArticleController extends AuthenticatedController
      */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 
     /**

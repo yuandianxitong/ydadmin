@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Wechat;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\wechat\exception\WechatNotConfiguredException;
 use core\wechat\OfficialServerConfig;
 use core\wechat\WechatAppConfig;

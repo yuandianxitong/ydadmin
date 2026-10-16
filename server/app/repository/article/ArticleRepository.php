@@ -7,7 +7,7 @@ namespace app\repository\article;
 use app\model\article\Article;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

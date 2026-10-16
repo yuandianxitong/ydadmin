@@ -6,7 +6,8 @@ namespace app\adminapi\controller\agreement;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\agreement\AgreementService;
-use core\permission\Permission;
+use core\auth\Permission;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -136,10 +137,7 @@ class AgreementController extends AuthenticatedController
      */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 
     /**

@@ -13,3 +13,7 @@
 !/public/storage/uploads/images/favicon.ico
 .php-cs-fixer.cache
 .phpunit.result.cache
+# 基线需纳入版本控制；锁、冲突材料与源码备份只留在本地。
+/generator-state/**/module.lock
+/generator-state/**/backups/
+/generator-state/**/conflicts/

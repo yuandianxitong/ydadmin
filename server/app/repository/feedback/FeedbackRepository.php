@@ -7,7 +7,7 @@ namespace app\repository\feedback;
 use app\model\feedback\Feedback;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

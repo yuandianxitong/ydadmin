@@ -6,7 +6,7 @@ namespace tests\Unit\Wechat;
 
 use app\service\wechat\AutoReplyService;
 use app\service\wechat\WechatServeService;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\wechat\WechatConfigResolver;
 use core\wechat\WxMsgCrypt;
 use Monolog\Handler\TestHandler;

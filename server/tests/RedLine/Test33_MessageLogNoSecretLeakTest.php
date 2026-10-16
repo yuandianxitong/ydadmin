@@ -18,6 +18,7 @@ use support\Container;
 use support\Db;
 use support\Log;
 use tests\Support\ApiTestCase;
+use tests\Support\ConfigOverride;
 use tests\Support\Message\FakeMessageChannels;
 use tests\Support\Wechat\FakeWechatHttp;
 use tests\Support\Wechat\WechatUserFixtures;
@@ -36,6 +37,7 @@ use tests\Support\Wechat\WechatUserFixtures;
 final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
 {
     use FakeMessageChannels;
+    use ConfigOverride;
     use FakeWechatHttp;
     use WechatUserFixtures;
 
@@ -46,7 +48,7 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
         'core\message\channel\WechatMiniChannel',
         'app\service\message\MessageChannelRegistry',
         'app\service\message\MessageDeliveryService',
-        'app\queue\redis_slow\MessageSendConsumer',
+        'app\queue\redis_messages\MessageSendConsumer',
         'app\service\message\MessageService',
     ];
 
@@ -60,6 +62,8 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 本组验证最终失败记录的脱敏；使用零次重试预算，让真实通道首次失败即进入终态。
+        $this->overrideConfig('queue.queues.message-send.max_attempts', 0);
         $this->failedJobsBefore = (int) Db::table('failed_jobs')->max('id');
         $this->configureWechatApps();
     }
@@ -72,7 +76,7 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
             }
             $this->restoreWechatHttp();
             // 与 config/container.php 的绑定一致：凭据不全时构造即抛，SmsChannel 懒解析时自己接住
-            Container::set(SmsInterface::class, \DI\factory(static fn (SmsManager $manager): SmsInterface => $manager->driver()));
+            Container::set(SmsInterface::class, \DI\get(SmsManager::class));
             $this->rebuildRealMessageServices();
             if ($this->userIds !== []) {
                 Db::table('message_logs')->whereIn('user_id', $this->userIds)->delete();
@@ -81,6 +85,7 @@ final class Test33_MessageLogNoSecretLeakTest extends ApiTestCase
             Db::table('failed_jobs')->where('id', '>', $this->failedJobsBefore)->where('queue', 'message-send')->delete();
             $this->cleanupWechatFixtures();
         } finally {
+            $this->restoreConfig();
             $this->fakedChannels = false;
             $this->userIds = [];
             parent::tearDown();

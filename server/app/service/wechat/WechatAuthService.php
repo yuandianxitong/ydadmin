@@ -9,7 +9,7 @@ use app\service\message\MessageService;
 use app\service\system\SystemConfigService;
 use app\service\user\UserSessionIssuer;
 use core\base\Service;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\wechat\exception\WechatApiException;

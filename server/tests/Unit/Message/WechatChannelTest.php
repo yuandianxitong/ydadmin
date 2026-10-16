@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Message;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\message\channel\AbstractWechatChannel;
 use core\message\channel\WechatMiniChannel;
 use core\message\channel\WechatOfficialChannel;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace tests\Feature\Auth;
 
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
+use core\auth\PermissionCheckerInterface;
 use core\auth\TokenManager;
 use core\exception\AuthException;
-use core\permission\PermissionCheckerInterface;
 use support\Container;
 use support\Db;
 use support\Redis;
@@ -16,15 +16,15 @@ use tests\Support\ApiTestCase;
 
 final class PermissionTest extends ApiTestCase
 {
-    private function permission(): Permission
+    private function permission(): PermissionChecker
     {
-        return Container::get(Permission::class);
+        return Container::get(PermissionChecker::class);
     }
 
     public function test_container_binds_the_interface_to_the_rbac_singleton(): void
     {
         $this->assertSame($this->permission(), Container::get(PermissionCheckerInterface::class));
-        $this->assertFileDoesNotExist(base_path() . '/core/permission/DenyAllChecker.php');
+        $this->assertFileDoesNotExist(base_path() . '/core/auth/DenyAllChecker.php');
     }
 
     public function test_super_admin_has_star_first_and_every_permission(): void

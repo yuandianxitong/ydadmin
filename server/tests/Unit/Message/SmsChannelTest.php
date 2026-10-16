@@ -26,10 +26,8 @@ final class SmsChannelTest extends TestCase
     protected function tearDown(): void
     {
         try {
-            // 还原 config/container.php 的工厂绑定（setDefinition 会清掉已解析的实例）
-            Container::set(SmsInterface::class, \DI\factory(
-                static fn (SmsManager $manager): SmsInterface => $manager->driver()
-            ));
+            // 还原 config/container.php 的无状态管理器绑定，不能恢复成旧的驱动工厂。
+            Container::set(SmsInterface::class, \DI\get(SmsManager::class));
         } finally {
             parent::tearDown();
         }

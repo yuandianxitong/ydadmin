@@ -57,6 +57,13 @@ final class GoldenModuleTest extends TestCase
         $this->assertGoldenFile($path, $content);
     }
 
+    public function test_descriptor_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('descriptor');
+        $this->assertSame('modules/demo/gen_article.json', $path);
+        $this->assertGoldenFile($path, $content);
+    }
+
     public function test_repository_matches_the_golden_file(): void
     {
         [$path, $content] = $this->renderGolden('repository');
@@ -95,6 +102,13 @@ final class GoldenModuleTest extends TestCase
         $this->assertGoldenFile($path, $content);
     }
 
+    public function test_resource_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGolden('resource');
+        $this->assertSame('app/resource/demo/GenArticleResource.php', $path);
+        $this->assertGoldenFile($path, $content);
+    }
+
     public function test_controller_wraps_batch_delete_and_status_rules_in_named_methods(): void
     {
         [, $content] = $this->renderGolden('controller');
@@ -120,14 +134,14 @@ final class GoldenModuleTest extends TestCase
             'status() 必须通过 statusRules() 取规则，不能内联数组（check:context 规则七会拦）'
         );
         $this->assertStringContainsString(
-            "private function batchDeleteRules(): array\n    {\n        return [\n            'ids'   => 'required|array|min:1',\n            'ids.*' => 'integer',\n        ];\n    }",
+            "private function batchDeleteRules(): array\n    {\n        return CommonRules::ids();\n    }",
             $content,
-            'batchDeleteRules() 必须原样保留原先内联的规则内容'
+            'batchDeleteRules() 委托给共享规则，保持原校验语义'
         );
         $this->assertStringContainsString(
-            "private function statusRules(): array\n    {\n        return ['status' => 'required|integer|in:0,1'];\n    }",
+            "private function statusRules(): array\n    {\n        return CommonRules::binaryStatus();\n    }",
             $content,
-            'statusRules() 必须原样保留原先内联的规则内容'
+            'statusRules() 委托给共享规则，保持原校验语义'
         );
     }
 

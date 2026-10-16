@@ -6,8 +6,9 @@ namespace app\adminapi\controller\article;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\article\ArticleCategoryService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -148,10 +149,7 @@ class ArticleCategoryController extends AuthenticatedController
      */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 
     /**
@@ -161,7 +159,7 @@ class ArticleCategoryController extends AuthenticatedController
      */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 
     /**

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace app\service\system;
 
+use app\repository\system\ConfigurationStateRepository;
 use app\repository\system\SystemConfigRepository;
 use core\base\Service;
 use core\exception\BusinessException;
 use DI\Attribute\Inject;
+use support\Log;
 
 /**
  * 系统配置（契约 §2.7）。
@@ -57,6 +59,9 @@ class SystemConfigService extends Service
 
     #[Inject]
     protected SystemConfigRepository $systemConfigRepository;
+
+    #[Inject]
+    protected ConfigurationStateRepository $configurationState;
 
     /** 读启用配置的值（已按 config_type 转换，走缓存）。 */
     public function getConfigValue(string $key, mixed $default = null): mixed
@@ -113,7 +118,8 @@ class SystemConfigService extends Service
         $stored = $this->serializeValue($this->getConfigById($id), $value);
         $this->runInTransaction(function () use ($id, $stored): void {
             $this->systemConfigRepository->update($id, ['config_value' => $stored]);
-            $this->afterCommit(fn () => $this->systemConfigRepository->forgetCache());
+            $this->configurationState->advance();
+            $this->afterCommit(fn () => $this->invalidateCache());
         });
 
         return true;
@@ -133,7 +139,8 @@ class SystemConfigService extends Service
                     ?? throw new BusinessException(lang('business.config_key_not_found', ['key' => $key]));
                 $this->systemConfigRepository->updateValueByKey($key, $this->serializeValue($config, $item['config_value']));
             }
-            $this->afterCommit(fn () => $this->systemConfigRepository->forgetCache());
+            $this->configurationState->advance();
+            $this->afterCommit(fn () => $this->invalidateCache());
         });
 
         return true;
@@ -142,7 +149,34 @@ class SystemConfigService extends Service
     /** 只清配置缓存（spec §1.1 第 4 条）。 */
     public function clearConfigCache(): void
     {
-        $this->systemConfigRepository->forgetCache();
+        $this->runInTransaction(function (): void {
+            $this->configurationState->advance();
+            $this->afterCommit(fn () => $this->invalidateCache());
+        });
+    }
+
+    private function invalidateCache(): void
+    {
+        try {
+            $this->systemConfigRepository->forgetCache();
+        } catch (\Throwable $e) {
+            try {
+                Log::warning('config.cache_invalidation_failed', ['exception' => $e::class]);
+            } catch (\Throwable) {
+                // 配置已提交且版本已推进，日志介质故障不能改变保存结果。
+            }
+        }
+    }
+
+    /** @return array<string, mixed> 不包含任何配置值或凭据。 */
+    public function effect(): array
+    {
+        return [
+            'revision' => $this->configurationState->current(),
+            'system_config' => ['effect' => 'next_operation', 'drivers' => ['sms', 'storage', 'payment', 'mail']],
+            'environment' => ['effect' => 'restart_all_processes'],
+            'generated_routes' => ['effect' => 'reload_processes'],
+        ];
     }
 
     /**

@@ -7,7 +7,7 @@ namespace app\repository\region;
 use app\model\region\Region;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 地区仓储（regions 表）。

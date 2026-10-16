@@ -6,7 +6,7 @@ namespace app\service\system;
 
 use app\repository\system\MenuRepository;
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\auth\SuperAdminGuard;
 use core\base\Service;
 use core\context\RequestContext;
@@ -23,7 +23,7 @@ class MenuService extends Service
     protected MenuRepository $menuRepository;
 
     #[Inject]
-    protected Permission $permission;
+    protected PermissionChecker $permission;
 
     #[Inject]
     protected SuperAdminGuard $superAdminGuard;

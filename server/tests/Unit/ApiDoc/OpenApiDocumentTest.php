@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace tests\Unit\ApiDoc;
 
 use core\apidoc\EndpointDescriptor;
-use core\apidoc\EnvelopeSchemas;
 use core\apidoc\OpenApiDocument;
 use core\apidoc\RuleTranslator;
+use core\response\EnvelopeSchemas;
 use tests\TestCase;
 
 final class OpenApiDocumentTest extends TestCase

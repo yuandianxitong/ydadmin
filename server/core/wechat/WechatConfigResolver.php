@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace core\wechat;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\wechat\exception\WechatNotConfiguredException;
 
 /**

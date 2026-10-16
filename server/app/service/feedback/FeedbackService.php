@@ -17,7 +17,7 @@ use support\Redis;
  * 用户反馈。
  *
  * 只调 Repository：查询条件在 FeedbackRepository。
- * 写操作一律包 runInTransaction()。提交成功后经 afterCommit 发站内信；回复 / 关闭 / 删除不发。
+ * 写操作一律包 runInTransaction()。创建时在同一事务登记回执消息；回复 / 关闭 / 删除不发。
  */
 class FeedbackService extends Service
 {
@@ -64,7 +64,7 @@ class FeedbackService extends Service
         return $this->runInTransaction(function () use ($row, $userId): array {
             $created = $this->feedbackRepository->create($row);
             $id = (int) $created['id'];
-            $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'feedback_received', [], (string) $id));
+            $this->messageService->scheduleToUser($userId, 'feedback_received', [], (string) $id);
 
             return $created;
         });

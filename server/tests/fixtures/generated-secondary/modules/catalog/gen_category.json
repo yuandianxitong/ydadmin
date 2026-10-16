@@ -1,0 +1,196 @@
+{
+    "schema_version": 1,
+    "id": "catalog.gen_category",
+    "module": "catalog",
+    "model": "GenCategory",
+    "table": "gen_categories",
+    "title": "生成器夹具表二（无状态列/图片列/创建人列）",
+    "primary_key": "id",
+    "permissions": [
+        "catalog.gen_category.list",
+        "catalog.gen_category.delete",
+        "catalog.gen_category.create",
+        "catalog.gen_category.update"
+    ],
+    "routes": [
+        {
+            "method": "GET",
+            "path": "/adminapi/catalog/gen-category",
+            "action": "index",
+            "permission": "catalog.gen_category.list"
+        },
+        {
+            "method": "POST",
+            "path": "/adminapi/catalog/gen-category/batch-delete",
+            "action": "batchDelete",
+            "permission": "catalog.gen_category.delete"
+        },
+        {
+            "method": "GET",
+            "path": "/adminapi/catalog/gen-category/{id:\\d+}",
+            "action": "show",
+            "permission": "catalog.gen_category.list"
+        },
+        {
+            "method": "POST",
+            "path": "/adminapi/catalog/gen-category",
+            "action": "store",
+            "permission": "catalog.gen_category.create"
+        },
+        {
+            "method": "PUT",
+            "path": "/adminapi/catalog/gen-category/{id:\\d+}",
+            "action": "update",
+            "permission": "catalog.gen_category.update"
+        },
+        {
+            "method": "DELETE",
+            "path": "/adminapi/catalog/gen-category/{id:\\d+}",
+            "action": "delete",
+            "permission": "catalog.gen_category.delete"
+        }
+    ],
+    "capabilities": {
+        "soft_deletes": false,
+        "status": false,
+        "data_scope": false,
+        "owner_column": null,
+        "department_column": null
+    },
+    "fields": [
+        {
+            "name": "id",
+            "type": "integer",
+            "raw_type": "int unsigned",
+            "nullable": false,
+            "default": null,
+            "comment": "",
+            "key": "PRI",
+            "extra": "auto_increment",
+            "form_type": "number",
+            "searchable": false,
+            "in_list": true,
+            "in_form": false,
+            "enum_values": []
+        },
+        {
+            "name": "name",
+            "type": "string",
+            "raw_type": "varchar(100)",
+            "nullable": false,
+            "default": null,
+            "comment": "名称",
+            "key": "",
+            "extra": "",
+            "form_type": "input",
+            "searchable": true,
+            "in_list": true,
+            "in_form": true,
+            "enum_values": []
+        },
+        {
+            "name": "is_featured",
+            "type": "boolean",
+            "raw_type": "tinyint(1)",
+            "nullable": false,
+            "default": "0",
+            "comment": "是否精选",
+            "key": "",
+            "extra": "",
+            "form_type": "switch",
+            "searchable": false,
+            "in_list": true,
+            "in_form": true,
+            "enum_values": []
+        },
+        {
+            "name": "settings",
+            "type": "json",
+            "raw_type": "json",
+            "nullable": true,
+            "default": null,
+            "comment": "扩展配置",
+            "key": "",
+            "extra": "",
+            "form_type": "input",
+            "searchable": false,
+            "in_list": true,
+            "in_form": true,
+            "enum_values": []
+        },
+        {
+            "name": "contact_email",
+            "type": "string",
+            "raw_type": "varchar(100)",
+            "nullable": true,
+            "default": null,
+            "comment": "联系邮箱",
+            "key": "",
+            "extra": "",
+            "form_type": "input",
+            "searchable": false,
+            "in_list": true,
+            "in_form": true,
+            "enum_values": []
+        },
+        {
+            "name": "sort",
+            "type": "integer",
+            "raw_type": "int",
+            "nullable": false,
+            "default": "0",
+            "comment": "排序",
+            "key": "",
+            "extra": "",
+            "form_type": "number",
+            "searchable": false,
+            "in_list": true,
+            "in_form": true,
+            "enum_values": []
+        },
+        {
+            "name": "created_at",
+            "type": "datetime",
+            "raw_type": "datetime",
+            "nullable": true,
+            "default": null,
+            "comment": "",
+            "key": "",
+            "extra": "",
+            "form_type": "datepicker",
+            "searchable": false,
+            "in_list": true,
+            "in_form": false,
+            "enum_values": []
+        },
+        {
+            "name": "updated_at",
+            "type": "datetime",
+            "raw_type": "datetime",
+            "nullable": true,
+            "default": null,
+            "comment": "",
+            "key": "",
+            "extra": "",
+            "form_type": "datepicker",
+            "searchable": false,
+            "in_list": true,
+            "in_form": false,
+            "enum_values": []
+        }
+    ],
+    "artifacts": {
+        "model": "server/app/model/catalog/GenCategory.php",
+        "repository": "server/app/repository/catalog/GenCategoryRepository.php",
+        "service": "server/app/service/catalog/GenCategoryService.php",
+        "resource": "server/app/resource/catalog/GenCategoryResource.php",
+        "controller": "server/app/adminapi/controller/catalog/GenCategoryController.php",
+        "lang_zh": "server/resource/lang/zh_CN/catalog/gen_category.php",
+        "lang_en": "server/resource/lang/en/catalog/gen_category.php",
+        "api": "admin/src/api/catalog/gen-category.ts",
+        "page": "admin/src/views/catalog/gen-category/index.vue",
+        "form": "admin/src/views/catalog/gen-category/components/GenCategoryForm.vue",
+        "menu": "server/database/generated/catalog-gen_category-menu.sql",
+        "descriptor": "server/modules/catalog/gen_category.json"
+    }
+}

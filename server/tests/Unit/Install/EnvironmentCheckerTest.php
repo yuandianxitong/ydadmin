@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace tests\Unit\Install;
 
 use app\service\system\AdminService;
-use core\contract\SuperAdminInitializer;
 use core\install\EnvironmentChecker;
+use core\install\SuperAdminInitializer;
 use support\Container;
 use tests\TestCase;
 

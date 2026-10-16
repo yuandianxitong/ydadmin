@@ -7,9 +7,10 @@ namespace app\adminapi\controller\system;
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\AdminService;
 use app\service\system\MenuService;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
 use core\context\RequestContext;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -199,7 +200,7 @@ class MenuController extends AuthenticatedController
     /** @return array<string, string> */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 
     /**

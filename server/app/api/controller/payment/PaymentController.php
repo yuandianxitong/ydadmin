@@ -6,7 +6,7 @@ namespace app\api\controller\payment;
 
 use app\api\controller\AuthenticatedController;
 use app\service\payment\PaymentService;
-use core\permission\PermissionSkip;
+use core\auth\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;

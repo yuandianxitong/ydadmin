@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace app\api\controller\payment;
 
 use app\service\payment\PaymentService;
+use core\auth\PermissionSkip;
 use core\base\Controller;
 use core\payment\Channel;
 use core\payment\dto\NotifyRequest;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;

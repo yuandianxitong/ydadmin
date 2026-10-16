@@ -43,7 +43,7 @@ STATIC_WHITELIST=(
   'core/validation/ValidatorFactory.php:$translator'               # 只读消息目录；每次使用前从 Context 取 locale
   'core/validation/ValidatorFactory.php:$factory'                  # 只读校验工厂
   'app/middleware/AdminPermissionMiddleware.php:$permissionCache'  # 注解反射结果：key=类@方法，部署期固定
-  'app/service/system/ApiDocService.php:$documentCache'            # 部署期固定：路由表与注解在运行期不变
+  'app/service/system/ApiDocService.php:$documentCache'            # 路由元数据：每个 type 仅缓存当前配置版本与语言，旧版本整体替换
 )
 
 fail=0
@@ -152,7 +152,7 @@ fi
 [ "$scope_fail" = 0 ] && echo "✅ 规则五通过：未移除全局作用域，Repository 未使用 ->getQuery()/->forceDelete()/->getModels()"
 
 # ---------------------------------------------------------------------------
-# 规则六：core/ 禁止 use app\——核心不得依赖应用层。core 要读系统配置之类的东西，就在 core\contract
+# 规则六：core/ 禁止 use app\——核心不得依赖应用层。接口在所属能力目录
 # 下声明接口（如 ConfigValueReader），由 config/container.php 绑到 app 层的实现上；直接 use 应用层的
 # 仓储，等于把仓库其他地方机械强制的分层（Controller → Service → Repository）反过来接一条线。
 # 只匹配行首的 use 语句：注释与文档里提到 app\middleware\StaticFile 这类类名是正常的，不该被拦。
@@ -169,7 +169,7 @@ if [ -d core ]; then
   core_hits=$(grep -rnE --include='*.php' --exclude-dir='core/generator/stubs' '^use +app\\' core || true)
 fi
 if [ -n "$core_hits" ]; then
-  echo "❌ core/ 依赖了应用层（core 不得 use app\\；改为 core\\contract 下的接口 + config/container.php 绑定）："
+  echo "❌ core/ 依赖了应用层（core 不得 use app\\；改为所属能力的接口 + config/container.php 绑定）："
   echo "$core_hits"
   core_fail=1
 fi

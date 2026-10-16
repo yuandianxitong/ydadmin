@@ -7,7 +7,7 @@ namespace app\repository\user;
 use app\model\user\BalanceLog;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 余额流水仓储（balance_logs 表，spec §8）：不设 $dataScoped，理由同 UserRepository——该表也没有

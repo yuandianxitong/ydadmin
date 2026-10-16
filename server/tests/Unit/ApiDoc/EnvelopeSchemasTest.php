@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\ApiDoc;
 
-use core\apidoc\EnvelopeSchemas;
+use core\response\EnvelopeSchemas;
 use tests\TestCase;
 
 final class EnvelopeSchemasTest extends TestCase

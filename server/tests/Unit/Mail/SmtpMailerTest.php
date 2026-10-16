@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace tests\Unit\Mail;
 
-use core\contract\ConfigValueReader;
-use core\mail\SmtpMailer;
+use core\config\ConfigValueReader;
 use core\message\exception\MessageDefiniteFailure;
+use core\message\mail\SmtpMailer;
 use tests\TestCase;
 
 /** SMTP 发信在连服务器之前拒绝缺配置和带换行的头。 */

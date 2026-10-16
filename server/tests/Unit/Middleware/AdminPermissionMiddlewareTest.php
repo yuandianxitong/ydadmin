@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace tests\Unit\Middleware;
 
 use app\middleware\AdminPermissionMiddleware;
+use core\auth\Permission;
+use core\auth\PermissionCheckerInterface;
+use core\auth\PermissionSkip;
 use core\context\RequestContext;
-use core\permission\Permission;
-use core\permission\PermissionCheckerInterface;
-use core\permission\PermissionSkip;
 use core\response\Api;
 use support\Container;
 use tests\TestCase;
@@ -102,6 +102,6 @@ final class AdminPermissionMiddlewareTest extends TestCase
 
     public function test_container_checker_is_the_rbac_implementation(): void
     {
-        $this->assertInstanceOf(\core\auth\Permission::class, Container::get(PermissionCheckerInterface::class));
+        $this->assertInstanceOf(\core\auth\PermissionChecker::class, Container::get(PermissionCheckerInterface::class));
     }
 }

@@ -10,17 +10,17 @@ use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\base\Service;
 use core\context\RequestContext;
-use core\contract\SuperAdminInitializer;
+use core\database\Like;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
-use core\support\Like;
+use core\install\SuperAdminInitializer;
 use core\validation\ValidatorFactory;
 use DI\Attribute\Inject;
 use support\Log;
@@ -57,7 +57,7 @@ class AdminService extends Service implements SuperAdminInitializer
     protected SystemConfigService $systemConfigService;
 
     #[Inject]
-    protected Permission $permission;
+    protected PermissionChecker $permission;
 
     #[Inject]
     protected DataScopeResolver $dataScopeResolver;
@@ -128,7 +128,7 @@ class AdminService extends Service implements SuperAdminInitializer
         $isSuper = false;
         foreach ((array) $admin['roles'] as $role) {
             if ((int) ($role['status'] ?? 0) !== 1) {
-                continue; // 禁用的角色不授予菜单，与 core\auth\Permission 保持一致
+                continue; // 禁用的角色不授予菜单，与 core\auth\PermissionChecker 保持一致
             }
             if (!empty($role['is_system'])) {
                 $isSuper = true;
@@ -413,7 +413,7 @@ class AdminService extends Service implements SuperAdminInitializer
      * 防提权：非超管不能编辑、重置超管账号。无管理员身份（CLI）不受限。
      *
      * 目标是否「超管」按其持有的角色判定（roleRepository->adminHoldsSystemRole），不看
-     * Permission::isSuperAdmin($id)——后者会 join admins.status=1，禁用的超管会被判成「不是超管」，
+     * PermissionChecker::isSuperAdmin($id)——后者会 join admins.status=1，禁用的超管会被判成「不是超管」，
      * 保护就失效了。actor 是已认证的当前会话，必然是启用状态，isSuperAdmin($actor) 不受此影响。
      */
     private function assertCanModify(int $id): void

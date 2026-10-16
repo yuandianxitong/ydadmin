@@ -9,7 +9,7 @@ use app\repository\user\BalanceLogRepository;
 use app\service\message\MessageService;
 use app\service\user\BalanceService;
 use core\base\Service;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\exception\NotFoundException;
 use core\payment\Channel;
@@ -190,11 +190,10 @@ class PaymentService extends Service
             ]);
 
             if ((string) $order['biz_type'] === PaymentOrderRepository::BIZ_RECHARGE) {
-                // M6b spec §4.8：先登记再入账——入账失败整笔回滚，登记的回调随之丢弃，不会发出「已到账」。
-                // sendToUser 自己吞掉一切异常，不会从 runInTransaction() 调用点抛出（Service::afterCommit() 对资金事务回调的要求）
+                // 通知投递记录与入账在同一事务中提交；入账失败时一并回滚。
                 $userId = (int) $order['user_id'];
                 $vars = ['order_no' => $orderNo, 'amount' => Money::toYuan((int) $order['amount_cents']), 'paid_at' => $paidAt];
-                $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'payment_success', $vars, $orderNo));
+                $this->messageService->scheduleToUser($userId, 'payment_success', $vars, $orderNo);
 
                 $this->balanceService->change(
                     (int) $order['user_id'],

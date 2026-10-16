@@ -2,7 +2,7 @@
     "openapi": "3.0.3",
     "info": {
         "title": "元点Admin 管理端 API",
-        "version": "2.0.3"
+        "version": "2.0.9"
     },
     "servers": [
         {
@@ -370,16 +370,156 @@
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "content": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "type": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "integer"
+                                                        },
+                                                        "sort": {
+                                                            "type": "integer"
+                                                        },
+                                                        "publish_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "created_by": {
+                                                            "type": "integer",
+                                                            "nullable": true
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "deleted_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "status_text": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
-                                        },
-                                        {
-                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -468,13 +608,156 @@
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "content": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "type": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "integer"
+                                                        },
+                                                        "sort": {
+                                                            "type": "integer"
+                                                        },
+                                                        "publish_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "created_by": {
+                                                            "type": "integer",
+                                                            "nullable": true
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "deleted_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "status_text": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -520,19 +803,197 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "list",
+                                                        "pagination"
+                                                    ],
+                                                    "properties": {
+                                                        "list": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "required": [
+                                                                    "id"
+                                                                ],
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "content": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "sort": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "publish_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "created_by": {
+                                                                        "type": "integer",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "created_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "updated_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "deleted_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "status_text": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "pagination": {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "current_page",
+                                                                "per_page",
+                                                                "total",
+                                                                "last_page"
+                                                            ],
+                                                            "properties": {
+                                                                "current_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "per_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "total": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "last_page": {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -549,7 +1010,75 @@
                             }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_no",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ]
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "/adminapi/announcement/{id}": {
@@ -817,16 +1346,175 @@
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "category_id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "cover": {
+                                                            "type": "string"
+                                                        },
+                                                        "summary": {
+                                                            "type": "string"
+                                                        },
+                                                        "content": {
+                                                            "type": "string"
+                                                        },
+                                                        "tags": {
+                                                            "type": "array",
+                                                            "items": {},
+                                                            "nullable": true
+                                                        },
+                                                        "author": {
+                                                            "type": "string"
+                                                        },
+                                                        "view_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "integer"
+                                                        },
+                                                        "publish_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "created_by": {
+                                                            "type": "integer",
+                                                            "nullable": true
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "deleted_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "status_text": {
+                                                            "type": "string"
+                                                        },
+                                                        "category_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "views": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
-                                        },
-                                        {
-                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -1346,13 +2034,175 @@
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "category_id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "title": {
+                                                            "type": "string"
+                                                        },
+                                                        "cover": {
+                                                            "type": "string"
+                                                        },
+                                                        "summary": {
+                                                            "type": "string"
+                                                        },
+                                                        "content": {
+                                                            "type": "string"
+                                                        },
+                                                        "tags": {
+                                                            "type": "array",
+                                                            "items": {},
+                                                            "nullable": true
+                                                        },
+                                                        "author": {
+                                                            "type": "string"
+                                                        },
+                                                        "view_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "status": {
+                                                            "type": "integer"
+                                                        },
+                                                        "publish_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "created_by": {
+                                                            "type": "integer",
+                                                            "nullable": true
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "deleted_at": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "status_text": {
+                                                            "type": "string"
+                                                        },
+                                                        "category_name": {
+                                                            "type": "string"
+                                                        },
+                                                        "views": {
+                                                            "type": "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -1398,19 +2248,216 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/SuccessResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "list",
+                                                        "pagination"
+                                                    ],
+                                                    "properties": {
+                                                        "list": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "required": [
+                                                                    "id"
+                                                                ],
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "category_id": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "title": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "cover": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "summary": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "content": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "tags": {
+                                                                        "type": "array",
+                                                                        "items": {},
+                                                                        "nullable": true
+                                                                    },
+                                                                    "author": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "view_count": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "publish_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "created_by": {
+                                                                        "type": "integer",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "created_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "updated_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "deleted_at": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "status_text": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "category_name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "views": {
+                                                                        "type": "integer"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "pagination": {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "current_page",
+                                                                "per_page",
+                                                                "total",
+                                                                "last_page"
+                                                            ],
+                                                            "properties": {
+                                                                "current_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "per_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "total": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "last_page": {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/ErrorResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         },
                                         {
-                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
                                         }
                                     ]
                                 }
@@ -1427,7 +2474,71 @@
                             }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_no",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        }
+                    },
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "/adminapi/article/{id}": {
@@ -4246,6 +5357,50 @@
                 }
             }
         },
+        "/adminapi/health/ready": {
+            "get": {
+                "operationId": "HealthController::ready",
+                "tags": [
+                    "health"
+                ],
+                "summary": "HealthController::ready",
+                "description": "公开接口，无需登录",
+                "x-permission": null,
+                "security": [],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/message/log": {
             "get": {
                 "operationId": "MessageLogController::index",
@@ -4548,6 +5703,23 @@
                                         "type": "string",
                                         "nullable": true,
                                         "maxLength": 200
+                                    },
+                                    "email_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "email_subject": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 200
+                                    },
+                                    "email_content": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 2000
                                     }
                                 },
                                 "required": [
@@ -4804,6 +5976,23 @@
                                         "type": "string",
                                         "nullable": true,
                                         "maxLength": 200
+                                    },
+                                    "email_enabled": {
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    },
+                                    "email_subject": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 200
+                                    },
+                                    "email_content": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 2000
                                     }
                                 }
                             }
@@ -6631,6 +7820,54 @@
                 }
             }
         },
+        "/adminapi/system/config/effect": {
+            "get": {
+                "operationId": "SystemConfigController::effect",
+                "tags": [
+                    "system"
+                ],
+                "summary": "SystemConfigController::effect",
+                "description": "需登录，且需权限 `system.config.list`",
+                "x-permission": "system.config.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/system/config/global": {
             "get": {
                 "operationId": "SystemConfigController::global",
@@ -8073,7 +9310,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8086,6 +9323,9 @@
                                         },
                                         {
                                             "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
                                         }
                                     ]
                                 }
@@ -8102,7 +9342,62 @@
                             }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_no",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "keyword",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 200
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                0,
+                                1
+                            ]
+                        }
+                    }
+                ]
             },
             "post": {
                 "operationId": "DictionaryController::store",
@@ -9539,6 +10834,136 @@
                 }
             }
         },
+        "/adminapi/system/generator/plan": {
+            "post": {
+                "operationId": "GeneratorController::plan",
+                "tags": [
+                    "system"
+                ],
+                "summary": "GeneratorController::plan",
+                "description": "需登录，且需权限 `system.generator.generate`",
+                "x-permission": "system.generator.generate",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "table_name": {
+                                        "type": "string",
+                                        "maxLength": 64
+                                    },
+                                    "module_name": {
+                                        "type": "string",
+                                        "pattern": "^[a-z][a-z0-9_]{0,30}$",
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                    },
+                                    "model_name": {
+                                        "type": "string",
+                                        "pattern": "^[A-Z][A-Za-z0-9]{0,40}$",
+                                        "description": "regex:/^[A-Z][A-Za-z0-9]{0,40}$/"
+                                    },
+                                    "table_comment": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100,
+                                        "pattern": "^[^\\r\\n<>]*$",
+                                        "description": "regex:/^[^\\r\\n<>]*$/u"
+                                    },
+                                    "columns": {
+                                        "type": "array",
+                                        "nullable": true,
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "maxLength": 64
+                                                },
+                                                "form_type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "input",
+                                                        "textarea",
+                                                        "number",
+                                                        "switch",
+                                                        "select",
+                                                        "datepicker",
+                                                        "image"
+                                                    ]
+                                                },
+                                                "searchable": {
+                                                    "type": "boolean"
+                                                },
+                                                "in_list": {
+                                                    "type": "boolean"
+                                                },
+                                                "in_form": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "name",
+                                                "form_type",
+                                                "searchable",
+                                                "in_list",
+                                                "in_form"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "table_name",
+                                    "module_name",
+                                    "model_name"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/adminapi/system/generator/preview": {
             "post": {
                 "operationId": "GeneratorController::preview",
@@ -9711,6 +11136,142 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ErrorResponse"
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/generator/update": {
+            "post": {
+                "operationId": "GeneratorController::updateGenerated",
+                "tags": [
+                    "system"
+                ],
+                "summary": "GeneratorController::updateGenerated",
+                "description": "需登录，且需权限 `system.generator.generate`",
+                "x-permission": "system.generator.generate",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "table_name": {
+                                        "type": "string",
+                                        "maxLength": 64
+                                    },
+                                    "module_name": {
+                                        "type": "string",
+                                        "pattern": "^[a-z][a-z0-9_]{0,30}$",
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                    },
+                                    "model_name": {
+                                        "type": "string",
+                                        "pattern": "^[A-Z][A-Za-z0-9]{0,40}$",
+                                        "description": "regex:/^[A-Z][A-Za-z0-9]{0,40}$/"
+                                    },
+                                    "table_comment": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 100,
+                                        "pattern": "^[^\\r\\n<>]*$",
+                                        "description": "regex:/^[^\\r\\n<>]*$/u"
+                                    },
+                                    "columns": {
+                                        "type": "array",
+                                        "nullable": true,
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "maxLength": 64
+                                                },
+                                                "form_type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "input",
+                                                        "textarea",
+                                                        "number",
+                                                        "switch",
+                                                        "select",
+                                                        "datepicker",
+                                                        "image"
+                                                    ]
+                                                },
+                                                "searchable": {
+                                                    "type": "boolean"
+                                                },
+                                                "in_list": {
+                                                    "type": "boolean"
+                                                },
+                                                "in_form": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "name",
+                                                "form_type",
+                                                "searchable",
+                                                "in_list",
+                                                "in_form"
+                                            ]
+                                        }
+                                    },
+                                    "plan_token": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]+$",
+                                        "description": "size:64;regex:/^[a-f0-9]+$/"
+                                    }
+                                },
+                                "required": [
+                                    "table_name",
+                                    "module_name",
+                                    "model_name",
+                                    "plan_token"
+                                ]
                             }
                         }
                     }
@@ -10880,6 +12441,102 @@
                                 "required": [
                                     "status"
                                 ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/modules": {
+            "get": {
+                "operationId": "ModuleController::index",
+                "tags": [
+                    "system"
+                ],
+                "summary": "ModuleController::index",
+                "description": "需登录，且需权限 `system.generator.list`",
+                "x-permission": "system.generator.list",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/system/monitoring": {
+            "get": {
+                "operationId": "MonitoringController::index",
+                "tags": [
+                    "system"
+                ],
+                "summary": "MonitoringController::index",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
                             }
                         }
                     }
@@ -12505,6 +14162,839 @@
                         }
                     }
                 }
+            }
+        },
+        "/adminapi/tasks/export": {
+            "post": {
+                "operationId": "TaskController::submitExport",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskController::submitExport",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 422 为校验失败(data.errors 为「字段 => 消息」);code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "task_id",
+                                                        "kind",
+                                                        "module",
+                                                        "status",
+                                                        "processed",
+                                                        "success_count",
+                                                        "fail_count",
+                                                        "errors",
+                                                        "result",
+                                                        "download_ready"
+                                                    ],
+                                                    "properties": {
+                                                        "task_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "import",
+                                                                "export"
+                                                            ]
+                                                        },
+                                                        "module": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "queued",
+                                                                "running",
+                                                                "completed",
+                                                                "failed",
+                                                                "cancelled"
+                                                            ]
+                                                        },
+                                                        "processed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "success_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "fail_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "errors": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "row": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "message": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "result": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "import_id": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "errors_truncated": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            }
+                                                        },
+                                                        "download_ready": {
+                                                            "type": "boolean"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "module": {
+                                        "type": "string",
+                                        "enum": [
+                                            "user",
+                                            "article",
+                                            "announcement"
+                                        ]
+                                    },
+                                    "status": {
+                                        "type": "integer",
+                                        "nullable": true,
+                                        "enum": [
+                                            0,
+                                            1
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "module"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/tasks/import-user": {
+            "post": {
+                "operationId": "TaskController::submitImport",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskController::submitImport",
+                "description": "需登录，且需权限 `user.import`",
+                "x-permission": "user.import",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "task_id",
+                                                        "kind",
+                                                        "module",
+                                                        "status",
+                                                        "processed",
+                                                        "success_count",
+                                                        "fail_count",
+                                                        "errors",
+                                                        "result",
+                                                        "download_ready"
+                                                    ],
+                                                    "properties": {
+                                                        "task_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "import",
+                                                                "export"
+                                                            ]
+                                                        },
+                                                        "module": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "queued",
+                                                                "running",
+                                                                "completed",
+                                                                "failed",
+                                                                "cancelled"
+                                                            ]
+                                                        },
+                                                        "processed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "success_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "fail_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "errors": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "row": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "message": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "result": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "import_id": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "errors_truncated": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            }
+                                                        },
+                                                        "download_ready": {
+                                                            "type": "boolean"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/tasks/{id}": {
+            "get": {
+                "operationId": "TaskController::show",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskController::show",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 200,
+                                                    "enum": [
+                                                        200
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                        "task_id",
+                                                        "kind",
+                                                        "module",
+                                                        "status",
+                                                        "processed",
+                                                        "success_count",
+                                                        "fail_count",
+                                                        "errors",
+                                                        "result",
+                                                        "download_ready"
+                                                    ],
+                                                    "properties": {
+                                                        "task_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "kind": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "import",
+                                                                "export"
+                                                            ]
+                                                        },
+                                                        "module": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "queued",
+                                                                "running",
+                                                                "completed",
+                                                                "failed",
+                                                                "cancelled"
+                                                            ]
+                                                        },
+                                                        "processed": {
+                                                            "type": "integer"
+                                                        },
+                                                        "success_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "fail_count": {
+                                                            "type": "integer"
+                                                        },
+                                                        "errors": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "row": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "message": {
+                                                                        "type": "string"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "result": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "import_id": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "errors_truncated": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            }
+                                                        },
+                                                        "download_ready": {
+                                                            "type": "boolean"
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "description": "业务错误码;业务错误 HTTP 状态恒为 200,靠此字段区分",
+                                                    "example": 400,
+                                                    "not": {
+                                                        "enum": [
+                                                            200,
+                                                            422
+                                                        ]
+                                                    }
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "description": "业务数据,字段随接口而定"
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "code",
+                                                "message",
+                                                "data",
+                                                "timestamp"
+                                            ],
+                                            "properties": {
+                                                "code": {
+                                                    "type": "integer",
+                                                    "example": 422,
+                                                    "enum": [
+                                                        422
+                                                    ]
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "errors"
+                                                    ],
+                                                    "properties": {
+                                                        "errors": {
+                                                            "type": "object",
+                                                            "description": "字段名 => 第一条校验错误消息",
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "timestamp": {
+                                                    "type": "integer",
+                                                    "format": "int64",
+                                                    "description": "Unix 时间戳(秒)"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            }
+        },
+        "/adminapi/tasks/{id}/cancel": {
+            "post": {
+                "operationId": "TaskController::cancel",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskController::cancel",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/adminapi/tasks/{id}/download": {
+            "get": {
+                "operationId": "TaskController::download",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "TaskController::download",
+                "description": "需登录，无需权限节点",
+                "x-permission": null,
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;其余非 200 的 code 为业务错误",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/ErrorResponse"
+                                        },
+                                        {
+                                            "$ref": "#/components/schemas/PaginatedResponse"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "未捕获异常:HTTP 500,响应体仍为信封(code 500)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
             }
         },
         "/adminapi/upload/file": {
@@ -14359,10 +16849,20 @@
         "GeneratorController::generate 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::generate 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::generate 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
+        "GeneratorController::plan 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
+        "GeneratorController::plan 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::plan 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
+        "GeneratorController::plan 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
         "GeneratorController::preview 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
         "GeneratorController::preview 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::preview 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::preview 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
+        "GeneratorController::updateGenerated 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
+        "GeneratorController::updateGenerated 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::updateGenerated 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
+        "GeneratorController::updateGenerated 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
+        "GeneratorController::updateGenerated 字段 plan_token:size:64",
+        "GeneratorController::updateGenerated 字段 plan_token:regex:/^[a-f0-9]+$/",
         "MenuController::store 字段 name:required_if:type,2",
         "MenuController::store 字段 path:required_if:type,2",
         "MenuController::store 字段 component:required_if:type,2",

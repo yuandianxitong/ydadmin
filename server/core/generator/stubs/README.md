@@ -20,3 +20,16 @@
   目录 basename 匹配，误伤 `core/` 下任何叫 `stubs` 的目录，排除粒度过宽）。
 
 新增模板文件、或改现有模板的变量约定，不需要再动这三处；这三处排除的是整个目录。
+
+## 第一阶段契约规范
+
+生成模块额外包含 `app/resource/{module}/{Model}Resource.php`。
+控制器列表使用 `indexRules()` 校验筛选与分页；固定状态、批量 ID 规则委托 CommonRules。
+列表、详情、新建的响应文档与运行时输出字段共用资源 schema；类型可通过 `api:export` 导出。
+新资源字段默认包含表字段与已有 status_text，增减公开字段应直接修改资源声明。
+
+## 第三阶段增量规范
+
+每个模块还生成 `modules/{module}/{model_snake}.json`，路由元数据与控制器共用蓝图定义。
+模板更新后使用 `make:crud --update --preview` 查看三方合并计划，再执行增量更新。
+生成基线保存纯模板输出，自定义代码不能写回基线。不要删除已有文件再生成。

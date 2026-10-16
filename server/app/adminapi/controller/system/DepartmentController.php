@@ -6,8 +6,9 @@ namespace app\adminapi\controller\system;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\DepartmentService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -156,7 +157,7 @@ class DepartmentController extends AuthenticatedController
     /** @return array<string, string> */
     private function statusRules(): array
     {
-        return ['status' => 'required|integer|in:0,1'];
+        return CommonRules::binaryStatus();
     }
 
     /**

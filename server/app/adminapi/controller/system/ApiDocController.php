@@ -6,8 +6,8 @@ namespace app\adminapi\controller\system;
 
 use app\service\system\ApiDocService;
 use core\apidoc\OpenApiDocument;
+use core\auth\PermissionSkip;
 use core\base\Controller;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\Response;
 use Webman\Http\Request;

@@ -8,7 +8,7 @@ use app\service\system\GeneratorService;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\generator\GeneratorRequest;
-use core\generator\NameConvention;
+use core\module\NameConvention;
 use support\Container;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,11 +20,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * CLI 版代码生成器：复用 GeneratorService，跳过 HTTP 层（spec §5.5）。
  *
- * --force：GeneratorService::generate() 的签名里没有覆盖选项（那是跨任务的固定契约），这里的做法是
- * 先用 GeneratorService::targetPaths() 拿到本次会用到的全部磁盘绝对路径，除 page 外把已存在的文件
- * 删掉，再调用 generate()——对它而言这些路径此刻就是"不存在"，会按正常流程写入。页面路径永远不删、
- * 不覆盖。（注意：不能用 preview() 的返回路径做这一步——那是给前端展示用的相对仓库根路径，直接
- * is_file()/unlink() 会被命令的当前工作目录带偏，见 targetPaths() 的方法注释。）
+ * 默认只创建新文件；--update 通过可信基线三方合并；--force 在备份后替换已有后端等产物，保留页面与表单。
+ * 所有模式均由 GeneratorService 校验并完整渲染，不提前删除文件。--baseline-dir 只导入原始生成快照。
  *
  * module_name/model_name 的正则校验：命令绕开了 GeneratorController::validate()，这里原样重判一次
  * （规则来自 spec §9.1，与控制器保持一致）。GeneratorService 内部仍有同一套校验（含保留模块名与
@@ -54,6 +51,10 @@ final class MakeCrudCommand extends Command
             ->addOption('model', null, InputOption::VALUE_REQUIRED, '模型名（^[A-Z][A-Za-z0-9]{0,40}$），缺省由表名推断')
             ->addOption('comment', null, InputOption::VALUE_REQUIRED, '模块中文说明，缺省取表注释')
             ->addOption('preview', null, InputOption::VALUE_NONE, '只打印产物清单，不落盘')
+            ->addOption('update', null, InputOption::VALUE_NONE, '按生成基线增量合并；遇到冲突保留全部源文件')
+            ->addOption('plan-token', null, InputOption::VALUE_REQUIRED, '使用已审阅计划的令牌执行 --update，内容变化时拒绝写入')
+            ->addOption('json', null, InputOption::VALUE_NONE, '与 --update --preview 合用，输出完整 JSON 计划及合并内容')
+            ->addOption('baseline-dir', null, InputOption::VALUE_REQUIRED, '从原始生成快照的仓库根导入基线，本次不更新源文件')
             ->addOption('force', null, InputOption::VALUE_NONE, '允许覆盖已存在文件（两个前端页面文件永远不覆盖）')
             ->addOption('reload', null, InputOption::VALUE_NONE, '生成后执行一次 php start.php reload');
     }
@@ -64,6 +65,23 @@ final class MakeCrudCommand extends Command
         $module = (string) ($input->getOption('module') ?? '');
         $modelOption = (string) ($input->getOption('model') ?? '');
         $commentOption = (string) ($input->getOption('comment') ?? '');
+
+        if ($input->getOption('baseline-dir') !== null && ($input->getOption('update') || $input->getOption('force') || $input->getOption('preview')
+            || $input->getOption('json') || $input->getOption('plan-token') !== null || $input->getOption('reload'))) {
+            $output->writeln('<error>--baseline-dir 是独立的基线导入操作，不能与更新、覆盖、预览或重载选项混用</error>');
+            return self::FAILURE;
+        }
+
+        if ($input->getOption('force') && $input->getOption('update')) {
+            $output->writeln('<error>--force 与 --update 不能同时使用</error>');
+            return self::FAILURE;
+        }
+        if (($input->getOption('json') && (!$input->getOption('update') || !$input->getOption('preview')))
+            || ($input->getOption('plan-token') !== null && (!$input->getOption('update') || $input->getOption('preview')
+                || preg_match('/^[a-f0-9]{64}\z/', (string) $input->getOption('plan-token')) !== 1))) {
+            $output->writeln('<error>--json 需要 --update --preview；--plan-token 仅用于执行 --update 且须为 64 位十六进制</error>');
+            return self::FAILURE;
+        }
 
         // --module 没有默认值：生成器不替调用方猜一个会变成文件路径与 PHP 命名空间的名字，
         // 必须显式传（与 GeneratorController 那边前端表单默认值 business 会被同一道保留字
@@ -108,37 +126,53 @@ final class MakeCrudCommand extends Command
 
             return self::FAILURE;
         }
-        $comment = $commentOption !== '' ? $commentOption : (string) $tableRow['comment'];
+        $comment = $commentOption !== '' ? $commentOption : (($input->getOption('update') || $input->getOption('baseline-dir') !== null) ? '' : (string) $tableRow['comment']);
 
         $request = new GeneratorRequest($table, $module, $model, $comment, []);
 
         try {
-            if ($input->getOption('preview')) {
+            if ($input->getOption('baseline-dir') !== null) {
+                $imported = $service->importBaseline($request, (string) $input->getOption('baseline-dir'));
+                $output->writeln('已导入 ' . $imported['imported'] . ' 个原始生成产物作为基线，源文件未修改。');
+                return self::SUCCESS;
+            }
+            if ($input->getOption('update')) {
+                $plan = $service->plan($request);
+                $result = $input->getOption('preview') ? $plan : $service->updateGenerated($request, (string) ($input->getOption('plan-token') ?? $plan['plan_token']));
+                if ($input->getOption('json')) {
+                    $output->writeln(json_encode($result, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), OutputInterface::OUTPUT_RAW);
+                    return $result['has_conflicts'] ? self::FAILURE : self::SUCCESS;
+                }
+                foreach ($result['files'] as $file) {
+                    $output->writeln($file['status'] . ' ' . $file['path'] . ($file['reason'] !== '' ? ' — ' . $file['reason'] : ''), OutputInterface::OUTPUT_RAW);
+                }
+                $output->writeln('plan_token: ' . $result['plan_token'], OutputInterface::OUTPUT_RAW);
+                if (isset($result['conflict_directory'])) {
+                    $output->writeln('conflicts: ' . $result['conflict_directory'], OutputInterface::OUTPUT_RAW);
+                }
+                if (isset($result['backup_directory'])) {
+                    $output->writeln('backup: ' . $result['backup_directory'], OutputInterface::OUTPUT_RAW);
+                }
+                if ($result['has_conflicts']) {
+                    return self::FAILURE;
+                }
+                if ($input->getOption('preview')) {
+                    return self::SUCCESS;
+                }
+                $output->writeln('<info>增量更新完成，控制器路由在 php start.php reload 后生效。</info>');
+                // 复用后面的显式 --reload 处理。
+                $result = ['files' => []];
+            } elseif ($input->getOption('preview')) {
                 $output->writeln('<info>产物清单（预览，未落盘）：</info>');
                 foreach ($service->preview($request) as $key => $artifact) {
                     $output->writeln(sprintf('  %-12s %s', $key, $artifact['path']));
                 }
 
                 return self::SUCCESS;
+            } else {
+                // 先完整渲染，再备份与替换。禁止提前 unlink，模板失败也不会损坏已有源码。
+                $result = $input->getOption('force') ? $service->forceGenerate($request) : $service->generate($request);
             }
-
-            if ($input->getOption('force')) {
-                // targetPaths() 给的是磁盘绝对路径，不是 preview() 那种给前端展示用的相对路径——
-                // 用相对路径直接 is_file()/unlink() 会被当前工作目录（server/）带偏，见方法注释。
-                foreach ($service->targetPaths($request) as $key => $absolutePath) {
-                    if ($key === 'page' || $key === 'form') {
-                        // 两个前端页面文件永远不覆盖：列表页与表单组件都是人手改过就回不来的东西
-                        // （加联动字段、改校验触发时机），而 --force 是 unlink，没有备份也没有二次确认。
-                        // 判错方向最多让 --force 少删一个文件（用户自己删即可），判反是不可逆的数据丢失。
-                        continue;
-                    }
-                    if (is_file($absolutePath)) {
-                        unlink($absolutePath);
-                    }
-                }
-            }
-
-            $result = $service->generate($request);
         } catch (ValidationException $e) {
             foreach ($e->errors() as $field => $message) {
                 $output->writeln("<error>{$field}：{$message}</error>");
@@ -149,11 +183,15 @@ final class MakeCrudCommand extends Command
             $output->writeln('<error>' . $e->getMessage() . '</error>');
 
             return self::FAILURE;
+        } catch (\RuntimeException $e) {
+            $output->writeln($e->getMessage(), OutputInterface::OUTPUT_RAW);
+            return self::FAILURE;
         }
 
         foreach ($result['files'] as $file) {
             $mark = match ($file['status']) {
                 'created' => '<info>created</info> ',
+                'updated' => '<info>updated</info> ',
                 'skipped' => '<comment>skipped</comment>',
                 default   => '<error>failed </error>',
             };

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace app\api\controller\agreement;
 
 use app\service\agreement\AgreementService;
+use core\auth\PermissionSkip;
 use core\base\Controller;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;

@@ -6,7 +6,7 @@ namespace app\adminapi\controller\message;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\message\MessageTemplateService;
-use core\permission\Permission;
+use core\auth\Permission;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;

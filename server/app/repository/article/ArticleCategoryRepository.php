@@ -7,7 +7,7 @@ namespace app\repository\article;
 use app\model\article\ArticleCategory;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 文章栏目仓储（article_categories 表）。

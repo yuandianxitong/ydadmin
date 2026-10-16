@@ -1,0 +1,55 @@
+name: Server checks
+
+on:
+  push:
+    paths: ['server/**', '.github/workflows/server.yml']
+  pull_request:
+    paths: ['server/**', '.github/workflows/server.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, redis, mbstring, dom, gd, zip
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - name: Configure isolated test services
+        run: |
+          cp .env.example .env
+          python3 - <<'PY'
+          from pathlib import Path
+          import secrets
+          path = Path('.env')
+          overrides = {'DB_NAME': 'ydadmin_ci', 'DB_PASSWORD': 'root', 'JWT_ADMIN_SECRET': secrets.token_hex(32), 'JWT_USER_SECRET': secrets.token_hex(32)}
+          lines = path.read_text().splitlines()
+          path.write_text('\n'.join(f'{line.split("=", 1)[0].strip()} = {overrides[line.split("=", 1)[0].strip()]}' if '=' in line and line.split('=', 1)[0].strip() in overrides else line for line in lines) + '\n')
+          PY
+          mkdir -p runtime
+      - run: composer check

@@ -6,8 +6,8 @@ namespace app\adminapi\controller\system;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\SystemConfigService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
@@ -62,6 +62,13 @@ class SystemConfigController extends AuthenticatedController
     public function global(): Response
     {
         return $this->success($this->systemConfigService->getGlobalConfigs(), lang('messages.global_config_success'));
+    }
+
+    #[Get('/effect')]
+    #[Permission('system.config.list')]
+    public function effect(): Response
+    {
+        return $this->success($this->systemConfigService->effect());
     }
 
     #[Get('/{id:\d+}')]

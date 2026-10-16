@@ -26,7 +26,7 @@ PREFIX="ydadmin-${VERSION}/server"
 copy_tree() {
   dest=$1
   mkdir -p "$dest"
-  for name in app core config resource public scripts support start.php windows.php windows.bat webman composer.json composer.lock .env.example; do
+  for name in app core config resource modules public scripts support start.php windows.php windows.bat webman composer.json composer.lock .env.example; do
     if [ -e "$SOURCE/$name" ]; then
       cp -R "$SOURCE/$name" "$dest/$name"
     fi
@@ -48,7 +48,12 @@ copy_tree() {
   : > "$dest/runtime/.gitkeep"
 }
 
-if [ "$SKIP_BUILD" -eq 0 ]; then
+# --list 只检查包清单；任何实际发布（包括 --skip-build）都必须通过后端检查。
+if [ "$LIST" -eq 0 ]; then
+  (cd "$SOURCE" && composer check)
+fi
+
+if [ "$SKIP_BUILD" -eq 0 ] && [ "$LIST" -eq 0 ]; then
   (cd "$ROOT/admin" && pnpm build)
   (cd "$ROOT/pc" && pnpm generate)
   if [ -f "$ROOT/uniapp/package.json" ]; then

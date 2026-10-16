@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace app\api\controller\region;
 
 use app\service\region\RegionService;
+use core\auth\PermissionSkip;
 use core\base\Controller;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;

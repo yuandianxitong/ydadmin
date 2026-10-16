@@ -6,8 +6,8 @@ namespace app\adminapi\controller\realtime;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\realtime\WsTicketService;
+use core\auth\PermissionSkip;
 use core\http\ClientIp;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;

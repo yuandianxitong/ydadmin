@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace tests\Unit\Wechat;
 
 use app\service\wechat\OfficialAccountService;
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\wechat\AccessTokenProvider;

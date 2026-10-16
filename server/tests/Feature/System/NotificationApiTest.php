@@ -129,7 +129,7 @@ final class NotificationApiTest extends ApiTestCase
         $this->assertSame(1, (int) $counts[$percent]);
         $this->assertSame(0, (int) $counts[$plain]);
 
-        $this->assertSame([$percent], array_column($this->get(self::BASE, ['keyword' => "{$tag}100%"], $admin->token)->assertOk()->data()['list'], 'id'), '% 按字面匹配（core\support\Like）');
+        $this->assertSame([$percent], array_column($this->get(self::BASE, ['keyword' => "{$tag}100%"], $admin->token)->assertOk()->data()['list'], 'id'), '% 按字面匹配（core\database\Like）');
         $this->assertSame([$plain], array_column($this->get(self::BASE, ['keyword' => $tag, 'type' => 3], $admin->token)->assertOk()->data()['list'], 'id'));
     }
 

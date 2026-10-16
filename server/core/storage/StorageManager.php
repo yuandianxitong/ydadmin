@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace core\storage;
 
-use core\contract\ConfigValueReader;
+use core\config\ConfigValueReader;
 use core\exception\BusinessException;
 use core\storage\driver\AliyunOssDriver;
 use core\storage\driver\LocalDriver;
@@ -35,6 +35,9 @@ final class StorageManager
     /** 按当前 `storage_driver` 配置取驱动实例（每次现读、现 new）。 */
     public function disk(): StorageInterface
     {
+        if ($this->configReader instanceof \core\config\ConfigSnapshotProvider) {
+            return (new self($this->configReader->snapshot()))->disk();
+        }
         return $this->diskFor($this->driverName());
     }
 
@@ -45,6 +48,9 @@ final class StorageManager
      */
     public function diskFor(string $driver): StorageInterface
     {
+        if ($this->configReader instanceof \core\config\ConfigSnapshotProvider) {
+            return (new self($this->configReader->snapshot()))->diskFor($driver);
+        }
         return match ($driver) {
             'local'   => new LocalDriver(),
             'aliyun'  => new AliyunOssDriver($this->getAliyunConfig()),

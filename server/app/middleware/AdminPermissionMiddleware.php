@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\middleware;
 
+use core\auth\Permission;
+use core\auth\PermissionCheckerInterface;
+use core\auth\PermissionSkip;
 use core\context\RequestContext;
-use core\permission\Permission;
-use core\permission\PermissionCheckerInterface;
-use core\permission\PermissionSkip;
 use core\response\Api;
 use support\Log;
 use Webman\Http\Request;

@@ -6,7 +6,7 @@ namespace app\adminapi\controller\wechat;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\wechat\OfficialAccountService;
-use core\permission\Permission;
+use core\auth\Permission;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;

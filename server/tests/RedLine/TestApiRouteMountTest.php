@@ -10,6 +10,7 @@ use app\middleware\InstallGuardMiddleware;
 use app\middleware\LocaleMiddleware;
 use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
+use app\middleware\TelemetryMiddleware;
 use tests\Support\RouteStack;
 use tests\TestCase;
 use Webman\Route;
@@ -116,13 +117,14 @@ final class TestApiRouteMountTest extends TestCase
         $this->assertSame([], array_values($missing), '白名单里的公开路由不存在：' . implode(', ', $missing));
     }
 
-    public function test_member_profile_stack_is_outer_four_then_api_auth(): void
+    public function test_member_profile_stack_is_global_middleware_then_api_auth(): void
     {
         $this->assertSame([
             InstallGuardMiddleware::class,
             RequestContextMiddleware::class,
             LocaleMiddleware::class,
             CorsMiddleware::class,
+            TelemetryMiddleware::class,
             ApiAuthMiddleware::class,
         ], RouteStack::outerToInner($this->routeBy('GET', '/api/user/profile')));
     }
@@ -130,7 +132,7 @@ final class TestApiRouteMountTest extends TestCase
     public function test_member_login_has_rate_limit_and_no_api_auth(): void
     {
         $names = RouteStack::outerToInner($this->routeBy('POST', '/api/auth/login'));
-        $this->assertSame(LoginRateLimitMiddleware::class, $names[4] ?? null);
+        $this->assertSame(LoginRateLimitMiddleware::class, $names[5] ?? null);
         $this->assertNotContains(ApiAuthMiddleware::class, $names);
     }
 

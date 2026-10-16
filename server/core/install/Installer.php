@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace core\install;
 
-use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\database\SqlScript;
 use core\exception\BusinessException;

@@ -6,12 +6,16 @@ namespace app\service\system;
 
 use app\middleware\AdminAuthMiddleware;
 use app\middleware\ApiAuthMiddleware;
+use app\repository\system\ConfigurationStateRepository;
 use core\apidoc\OpenApiDocument;
+use core\apidoc\ResponseReflector;
 use core\apidoc\RouteHarvester;
 use core\apidoc\RuleReflector;
 use core\apidoc\RuleTranslator;
 use core\base\Service;
+use DI\Attribute\Inject;
 use support\Container;
+use support\Context;
 
 /**
  * API 文档编排（spec §5）。数据流：RouteHarvester 拿路由 → RuleReflector 从容器取控制器实例
@@ -19,6 +23,8 @@ use support\Container;
  */
 class ApiDocService extends Service
 {
+    #[Inject]
+    protected ConfigurationStateRepository $configurationState;
     /** @var array<string, string> type => 路由前缀 */
     private const PREFIXES = [
         'admin' => '/adminapi',
@@ -37,7 +43,7 @@ class ApiDocService extends Service
     ];
 
     /**
-     * 整份文档按 type 缓存：部署期固定，路由表与注解在运行期不变
+     * 整份文档按 type 缓存当前配置版本与语言，配置变更后整体重建
      * （scripts/check-context-discipline.sh STATIC_WHITELIST 已登记）。
      *
      * @var array<string, array<string, mixed>>
@@ -65,8 +71,11 @@ class ApiDocService extends Service
     public function document(string $type): array
     {
         $type = $this->normalizeType($type);
-        if (isset(self::$documentCache[$type])) {
-            return self::$documentCache[$type];
+        $revision = $this->configurationState->current();
+        $locale = (string) Context::get('locale', 'zh_CN');
+        $cached = self::$documentCache[$type] ?? null;
+        if ($cached !== null && $cached['revision'] === $revision && $cached['locale'] === $locale) {
+            return $cached['document'];
         }
 
         $prefix = self::PREFIXES[$type];
@@ -75,8 +84,11 @@ class ApiDocService extends Service
 
         $reflector = new RuleReflector(static fn (string $class): object => Container::get($class));
         $rulesByOperationId = [];
+        $responsesByOperationId = [];
+        $responseReflector = new ResponseReflector();
         foreach ($endpoints as $endpoint) {
             $rulesByOperationId[$endpoint->operationId()] = $reflector->rulesFor($endpoint->controller, $endpoint->action);
+            $responsesByOperationId[$endpoint->operationId()] = $responseReflector->schemaFor($endpoint->controller, $endpoint->action);
         }
 
         $warnings = [...$harvester->skipped(), ...$reflector->warnings()];
@@ -88,6 +100,9 @@ class ApiDocService extends Service
         $title = $type === 'admin' ? lang('apidoc.admin_title') : lang('apidoc.api_title');
         $document = new OpenApiDocument(new RuleTranslator(), $title, (string) config('version.version'), '/');
 
-        return self::$documentCache[$type] = $document->build($endpoints, $rulesByOperationId, $warnings);
+        $result = $document->build($endpoints, $rulesByOperationId, $warnings, $responsesByOperationId);
+        // 每种 type 只保留一个当前版本，配置频繁变更也不会让常驻进程缓存无限增长。
+        self::$documentCache[$type] = ['revision' => $revision, 'locale' => $locale, 'document' => $result];
+        return $result;
     }
 }

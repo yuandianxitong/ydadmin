@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Helper;
 
-use core\helper\SensitiveDataMasker;
+use core\support\SensitiveDataMasker;
 use tests\TestCase;
 
 final class SensitiveDataMaskerTest extends TestCase

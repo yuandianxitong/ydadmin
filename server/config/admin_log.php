@@ -11,6 +11,9 @@
  */
 return [
     'actions' => [
+        'TaskController@submitImport' => ['operations.import_task', 'operations.import_task'],
+        'TaskController@submitExport' => ['operations.export_task', 'operations.export_task'],
+        'TaskController@cancel' => ['operations.cancel_task', 'operations.cancel_task'],
         // 认证（登录是公开路由，不经本中间件）
         'AuthController@refresh' => ['admin_log.auth_refresh', 'admin_log.auth_refresh_desc'],
         'AuthController@logout'  => ['admin_log.auth_logout', 'admin_log.auth_logout_desc'],
@@ -85,6 +88,8 @@ return [
         // preview 虽然只渲染不落盘，但它同样暴露生成内容，两条都要留下审计痕迹。
         'GeneratorController@preview'  => ['admin_log.generator_preview', 'admin_log.generator_preview_desc'],
         'GeneratorController@generate' => ['admin_log.generator_generate', 'admin_log.generator_generate_desc'],
+        'GeneratorController@plan' => ['admin_log.generator_preview', 'admin_log.generator_preview_desc'],
+        'GeneratorController@updateGenerated' => ['admin_log.generator_update', 'admin_log.generator_update_desc'],
 
         // 定时任务（M3）
         'CronJobController@store'     => ['admin_log.cron_job_create', 'admin_log.cron_job_create_desc'],

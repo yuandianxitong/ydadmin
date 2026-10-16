@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace core\message\channel;
 
-use core\mail\MailerInterface;
 use core\message\ChannelInterface;
 use core\message\ChannelMessage;
 use core\message\exception\MessageDefiniteFailure;
 use core\message\exception\MessageFailure;
+use core\message\mail\MailerInterface;
 use support\Container;
 
 /**

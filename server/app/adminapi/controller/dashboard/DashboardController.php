@@ -6,7 +6,7 @@ namespace app\adminapi\controller\dashboard;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\DashboardService;
-use core\permission\PermissionSkip;
+use core\auth\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;

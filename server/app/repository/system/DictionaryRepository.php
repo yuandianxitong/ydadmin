@@ -7,7 +7,7 @@ namespace app\repository\system;
 use app\model\system\Dictionary;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use support\Cache;
 
 /**

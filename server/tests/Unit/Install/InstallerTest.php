@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace tests\Unit\Install;
 
-use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\exception\BusinessException;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;

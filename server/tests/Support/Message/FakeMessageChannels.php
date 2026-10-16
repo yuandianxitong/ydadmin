@@ -33,7 +33,8 @@ trait FakeMessageChannels
         'app\service\message\MessageChannelRegistry',
         'app\service\message\MessageDeliveryService',
         'app\service\message\MessageService',
-        'app\queue\redis_slow\MessageSendConsumer',
+        'app\queue\redis_messages\MessageSendConsumer',
+        'app\queue\redis_messages\MessageRequestConsumer',
     ];
 
     private function fakeMessageChannels(): void

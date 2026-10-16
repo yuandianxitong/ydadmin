@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\System;
 
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use support\Container;
 use support\Db;
 use tests\Support\ApiTestCase;
@@ -122,7 +122,7 @@ final class MenuApiTest extends ApiTestCase
             $this->get('/adminapi/system/role', [], $member->token)->assertCode(403);
         } finally {
             Db::table('menus')->where('id', 20)->update(['status' => 1]);
-            Container::get(Permission::class)->clearAllCache();
+            Container::get(PermissionChecker::class)->clearAllCache();
         }
     }
 

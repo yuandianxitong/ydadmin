@@ -36,11 +36,11 @@ namespace app\repository\<?= $module ?>;
 use app\model\<?= $module ?>\<?= $model ?>;
 use core\base\Model;
 use core\base\Repository;
+<?php if ($needsLike): ?>
+use core\database\Like;
+<?php endif; ?>
 <?php if ($dataScoped && $uniqueColumns !== []): ?>
 use core\datascope\DataScope;
-<?php endif; ?>
-<?php if ($needsLike): ?>
-use core\support\Like;
 <?php endif; ?>
 <?php if ($softDeletes && $uniqueColumns !== []): ?>
 use Illuminate\Database\Eloquent\SoftDeletingScope;

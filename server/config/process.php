@@ -7,6 +7,7 @@ use support\Request;
 global $argv;
 
 return [
+    'outbox' => ['handler' => app\process\OutboxPublisher::class, 'count' => 1],
     'webman' => [
         'handler'     => Http::class,
         'listen'      => env('SERVER_LISTEN', 'http://0.0.0.0:8000'),

@@ -2,6 +2,8 @@
 
 // Operation-log action texts (referenced by config/admin_log.php); keys come in pairs: xxx is the action, xxx_desc the description
 return [
+    'generator_update' => 'Update generated module',
+    'generator_update_desc' => 'Merge and update module code using its generation baseline',
     'auth_refresh'                 => 'Refresh token',
     'auth_refresh_desc'            => 'Refresh the login token',
     'auth_logout'                  => 'Log out',

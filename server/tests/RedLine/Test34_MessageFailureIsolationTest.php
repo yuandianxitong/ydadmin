@@ -27,8 +27,8 @@ final class Test34FaultProbe
  * 红线（M6b spec §4.3 第 4 步、§4.8、§7.3）：消息体系故障不影响注册响应与支付回调应答。
  *
  * 两种故障 × 两个触发点：
- *   - 模板仓储抛异常（sendToUser 第一步就失败，靠外层 catch 吞掉）；
- *   - 队列投递抛异常（给种子模板临时打开短信通道，投递 message-send 时失败，靠通道级 catch 记 dispatch failed）。
+ *   - 模板仓储抛异常：消息编排进入可靠重试，业务提交不受影响；
+ *   - 队列投递抛异常：先提交待发日志与 outbox，传输恢复后继续投递。
  * 注册必须照常建号并登录；支付回调必须照常应答成功、置已支付、入账一次——应答失败会让渠道重复回调。
  */
 final class Test34_MessageFailureIsolationTest extends ApiTestCase
@@ -38,8 +38,9 @@ final class Test34_MessageFailureIsolationTest extends ApiTestCase
     /** 依赖模板仓储 / 队列门面 / MessageService 的容器单例，按依赖顺序；PaymentService 由 rebuildPaymentServices() 重建 */
     private const MESSAGE_DEPENDENT_CLASSES = [
         'app\service\message\MessageDeliveryService',
-        'app\queue\redis_slow\MessageSendConsumer',
+        'app\queue\redis_messages\MessageSendConsumer',
         'app\service\message\MessageService',
+        'app\queue\redis_messages\MessageRequestConsumer',
         'app\service\user\UserAuthService',
         'app\service\wechat\WechatAuthService',
     ];
@@ -116,8 +117,11 @@ final class Test34_MessageFailureIsolationTest extends ApiTestCase
         if ($fault === 'queue_dispatch') {
             $sms = Db::table('message_logs')->where('user_id', (int) $data['user_info']['id'])->where('channel', 'sms')->first();
             $this->assertNotNull($sms);
-            $this->assertSame(2, (int) $sms->status);
-            $this->assertStringStartsWith('dispatch failed', (string) $sms->error_msg);
+            $this->assertSame(0, (int) $sms->status, '传输故障保留待发送状态');
+            $this->assertSame('', (string) $sms->error_msg);
+            $delivery = Db::table('queue_outbox')->where('queue', 'message-send')->where('payload->log_id', (int) $sms->id)->first();
+            $this->assertNotNull($delivery, '待发消息必须有持久化投递记录');
+            $this->assertLessThan(3, (int) $delivery->status);
         }
     }
 
@@ -211,6 +215,10 @@ final class Test34_MessageFailureIsolationTest extends ApiTestCase
 
     private function rebuildMessageDependents(): void
     {
+        // OutboxService 也注入 QueueDispatcher，接口别名与实现需一起替换，确保传输故障真的触发。
+        $outbox = Container::make(\app\service\operations\OutboxService::class);
+        Container::set(\app\service\operations\OutboxService::class, $outbox);
+        Container::set(\core\queue\ReliableQueue::class, $outbox);
         foreach (self::MESSAGE_DEPENDENT_CLASSES as $class) {
             if (class_exists($class)) {
                 Container::set($class, Container::make($class, []));

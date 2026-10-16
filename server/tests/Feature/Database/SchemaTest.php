@@ -30,6 +30,24 @@ final class SchemaTest extends TestCase
         }
     }
 
+    public function test_operations_migration_is_repeatable_and_preserves_existing_delivery_records(): void
+    {
+        foreach (['queue_outbox', 'http_idempotency', 'background_tasks'] as $table) {
+            $this->assertTrue(Db::schema()->hasTable($table));
+        }
+        $id = Db::table('queue_outbox')->insertGetId(['queue' => 'migration-probe', 'payload' => '{}', 'available_at' => time(), 'created_at' => time(), 'updated_at' => time()]);
+        try {
+            for ($run = 0; $run < 2; $run++) {
+                foreach (SqlScript::split((string) file_get_contents(base_path('database/updates/v2.0.8/update.sql'))) as $statement) {
+                    Db::unprepared($statement);
+                }
+            }
+            $this->assertSame(1, Db::table('queue_outbox')->where('id', $id)->count());
+        } finally {
+            Db::table('queue_outbox')->where('id', $id)->delete();
+        }
+    }
+
     public function test_security_migration_is_repeatable_without_resetting_authorization_or_revocations(): void
     {
         Db::connection()->transaction(static fn () => AuthorizationVersion::bump());
@@ -708,7 +726,7 @@ final class SchemaTest extends TestCase
 
     public function test_release_version_is_2_0_7(): void
     {
-        $this->assertSame('2.0.7', (string) config('version.version'));
+        $this->assertSame('2.0.9', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

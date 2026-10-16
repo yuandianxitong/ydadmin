@@ -8,10 +8,12 @@ use app\middleware\AdminAuthMiddleware;
 use app\middleware\AdminLogMiddleware;
 use app\middleware\AdminPermissionMiddleware;
 use app\middleware\CorsMiddleware;
+use app\middleware\IdempotencyMiddleware;
 use app\middleware\InstallGuardMiddleware;
 use app\middleware\LocaleMiddleware;
 use app\middleware\LoginRateLimitMiddleware;
 use app\middleware\RequestContextMiddleware;
+use app\middleware\TelemetryMiddleware;
 use tests\Support\RouteStack;
 use tests\TestCase;
 use Webman\Middleware;
@@ -32,6 +34,8 @@ final class Test6_RouteMountTest extends TestCase
      */
     private const PUBLIC_ROUTES = [
         '/adminapi/health',
+        // 只公开依赖布尔状态，不公开队列、SQL 或进程详情。
+        '/adminapi/health/ready',
         '/adminapi/auth/captcha',
         '/adminapi/auth/login',
         '/adminapi/system/api-doc',
@@ -80,7 +84,7 @@ final class Test6_RouteMountTest extends TestCase
         }
     }
 
-    public function test_menu_index_stack_is_outer_four_then_admin_auth_once_each(): void
+    public function test_menu_index_stack_has_telemetry_and_idempotency_after_authorization(): void
     {
         $route = $this->routeBy('GET', '/adminapi/system/menu');
         $this->assertSame([
@@ -88,12 +92,15 @@ final class Test6_RouteMountTest extends TestCase
             RequestContextMiddleware::class,
             LocaleMiddleware::class,
             CorsMiddleware::class,
+            TelemetryMiddleware::class,
             AdminAuthMiddleware::class,
             AdminPermissionMiddleware::class,
+            IdempotencyMiddleware::class,
             AdminLogMiddleware::class,
         ], RouteStack::outerToInner($route));
         $this->assertSame(
-            RouteStack::outerToInner($route),
+            // 认证控制器按方法挂认证栈，info 没有需要幂等回放的写动作。
+            array_values(array_diff(RouteStack::outerToInner($route), [IdempotencyMiddleware::class])),
             RouteStack::outerToInner($this->routeBy('GET', '/adminapi/auth/info')),
         );
     }
@@ -105,8 +112,10 @@ final class Test6_RouteMountTest extends TestCase
             RequestContextMiddleware::class,
             LocaleMiddleware::class,
             CorsMiddleware::class,
+            TelemetryMiddleware::class,
             AdminAuthMiddleware::class,
             AdminPermissionMiddleware::class,
+            IdempotencyMiddleware::class,
             AdminLogMiddleware::class,
         ];
         $this->assertSame($expected, RouteStack::outerToInner($this->routeBy('GET', '/adminapi/region/tree')));
@@ -124,30 +133,32 @@ final class Test6_RouteMountTest extends TestCase
         $this->fail("找不到 {$method} {$path}");
     }
 
-    public function test_health_stack_is_only_the_outer_four(): void
+    public function test_health_stack_has_only_global_middleware(): void
     {
         $this->assertSame([
             InstallGuardMiddleware::class,
             RequestContextMiddleware::class,
             LocaleMiddleware::class,
             CorsMiddleware::class,
+            TelemetryMiddleware::class,
         ], RouteStack::outerToInner($this->routeBy('GET', '/adminapi/health')));
     }
 
     public function test_admin_login_has_rate_limit_and_no_auth(): void
     {
         $names = RouteStack::outerToInner($this->routeBy('POST', '/adminapi/auth/login'));
-        $this->assertSame(LoginRateLimitMiddleware::class, $names[4] ?? null);
+        $this->assertSame(LoginRateLimitMiddleware::class, $names[5] ?? null);
         $this->assertNotContains(AdminAuthMiddleware::class, $names);
     }
 
-    public function test_spa_home_stack_is_only_the_outer_four(): void
+    public function test_spa_home_stack_has_only_global_middleware(): void
     {
         $this->assertSame([
             InstallGuardMiddleware::class,
             RequestContextMiddleware::class,
             LocaleMiddleware::class,
             CorsMiddleware::class,
+            TelemetryMiddleware::class,
         ], RouteStack::outerToInner($this->routeBy('GET', '/')));
     }
 

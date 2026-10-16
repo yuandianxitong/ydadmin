@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Feature\Message;
 
+use app\queue\redis_messages\MessageSendConsumer;
 use app\service\message\MessageDeliveryService;
 use app\service\message\MessageService;
 use app\service\message\ReceiverMask;
@@ -156,7 +157,7 @@ final class MessageDeliveryServiceTest extends ApiTestCase
 
     public function test_transient_failure_on_the_last_attempt_is_marked_exhausted(): void
     {
-        // sync 驱动把这次当作最后一次失败（attempts = max_attempts）
+        // 可靠投递在 sync 下也保留待重试记录，实际执行完四次才耗尽三次重试预算。
         $user = $this->messageUser(['oa_openid' => self::openid()]);
         $template = $this->officialTemplate();
         $this->failNextSend('wechat_official', new MessageTransientFailure('wechat unavailable'));
@@ -164,9 +165,19 @@ final class MessageDeliveryServiceTest extends ApiTestCase
         Container::get(MessageService::class)->sendToUser($user->id, $template['code'], ['nickname' => '张三']);
 
         $log = $this->messageLogsFor($user->id)[0];
+        $this->assertSame(0, (int) $log['status']);
+        $deliveryId = (int) Db::table('queue_outbox')->where('queue', 'message-send')->where('payload->log_id', (int) $log['id'])->value('id');
+        $this->assertGreaterThan(0, $deliveryId);
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $this->failNextSend('wechat_official', new MessageTransientFailure('wechat unavailable'));
+            Db::table('queue_outbox')->where('id', $deliveryId)->update(['available_at' => 0]);
+            Container::get(MessageSendConsumer::class)->consume(['__delivery_id' => $deliveryId]);
+        }
+        $log = $this->messageLog((int) $log['id']);
         $this->assertSame(2, (int) $log['status']);
         $this->assertSame('重试耗尽：wechat unavailable', $log['error_msg']);
-        $this->assertSame(1, (int) $log['attempts']);
+        $this->assertSame(4, (int) $log['attempts']);
+        $this->assertSame(4, (int) Db::table('queue_outbox')->where('id', $deliveryId)->value('status'));
         $this->assertEquals(['data' => ['thing1' => ['value' => '张三']], 'url' => 'https://example.com/u/张三'], json_decode((string) $log['content'], true));
         $this->assertSame(1, Db::table('failed_jobs')->where('queue', 'message-send')->count());
     }

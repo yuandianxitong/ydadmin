@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace tests\Feature\Install;
 
 use app\controller\InstallController;
-use core\contract\SuperAdminInitializer;
 use core\database\DatabaseInstaller;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use support\Container;
 use support\Db;
 use tests\Support\ApiTestCase;

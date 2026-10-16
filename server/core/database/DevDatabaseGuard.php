@@ -19,6 +19,10 @@ final class DevDatabaseGuard
 {
     /** 表 => 该表必须存在的列（空数组表示只检查表本身）。 */
     private const REQUIRED = [
+        'configuration_state' => ['revision'],
+        'queue_outbox' => ['status', 'lease_token'],
+        'http_idempotency' => ['fingerprint'],
+        'background_tasks' => ['public_id', 'cursor'],
         'authorization_state' => ['version'],
         'auth_revocations' => ['scope', 'kind', 'identifier', 'expires_at'],
         'system_configs' => ['is_public'],  // M1b Task 5 加的列

@@ -7,7 +7,7 @@ namespace app\repository\system;
 use app\model\system\Notification;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use support\Db;

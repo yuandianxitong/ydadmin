@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace core\base;
 
+use core\query\Pagination;
 use core\response\Api;
 use core\validation\ValidatorFactory;
 use support\Response;
@@ -51,10 +52,9 @@ abstract class Controller
      */
     protected function pageParams(Request $request, int $defaultLimit = 15): array
     {
-        $page = (int) ($request->input('page') ?? $request->input('page_no') ?? 1);
-        $limit = (int) ($request->input('limit') ?? $request->input('page_size') ?? $defaultLimit);
+        $pagination = Pagination::fromArray((array) $request->all(), $defaultLimit, Repository::MAX_PAGE_SIZE);
 
-        return [max(1, $page), min(Repository::MAX_PAGE_SIZE, max(1, $limit))];
+        return [$pagination->page, $pagination->limit];
     }
 
     /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace core\apidoc;
 
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
 use ReflectionMethod;
 use Webman\Route;
 use Webman\Route\Route as RouteObject;

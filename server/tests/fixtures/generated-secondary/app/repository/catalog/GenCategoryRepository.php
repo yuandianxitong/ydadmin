@@ -7,7 +7,7 @@ namespace app\repository\catalog;
 use app\model\catalog\GenCategory;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 生成器夹具表二（无状态列/图片列/创建人列）仓储（gen_categories 表）。由代码生成器生成，可直接手改。

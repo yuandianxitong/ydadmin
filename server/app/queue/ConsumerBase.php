@@ -5,17 +5,18 @@ declare(strict_types=1);
 namespace app\queue;
 
 use app\service\system\FailedJobService;
-use core\queue\QueueHandler;
+use core\queue\DeliveryHandler;
+use core\queue\ReliableQueue;
 use DI\Attribute\Inject;
 use support\Context;
 use support\Log;
 use Webman\RedisQueue\Consumer;
 
 /**
- * 队列消费者基类（M3，计划设计决定 2–5）。子类声明 $queue 并实现 handle()，放在 app/queue/redis/ 或 app/queue/redis_slow/ 下
- * （按耗时分组，见 config/plugin/webman/redis-queue/process.php）。
+ * 队列消费者基类。子类声明 $queue 并实现 handle()，放在 app/queue/ 下已登记的独立扫描目录
+ * （按用途分组，见 config/plugin/webman/redis-queue/process.php）。
  *
- * 本类是抽象类，必须留在 app/queue/，不能放进这两个子目录：消费进程会对目录里每个实现了
+ * 本类是抽象类，必须留在 app/queue/，不能放进扫描目录：消费进程会对目录里每个实现了
  * Webman\RedisQueue\Consumer 的类 Container::get()，抽象类会让进程启动即崩。
  *
  * - consume()：redis-queue 消费进程的入口。每个任务结束（成功或抛异常）都 Context::destroy()——自定义进程不像
@@ -26,7 +27,7 @@ use Webman\RedisQueue\Consumer;
  *
  * 容器单例：不在实例属性里存任务态。
  */
-abstract class ConsumerBase implements Consumer, QueueHandler
+abstract class ConsumerBase implements Consumer, DeliveryHandler
 {
     /** 队列名：子类覆盖。redis-queue 消费进程读这个公开属性决定订阅哪个队列。 */
     public string $queue = '';
@@ -39,10 +40,52 @@ abstract class ConsumerBase implements Consumer, QueueHandler
 
     final public function consume(mixed $data): void
     {
+        Context::destroy();
         try {
-            $this->handle(is_array($data) ? $data : []);
+            $this->deliver(is_array($data) ? $data : []);
         } finally {
             Context::destroy();
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    final public function deliver(array $data): void
+    {
+        if (!isset($data['__delivery_id'])) {
+            $this->handle($data);
+
+            return;
+        }
+        $store = \support\Container::get(ReliableQueue::class);
+        $id = (int) $data['__delivery_id'];
+        $row = $store->claim($id, $this->queue);
+        if ($row === null) {
+            return;
+        }
+        $token = (string) $row['lease_token'];
+        $previous = [];
+        foreach (['ctx.trace_id', 'locale', 'queue.delivery_id', 'queue.delivery_token'] as $key) {
+            $previous[$key] = Context::get($key);
+        }
+        Context::set('ctx.trace_id', $row['trace_id']);
+        Context::set('locale', $row['locale']);
+        Context::set('queue.delivery_id', $id);
+        Context::set('queue.delivery_token', $token);
+        try {
+            $this->handle($row['payload']);
+            $store->complete($id, $token);
+        } catch (\Throwable $e) {
+            if ($store->fail($id, $token, $e)) {
+                $this->onConsumeFailure($e, ['queue' => $this->queue, 'data' => $row['payload'], 'attempts' => (int) $row['attempts'] - 1]);
+            }
+        } finally {
+            foreach ($previous as $key => $value) {
+                if ($value === null) {
+                    Context::set($key, null);
+                } else {
+                    Context::set($key, $value);
+                }
+            }
         }
     }
 
@@ -55,7 +98,7 @@ abstract class ConsumerBase implements Consumer, QueueHandler
 
         Log::error("队列 {$queue} 第 {$attempts} 次消费失败：" . $e->getMessage(), ['queue' => $queue]);
 
-        if ($attempts > $maxAttempts) {
+        if ($attempts > $maxAttempts || $e instanceof \core\queue\PermanentJobFailure) {
             $data = $package['data'] ?? [];
             try {
                 $this->failedJobService->record($queue, is_array($data) ? $data : [], $e, $attempts);

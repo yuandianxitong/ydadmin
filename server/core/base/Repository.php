@@ -7,6 +7,7 @@ namespace core\base;
 use core\context\RequestContext;
 use core\datascope\DataScope;
 use core\datascope\DataScopeScope;
+use core\query\SortOrder;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -79,6 +80,21 @@ abstract class Repository
     public function find(int|string $id): ?array
     {
         return $this->query()->where($this->model->getQualifiedKeyName(), $id)->first()?->toArray();
+    }
+
+    /**
+     * 只接收服务端登记的导出列，分页过程中保留 query() 的数据权限。
+     * @param list<string> $columns
+     * @return list<array<string, mixed>>
+     */
+    public function exportChunk(int $afterId, array $columns, ?int $status = null): array
+    {
+        $query = $this->query()->where($this->model->getQualifiedKeyName(), '>', $afterId);
+        if ($status !== null) {
+            $query->where($this->qualify('status'), $status);
+        }
+
+        return $query->orderBy($this->model->getQualifiedKeyName())->limit(500)->get($columns)->toArray();
     }
 
     /**
@@ -213,20 +229,8 @@ abstract class Repository
      */
     protected function applyOrder(Builder $query, string $order): Builder
     {
-        foreach (explode(',', $order) as $segment) {
-            $segment = trim($segment);
-            if ($segment === '') {
-                continue;
-            }
-            $parts = preg_split('/\s+/', $segment) ?: [];
-            if (count($parts) > 2) {
-                throw new \InvalidArgumentException("排序片段格式错误：{$segment}");
-            }
-            [$column, $direction] = array_pad($parts, 2, 'asc');
-            if (!in_array($column, $this->sortable, true)) {
-                throw new \InvalidArgumentException("不允许按 {$column} 排序");
-            }
-            $query->orderBy($this->qualify((string) $column), strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
+        foreach (SortOrder::parse($order, $this->sortable) as [$column, $direction]) {
+            $query->orderBy($this->qualify($column), $direction);
         }
 
         return $query;

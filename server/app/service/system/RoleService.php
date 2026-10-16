@@ -8,14 +8,14 @@ use app\repository\system\DepartmentRepository;
 use app\repository\system\MenuRepository;
 use app\repository\system\RoleRepository;
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\auth\SuperAdminGuard;
 use core\base\Service;
 use core\context\RequestContext;
+use core\database\Like;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
-use core\support\Like;
 use DI\Attribute\Inject;
 
 /**
@@ -35,7 +35,7 @@ class RoleService extends Service
     protected DepartmentRepository $departmentRepository;
 
     #[Inject]
-    protected Permission $permission;
+    protected PermissionChecker $permission;
 
     #[Inject]
     protected DataScopeResolver $dataScopeResolver;

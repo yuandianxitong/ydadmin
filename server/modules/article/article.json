@@ -1,0 +1,161 @@
+{
+    "schema_version": 1,
+    "id": "article.article",
+    "module": "article",
+    "model": "Article",
+    "origin": "builtin",
+    "table": "articles",
+    "title": "文章",
+    "primary_key": "id",
+    "permission_prefix": "article",
+    "permissions": [
+        "article.list",
+        "article.create",
+        "article.update",
+        "article.delete",
+        "article.status"
+    ],
+    "routes": [
+        {
+            "method": "GET",
+            "path": "/adminapi/article/list",
+            "action": "index",
+            "permission": "article.list"
+        },
+        {
+            "method": "GET",
+            "path": "/adminapi/article/detail/{id:\\d+}",
+            "action": "show",
+            "permission": "article.list"
+        },
+        {
+            "method": "POST",
+            "path": "/adminapi/article",
+            "action": "store",
+            "permission": "article.create"
+        },
+        {
+            "method": "PUT",
+            "path": "/adminapi/article/{id:\\d+}",
+            "action": "update",
+            "permission": "article.update"
+        },
+        {
+            "method": "DELETE",
+            "path": "/adminapi/article/{id:\\d+}",
+            "action": "delete",
+            "permission": "article.delete"
+        },
+        {
+            "method": "PUT",
+            "path": "/adminapi/article/{id:\\d+}/status",
+            "action": "status",
+            "permission": "article.status"
+        }
+    ],
+    "capabilities": {
+        "soft_deletes": true,
+        "status": true,
+        "data_scope": true
+    },
+    "fields": [
+        {
+            "name": "id",
+            "type": "integer",
+            "nullable": false
+        },
+        {
+            "name": "category_id",
+            "type": "integer",
+            "nullable": false
+        },
+        {
+            "name": "title",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "cover",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "summary",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "content",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "tags",
+            "type": "array",
+            "nullable": true
+        },
+        {
+            "name": "author",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "view_count",
+            "type": "integer",
+            "nullable": false
+        },
+        {
+            "name": "status",
+            "type": "integer",
+            "nullable": false
+        },
+        {
+            "name": "publish_at",
+            "type": "string",
+            "nullable": true
+        },
+        {
+            "name": "created_by",
+            "type": "integer",
+            "nullable": true
+        },
+        {
+            "name": "created_at",
+            "type": "string",
+            "nullable": true
+        },
+        {
+            "name": "updated_at",
+            "type": "string",
+            "nullable": true
+        },
+        {
+            "name": "deleted_at",
+            "type": "string",
+            "nullable": true
+        },
+        {
+            "name": "status_text",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "category_name",
+            "type": "string",
+            "nullable": false
+        },
+        {
+            "name": "views",
+            "type": "integer",
+            "nullable": false
+        }
+    ],
+    "artifacts": {
+        "controller": "server/app/adminapi/controller/article/ArticleController.php",
+        "model": "server/app/model/article/Article.php",
+        "repository": "server/app/repository/article/ArticleRepository.php",
+        "service": "server/app/service/article/ArticleService.php",
+        "resource": "server/app/resource/article/ArticleResource.php",
+        "descriptor": "server/modules/article/article.json"
+    }
+}

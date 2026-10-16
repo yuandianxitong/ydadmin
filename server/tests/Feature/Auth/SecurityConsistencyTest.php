@@ -10,7 +10,7 @@ use app\service\system\AdminService;
 use app\service\system\RoleService;
 use app\service\user\UserAuthService;
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
 use core\datascope\DataScopeResolver;
@@ -171,8 +171,8 @@ final class SecurityConsistencyTest extends ApiTestCase
     public function test_old_cache_generation_cannot_restore_revoked_permissions(): void
     {
         $admin = $this->actingAsAdmin(['system.admin.list']);
-        $permission = Container::get(Permission::class);
-        $method = new \ReflectionMethod(Permission::class, 'remember');
+        $permission = Container::get(PermissionChecker::class);
+        $method = new \ReflectionMethod(PermissionChecker::class, 'remember');
         $method->invoke($permission, 'perm.list.' . $admin->id, $admin->id, static function () use ($permission, $admin): array {
             $permission->clearUserCache($admin->id);
 

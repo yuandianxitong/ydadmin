@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace tests\Unit\Auth;
 
+use core\auth\PermissionCheckerInterface;
 use core\auth\SuperAdminGuard;
 use core\context\RequestContext;
 use core\exception\BusinessException;
-use core\permission\PermissionCheckerInterface;
 use support\Container;
 use tests\TestCase;
 

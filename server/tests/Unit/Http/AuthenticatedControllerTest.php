@@ -24,6 +24,7 @@ final class AuthenticatedControllerTest extends TestCase
         $this->assertSame([
             \app\middleware\AdminAuthMiddleware::class,
             \app\middleware\AdminPermissionMiddleware::class,
+            \app\middleware\IdempotencyMiddleware::class,
             \app\middleware\AdminLogMiddleware::class,
         ], array_column($pairs, 0));
     }

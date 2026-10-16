@@ -8,13 +8,14 @@ use app\repository\system\SchemaRepository;
 use core\base\Service;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
-use core\generator\ArtifactWriter;
 use core\generator\ColumnDescriptor;
 use core\generator\GeneratorRequest;
+use core\generator\ManagedArtifacts;
 use core\generator\ModuleBlueprint;
 use core\generator\TableDefinition;
 use core\generator\TemplateRenderer;
 use core\generator\TypeInference;
+use core\support\PathGuard;
 use DI\Attribute\Inject;
 
 /**
@@ -100,16 +101,11 @@ class GeneratorService extends Service
     {
         $this->assertWritesEnabled();
 
-        // 第一阶段：十个产物全部渲染成功才往下走；任一渲染抛异常则整批不落盘
+        // 全部产物完成渲染与 PHP 语法检查后才落盘。
         $artifacts = $this->buildArtifacts($request);
 
-        $toWrite = [];
-        foreach ($artifacts as $key => $artifact) {
-            $toWrite[$key] = ['path' => $this->absolutePath($artifact['base'], $artifact['path']), 'content' => $artifact['content']];
-        }
-
         // 第二阶段：落盘，控制器最后写，单文件失败不中断整批，已写的不回滚
-        $statuses = (new ArtifactWriter())->write($toWrite);
+        $statuses = $this->store($request)->create($this->writable($artifacts));
 
         $files = [];
         foreach ($statuses as $key => $status) {
@@ -125,13 +121,64 @@ class GeneratorService extends Service
         ];
     }
 
+    /** @return array<string, mixed> 只读预览，不创建锁、基线或备份目录。 */
+    public function plan(GeneratorRequest $request): array
+    {
+        $this->assertWritesEnabled();
+        $this->assertNames($request);
+        $request = $this->store($request)->defaults();
+        return $this->store($request)->plan($this->writable($this->buildArtifacts($request)));
+    }
+
+    /** @return array<string, mixed> */
+    public function updateGenerated(GeneratorRequest $request, string $planToken): array
+    {
+        $this->assertWritesEnabled();
+        $this->assertNames($request);
+        $request = $this->store($request)->defaults();
+        return $this->store($request)->update($this->writable($this->buildArtifacts($request)), $planToken);
+    }
+
+    /** @return array{files: list<array{path: string, status: string, reason: string}>} */
+    public function forceGenerate(GeneratorRequest $request): array
+    {
+        $this->assertWritesEnabled();
+        $files = $this->writable($this->buildArtifacts($request));
+        $result = [];
+        foreach ($this->store($request)->force($files) as $key => $status) {
+            $result[] = ['path' => $files[$key]['display']] + $status;
+        }
+        return ['files' => $result];
+    }
+
+    private function store(GeneratorRequest $request): ManagedArtifacts
+    {
+        return new ManagedArtifacts($this->serverRoot(), $this->repoRoot(), $request);
+    }
+
+    /** @return array{imported: int} CLI 专用，只导入基线，不修改现有源文件。 */
+    public function importBaseline(GeneratorRequest $request, string $snapshotRoot): array
+    {
+        $this->assertWritesEnabled();
+        $files = $this->writable($this->buildArtifacts($request));
+        return $this->store($request)->importBaseline($files, $snapshotRoot);
+    }
+
+    /** @param array<string, array{base: string, path: string, content: string}> $artifacts
+     * @return array<string, array{path: string, display: string, content: string}> */
+    private function writable(array $artifacts): array
+    {
+        $result = [];
+        foreach ($artifacts as $key => $artifact) {
+            $result[$key] = ['path' => $this->absolutePath($artifact['base'], $artifact['path']),
+                'display' => $this->displayPath($artifact['base'], $artifact['path']), 'content' => $artifact['content']];
+        }
+        return $result;
+    }
+
     /**
-     * 产物的磁盘绝对路径（make:crud 的 --force 专用）。preview() 返回的 path 是给前端展示用的
-     * 相对路径（displayPath()，相对仓库根，见该方法注释），不能直接拿去 is_file()/unlink()——
-     * CLI 的工作目录是 server/，"server/app/..." 这种相对路径会被解析成 "server/server/app/..."，
-     * 悄悄找不到任何已存在的文件，--force 就变成了一个不起作用的开关。这里复用 buildArtifacts()
-     * 与 absolutePath()（跟 generate() 落盘用的是同一份），只是换一种形态返回，preview()/generate()
-     * 的返回值签名不受影响。
+     * 返回供开发工具与隔离测试使用的绝对路径，仍经过名称与路径校验，不创建文件。
+     * preview() 的 path 是展示路径，不能直接拿去操作文件系统。
      *
      * @return array<string, string> key => 绝对路径
      */
@@ -164,7 +211,7 @@ class GeneratorService extends Service
 
     /**
      * 唯一的渲染路径（spec §5.3）：preview() 与 generate() 都只经过这里。
-     * 十个产物全部渲染成功才返回，任一渲染抛异常就整批失败、一个字节都不落盘。
+     * 全部产物渲染并校验成功才返回，任一渲染抛异常就整批失败、一个字节都不落盘。
      *
      * @return array<string, array{base: string, path: string, content: string}>
      */
@@ -186,6 +233,9 @@ class GeneratorService extends Service
         foreach ($blueprint->artifacts() as $key => $artifact) {
             try {
                 $content = $renderer->render($artifact['stub'], $artifact['vars']);
+                if (str_ends_with($artifact['path'], '.php') && token_get_all($content, TOKEN_PARSE) === []) {
+                    throw new \RuntimeException('PHP 产物不能为空');
+                }
             } catch (\Throwable $e) {
                 throw new BusinessException(lang('generator.render_failed') . "：{$key}（{$e->getMessage()}）", 400, $e);
             }
@@ -297,7 +347,10 @@ class GeneratorService extends Service
     /** 落盘用的绝对路径：由「基准 + 相对路径」现算，不在别处存第二份。 */
     private function absolutePath(string $base, string $path): string
     {
-        return ($base === 'server' ? $this->serverRoot() : $this->repoRoot()) . '/' . $path;
+        $root = $base === 'server' ? $this->serverRoot() : $this->repoRoot();
+        $absolute = $root . '/' . $path;
+        PathGuard::within($root, $absolute);
+        return $absolute;
     }
 
     /**

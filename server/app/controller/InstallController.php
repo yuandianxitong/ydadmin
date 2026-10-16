@@ -23,7 +23,7 @@ class InstallController extends Controller
     /** 双提交令牌的 cookie 名；向导页下发，写操作要求请求头带同一个值。 */
     public const TOKEN_COOKIE = 'yd_install_token';
 
-    #[\core\permission\PermissionSkip]
+    #[\core\auth\PermissionSkip]
     public function index(): Response
     {
         if ($this->installer->isInstalled()) {
@@ -183,7 +183,7 @@ class InstallController extends Controller
         return null;
     }
 
-    #[\core\permission\PermissionSkip]
+    #[\core\auth\PermissionSkip]
     public function environment(): Response
     {
         if ($this->installer->isInstalled()) {
@@ -196,7 +196,7 @@ class InstallController extends Controller
         ], lang('messages.get_success'));
     }
 
-    #[\core\permission\PermissionSkip]
+    #[\core\auth\PermissionSkip]
     public function testConnection(Request $request): Response
     {
         if ($this->installer->isInstalled()) {
@@ -211,7 +211,7 @@ class InstallController extends Controller
         return $this->success();
     }
 
-    #[\core\permission\PermissionSkip]
+    #[\core\auth\PermissionSkip]
     public function run(Request $request): Response
     {
         if ($this->installer->isInstalled()) {

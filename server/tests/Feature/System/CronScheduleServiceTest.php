@@ -12,22 +12,6 @@ use tests\fixtures\Queue\RecordingConsumer;
 use tests\Support\ApiTestCase;
 use tests\Support\ConfigOverride;
 
-/** 抢锁抛异常的子类：$failFor 里的任务 id 抢锁时模拟 Redis 不可用。 */
-final class LockFailingScheduleService extends CronScheduleService
-{
-    /** @var list<int> */
-    public array $failFor = [];
-
-    protected function acquireFireLock(int $id, \DateTimeImmutable $minute): bool
-    {
-        if (in_array($id, $this->failFor, true)) {
-            throw new \RuntimeException('模拟 Redis 不可用');
-        }
-
-        return parent::acquireFireLock($id, $minute);
-    }
-}
-
 /**
  * spec §8.1：调度判定。cron-job 队列的消费者被 ConfigOverride 顶替成 RecordingConsumer，
  * sync 驱动（tests/bootstrap.php 强制）投递即调用它的 handle()，于是 RecordingConsumer::$handled
@@ -123,7 +107,7 @@ final class CronScheduleServiceTest extends ApiTestCase
         $processed = $this->service()->tick(self::at('2026-09-15 10:00:37'), null);
 
         $this->assertSame('2026-09-15 10:00:00', $processed->format('Y-m-d H:i:s'), '返回值必须是取整到分钟的当前分钟');
-        $this->assertSame([['cron_job_id' => $id, 'trigger' => 1, 'scheduled_at' => '2026-09-15 10:00:00']], $this->dispatched());
+        $this->assertEquals([['cron_job_id' => $id, 'trigger' => 1, 'scheduled_at' => '2026-09-15 10:00:00']], $this->dispatched());
     }
 
     public function test_job_that_is_not_due_is_not_dispatched(): void
@@ -154,7 +138,7 @@ final class CronScheduleServiceTest extends ApiTestCase
         $this->service()->tick(self::at('2026-09-15 10:00:50'), null);
 
         $this->assertSame(['2026-09-15 10:00:00'], $this->scheduledAtOf($id));
-        $this->assertSame(1, (int) Redis::exists("cron:fire:{$id}:202609151000"), '触发锁键必须按 {id}:{YmdHi} 落在 Redis');
+        $this->assertSame(1, Db::table('queue_outbox')->where('dedup_key', hash('sha256', "cron-job:cron:{$id}:202609151000"))->count(), '同一分钟只保留一条数据库投递记录');
     }
 
     public function test_last_minute_equal_to_current_minute_processes_nothing(): void
@@ -193,17 +177,13 @@ final class CronScheduleServiceTest extends ApiTestCase
         $this->assertSame([], $this->scheduledAtOf($atSeven), '10:07 被跳过，不补跑');
     }
 
-    public function test_fire_lock_exception_skips_that_job_without_affecting_the_others(): void
+    public function test_schedule_delivery_does_not_depend_on_redis_fire_locks(): void
     {
         $broken = $this->createJob('* * * * *');
         $healthy = $this->createJob('* * * * *');
-        /** @var LockFailingScheduleService $service */
-        $service = Container::make(LockFailingScheduleService::class, []);
-        $service->failFor = [$broken];
+        $this->service()->tick(self::at('2026-09-15 10:00:05'), null);
 
-        $service->tick(self::at('2026-09-15 10:00:05'), null);
-
-        $this->assertSame([], $this->scheduledAtOf($broken), '抢锁抛异常：宁可不跑，不投递');
+        $this->assertSame(['2026-09-15 10:00:00'], $this->scheduledAtOf($broken), '可靠投递以数据库去重，不再依赖 Redis 触发锁');
         $this->assertSame(['2026-09-15 10:00:00'], $this->scheduledAtOf($healthy), '一个任务出错不影响同一分钟的其他任务');
     }
 }

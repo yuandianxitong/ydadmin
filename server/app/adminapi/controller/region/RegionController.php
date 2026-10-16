@@ -6,8 +6,8 @@ namespace app\adminapi\controller\region;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\region\RegionService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;

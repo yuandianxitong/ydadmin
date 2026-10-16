@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace core\apidoc;
 
+use core\response\EnvelopeSchemas;
+
 /**
  * 把 EndpointDescriptor 列表 + 反射得到的规则 + 已收集的警告组装成一份合法的
  * OpenAPI 3.0 文档。判据：文档宁可少说，不可说谎。
@@ -48,9 +50,10 @@ final class OpenApiDocument
      * @param list<EndpointDescriptor>                   $endpoints
      * @param array<string, array<string, string>|null>  $rulesByOperationId
      * @param list<string>                                $warnings
+     * @param array<string, array<string, mixed>|null> $responsesByOperationId
      * @return array<string, mixed>
      */
-    public function build(array $endpoints, array $rulesByOperationId, array $warnings): array
+    public function build(array $endpoints, array $rulesByOperationId, array $warnings, array $responsesByOperationId = []): array
     {
         $collectedWarnings = $warnings;
         $paths = [];
@@ -73,7 +76,7 @@ final class OpenApiDocument
                 'description'  => $permissionDescription,
                 'x-permission' => $permissionNode,
                 'security'     => $endpoint->requiresAuth ? self::BEARER : [],
-                'responses'    => $this->buildResponses($endpoint, $rules !== null && $rules !== []),
+                'responses'    => $this->buildResponses($endpoint, $rules !== null && $rules !== [], $responsesByOperationId[$operationId] ?? null),
             ];
             if ($parameters !== []) {
                 $operation['parameters'] = $parameters;
@@ -378,8 +381,9 @@ final class OpenApiDocument
      * PHP 会把 '200' / '500' 这类数字字符串键自动转成 int,因此返回类型标 array<int, mixed>。
      *
      * @return array<int, array<string, mixed>>
+     * @param array<string, mixed>|null $dataSchema
      */
-    private function buildResponses(EndpointDescriptor $endpoint, bool $hasRules): array
+    private function buildResponses(EndpointDescriptor $endpoint, bool $hasRules, ?array $dataSchema = null): array
     {
         $envelopes = [EnvelopeSchemas::SUCCESS, EnvelopeSchemas::ERROR, EnvelopeSchemas::PAGINATED];
         $codes = ['HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功'];
@@ -396,16 +400,29 @@ final class OpenApiDocument
         }
         $codes[] = '其余非 200 的 code 为业务错误';
 
+        $schemas = array_map(
+            static fn (string $name): array => ['$ref' => '#/components/schemas/' . $name],
+            $envelopes,
+        );
+        if ($dataSchema !== null) {
+            $success = EnvelopeSchemas::all()[EnvelopeSchemas::SUCCESS];
+            $success['properties']['code']['enum'] = [200];
+            $success['properties']['data'] = $dataSchema;
+            $error = EnvelopeSchemas::all()[EnvelopeSchemas::ERROR];
+            $error['properties']['code']['not'] = ['enum' => [200, 422]];
+            $validation = EnvelopeSchemas::all()[EnvelopeSchemas::VALIDATION];
+            $validation['properties']['code']['enum'] = [422];
+            // 显式响应不再包含泛化成功信封，避免业务结构被泛化分支吞掉。
+            $schemas = [$success, $error, $validation];
+        }
+
         return [
             '200' => [
                 'description' => implode(';', $codes),
                 'content' => [
                     'application/json' => [
                         'schema' => [
-                            'oneOf' => array_map(
-                                static fn (string $name): array => ['$ref' => '#/components/schemas/' . $name],
-                                $envelopes,
-                            ),
+                            'oneOf' => $schemas,
                         ],
                     ],
                 ],

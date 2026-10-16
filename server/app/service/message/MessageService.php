@@ -20,8 +20,8 @@ use support\Log;
  *
  * - 站内信同步写 user_notifications，再写一条 status=1 的 message_logs，两行放在同一事务里。
  * - 外发通道先写 status=0 的日志（receiver 遮蔽），再投递 message-send，由 MessageSendConsumer 真正发送。
- * - 调用方一律经 afterCommit 调用，本方法不在外层事务里；外发日志行不开事务，写完即已提交，消费者锁读得到。
- * - 永不抛出：任何异常只记 error 日志（code + 异常类名），异常消息可能带 SQL 绑定值（手机号、openid）。
+ * - 可靠业务在事务内调用 scheduleToUser，消息编排及确认在消费事务内提交；外发日志与投递记录一起提交。
+ * - 兼容入口 sendToUser 捕获异常并记脱敏日志；scheduleToUser 登记失败会抛出，使业务一起回滚。
  *
  * 落库文案（error_msg、站内信 type 缺省值）固定，不随请求语言变化。
  */
@@ -66,25 +66,55 @@ class MessageService extends Service
     public function sendToUser(int $userId, string $code, array $vars, string $bizId = ''): void
     {
         try {
-            $template = $this->templates->findActiveByCode($code);
-            if ($template === null) {
-                Log::warning('消息模板不存在或已停用，跳过发送', ['code' => $code]);
-
-                return;
-            }
-            $user = $this->users->find($userId);
-            if ($user === null) {
-                return;
-            }
-
-            if ((int) ($template['site_enabled'] ?? 0) === 1) {
-                $this->sendSite($template, $userId, $vars, $bizId);
-            }
-            foreach (MessageChannelRegistry::EXTERNAL_CHANNELS as $channel => $fields) {
-                $this->enqueue($template, $user, $channel, $fields, $vars);
-            }
+            $this->dispatchMessage($userId, $code, $vars, $bizId);
         } catch (\Throwable $e) {
             Log::error('发送消息失败', ['code' => $code, 'exception' => $e::class]);
+        }
+    }
+
+    /**
+     * 在业务事务内调用，投递记录与业务变更同时提交。
+     * @param array<string, mixed> $vars
+     */
+    public function scheduleToUser(int $userId, string $code, array $vars, string $bizId = ''): void
+    {
+        $this->queue->dispatchReliable(
+            'message-request',
+            compact('userId', 'code', 'vars', 'bizId'),
+            $bizId === '' ? null : "{$code}:{$userId}:{$bizId}"
+        );
+    }
+
+    /** @param array<string, mixed> $data */
+    public function deliverScheduled(array $data): void
+    {
+        $this->runInTransaction(function () use ($data): void {
+            $this->dispatchMessage((int) $data['userId'], (string) $data['code'], (array) $data['vars'], (string) $data['bizId']);
+            // 只包含数据库写入的消息编排与确认在同一事务中，崩溃重放不会重复创建站内信。
+            \support\Container::get(\core\queue\ReliableQueue::class)->complete(
+                (int) \support\Context::get('queue.delivery_id'),
+                (string) \support\Context::get('queue.delivery_token')
+            );
+        });
+    }
+
+    /** @param array<string, mixed> $vars */
+    private function dispatchMessage(int $userId, string $code, array $vars, string $bizId): void
+    {
+        $template = $this->templates->findActiveByCode($code);
+        if ($template === null) {
+            Log::warning('消息模板不存在或已停用，跳过发送', ['code' => $code]);
+            return;
+        }
+        $user = $this->users->find($userId);
+        if ($user === null) {
+            return;
+        }
+        if ((int) ($template['site_enabled'] ?? 0) === 1) {
+            $this->sendSite($template, $userId, $vars, $bizId);
+        }
+        foreach (MessageChannelRegistry::EXTERNAL_CHANNELS as $channel => $fields) {
+            $this->enqueue($template, $user, $channel, $fields, $vars);
         }
     }
 
@@ -171,13 +201,14 @@ class MessageService extends Service
             return;
         }
 
-        $created = $this->logs->create($log + ['status' => MessageLogRepository::STATUS_PENDING, 'error_msg' => '']);
-        $logId = (int) $created['id'];
         try {
-            $this->queue->dispatch(self::QUEUE, ['log_id' => $logId]);
-        } catch (\Throwable $e) {
-            Log::error('消息投递队列失败', ['code' => $log['template_code'], 'channel' => $channel, 'exception' => $e::class]);
-            $this->logs->finishIfPending($logId, MessageLogRepository::STATUS_FAILED, '', 'dispatch failed: ' . $e::class);
+            $this->runInTransaction(function () use ($log): void {
+                $created = $this->logs->create($log + ['status' => MessageLogRepository::STATUS_PENDING, 'error_msg' => '']);
+                $this->queue->dispatchReliable(self::QUEUE, ['log_id' => (int) $created['id']]);
+            });
+        } catch (\InvalidArgumentException $e) {
+            // 配置错误是永久失败；Redis 不可用不会走这里，已提交的 outbox 会继续重试。
+            $this->logs->create($log + ['status' => MessageLogRepository::STATUS_FAILED, 'error_msg' => 'dispatch failed: InvalidArgumentException']);
         }
     }
 }

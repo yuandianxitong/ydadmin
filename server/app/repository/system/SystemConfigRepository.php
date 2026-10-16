@@ -7,7 +7,8 @@ namespace app\repository\system;
 use app\model\system\SystemConfig;
 use core\base\Model;
 use core\base\Repository;
-use core\contract\ConfigValueReader;
+use core\config\ConfigSnapshot;
+use core\config\ConfigSnapshotProvider;
 use Illuminate\Database\Eloquent\Builder;
 use support\Cache;
 use support\Redis;
@@ -17,9 +18,9 @@ use support\Redis;
  *   - system_config.all：全部启用配置（已按 config_type 转换），供后端读配置用（登录安全、密码长度等）；
  *   - system_config.public：启用且 is_public=1 的配置，供 config/global 用；
  *   - system_config.raw：全部启用配置的原始字符串，供需要分辨「明确关闭」与「值写坏了」的开关用。
- * 实际 key 带上 system_config.epoch。forgetCache() 只把代次加一，计算途中写回的旧值留在旧 key 上。
+ * 实际 key 带上 Redis 清理代次与数据库配置版本。旧值回写只进入旧版本，不影响已提交的新配置。
  */
-class SystemConfigRepository extends Repository implements ConfigValueReader
+class SystemConfigRepository extends Repository implements ConfigSnapshotProvider
 {
     private const CACHE_KEY = 'system_config.all';
 
@@ -68,6 +69,11 @@ class SystemConfigRepository extends Repository implements ConfigValueReader
         $all = $this->getAllConfigs();
 
         return array_key_exists($key, $all) ? $all[$key] : $default;
+    }
+
+    public function snapshot(): ConfigSnapshot
+    {
+        return new ConfigSnapshot($this->getAllConfigs());
     }
 
     /**
@@ -134,7 +140,8 @@ class SystemConfigRepository extends Repository implements ConfigValueReader
     private function remember(string $key, \Closure $load): array
     {
         $epoch = Redis::get(self::EPOCH_KEY);
-        $versioned = $key . '.' . (is_numeric($epoch) ? (int) $epoch : 0);
+        // 持久化版本与配置原子提交，Redis 失效回调失败也不能继续读取旧配置。
+        $versioned = $key . '.' . (is_numeric($epoch) ? (int) $epoch : 0) . '.v' . (new ConfigurationStateRepository())->current();
         $cached = Cache::get($versioned);
         if (is_array($cached)) {
             return $cached;

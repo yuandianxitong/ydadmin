@@ -6,8 +6,10 @@ namespace app\adminapi\controller\system;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\DictionaryService;
-use core\permission\Permission;
-use core\permission\PermissionSkip;
+use core\auth\Permission;
+use core\auth\PermissionSkip;
+use core\query\QueryInput;
+use core\validation\CommonRules;
 use DI\Attribute\Inject;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -47,9 +49,10 @@ class DictionaryController extends AuthenticatedController
     #[Permission('system.dictionary.list')]
     public function index(Request $request): Response
     {
+        $params = $this->validate(QueryInput::normalize((array) $request->get(), ['keyword', 'status', 'page', 'limit', 'page_no', 'page_size']), $this->indexRules());
         [$page, $limit] = $this->pageParams($request);
 
-        return $this->paginate($this->dictionaryService->getDictionaryList((array) $request->get(), $page, $limit));
+        return $this->paginate($this->dictionaryService->getDictionaryList($params, $page, $limit));
     }
 
     #[Get('/{id:\d+}')]
@@ -205,6 +208,15 @@ class DictionaryController extends AuthenticatedController
         return $scene === 'create' ? ['dictionary_id' => 'required|integer|min:1'] + $rules : $rules;
     }
 
+    /** @return array<string, string> */
+    private function indexRules(): array
+    {
+        return CommonRules::pagination() + [
+            'keyword' => 'sometimes|string|max:200',
+            'status' => 'sometimes|integer|in:0,1',
+        ];
+    }
+
     /**
      * 薄包装，委派给既有的 dictionaryRules('create')。
      *
@@ -228,10 +240,7 @@ class DictionaryController extends AuthenticatedController
     /** @return array<string, string> */
     private function batchDeleteRules(): array
     {
-        return [
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer',
-        ];
+        return CommonRules::ids();
     }
 
     /** @return array<string, string> */

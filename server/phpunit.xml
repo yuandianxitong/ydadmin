@@ -2,8 +2,47 @@
 <phpunit bootstrap="tests/bootstrap.php" colors="true" failOnWarning="true" failOnDeprecation="true">
     <testsuites>
         <testsuite name="unit">
+            <directory>tests/Pure</directory>
+            <file>tests/Unit/Generator/NameConventionTest.php</file>
+            <file>tests/Unit/Generator/ColumnDescriptorTest.php</file>
+            <file>tests/Unit/Generator/GeneratorRequestTest.php</file>
+            <file>tests/Unit/Generator/TableDefinitionTest.php</file>
+            <file>tests/Unit/Generator/TypeInferenceTest.php</file>
+            <file>tests/Unit/Generator/TemplateRendererTest.php</file>
+            <file>tests/Unit/Generator/ModuleBlueprintTest.php</file>
+            <file>tests/Unit/ApiDoc/EndpointDescriptorTest.php</file>
+            <file>tests/Unit/ApiDoc/EnvelopeSchemasTest.php</file>
+            <file>tests/Unit/ApiDoc/RuleTranslatorTest.php</file>
+            <file>tests/Unit/ApiDoc/OpenApiDocumentTest.php</file>
+            <file>tests/Unit/Payment/MoneyTest.php</file>
+            <file>tests/Unit/Payment/ExceptionLogContextTest.php</file>
+            <file>tests/Unit/Message/ReceiverMaskTest.php</file>
+            <file>tests/Unit/Message/TemplateRendererTest.php</file>
+            <file>tests/Unit/Core/ControllerHelpersTest.php</file>
+            <file>tests/Unit/Release/ReleaseScriptTest.php</file>
+            <file>tests/Unit/Core/CheckValidateRulesScriptTest.php</file>
+        </testsuite>
+        <testsuite name="integration">
             <directory>tests/Unit</directory>
             <directory>tests/Feature</directory>
+            <exclude>tests/Unit/Generator/NameConventionTest.php</exclude>
+            <exclude>tests/Unit/Generator/ColumnDescriptorTest.php</exclude>
+            <exclude>tests/Unit/Generator/GeneratorRequestTest.php</exclude>
+            <exclude>tests/Unit/Generator/TableDefinitionTest.php</exclude>
+            <exclude>tests/Unit/Generator/TypeInferenceTest.php</exclude>
+            <exclude>tests/Unit/Generator/TemplateRendererTest.php</exclude>
+            <exclude>tests/Unit/Generator/ModuleBlueprintTest.php</exclude>
+            <exclude>tests/Unit/ApiDoc/EndpointDescriptorTest.php</exclude>
+            <exclude>tests/Unit/ApiDoc/EnvelopeSchemasTest.php</exclude>
+            <exclude>tests/Unit/ApiDoc/RuleTranslatorTest.php</exclude>
+            <exclude>tests/Unit/ApiDoc/OpenApiDocumentTest.php</exclude>
+            <exclude>tests/Unit/Payment/MoneyTest.php</exclude>
+            <exclude>tests/Unit/Payment/ExceptionLogContextTest.php</exclude>
+            <exclude>tests/Unit/Message/ReceiverMaskTest.php</exclude>
+            <exclude>tests/Unit/Message/TemplateRendererTest.php</exclude>
+            <exclude>tests/Unit/Core/ControllerHelpersTest.php</exclude>
+            <exclude>tests/Unit/Release/ReleaseScriptTest.php</exclude>
+            <exclude>tests/Unit/Core/CheckValidateRulesScriptTest.php</exclude>
         </testsuite>
         <testsuite name="redline">
             <directory>tests/RedLine</directory>

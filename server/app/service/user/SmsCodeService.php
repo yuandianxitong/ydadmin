@@ -12,7 +12,6 @@ use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\sms\SmsInterface;
 use DI\Attribute\Inject;
-use support\Container;
 use support\Redis;
 
 /**
@@ -91,18 +90,8 @@ LUA;
         'register' => 'sms_template_register',
     ];
 
-    /**
-     * 容器把这个接口解析成 SmsManager 按 sms_driver 选出的驱动（config/container.php）。
-     *
-     * 故意不标 #[Inject]：php-di 的属性注入在**对象构造那一刻**立刻发生。这个属性一旦标了
-     * #[Inject]，只要短信凭据不全（AliyunSmsDriver 构造函数按 spec §7.3 在那时就抛
-     * BusinessException），构造 SmsCodeService——乃至只是构造依赖它的 CommonController——
-     * 就会先于 assertScene()/assertMobileFitsScene()/限流判断炸掉：连格式校验、场景白名单
-     * 这些跟短信网关毫无关系的请求也会被牵连，一律先报「配置不全」。
-     * 改成 driver() 懒解析：只有真正跑到 send() 内部要发信这一步才会去问容器，
-     * 这时前面的校验早已经通过。测试（SmsCodeServiceTest）直接用反射把假驱动塞进这个属性，
-     * isset() 为真就不会再碰容器，也不需要给测试另外准备一个假 SmsManager。
-     */
+    /** 容器共享无状态 SmsManager，发送时才读取配置快照并构造驱动。 */
+    #[Inject]
     protected SmsInterface $smsDriver;
 
     #[Inject]
@@ -141,7 +130,7 @@ LUA;
         Redis::del(self::verifyFailKey($mobile, $scene));
 
         try {
-            $this->driver()->send($mobile, $this->templateId($scene), ['code' => $code]);
+            $this->smsDriver->send($mobile, $this->templateId($scene), ['code' => $code]);
         } catch (\Throwable $e) {
             // 发不出去就别把验证码留在缓存里：用户根本拿不到它，留着只是白白开一个 5 分钟的撞码窗口。
             // 限流计数**不**回退，理由见类注释。
@@ -169,15 +158,17 @@ LUA;
     public function verify(string $mobile, string $scene, string $code): void
     {
         $this->assertScene($scene);
-        $result = Redis::eval(
-            self::VERIFY_AND_CONSUME,
-            2,
+        $connection = Redis::connection();
+        $arguments = [
             self::codeKey($mobile, $scene),
             self::verifyFailKey($mobile, $scene),
             $code,
             (string) self::CODE_TTL,
             (string) self::VERIFY_FAIL_LIMIT,
-        );
+        ];
+        $result = $connection instanceof \Illuminate\Redis\Connections\PhpRedisConnection
+            ? $connection->eval(self::VERIFY_AND_CONSUME, 2, ...$arguments)
+            : $connection->command('eval', [self::VERIFY_AND_CONSUME, 2, ...$arguments]);
         if ((int) $result === 1) {
             return;
         }
@@ -253,21 +244,5 @@ LUA;
     private static function verifyFailKey(string $mobile, string $scene): string
     {
         return "sms_verify_fail:{$scene}:{$mobile}";
-    }
-
-    /**
-     * 懒解析短信驱动（见 $smsDriver 属性上的注释）：第一次真正调用才向容器要一个，之后缓存在属性里。
-     * 这不是又加了一层「热切换」缓存——容器侧的 core\sms\SmsInterface 绑定本身就是每个 worker 进程
-     * 只解析一次、往后共享同一个实例（config/container.php 的绑定注释已写明代价）：管理员换了短信
-     * 服务商或凭据后，这个进程仍然会一直用旧驱动，要 `php start.php reload` 才生效。这里只是把
-     * 那个（未必是最新配置的）共享实例存下来复用，没有让配置变更提前或延后生效。
-     */
-    private function driver(): SmsInterface
-    {
-        if (!isset($this->smsDriver)) {
-            $this->smsDriver = Container::get(SmsInterface::class);
-        }
-
-        return $this->smsDriver;
     }
 }

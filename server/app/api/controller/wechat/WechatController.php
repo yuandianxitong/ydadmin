@@ -6,8 +6,8 @@ namespace app\api\controller\wechat;
 
 use app\service\wechat\WechatAuthService;
 use app\service\wechat\WechatServeService;
+use core\auth\PermissionSkip;
 use core\base\Controller;
-use core\permission\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\Route;

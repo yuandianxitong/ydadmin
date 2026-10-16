@@ -42,7 +42,7 @@ final class DiyHomeApiTest extends ApiTestCase
         $this->assertArrayHasKey('page_settings', $get->data());
 
         $widgets = $this->get('/adminapi/diy/widgets', [], $admin->token)->assertCode(200)->data();
-        $this->assertSame(\core\diy\DiyWidgetRegistry::TYPES, $widgets['builtins']);
+        $this->assertSame(\app\service\diy\DiyWidgetRegistry::TYPES, $widgets['builtins']);
         $this->assertSame([], $widgets['plugins']);
         $this->assertSame('user.balance', $widgets['member_stats'][0]['key']);
 

@@ -2,6 +2,22 @@
 
 本文件按里程碑记录元点Admin 2.x（webman）已交付能力，不从 git 自动生成。2.x 与 1.x（ThinkPHP）数据库不兼容。
 
+## [2.0.9]
+
+系统配置与持久化版本同事务提交，短信、存储、支付、邮件按操作使用配置快照，短信供应商和凭据变更无需重启；动态校验文档按配置版本重建。
+
+新增 JSON 模块描述、内置模块清单与 `module:check`。生成器记录生成基线和选项，支持增量预览、三方合并、冲突保护、备份及旧模块原始快照导入；`--force` 改为先备份再替换。
+
+已有数据库需升级到 2.0.9 并重启进程。
+
+## [2.0.8]
+
+业务消息、定时调度和文件任务使用数据库 outbox 持久化投递，支持去重、租约隔离、重试与上下文传递。操作日志、定时命令、消息和文件任务分别消费。
+
+余额、积分调整及任务提交支持 `Idempotency-Key`。新增异步会员 CSV 导入、三类数据导出、进度查询、取消与私有下载；执行时重新检查权限，导入支持检查点恢复。
+
+新增就绪探针、超级管理员运行监控、慢请求与慢查询日志、到期数据清理。已有数据库需升级到 2.0.8 并重启所有后台进程。
+
 ## [M8]
 
 安装向导（`GET /install/` 与 JSON 步骤）和 CLI `php webman install` 共用 `core/install/Installer`：空库灌 `schema.sql` / `init.sql` / `regions.sql`，写 `.env` 与 JWT，建超管，打标 `system_upgrades` 2.0.0 并写 `runtime/install.lock`。已有表则拒绝，不 `DROP`。`php webman yd:update`（`--dry-run` / `--baseline`）按 `database/updates/vX.Y.Z/` 升级；M8 无待跑目录，已有库首次用 `--baseline=2.0.0` 只打标。

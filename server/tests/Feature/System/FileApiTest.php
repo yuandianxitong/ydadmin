@@ -80,7 +80,7 @@ final class FileApiTest extends ApiTestCase
         $this->assertSame([$doc], $this->listIds($admin, ['keyword' => $tag, 'mime_type' => 'other']));
         $this->assertEqualsCanonicalizing([$doc, $video], $this->listIds($admin, ['keyword' => $tag, 'group' => 'files']));
 
-        // keyword 里的 % 按字面匹配(core\support\Like)
+        // keyword 里的 % 按字面匹配(core\database\Like)
         $percent = $this->insertFile(['name' => "{$tag}_100%.png"]);
         $this->assertSame([$percent], $this->listIds($admin, ['keyword' => "{$tag}_100%"]));
 

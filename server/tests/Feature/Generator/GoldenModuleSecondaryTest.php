@@ -51,6 +51,13 @@ final class GoldenModuleSecondaryTest extends TestCase
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
 
+    public function test_resource_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGoldenSecondary('resource');
+        $this->assertSame('app/resource/catalog/GenCategoryResource.php', $path);
+        $this->assertGoldenFile($path, $content, 'generated-secondary');
+    }
+
     public function test_controller_matches_the_golden_file(): void
     {
         [$path, $content] = $this->renderGoldenSecondary('controller');
@@ -66,6 +73,13 @@ final class GoldenModuleSecondaryTest extends TestCase
         [$path, $content] = $this->renderGoldenSecondary('model');
 
         $this->assertSame('app/model/catalog/GenCategory.php', $path);
+        $this->assertGoldenFile($path, $content, 'generated-secondary');
+    }
+
+    public function test_descriptor_matches_the_golden_file(): void
+    {
+        [$path, $content] = $this->renderGoldenSecondary('descriptor');
+        $this->assertSame('modules/catalog/gen_category.json', $path);
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
 

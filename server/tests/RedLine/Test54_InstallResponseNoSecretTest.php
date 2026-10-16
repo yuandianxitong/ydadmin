@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace tests\RedLine;
 
 use app\controller\InstallController;
-use core\contract\SuperAdminInitializer;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use support\Container;
 use tests\Support\ApiTestCase;
 use tests\Support\TestResponse;

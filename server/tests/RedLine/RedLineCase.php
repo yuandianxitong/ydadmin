@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace tests\RedLine;
 
+use core\auth\Permission;
+use core\auth\PermissionCheckerInterface;
+use core\auth\PermissionSkip;
 use core\auth\TokenManager;
 use core\auth\TokenVersion;
-use core\permission\Permission;
-use core\permission\PermissionCheckerInterface;
-use core\permission\PermissionSkip;
 use tests\TestCase;
 use Webman\Http\Request;
 use Webman\Http\Response;

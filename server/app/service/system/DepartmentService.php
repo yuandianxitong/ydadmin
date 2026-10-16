@@ -7,7 +7,7 @@ namespace app\service\system;
 use app\repository\system\AdminRepository;
 use app\repository\system\DepartmentRepository;
 use core\auth\AuthorizationVersion;
-use core\auth\Permission;
+use core\auth\PermissionChecker;
 use core\base\Service;
 use core\context\RequestContext;
 use core\datascope\DataScope;
@@ -31,7 +31,7 @@ class DepartmentService extends Service
     protected DataScopeResolver $dataScopeResolver;
 
     #[Inject]
-    protected Permission $permission;
+    protected PermissionChecker $permission;
 
     /**
      * 部门树，支持 keyword（name/code 模糊）/status 过滤。

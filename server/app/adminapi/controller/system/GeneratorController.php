@@ -6,8 +6,8 @@ namespace app\adminapi\controller\system;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\GeneratorService;
+use core\auth\Permission;
 use core\generator\GeneratorRequest;
-use core\permission\Permission;
 use DI\Attribute\Inject;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
@@ -64,6 +64,34 @@ class GeneratorController extends AuthenticatedController
         $data = $this->validate($this->body($request), $this->generateRules(), $this->generatorMessages());
 
         return $this->success($this->generatorService->generate($this->buildGeneratorRequest($data)), lang('messages.create_success'));
+    }
+
+    #[Post('/plan')]
+    #[Permission('system.generator.generate')]
+    public function plan(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->planRules(), $this->generatorMessages());
+        return $this->success($this->generatorService->plan($this->buildGeneratorRequest($data)));
+    }
+
+    #[Post('/update')]
+    #[Permission('system.generator.generate')]
+    public function updateGenerated(Request $request): Response
+    {
+        $data = $this->validate($this->body($request), $this->updateGeneratedRules(), $this->generatorMessages());
+        return $this->success($this->generatorService->updateGenerated($this->buildGeneratorRequest($data), (string) $data['plan_token']));
+    }
+
+    /** @return array<string, string> */
+    private function planRules(): array
+    {
+        return $this->generatorRules();
+    }
+
+    /** @return array<string, string> */
+    private function updateGeneratedRules(): array
+    {
+        return $this->generatorRules() + ['plan_token' => 'required|string|size:64|regex:/^[a-f0-9]+$/'];
     }
 
     /**

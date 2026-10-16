@@ -81,7 +81,7 @@ class UserAuthService extends Service
 
     /**
      * 注册（spec §4.3；字段与形参名按协调者裁定 2 由 account 改为 mobile）：先校验验证码（用后即删），
-     * 再查重，最后建号并直接登录。单条插入不需要事务——没有需要一起回滚的第二步写操作。
+     * 再查重，事务内建号并登记注册通知，提交后签发登录会话。
      * `password_confirmation` 的比对在控制器的 `confirmed` 校验规则里完成，本方法不重复校验。
      *
      * @return array{token: string, user_info: array{id: int, nickname: string, avatar: ?string, mobile: ?string}}
@@ -97,16 +97,16 @@ class UserAuthService extends Service
             throw new BusinessException(lang('business.mobile_registered'));
         }
 
-        $created = $this->userRepository->create([
-            'mobile'   => $mobile,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'nickname' => '用户' . substr($mobile, -4),
-            'status'   => 1,
-        ]);
-        $userId = (int) $created['id'];
-        $nickname = (string) $created['nickname'];
-        // M6b spec §4.8：不在事务里，afterCommit 立即执行；sendToUser 自己吞掉一切异常，不影响注册响应
-        $this->afterCommit(fn () => $this->messageService->sendToUser($userId, 'user_register', ['nickname' => $nickname]));
+        $userId = $this->runInTransaction(function () use ($mobile, $password): int {
+            $created = $this->userRepository->create([
+                'mobile' => $mobile, 'password' => password_hash($password, PASSWORD_DEFAULT),
+                'nickname' => '用户' . substr($mobile, -4), 'status' => 1,
+            ]);
+            $id = (int) $created['id'];
+            $this->messageService->scheduleToUser($id, 'user_register', ['nickname' => $created['nickname']], (string) $id);
+
+            return $id;
+        });
 
         return $this->userSessionIssuer->issue($userId, $ip);
     }

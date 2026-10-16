@@ -6,9 +6,9 @@ namespace app\middleware;
 
 use app\repository\system\AdminOperationLogRepository;
 use core\context\RequestContext;
-use core\helper\SensitiveDataMasker;
 use core\http\ClientIp;
 use core\queue\QueueDispatcher;
+use core\support\SensitiveDataMasker;
 use support\Log;
 use Webman\Http\Request;
 use Webman\Http\Response;

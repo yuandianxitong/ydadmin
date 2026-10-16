@@ -7,7 +7,7 @@ namespace app\repository\message;
 use app\model\message\MessageTemplate;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 

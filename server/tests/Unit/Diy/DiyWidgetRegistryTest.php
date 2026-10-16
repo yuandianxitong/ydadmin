@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Diy;
 
-use core\diy\DiyWidgetRegistry;
+use app\service\diy\DiyWidgetRegistry;
 use core\exception\ValidationException;
 use tests\TestCase;
 

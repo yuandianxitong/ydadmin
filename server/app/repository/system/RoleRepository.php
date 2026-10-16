@@ -188,7 +188,7 @@ class RoleRepository extends Repository
      * 与 adminHoldsSystemRole() 同口径，防提权判定要 fail closed——否则非超管可以授出一个「菜单更宽但被禁用」
      * 的角色蒙混过关，等超管哪天启用它，被授权的人就静默提权了。已软删的角色不计（软删作用域），
      * 已软删的菜单也不计（AdminService::getAdminInfo() 的 menu_ids 同样不含）。
-     * 生效权限（core\auth\Permission）与实际数据范围（DataScopeResolver::compute()）仍然只认启用的角色，不受影响。
+     * 生效权限（core\auth\PermissionChecker）与实际数据范围（DataScopeResolver::compute()）仍然只认启用的角色，不受影响。
      *
      * @param array<int, int> $roleIds
      * @return list<int>

@@ -6,7 +6,6 @@ namespace core\auth;
 
 use core\context\RequestContext;
 use core\exception\BusinessException;
-use core\permission\PermissionCheckerInterface;
 
 /**
  * 「仅超管」写操作守卫（M1b 越权收口）。角色与菜单定义的是 RBAC 本身：非超管哪怕持有对应权限点，

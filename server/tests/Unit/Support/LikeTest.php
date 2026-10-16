@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Support;
 
-use core\support\Like;
+use core\database\Like;
 use tests\TestCase;
 
 final class LikeTest extends TestCase
@@ -35,7 +35,7 @@ final class LikeTest extends TestCase
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
                 $relative = substr($file->getPathname(), strlen($root) + 1);
-                if ($file->getExtension() !== 'php' || $relative === 'core/support/Like.php') {
+                if ($file->getExtension() !== 'php' || $relative === 'core/database/Like.php') {
                     continue;
                 }
                 foreach ((array) file($file->getPathname()) as $index => $line) {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace tests\Unit\Support;
 
-use core\helper\UploadExtensionGuard;
+use core\storage\UploadExtensionGuard;
 use tests\TestCase;
 
 /**

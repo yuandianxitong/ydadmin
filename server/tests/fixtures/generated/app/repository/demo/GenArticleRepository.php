@@ -7,8 +7,8 @@ namespace app\repository\demo;
 use app\model\demo\GenArticle;
 use core\base\Model;
 use core\base\Repository;
+use core\database\Like;
 use core\datascope\DataScope;
-use core\support\Like;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 /**

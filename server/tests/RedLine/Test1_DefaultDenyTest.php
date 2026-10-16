@@ -23,7 +23,7 @@ final class Test1_DefaultDenyTest extends RedLineCase
 
     public function test_real_checker_denies_an_admin_without_roles(): void
     {
-        // 走真实容器绑定（core\auth\Permission）：一个没有任何角色的管理员只能访问 #[PermissionSkip]
+        // 走真实容器绑定（core\auth\PermissionChecker）：一个没有任何角色的管理员只能访问 #[PermissionSkip]
         $middleware = Container::get(AdminPermissionMiddleware::class);
 
         $this->assertSame(403, $this->dispatch($middleware, 'bare', 999999999));

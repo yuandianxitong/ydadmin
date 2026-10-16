@@ -6,7 +6,7 @@ namespace app\adminapi\controller\upload;
 
 use app\adminapi\controller\AuthenticatedController;
 use app\service\system\UploadService;
-use core\permission\PermissionSkip;
+use core\auth\PermissionSkip;
 use DI\Attribute\Inject;
 use support\annotation\route\Post;
 use support\annotation\route\RouteGroup;

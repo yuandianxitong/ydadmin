@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace tests\Feature\Install;
 
 use app\controller\InstallController;
-use core\contract\SuperAdminInitializer;
 use core\install\Installer;
+use core\install\SuperAdminInitializer;
 use support\Container;
 use support\Db;
 use tests\Support\ApiTestCase;
@@ -53,12 +53,17 @@ final class InstallGuardTest extends ApiTestCase
 
     public function test_uninstalled_adminapi_is_503_with_installed_false(): void
     {
-        $response = $this->get('/adminapi/health');
+        $response = $this->get('/adminapi/auth/info');
 
         $this->assertSame(503, $response->status());
         $this->assertSame(503, $response->code());
         $this->assertSame(lang('install.not_installed'), $response->message());
         $this->assertSame(['installed' => false], $response->data());
+    }
+
+    public function test_liveness_remains_available_before_installation(): void
+    {
+        $this->get('/adminapi/health')->assertOk()->assertStatus(200);
     }
 
     public function test_uninstalled_html_redirects_to_wizard(): void

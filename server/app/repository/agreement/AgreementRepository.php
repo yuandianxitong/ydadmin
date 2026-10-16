@@ -7,7 +7,7 @@ namespace app\repository\agreement;
 use app\model\agreement\Agreement;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 
 /**
  * 协议仓储（agreements 表）。由代码生成器生成，可直接手改。

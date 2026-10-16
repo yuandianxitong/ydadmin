@@ -113,11 +113,16 @@ trait MessageFixtures
     private function cleanupMessageFixtures(): void
     {
         if ($this->messageUserIds !== []) {
+            $logIds = Db::table('message_logs')->whereIn('user_id', $this->messageUserIds)->pluck('id')->all();
+            if ($logIds !== []) {
+                Db::table('queue_outbox')->where('queue', 'message-send')->whereIn('payload->log_id', $logIds)->delete();
+            }
+            Db::table('queue_outbox')->where('queue', 'message-request')->whereIn('payload->userId', $this->messageUserIds)->delete();
             Db::table('message_logs')->whereIn('user_id', $this->messageUserIds)->delete();
             Db::table('user_notification_reads')->whereIn('user_id', $this->messageUserIds)->delete();
             Db::table('user_notifications')->whereIn('user_id', $this->messageUserIds)->delete();
         }
-        // sync 驱动下暂时失败即「最后一次」，M3 会写 failed_jobs
+        // 耗尽重试预算的可靠消息与既有即时队列都会写 failed_jobs。
         Db::table('failed_jobs')->where('queue', 'message-send')->delete();
         $this->messageUserIds = [];
     }

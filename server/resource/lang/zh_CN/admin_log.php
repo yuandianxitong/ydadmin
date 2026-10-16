@@ -2,6 +2,8 @@
 
 // 操作日志动作文案（config/admin_log.php 引用），键成对出现：xxx 为动作，xxx_desc 为描述
 return [
+    'generator_update' => '增量更新模块',
+    'generator_update_desc' => '依据生成基线合并并更新模块代码',
     'auth_refresh'                 => '刷新令牌',
     'auth_refresh_desc'            => '刷新登录令牌',
     'auth_logout'                  => '退出登录',

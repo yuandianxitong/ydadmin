@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace core\generator;
 
+use core\module\NameConvention;
+
 /**
  * 一个模块的全部产物：key → (相对基准的落盘路径, 基准, stub 文件名, 模板变量)。
  *
@@ -51,10 +53,11 @@ final class ModuleBlueprint
         $kebab = $convention->kebab($model);
         $vars = $this->vars($convention->snake($model), $kebab);
 
-        return [
+        $artifacts = [
             'model'      => $this->server("app/model/{$module}/{$model}.php", 'model.stub.php', $vars),
             'repository' => $this->server("app/repository/{$module}/{$model}Repository.php", 'repository.stub.php', $vars),
             'service'    => $this->server("app/service/{$module}/{$model}Service.php", 'service.stub.php', $vars),
+            'resource' => $this->server("app/resource/{$module}/{$model}Resource.php", 'resource.stub.php', $vars),
             'controller' => $this->server("app/adminapi/controller/{$module}/{$model}Controller.php", 'controller.stub.php', $vars),
             'lang_zh'    => $this->server("resource/lang/zh_CN/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'zh_CN'] + $vars),
             'lang_en'    => $this->server("resource/lang/en/{$module}/{$convention->snake($model)}.php", 'lang.stub.php', ['locale' => 'en'] + $vars),
@@ -63,10 +66,47 @@ final class ModuleBlueprint
             'form'       => $this->repo("admin/src/views/{$module}/{$kebab}/components/{$model}Form.vue", 'form.stub.php', $vars),
             'menu'       => $this->server("database/generated/{$module}-{$convention->snake($model)}-menu.sql", 'menu.stub.php', $vars),
         ];
+        $paths = [];
+        foreach ($artifacts as $key => $artifact) {
+            $paths[$key] = $artifact['base'] === 'server' ? 'server/' . $artifact['path'] : $artifact['path'];
+        }
+        $descriptorPath = "modules/{$module}/{$convention->snake($model)}.json";
+        $paths['descriptor'] = 'server/' . $descriptorPath;
+        $id = $module . '.' . $convention->snake($model);
+        $routes = array_map(static fn (array $endpoint): array => [
+            'method' => $endpoint[0], 'path' => '/adminapi/' . $module . '/' . $kebab . $endpoint[1],
+            'action' => $endpoint[2], 'permission' => $id . '.' . $endpoint[3],
+        ], $this->endpoints());
+        $descriptor = new \core\module\ModuleDescriptor([
+            'schema_version' => 1, 'id' => $id, 'module' => $module, 'model' => $model,
+            'table' => $this->table->name, 'title' => $this->request->tableComment !== '' ? $this->request->tableComment : $this->table->comment,
+            'primary_key' => $this->table->primaryKey(),
+            'permissions' => array_values(array_unique(array_column($routes, 'permission'))), 'routes' => $routes,
+            'capabilities' => ['soft_deletes' => $this->table->hasSoftDeletes(), 'status' => $this->table->hasStatus(),
+                'data_scope' => $this->table->creatorColumn() !== null, 'owner_column' => $this->table->creatorColumn(), 'department_column' => $this->table->deptColumn()],
+            'fields' => array_map(static fn (ColumnDescriptor $column): array => $column->toArray() + ['enum_values' => $column->enumValues], $this->table->columns),
+            'artifacts' => $paths,
+        ]);
+        $artifacts['descriptor'] = $this->server($descriptorPath, 'descriptor.stub.php', ['descriptor' => $descriptor]);
+        return $artifacts;
+    }
+
+    /** @return list<array{string, string, string, string}> */
+    private function endpoints(): array
+    {
+        $endpoints = [
+            ['GET', '', 'index', 'list'], ['POST', '/batch-delete', 'batchDelete', 'delete'],
+            ['GET', '/{id:\d+}', 'show', 'list'], ['POST', '', 'store', 'create'],
+            ['PUT', '/{id:\d+}', 'update', 'update'], ['DELETE', '/{id:\d+}', 'delete', 'delete'],
+        ];
+        if ($this->table->hasStatus()) {
+            $endpoints[] = ['PUT', '/{id:\d+}/status', 'status', 'status'];
+        }
+        return $endpoints;
     }
 
     /**
-     * 所有 stub 共用的上下文（底稿 §3.1），不得增删。
+     * 代码模板的公共上下文。描述文件模板另收 ModuleDescriptor 值对象。
      *
      * @return array<string, mixed>
      */
@@ -77,6 +117,7 @@ final class ModuleBlueprint
         $tableComment = $this->request->tableComment !== '' ? $this->request->tableComment : $this->table->comment;
 
         return [
+            'endpoints' => $this->endpoints(),
             'module'        => $this->request->moduleName,
             'model'         => $this->request->modelName,
             'modelSnake'    => $modelSnake,

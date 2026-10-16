@@ -72,14 +72,38 @@
     "setup-webman": [
       "support\\Setup::run"
     ],
-    "test": "phpunit",
-    "test:unit": "phpunit --testsuite unit",
+    "test": [
+      "@test:unit",
+      "@test:integration",
+      "@test:redline"
+    ],
+    "test:unit": "phpunit -c phpunit.unit.xml",
     "test:redline": "phpunit --testsuite redline",
     "lint": "php-cs-fixer fix --dry-run --diff",
     "lint:fix": "php-cs-fixer fix",
     "analyse": "phpstan analyse --memory-limit=1G",
     "check:context": "bash scripts/check-context-discipline.sh",
-    "contract": "php scripts/admin-contract-check.php"
+    "check:core": "php scripts/check-core-architecture.php",
+    "check:modules": "php scripts/check-modules.php",
+    "contract": "php scripts/admin-contract-check.php",
+    "test:integration": "phpunit -c phpunit.xml --testsuite integration",
+    "check": [
+      "@lint",
+      "@analyse",
+      "@check:context",
+      "@check:core",
+      "@check:modules",
+      "@test"
+    ],
+    "check:fast": [
+      "@lint",
+      "@analyse",
+      "@check:context",
+      "@check:core",
+      "@check:modules",
+      "@test:unit"
+    ],
+    "test:contract": "phpunit -c phpunit.xml --filter 'ApiResponseTest|ExceptionHandlerTest|PipelineHarnessTest|ApiDocBijectionTest|ApiDocRulesBijectionTest|ApiDocGoldenTest|PhaseOneContractTest|ResponseContractTest'"
   },
   "config": {
     "process-timeout": 0

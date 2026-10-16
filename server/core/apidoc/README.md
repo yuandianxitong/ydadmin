@@ -51,9 +51,20 @@ vendor/bin/phpunit --filter ApiDocGoldenTest                          # 去掉�
 `login_captcha` 开关的值：`ApiDocGoldenTest` 会在生成前把它钉回种子值 `'1'`（开），
 所以黄金文件里这两个字段应为必填——本地重新生成前不需要手工改配置，测试自己保证了这一点。
 
+## 响应结构与 TypeScript 导出
+
+方法上的 `#[core\response\ResponseSchema(Resource::class, paginated: true)]` 声明成功响应的 data 结构。
+资源继承 `JsonResource`，运行时的 `make()` / `page()` 和文档读取同一份 `schema()`。
+`ResponseReflector` 将声明交给 `OpenApiDocument`；有声明时使用具体成功响应，保留原有业务错误与校验错误信封。
+
+`php webman api:export --type=admin --output=runtime/contracts` 导出同源 OpenAPI 与 TypeScript。
+`ApiOperations` 按方法和路径索引请求参数、具体成功响应及 HTTP 200 响应联合类型。
+未声明业务结构的成功响应保留 unknown，避免根据方法名猜测字段。
+完整约定见 `server/DEVELOPMENT.md`。
+
 ## 已知限制
 
-- 不推导 `data` 内部的业务字段——Service 返回类型全是无结构 `array`，只描述信封与分页的结构。
+- 未声明 ResponseSchema 的接口不推导 `data` 内部的业务字段，只描述通用信封与分页结构。
 - `loginRules()` 按运行时 `login_captcha` 开关的实际值求值（不是「无参包装、恒定必填」的超集
   写法）：开关开时验证码必填，关时可不传。文档按生成时的配置求值并进程内缓存——**修改影响规则的
   配置（如 `login_captcha`）后需重启 worker**，文档才会反映新值。

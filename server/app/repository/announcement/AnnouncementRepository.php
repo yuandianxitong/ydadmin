@@ -7,7 +7,7 @@ namespace app\repository\announcement;
 use app\model\announcement\Announcement;
 use core\base\Model;
 use core\base\Repository;
-use core\support\Like;
+use core\database\Like;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
