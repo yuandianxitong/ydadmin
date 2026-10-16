@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace tests\Feature\System;
 
 use app\service\system\GeneratorService;
-use core\module\ModuleCatalog;
 use support\Container;
 use tests\Support\ApiTestCase;
 use tests\Support\ConfigOverride;
@@ -85,16 +84,5 @@ final class PhaseThreeGeneratorApiTest extends ApiTestCase
         $this->post('/adminapi/system/generator/plan', $this->body(), $writer->token)->assertCode(400);
         $this->post('/adminapi/system/generator/update', $this->body() + ['plan_token' => str_repeat('a', 64)], $writer->token)->assertCode(400);
         $this->assertDirectoryDoesNotExist($this->root);
-    }
-
-    public function test_builtin_module_descriptions_are_permission_protected_and_all_files_exist(): void
-    {
-        $nobody = $this->actingAsAdmin();
-        $this->get('/adminapi/system/modules', [], $nobody->token)->assertCode(403);
-        $admin = $this->actingAsAdmin(['system.generator.list']);
-        $data = $this->get('/adminapi/system/modules', [], $admin->token)->assertOk()->data();
-        $this->assertSame([], $data['errors']);
-        $this->assertContains('article.article', array_column($data['modules'], 'id'));
-        $this->assertSame([], (new ModuleCatalog())->inspect(base_path(), dirname(base_path()), true)['errors']);
     }
 }

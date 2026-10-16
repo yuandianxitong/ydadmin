@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace core\generator;
 
-use core\module\NameConvention;
 use core\support\PathGuard;
 
 /** 生成基线独立于业务源码；只信实时渲染得到的目标路径，不从状态文件读取写入目的地。 */
@@ -23,7 +22,7 @@ final class ManagedArtifacts
     /** 增量更新沿用上次保存的字段开关；本次显式传入的开关优先。 */
     public function defaults(): GeneratorRequest
     {
-        $options = $this->state()['options'];
+        $options = $this->state([])['options'];
         return new GeneratorRequest(
             $this->request->tableName,
             $this->request->moduleName,
@@ -43,10 +42,16 @@ final class ManagedArtifacts
             throw new \RuntimeException('请提供独立的原始生成快照根目录');
         }
         return $this->locked(function () use ($files, $root): array {
-            $state = $this->state();
+            $state = $this->state($files);
             if ($state['artifacts'] !== []) {
                 throw new \RuntimeException('模块已有基线，不能重新导入');
             }
+            // 快照若携带生成基线，沿用其中的原始选项；纯源码快照使用调用方明确提供的选项。
+            $original = (new self($root . '/server', $root, $this->request))->state($files);
+            $state['options'] = [
+                'table_comment' => $this->request->tableComment !== '' ? $this->request->tableComment : $original['options']['table_comment'],
+                'overrides' => $this->request->overrides + $original['options']['overrides'],
+            ];
             foreach ($files as $key => $file) {
                 $path = $root . '/' . $file['display'];
                 PathGuard::within($root, $path);
@@ -60,21 +65,6 @@ final class ManagedArtifacts
                 }
                 if (str_ends_with($path, '.php') && token_get_all($content, TOKEN_PARSE) === []) {
                     throw new \RuntimeException('原始 PHP 快照不能为空');
-                }
-                if ($key === 'descriptor') {
-                    $descriptor = new \core\module\ModuleDescriptor(json_decode($content, true, 64, JSON_THROW_ON_ERROR));
-                    if ($descriptor->data['module'] !== $this->request->moduleName || $descriptor->data['model'] !== $this->request->modelName
-                        || $descriptor->data['table'] !== $this->request->tableName) {
-                        throw new \RuntimeException('原始快照模块身份不一致');
-                    }
-                    $options = [];
-                    foreach ($descriptor->data['fields'] as $column) {
-                        if (isset($column['name'], $column['form_type'], $column['searchable'], $column['in_list'], $column['in_form'])) {
-                            $options[$column['name']] = array_intersect_key($column, array_flip(['form_type', 'searchable', 'in_list', 'in_form']));
-                        }
-                    }
-                    $state['options'] = ['table_comment' => $this->request->tableComment !== '' ? $this->request->tableComment : $descriptor->data['title'],
-                        'overrides' => $this->request->overrides + $options];
                 }
                 $state['artifacts'][$key] = $this->baseline(['path' => $file['path'], 'display' => $file['display'], 'content' => $content]);
             }
@@ -91,7 +81,7 @@ final class ManagedArtifacts
     public function create(array $files): array
     {
         return $this->locked(function () use ($files): array {
-            $state = $this->state();
+            $state = $this->state($files);
             $statuses = (new ArtifactWriter())->write($files);
             foreach ($files as $key => $file) {
                 if (in_array($statuses[$key]['status'], ['created', 'skipped'], true) && $this->read($file['path']) === $file['content']) {
@@ -107,7 +97,7 @@ final class ManagedArtifacts
      * @return array<string, mixed> */
     public function plan(array $files): array
     {
-        $state = $this->state();
+        $state = $this->state($files);
         $result = [];
         $fingerprints = [];
         $conflicts = false;
@@ -144,8 +134,6 @@ final class ManagedArtifacts
                         if (token_get_all($content, TOKEN_PARSE) === []) {
                             throw new \RuntimeException('PHP 产物不能为空');
                         }
-                    } elseif ($key === 'descriptor') {
-                        new \core\module\ModuleDescriptor(json_decode($content, true, 64, JSON_THROW_ON_ERROR));
                     }
                 } catch (\Throwable) {
                     $status = 'conflict';
@@ -186,7 +174,7 @@ final class ManagedArtifacts
                 }
                 return $plan + ['applied' => false, 'conflict_directory' => $this->display($folder)];
             }
-            $state = $this->state();
+            $state = $this->state($files);
             $backup = $this->directory . '/backups/' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
             $state['options'] = ['table_comment' => $this->request->tableComment, 'overrides' => $this->request->overrides];
             // 控制器最后更新；一旦发生 IO 错误停止后续写入，已更新文件可从备份恢复。
@@ -223,7 +211,7 @@ final class ManagedArtifacts
     public function force(array $files): array
     {
         return $this->locked(function () use ($files): array {
-            $state = $this->state();
+            $state = $this->state($files);
             $result = [];
             $state['options'] = ['table_comment' => $this->request->tableComment, 'overrides' => $this->request->overrides];
             $backup = $this->directory . '/backups/' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
@@ -252,8 +240,9 @@ final class ManagedArtifacts
         });
     }
 
-    /** @return array{format_version: int, identity: array<string, string>, options: array{table_comment: string, overrides: array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool}>}, artifacts: array<string, array{path: string, content: string, sha256: string}>} */
-    private function state(): array
+    /** @param array<string, array{path: string, display: string, content: string}> $files
+     * @return array{format_version: int, identity: array<string, string>, options: array{table_comment: string, overrides: array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool}>}, artifacts: array<string, array{path: string, content: string, sha256: string}>} */
+    private function state(array $files): array
     {
         $identity = ['table' => $this->request->tableName, 'module' => $this->request->moduleName, 'model' => $this->request->modelName];
         $text = $this->read($this->statePath, 32 * 1024 * 1024);
@@ -265,6 +254,8 @@ final class ManagedArtifacts
             || !is_string($state['options']['table_comment'] ?? null) || !is_array($state['options']['overrides'] ?? null)) {
             throw new \RuntimeException('生成基线身份不一致或格式损坏');
         }
+        // 只管理当前蓝图中的产物；旧版本废弃的基线项在下次成功写入时清理。
+        $state['artifacts'] = array_intersect_key($state['artifacts'], $files);
         foreach ($state['options']['overrides'] as $option) {
             if (!is_array($option) || !is_string($option['form_type'] ?? null) || !is_bool($option['searchable'] ?? null)
                 || !is_bool($option['in_list'] ?? null) || !is_bool($option['in_form'] ?? null)) {

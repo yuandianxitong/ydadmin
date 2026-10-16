@@ -38,7 +38,7 @@ final class GeneratorArtifactTest extends TestCase
     /** 底稿 §4 的产物顺序，一个字都不能差：前端取 Object.keys(data)[0] 作默认页签。 */
     private const KEYS = [
         'model', 'repository', 'service', 'resource', 'controller',
-        'lang_zh', 'lang_en', 'api', 'page', 'form', 'menu', 'descriptor',
+        'lang_zh', 'lang_en', 'api', 'page', 'form', 'menu',
     ];
 
     public static function setUpBeforeClass(): void

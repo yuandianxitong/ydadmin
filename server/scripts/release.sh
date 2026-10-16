@@ -26,7 +26,7 @@ PREFIX="ydadmin-${VERSION}/server"
 copy_tree() {
   dest=$1
   mkdir -p "$dest"
-  for name in app core config resource modules public scripts support start.php windows.php windows.bat webman composer.json composer.lock .env.example; do
+  for name in app core config resource public scripts support start.php windows.php windows.bat webman composer.json composer.lock .env.example; do
     if [ -e "$SOURCE/$name" ]; then
       cp -R "$SOURCE/$name" "$dest/$name"
     fi

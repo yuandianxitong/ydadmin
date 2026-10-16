@@ -13,8 +13,8 @@ final class CoreArchitectureTest extends TestCase
     public static function boundaries(): array
     {
         return [
-            'module consumes support' => ['module/Example.php', '<?php namespace core\module; use core\support\PathGuard;', 0, '检查通过'],
-            'module cannot consume generator' => ['module/Example.php', '<?php namespace core\module; use core\generator\ArtifactWriter;', 1, '禁止依赖 core\generator'],
+            'generator consumes support' => ['generator/Example.php', '<?php namespace core\generator; use core\support\PathGuard;', 0, '检查通过'],
+            'support cannot consume generator' => ['support/Example.php', '<?php namespace core\support; use core\generator\ArtifactWriter;', 1, '禁止依赖 core\generator'],
             'response cannot consume documentation' => ['response/Example.php', '<?php namespace core\response; function schema() { return \core\apidoc\OpenApiDocument::class; }', 1, '禁止依赖 core\apidoc'],
             'import cannot consume app' => ['config/Example.php', '<?php namespace core\config; use app\repository\system\SystemConfigRepository;', 1, '核心不得依赖应用层'],
             'fully qualified name cannot consume app' => ['config/Example.php', '<?php namespace core\config; function repository() { return new \app\repository\system\SystemConfigRepository(); }', 1, '核心不得依赖应用层'],

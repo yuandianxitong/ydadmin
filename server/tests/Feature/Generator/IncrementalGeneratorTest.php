@@ -6,7 +6,7 @@ namespace tests\Feature\Generator;
 
 use core\exception\BusinessException;
 use core\generator\GeneratorRequest;
-use core\module\ModuleCatalog;
+use PHPUnit\Framework\Attributes\DataProvider;
 use support\Container;
 use support\Db;
 use tests\Support\GeneratorFixture;
@@ -60,20 +60,16 @@ final class IncrementalGeneratorTest extends TestCase
         return new GeneratorRequest(self::GOLDEN_TABLE, self::GOLDEN_MODULE, self::GOLDEN_MODEL, $title, $overrides);
     }
 
-    public function test_first_plan_is_read_only_and_generated_metadata_matches_its_module(): void
+    public function test_first_plan_is_read_only_and_generation_only_creates_code_artifacts(): void
     {
         $plan = $this->service->plan($this->request());
         $this->assertFalse($plan['has_conflicts']);
         $this->assertDirectoryDoesNotExist($this->root);
         $this->service->generate($this->request());
-        $catalog = (new ModuleCatalog())->inspect($this->root . '/server', $this->root, true);
-        $this->assertSame([], $catalog['errors']);
-        $this->assertCount(1, $catalog['modules']);
-        $module = $catalog['modules'][0];
-        $this->assertSame('demo.gen_article', $module['id']);
-        $this->assertContains('demo.gen_article.status', $module['permissions']);
-        $this->assertTrue($module['capabilities']['data_scope']);
-        $this->assertContains('server/modules/demo/gen_article.json', $module['artifacts']);
+        $this->assertFileExists($this->root . '/server/app/model/demo/GenArticle.php');
+        $this->assertFileExists($this->root . '/server/app/adminapi/controller/demo/GenArticleController.php');
+        $this->assertDirectoryDoesNotExist($this->root . '/server/modules');
+        $this->assertCount(11, $plan['files']);
     }
 
     public function test_schema_addition_keeps_custom_php_and_vue_code_and_updates_the_baseline(): void
@@ -92,7 +88,6 @@ final class IncrementalGeneratorTest extends TestCase
         $this->assertStringContainsString('custom page extension', file_get_contents($paths['page']));
         $baseline = json_decode(file_get_contents($this->root . '/server/generator-state/demo/gen_article/baseline.json'), true);
         $this->assertStringNotContainsString('custom model extension', $baseline['artifacts']['model']['content']);
-        $this->assertSame([], (new ModuleCatalog())->inspect($this->root . '/server', $this->root, true)['errors']);
         $this->assertFileExists($this->root . '/' . $result['backup_directory'] . '/model.txt');
         $again = $this->service->plan($this->request());
         $this->assertFalse($again['has_conflicts']);
@@ -142,6 +137,36 @@ final class IncrementalGeneratorTest extends TestCase
         $this->assertSame(['unchanged'], array_values(array_unique(array_column($plan['files'], 'status'))));
     }
 
+    public function test_retired_artifacts_in_old_baselines_do_not_block_updates_or_lose_saved_options(): void
+    {
+        $overrides = ['title' => ['form_type' => 'textarea', 'searchable' => false, 'in_list' => false, 'in_form' => true]];
+        $this->service->generate($this->request('saved title', $overrides));
+        $paths = $this->service->targetPaths($this->request());
+        file_put_contents($paths['model'], "\n// custom extension survives retirement\n", FILE_APPEND);
+        $baselinePath = $this->root . '/server/generator-state/demo/gen_article/baseline.json';
+        $baseline = json_decode(file_get_contents($baselinePath), true);
+        $content = '{"schema_version":1}';
+        $baseline['artifacts']['descriptor'] = [
+            'path' => 'server/modules/demo/gen_article.json',
+            'content' => $content,
+            'sha256' => hash('sha256', $content),
+        ];
+        file_put_contents($baselinePath, json_encode($baseline, JSON_THROW_ON_ERROR));
+        $before = file_get_contents($baselinePath);
+
+        $plan = $this->service->plan($this->request());
+        $this->assertFalse($plan['has_conflicts']);
+        $this->assertSame($before, file_get_contents($baselinePath), 'Preview must not rewrite an old baseline');
+        $this->assertNotContains('descriptor', array_column($plan['files'], 'key'));
+        $result = $this->service->updateGenerated($this->request(), $plan['plan_token']);
+        $this->assertTrue($result['applied']);
+        $updated = json_decode(file_get_contents($baselinePath), true);
+        $this->assertArrayNotHasKey('descriptor', $updated['artifacts']);
+        $this->assertSame($baseline['options'], $updated['options']);
+        $this->assertStringContainsString('custom extension survives retirement', file_get_contents($paths['model']));
+        $this->assertDirectoryDoesNotExist($this->root . '/server/modules');
+    }
+
     public function test_symbolic_link_targets_are_rejected(): void
     {
         $this->service->generate($this->request());
@@ -158,24 +183,40 @@ final class IncrementalGeneratorTest extends TestCase
         }
     }
 
-    public function test_legacy_baseline_import_uses_original_snapshot_and_preserves_current_custom_code(): void
+    public static function snapshotBaselines(): array
     {
-        $this->service->generate($this->request());
+        return ['source only' => [false], 'source and saved options' => [true]];
+    }
+
+    #[DataProvider('snapshotBaselines')]
+    public function test_legacy_baseline_import_uses_original_snapshot_and_preserves_current_custom_code(bool $withBaseline): void
+    {
+        $overrides = ['title' => ['form_type' => 'textarea', 'searchable' => false, 'in_list' => false, 'in_form' => true]];
+        $request = $this->request('snapshot title', $overrides);
+        $this->service->generate($request);
         $paths = $this->service->targetPaths($this->request());
         $snapshot = $this->root . '/original-snapshot';
-        foreach ($this->service->preview($this->request()) as $key => $file) {
+        foreach ($this->service->preview($request) as $key => $file) {
             $path = $snapshot . '/' . $file['path'];
             if (!is_dir(dirname($path))) {
                 mkdir(dirname($path), 0o755, true);
             }
             copy($paths[$key], $path);
         }
-        unlink($this->root . '/server/generator-state/demo/gen_article/baseline.json');
+        $baselinePath = $this->root . '/server/generator-state/demo/gen_article/baseline.json';
+        if ($withBaseline) {
+            $originalBaseline = $snapshot . '/server/generator-state/demo/gen_article/baseline.json';
+            mkdir(dirname($originalBaseline), 0o755, true);
+            copy($baselinePath, $originalBaseline);
+        }
+        unlink($baselinePath);
         file_put_contents($paths['model'], "\n// legacy custom extension\n", FILE_APPEND);
         $before = array_map(file_get_contents(...), $paths);
-        $import = $this->service->importBaseline($this->request(), $snapshot);
+        $import = $this->service->importBaseline($withBaseline ? $this->request() : $request, $snapshot);
         $this->assertCount($import['imported'], $paths);
         $this->assertSame($before, array_map(file_get_contents(...), $paths));
+        $baseline = json_decode(file_get_contents($this->root . '/server/generator-state/demo/gen_article/baseline.json'), true);
+        $this->assertSame(['table_comment' => 'snapshot title', 'overrides' => $overrides], $baseline['options']);
         $plan = $this->service->plan($this->request('updated legacy module'));
         $this->assertFalse($plan['has_conflicts']);
         $this->assertTrue($this->service->updateGenerated($this->request('updated legacy module'), $plan['plan_token'])['applied']);

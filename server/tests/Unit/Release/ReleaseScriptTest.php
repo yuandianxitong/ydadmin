@@ -21,7 +21,6 @@ final class ReleaseScriptTest extends TestCase
         mkdir($this->source . '/tests', 0o755, true);
         mkdir($this->source . '/database/generated', 0o755, true);
         mkdir($this->source . '/runtime', 0o755, true);
-        mkdir($this->source . '/modules/demo', 0o755, true);
         mkdir($this->source . '/generator-state/demo/item/backups', 0o755, true);
         mkdir($this->source . '/public/storage/uploads/images', 0o755, true);
         file_put_contents($this->source . '/config/version.php', "<?php\nreturn ['version' => '2.0.0'];\n");
@@ -31,7 +30,6 @@ final class ReleaseScriptTest extends TestCase
         file_put_contents($this->source . '/start.php', '<?php');
         file_put_contents($this->source . '/.env', 'DB_PASSWORD=secret');
         file_put_contents($this->source . '/.env.example', 'DB_HOST = 127.0.0.1');
-        file_put_contents($this->source . '/modules/demo/item.json', '{}');
         file_put_contents($this->source . '/generator-state/demo/item/baseline.json', 'private development baseline');
         file_put_contents($this->source . '/generator-state/demo/item/backups/original.txt', 'private source backup');
         file_put_contents($this->source . '/vendor/autoload.php', '<?php');
@@ -71,7 +69,6 @@ final class ReleaseScriptTest extends TestCase
         $this->assertStringNotContainsString('/.env' . "\n", $list . "\n");
         $this->assertStringNotContainsString('ydadmin-2.0.0/server/.env' . "\n", $list . "\n");
         $this->assertStringNotContainsString('/tests/', $list);
-        $this->assertStringContainsString('server/modules/demo/item.json', $list);
         $this->assertStringNotContainsString('generator-state/', $list);
         $this->assertStringNotContainsString('generated/', $list);
         $this->assertStringNotContainsString('DB_PASSWORD', $list);

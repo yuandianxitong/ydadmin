@@ -53,7 +53,7 @@ foreach (array_keys($messageKeys) as $key) {
 }
 
 // 类注释里的端点表：路径列与方法列对齐，宽度由最长的一条算出来
-// $endpoints 来自 ModuleBlueprint，与模块描述使用同一份路由与权限定义。
+// $endpoints 来自 ModuleBlueprint，统一生成控制器路由与权限注解。
 $base = '/adminapi/' . $module . '/' . $modelKebab;
 $pathPad = 0;
 foreach ($endpoints as $endpoint) {

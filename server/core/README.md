@@ -5,7 +5,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 
 ## 目录定义
 
-一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 25 个一级目录：
+一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 24 个一级目录：
 
 | 目录 | 职责与归属 |
 |---|---|
@@ -18,11 +18,10 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `database` | SQL 脚本、数据库安装辅助、开发库检查和 SQL LIKE 转义 |
 | `datascope` | 数据范围计算、快照和 ORM 查询作用域 |
 | `exception` | 跨模块通用业务异常；渠道专有异常留在渠道模块 |
-| `generator` | 表结构推导、模板、产物写入和增量合并；消费模块契约 |
+| `generator` | 命名规则、表结构推导、模板、产物写入和增量合并 |
 | `http` | HTTP 请求辅助和接口幂等声明；业务幂等持久化留在应用层 |
 | `install` | 安装、升级、环境检查、环境文件以及超管初始化接口 |
 | `message` | 消息契约、模板、渠道和投递失败分类；SMTP 适配器放 `message/mail` |
-| `module` | 模块标识与命名规则、描述契约及目录检查；不依赖生成器 |
 | `observability` | 通用进程心跳；业务监控聚合留在应用层 |
 | `payment` | 支付网关、金额、请求与结果 DTO、配置及渠道异常 |
 | `query` | 查询参数归一化、分页和排序规则；具体筛选 SQL 留在仓储 |
@@ -46,7 +45,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 
 - 核心不得依赖 `app`。跨边界需求通过所属能力的接口表达，由 `config/container.php` 绑定实现。
 - 基类组合上下文、数据权限、验证、查询和响应能力；这些能力不得反向依赖基类。
-- `generator → module → support`；模块描述和检查在没有生成器时也应能独立工作。
+- 生成器的命名和模板规则留在 `generator`，通用路径防护复用 `support`。
 - `apidoc → response`；响应契约不得反向依赖文档生成工具。
 - 消息渠道依赖短信、微信等适配器；SMTP 当前服务于消息投递，和消息异常契约保持同一模块。
 - 配置契约不依赖应用层仓储，驱动按一次操作读取配置快照。
@@ -70,7 +69,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `helper/UploadExtensionGuard.php` | `storage/` |
 | `support/Like.php` | `database/` |
 | `generator/PathGuard.php` | `support/` |
-| `generator/NameConvention.php` | `module/` |
+| `module/NameConvention.php` | `generator/` |
 | `apidoc/EnvelopeSchemas.php` | `response/` |
 | `mail/*` | `message/mail/` |
 | `idempotency/Idempotent.php` | `http/` |
@@ -79,5 +78,12 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `diy/*` | `app/service/diy/`，属于页面装修业务规则 |
 
 对应 PHP 命名空间与目录同步变化，仓库内调用方、容器、生成模板和测试同步更新。
-外部扩展若直接引用旧类名，需要按表迁移。本次不提供旧命名空间别名；HTTP 路由、响应、权限码、
-配置键和数据库结构保持原有契约。部署后重启常驻进程，使其加载新的类与容器绑定。
+外部扩展若直接引用旧类名，需要按表迁移。部署后重启常驻进程，使其加载新的类与容器绑定。
+
+## 生成器基线
+
+生成器只产出业务代码、语言文件和菜单 SQL，不再生成独立模块描述 JSON。
+增量更新的选项与原始生成内容保存在 `generator-state/{module}/{model_snake}/baseline.json`。
+旧基线中已废弃的产物项不会参与预览或更新，下次成功写入基线时清理；其他产物仍执行校验、备份与冲突保护。
+导入快照若包含 generator-state 基线，会沿用原始说明与字段选项，本次请求显式选项优先。
+纯源码快照使用本次请求选项，不从业务代码推断原始选项。

@@ -57,13 +57,6 @@ final class GoldenModuleTest extends TestCase
         $this->assertGoldenFile($path, $content);
     }
 
-    public function test_descriptor_matches_the_golden_file(): void
-    {
-        [$path, $content] = $this->renderGolden('descriptor');
-        $this->assertSame('modules/demo/gen_article.json', $path);
-        $this->assertGoldenFile($path, $content);
-    }
-
     public function test_repository_matches_the_golden_file(): void
     {
         [$path, $content] = $this->renderGolden('repository');

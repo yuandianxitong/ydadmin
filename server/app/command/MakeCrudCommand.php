@@ -8,7 +8,7 @@ use app\service\system\GeneratorService;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\generator\GeneratorRequest;
-use core\module\NameConvention;
+use core\generator\NameConvention;
 use support\Container;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

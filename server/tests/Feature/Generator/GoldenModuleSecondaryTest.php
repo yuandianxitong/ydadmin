@@ -76,13 +76,6 @@ final class GoldenModuleSecondaryTest extends TestCase
         $this->assertGoldenFile($path, $content, 'generated-secondary');
     }
 
-    public function test_descriptor_matches_the_golden_file(): void
-    {
-        [$path, $content] = $this->renderGoldenSecondary('descriptor');
-        $this->assertSame('modules/catalog/gen_category.json', $path);
-        $this->assertGoldenFile($path, $content, 'generated-secondary');
-    }
-
     public function test_service_matches_the_golden_file(): void
     {
         [$path, $content] = $this->renderGoldenSecondary('service');

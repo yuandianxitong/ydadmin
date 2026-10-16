@@ -84,7 +84,6 @@
     "analyse": "phpstan analyse --memory-limit=1G",
     "check:context": "bash scripts/check-context-discipline.sh",
     "check:core": "php scripts/check-core-architecture.php",
-    "check:modules": "php scripts/check-modules.php",
     "contract": "php scripts/admin-contract-check.php",
     "test:integration": "phpunit -c phpunit.xml --testsuite integration",
     "check": [
@@ -92,7 +91,6 @@
       "@analyse",
       "@check:context",
       "@check:core",
-      "@check:modules",
       "@test"
     ],
     "check:fast": [
@@ -100,7 +98,6 @@
       "@analyse",
       "@check:context",
       "@check:core",
-      "@check:modules",
       "@test:unit"
     ],
     "test:contract": "phpunit -c phpunit.xml --filter 'ApiResponseTest|ExceptionHandlerTest|PipelineHarnessTest|ApiDocBijectionTest|ApiDocRulesBijectionTest|ApiDocGoldenTest|PhaseOneContractTest|ResponseContractTest'"

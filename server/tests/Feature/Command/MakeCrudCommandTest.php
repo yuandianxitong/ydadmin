@@ -175,7 +175,7 @@ final class MakeCrudCommandTest extends TestCase
             $this->assertSame($file['content'], file_get_contents($file['path']), "--force 也不能覆盖前端页面文件：{$key}");
         }
         $this->assertStringNotContainsString($marker, (string) file_get_contents($modelPath), '--force 应当重新生成后端产物');
-        $backups = glob(self::$tempRoot . '/server/generator-state/demo/' . (new \core\module\NameConvention())->snake($model) . '/backups/*/model.txt') ?: [];
+        $backups = glob(self::$tempRoot . '/server/generator-state/demo/' . (new \core\generator\NameConvention())->snake($model) . '/backups/*/model.txt') ?: [];
         $this->assertCount(1, $backups);
         $this->assertStringContainsString($marker, file_get_contents($backups[0]), '--force 必须保留替换前的完整源码');
     }

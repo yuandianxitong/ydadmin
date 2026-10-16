@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace core\module;
+namespace core\generator;
 
 /**
  * 命名规则：表名 → 模型名（大驼峰）、模型名 → kebab-case / snake_case、表名 → 裸表名
