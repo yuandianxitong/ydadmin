@@ -18,7 +18,7 @@
             mode="aspectFill"
           />
           <view v-else class="default-avatar">
-            <text class="iconfont icon-person-circle" />
+            <view class="app-icon i-ri-user-3-line" />
           </view>
         </view>
         <view v-if="userStore.isLoggedIn" class="user-info">
@@ -195,7 +195,7 @@ function loadAssets() {
 async function loadMemberDecoration() {
   try {
     const page = await mobileConfigApi.getDiyPage('member')
-    memberPage.value = page
+    memberPage.value = { ...page, page_settings: page.page_settings || {} }
     refreshMemberStats(page?.components)
   } catch {
     memberPage.value = null
@@ -255,7 +255,7 @@ onShow(() => {
       align-items: center;
       justify-content: center;
 
-      .iconfont {
+      .app-icon {
         font-size: 64rpx;
         color: rgba(255, 255, 255, 0.8);
       }

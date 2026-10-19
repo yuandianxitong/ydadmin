@@ -10,12 +10,12 @@
       <view class="section-card">
         <u-cell-group>
           <u-cell title="昵称">
-            <template #default>
-              <u--input
+            <template #value>
+              <input
                 v-model="form.nickname"
                 placeholder="请输入昵称"
-                border="none"
-                inputAlign="right"
+                :maxlength="50"
+                confirm-type="done"
                 class="cell-input"
               />
             </template>
@@ -60,11 +60,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useUser } from '../composables/useUser'
-import { useUserStore } from '@/store/user.store'
-import { useAppStore } from '@/store/app.store'
 
-const userStore = useUserStore()
-const appStore = useAppStore()
 const { loading, loadProfile, updateProfile } = useUser()
 
 const genderOptions = [
@@ -142,7 +138,7 @@ async function handleSave() {
 
   await updateProfile({
     avatar: form.avatar,
-    nickname: form.nickname,
+    nickname: form.nickname.trim(),
     gender: form.gender,
     birthday: formatBirthday(form.birthday),
   })
@@ -165,7 +161,13 @@ async function handleSave() {
 }
 
 .cell-input {
-  width: 100%;
+  width: 360rpx;
+  max-width: 100%;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 28rpx;
+  color: $text-color;
+  box-sizing: border-box;
   text-align: right;
 }
 

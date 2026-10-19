@@ -35,6 +35,10 @@
 			"style": {
 				"navigationBarTitleText": "网站维护中"
 			}
+		},
+		{
+			"path": "pages/user_agreement/agreement",
+			"style": { "navigationBarTitleText": "用户协议" }
 		}
 	],
 	"tabBar": {

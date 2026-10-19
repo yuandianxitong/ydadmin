@@ -8,10 +8,10 @@
         mode="aspectFill"
       />
       <view v-else class="default-avatar">
-        <text class="iconfont icon-person-circle" />
+        <view class="app-icon i-ri-user-3-line" />
       </view>
       <view class="camera-overlay">
-        <text class="iconfont icon-image" style="color: #ffffff; font-size: 36rpx" />
+        <view class="app-icon i-ri-image-add-line" style="color: #ffffff; font-size: 36rpx" />
       </view>
     </view>
     <text class="hint">点击更换头像</text>
@@ -73,7 +73,7 @@ async function handleUpload() {
     align-items: center;
     justify-content: center;
 
-    .iconfont {
+    .app-icon {
       font-size: 80rpx;
       color: #c0c4cc;
     }

@@ -20,12 +20,13 @@
       <!-- 反馈内容 -->
       <view class="section-card">
         <view class="section-title">反馈内容</view>
-        <u--textarea
+        <up-textarea
           v-model="form.content"
           placeholder="请详细描述您遇到的问题或建议..."
           :maxlength="500"
           count
-          :rows="6"
+          :height="160"
+          :customStyle="{ width: '100%', boxSizing: 'border-box', minWidth: '0' }"
           class="content-textarea"
         />
       </view>
@@ -41,7 +42,7 @@
           >
             <image :src="appStore.getImageUrl(img)" mode="aspectFill" class="preview-image" @tap="previewImage(index)" />
             <view class="image-delete" @tap="removeImage(index)">
-              <text class="iconfont icon-trash3" style="color: #fff; font-size: 24rpx" />
+              <view class="app-icon i-ri-delete-bin-line" style="color: #fff; font-size: 24rpx" />
             </view>
           </view>
           <view
@@ -49,7 +50,7 @@
             class="image-add"
             @tap="handleUpload"
           >
-            <text class="iconfont icon-image" style="font-size: 56rpx; color: #cccccc" />
+            <view class="app-icon i-ri-image-add-line" style="font-size: 56rpx; color: #cccccc" />
           </view>
         </view>
       </view>
@@ -158,6 +159,8 @@ async function handleSubmit() {
 }
 
 .section-card {
+  box-sizing: border-box;
+  min-width: 0;
   background: #ffffff;
   border-radius: 24rpx;
   overflow: hidden;
@@ -201,6 +204,14 @@ async function handleSubmit() {
 
 .content-textarea {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+:deep(.u-textarea__field) {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .image-upload {
@@ -247,6 +258,8 @@ async function handleSubmit() {
 }
 
 .contact-input {
+  box-sizing: border-box;
+  min-width: 0;
   width: 100%;
   height: 80rpx;
   font-size: 28rpx;

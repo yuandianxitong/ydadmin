@@ -30,7 +30,7 @@
       >
         <view class="message-item__icon-wrap">
           <view class="message-item__icon" :class="getTypeClass(item.type)">
-            <text class="iconfont icon-bell" />
+            <view class="app-icon i-ri-notification-3-line" />
           </view>
           <view v-if="!item.is_read" class="message-item__dot" />
         </view>
@@ -152,7 +152,7 @@ onShow(() => {
     align-items: center;
     justify-content: center;
 
-    .iconfont {
+    .app-icon {
       font-size: 32rpx;
       color: #ffffff;
     }

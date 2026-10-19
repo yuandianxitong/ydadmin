@@ -22,7 +22,7 @@
           @tap="selected = 'wechat'"
         >
           <view class="d-payment-popup__method-icon d-payment-popup__method-icon--wechat">
-            <text class="iconfont icon-wechat" style="font-size: 40rpx; color: #ffffff" />
+            <view class="app-icon i-ri-wechat-fill" style="font-size: 40rpx; color: #ffffff" />
           </view>
           <text class="d-payment-popup__method-name">微信支付</text>
           <view
@@ -37,7 +37,7 @@
           @tap="selected = 'alipay'"
         >
           <view class="d-payment-popup__method-icon d-payment-popup__method-icon--alipay">
-            <text class="iconfont icon-alipay" style="font-size: 40rpx; color: #ffffff" />
+            <view class="app-icon i-ri-alipay-fill" style="font-size: 40rpx; color: #ffffff" />
           </view>
           <text class="d-payment-popup__method-name">支付宝支付</text>
           <view

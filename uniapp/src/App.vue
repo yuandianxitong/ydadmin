@@ -58,5 +58,5 @@ onShow(() => {
 <style lang="scss">
 @import 'uview-plus/index.scss';
 @import './styles/common.scss';
-@import './static/fonts/iconfont.css';
+@import './static/fonts/uview-icons.css';
 </style>

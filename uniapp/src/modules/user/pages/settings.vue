@@ -11,7 +11,7 @@
             @click="handleClearCache"
           >
             <template #icon>
-              <text class="iconfont icon-trash3 cell-icon cell-icon--badge" />
+              <view class="app-icon i-ri-delete-bin-line cell-icon cell-icon--badge" />
             </template>
           </u-cell>
           <u-cell
@@ -20,7 +20,7 @@
             @click="handleCheckUpdate"
           >
             <template #icon>
-              <text class="iconfont icon-phone-vibrate-fill cell-icon cell-icon--primary" />
+              <view class="app-icon i-ri-smartphone-line cell-icon cell-icon--primary" />
             </template>
           </u-cell>
         </u-cell-group>
@@ -31,7 +31,7 @@
         <u-cell-group>
           <u-cell title="当前版本" :value="version">
             <template #icon>
-              <text class="iconfont icon-question-circle cell-icon cell-icon--primary" />
+              <view class="app-icon i-ri-information-line cell-icon cell-icon--primary" />
             </template>
           </u-cell>
           <u-cell
@@ -40,7 +40,7 @@
             @click="openPrivacy"
           >
             <template #icon>
-              <text class="iconfont icon-shield-shaded cell-icon" style="color: #19be6b" />
+              <view class="app-icon i-ri-shield-check-line cell-icon" style="color: #19be6b" />
             </template>
           </u-cell>
           <u-cell
@@ -49,7 +49,7 @@
             @click="openTerms"
           >
             <template #icon>
-              <text class="iconfont icon-file-earmark-text cell-icon" style="color: #ff9900" />
+              <view class="app-icon i-ri-file-text-line cell-icon" style="color: #ff9900" />
             </template>
           </u-cell>
         </u-cell-group>
@@ -118,6 +118,8 @@ function calculateCache() {
 function handleClearCache() {
   uni.showModal({
     title: '提示',
+    confirmText: '确定',
+    cancelText: '取消',
     content: '确认清除缓存？',
     success: (res) => {
       if (res.confirm) {
@@ -153,6 +155,8 @@ async function handleCheckUpdate() {
 function handleLogout() {
   uni.showModal({
     title: '提示',
+    confirmText: '确定',
+    cancelText: '取消',
     content: '确认退出登录？',
     success: (res) => {
       if (res.confirm) {

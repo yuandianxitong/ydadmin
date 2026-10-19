@@ -12,7 +12,7 @@
         <!-- 旧密码 -->
         <view class="input-group">
           <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
-          <u--input
+          <up-input
             v-model="form.old_password"
             :password="true"
             placeholder="请输入当前密码"
@@ -27,7 +27,7 @@
         <!-- 新密码 -->
         <view class="input-group">
           <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
-          <u--input
+          <up-input
             v-model="form.new_password"
             :password="true"
             placeholder="请输入新密码（6-20位）"
@@ -42,7 +42,7 @@
         <!-- 确认新密码 -->
         <view class="input-group">
           <view class="i-ri-lock-line input-prefix-icon" style="font-size: 36rpx; color: #999" />
-          <u--input
+          <up-input
             v-model="form.confirm_password"
             :password="true"
             placeholder="请再次输入新密码"

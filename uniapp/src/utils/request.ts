@@ -50,6 +50,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       header: {
         'Content-Type': 'application/json',
         'X-Client-Type': getClientType(),
+        'think-lang': 'zh-cn',
         ...header,
       },
       success: (res: any) => {

@@ -16,7 +16,7 @@ export const uploadApi = {
         url: `${BASE_URL}/api/common/upload/image`,
         filePath,
         name: 'file',
-        header: { Authorization: `Bearer ${getToken()}` },
+        header: { Authorization: `Bearer ${getToken()}`, 'think-lang': 'zh-cn' },
         success: (res) => {
           try {
             const data = JSON.parse(res.data)

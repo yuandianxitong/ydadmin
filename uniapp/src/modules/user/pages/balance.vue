@@ -26,7 +26,7 @@
         </view>
 
         <view class="custom-amount">
-          <u--input
+          <up-input
             v-model="customAmount"
             type="digit"
             placeholder="自定义金额"
@@ -38,7 +38,7 @@
             <template #prefix>
               <text class="custom-prefix">¥</text>
             </template>
-          </u--input>
+          </up-input>
         </view>
 
         <u-button

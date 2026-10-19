@@ -1,7 +1,7 @@
 <template>
   <view class="d-phone-login">
     <view class="d-phone-login__field">
-      <u--input
+      <up-input
         v-model="mobile"
         type="number"
         maxlength="11"
@@ -23,7 +23,7 @@
     </view>
 
     <view class="d-phone-login__field">
-      <u--input
+      <up-input
         v-model="code"
         type="number"
         :maxlength="codeLength"

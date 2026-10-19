@@ -9,5 +9,5 @@ export interface AgreementItem {
 
 export const agreementApi = {
   getByCode: (code: string) =>
-    http.get<AgreementItem>(`/api/agreement/${code}`),
+    http.get<AgreementItem>(`/api/agreement/${encodeURIComponent(code)}`),
 }
