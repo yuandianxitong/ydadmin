@@ -7,6 +7,7 @@ namespace app\service\demo;
 use app\repository\demo\GenArticleRepository;
 use core\base\Service;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -61,17 +62,14 @@ class GenArticleService extends Service
     }
 
     /**
-     * 局部更新：只写传了的字段，值为 null 的丢弃；白名单与 create 一致。
+     * 局部更新：只写已校验且传入的字段，保留可空字段的 null 以支持清空；密码留空则保留。
      *
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      */
     public function updateGenArticle(int $id, array $data): void
     {
         $this->findGenArticleOrFail($id);
-        $update = array_filter(
-            array_intersect_key($data, array_flip(['title', 'summary', 'content', 'cover_image', 'category', 'price', 'view_count', 'slug', 'published_at', 'status', 'sort'])),
-            static fn ($value) => $value !== null
-        );
+        $update = array_intersect_key($data, array_flip(['title', 'summary', 'content', 'cover_image', 'category', 'price', 'view_count', 'slug', 'published_at', 'status', 'sort']));
         if ($update === []) {
             return;
         }
@@ -126,6 +124,6 @@ class GenArticleService extends Service
     /** @return array<string, mixed> */
     private function findGenArticleOrFail(int $id): array
     {
-        return $this->genArticleRepository->find($id) ?? throw new BusinessException(lang('demo/gen_article.not_found'));
+        return $this->genArticleRepository->find($id) ?? throw new NotFoundException(lang('demo/gen_article.not_found'));
     }
 }

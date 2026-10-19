@@ -53,7 +53,7 @@ final class UploadDriverExactnessTest extends ApiTestCase
         $this->setInjected($uploadService, 'fileService', Container::get(FileService::class));
 
         $tmpPath = (string) tempnam(sys_get_temp_dir(), 'ydadmin_upload_');
-        file_put_contents($tmpPath, "\x89PNG\r\n\x1a\n" . str_repeat("\x00\xff", 32));
+        file_put_contents($tmpPath, \tests\Support\ImageFixture::png());
         $file = new UploadFile($tmpPath, 'driver_exactness.png', 'image/png', UPLOAD_ERR_OK);
 
         try {

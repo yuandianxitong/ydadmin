@@ -48,9 +48,13 @@ final class TypeInference
 
         $baseType = $this->baseType($rawType);
         $type = $this->normalizeType($baseType, $rawType);
+        // 状态开关和查询统一使用 0/1；tinyint(1) 的布尔 cast 会使回显与筛选值不一致。
+        if (strtolower($name) === 'status' && in_array($baseType, self::INTEGER_BASE_TYPES, true)) {
+            $type = 'integer';
+        }
         $enumValues = $type === 'enum' ? $this->parseEnumValues($rawType) : [];
 
-        return new ColumnDescriptor(
+        $column = new ColumnDescriptor(
             $name,
             $type,
             $rawType,
@@ -65,6 +69,9 @@ final class TypeInference
             $this->inferInForm($name),
             $enumValues,
         );
+        return $this->isSensitive($column)
+            ? $column->withOverrides('input', false, false, $this->isPassword($column))
+            : $column;
     }
 
     /**
@@ -74,8 +81,8 @@ final class TypeInference
      * 拼一条唯一性校验（它们根本不拼）。原措辞「unique 索引不生成校验规则」曾被字面实现成
      * 连类型规则也不生成，导致 `varchar(100) UNIQUE` 的列（如 slug）能塞进任意长度的值，
      * 由数据库在严格模式报错、非严格模式静默截断——已改正。
-     * status/sort 固定覆盖式规则；NOT NULL 但有默认值的列产出 `sometimes|required`
-     * （客户端可以不传，传了才校验）；NOT NULL 且无默认值的列不产出必填部分，交由模板按
+     * status/sort 固定覆盖式规则；NOT NULL 但有默认值的列允许省略，其中字符串允许空串，
+     * 其余类型传入时必须非空；NOT NULL 且无默认值的列不产出必填部分，交由模板按
      * 创建/更新场景用 {$required} 拼。
      */
     public function validationRule(ColumnDescriptor $column): string
@@ -92,7 +99,7 @@ final class TypeInference
         if ($column->nullable) {
             $parts[] = 'nullable';
         } elseif ($column->default !== null) {
-            $parts[] = 'sometimes|required';
+            $parts[] = in_array($column->type, ['string', 'text'], true) ? 'sometimes' : 'sometimes|required';
         }
 
         switch ($column->type) {
@@ -163,7 +170,7 @@ final class TypeInference
         }
 
         $tokens = [];
-        if (!$column->nullable) {
+        if (!$column->nullable && !($column->default !== null && in_array($column->type, ['string', 'text'], true))) {
             $tokens[] = 'require';
         }
 
@@ -209,7 +216,8 @@ final class TypeInference
             'boolean' => 'boolean',
             'decimal' => 'string',
             'json' => 'array',
-            'date', 'datetime' => 'datetime',
+            'date' => 'date:Y-m-d',
+            'datetime' => 'datetime:Y-m-d H:i:s',
             default => null,
         };
     }
@@ -229,6 +237,26 @@ final class TypeInference
         }
 
         return 'equal';
+    }
+
+    public function isPassword(ColumnDescriptor $column): bool
+    {
+        return preg_match('/(^|_)(password|password_hash|passwd|pwd)$/i', $column->name) === 1;
+    }
+
+    public function isSensitive(ColumnDescriptor $column): bool
+    {
+        return $this->isPassword($column)
+            || preg_match('/(^|_)(token|secret|salt|private_key)(_|$)/i', $column->name) === 1;
+    }
+
+    public function label(ColumnDescriptor $column): string
+    {
+        return $column->comment !== '' ? $column->comment : match (strtolower($column->name)) {
+            'id' => 'ID', 'created_at' => '创建时间', 'updated_at' => '更新时间',
+            'deleted_at' => '删除时间', 'status' => '状态', 'sort' => '排序',
+            default => $column->name,
+        };
     }
 
     private function baseType(string $rawType): string

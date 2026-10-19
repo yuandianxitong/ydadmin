@@ -166,6 +166,13 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
 
 const rules = computed<FormRules>(() => ({
     name: [{ required: true, message: t('department.validate.nameRequired'), trigger: 'blur' }],
+    phone: [
+        {
+            pattern: /^\+?[0-9][0-9 -]{5,18}[0-9]$/,
+            message: t('department.validate.phoneFormat'),
+            trigger: 'blur'
+        }
+    ],
     email: [{ type: 'email', message: t('admin.validate.emailFormat'), trigger: 'blur' }]
 }))
 </script>

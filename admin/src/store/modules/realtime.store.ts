@@ -52,6 +52,14 @@ export const useRealtimeStore = defineStore('realtime', () => {
         realtimeClient.on('force_logout', (payload: ForceLogoutPayload) => {
             void handleForceLogout(payload)
         })
+        realtimeClient.on('notification.created', (payload: { title?: string }) => {
+            ElNotification({
+                title: t('notification.title'),
+                message: String(payload.title || t('notification.messages')),
+                type: 'info',
+                duration: 5000
+            })
+        })
         const progressToasts = new Map<string, { close: () => void }>()
         realtimeClient.on(
             'task.progress',

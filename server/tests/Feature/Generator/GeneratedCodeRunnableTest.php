@@ -79,6 +79,9 @@ final class GeneratedCodeRunnableTest extends TestCase
               `view_count` int unsigned NOT NULL DEFAULT '0' COMMENT '浏览量',
               `slug` varchar(100) NOT NULL COMMENT '别名',
               `published_at` datetime DEFAULT NULL COMMENT '发布时间',
+              `event_date` date DEFAULT NULL COMMENT '日期',
+              `optional_text` varchar(100) NOT NULL DEFAULT '' COMMENT '选填文本',
+              `password` varchar(255) DEFAULT NULL COMMENT '密码',
               `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态',
               `sort` int NOT NULL DEFAULT '0' COMMENT '排序',
               `created_by` int unsigned DEFAULT NULL,
@@ -199,6 +202,36 @@ final class GeneratedCodeRunnableTest extends TestCase
         $deleteResponse = $controller->delete($this->request('DELETE', "/adminapi/demo/gen-article/{$id}"), $id);
         $this->assertSame(200, json_decode((string) $deleteResponse->rawBody(), true)['code']);
         $this->assertNotNull(Db::table('gen_articles')->where('id', $id)->value('deleted_at'), '有 deleted_at 列应软删');
+    }
+
+    public function test_empty_dates_optional_text_password_and_date_serialization(): void
+    {
+        $controller = Container::get($this->controllerClass());
+        $payload = json_encode([
+            'title' => '空值回归', 'slug' => 'empty-' . uniqid(), 'optional_text' => '',
+            'cover_image' => '', 'published_at' => '', 'event_date' => '', 'password' => 'Plain123!',
+        ]);
+        $response = $controller->store($this->request('POST', '/adminapi/demo/gen-article', $payload));
+        $data = json_decode((string) $response->rawBody(), true)['data'];
+        $id = (string) $data['id'];
+        $row = Db::table('gen_articles')->where('id', $id)->first();
+        $this->assertNull($row->published_at);
+        $this->assertNull($row->event_date);
+        $this->assertSame('', $row->optional_text);
+        $this->assertTrue(password_verify('Plain123!', $row->password));
+        $this->assertArrayNotHasKey('password', $data);
+        $controller->update($this->request('PUT', '/adminapi/demo/gen-article/' . $id, json_encode(['event_date' => '2026-10-19'])), $id);
+        $detail = json_decode((string) $controller->show($this->request('GET', '/'), $id)->rawBody(), true)['data'];
+        $this->assertSame('2026-10-19', $detail['event_date']);
+        $this->assertArrayNotHasKey('password', $detail);
+        $controller->update($this->request('PUT', '/', json_encode(['event_date' => '', 'password' => ''])), $id);
+        $row = Db::table('gen_articles')->where('id', $id)->first();
+        $this->assertNull($row->event_date);
+        $this->assertTrue(password_verify('Plain123!', $row->password));
+        $list = json_decode((string) $controller->index($this->request('GET', '/'))->rawBody(), true)['data']['list'];
+        foreach ($list as $item) {
+            $this->assertArrayNotHasKey('password', $item);
+        }
     }
 
     public function test_generated_status_endpoint_toggles_status(): void

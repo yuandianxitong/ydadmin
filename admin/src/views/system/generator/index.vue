@@ -118,6 +118,17 @@
                         </el-select>
                     </template>
                 </el-table-column>
+                <el-table-column label="下拉选项" min-width="190">
+                    <template #default="{ row }">
+                        <el-input
+                            v-if="row.form_type === 'select'"
+                            v-model="row.options_text"
+                            type="textarea"
+                            :rows="3"
+                            placeholder="每行：值=标签，例如 1=分类一"
+                        />
+                    </template>
+                </el-table-column>
                 <el-table-column :label="$t('generator.listShow')" width="80" align="center">
                     <template #default="{ row }">
                         <el-checkbox v-model="row.in_list" />
@@ -263,12 +274,32 @@ const goStep2 = async () => {
 
     try {
         const res = await generatorApi.getColumns(selectedTable.value)
-        columns.value = res.data || []
+        columns.value = (res.data || []).map((column) => ({
+            ...column,
+            options_text: (column.options || [])
+                .map((option) => `${option.value}=${option.label}`)
+                .join('\n')
+        }))
         step.value = 1
     } catch (e) {
         ElMessage.error(t('generator.getColumnsFailed'))
     }
 }
+
+const configuredColumns = () =>
+    columns.value.map(({ options_text, ...column }) => ({
+        ...column,
+        options: String(options_text || '')
+            .split('\n')
+            .filter((line) => line.trim() !== '')
+            .map((line) => {
+                const separator = line.indexOf('=')
+                return {
+                    value: separator < 0 ? '' : line.slice(0, separator).trim(),
+                    label: separator < 0 ? '' : line.slice(separator + 1).trim()
+                }
+            })
+    }))
 
 const handlePreview = async () => {
     if (!config.module_name || !config.model_name) {
@@ -277,10 +308,12 @@ const handlePreview = async () => {
     }
     previewLoading.value = true
     try {
-        const res = await generatorApi.preview({ ...config, columns: columns.value })
+        const res = await generatorApi.preview({ ...config, columns: configuredColumns() })
         previewFiles.value = res.data || {}
         activeTab.value = Object.keys(previewFiles.value)[0] || 'controller'
         step.value = 2
+    } catch {
+        // 预期的字段校验错误已由请求拦截器提示，留在配置页继续修改。
     } finally {
         previewLoading.value = false
     }
@@ -289,10 +322,16 @@ const handlePreview = async () => {
 const handleGenerate = async () => {
     generateLoading.value = true
     try {
-        const res = await generatorApi.generate({ ...config, columns: columns.value })
+        const res = await generatorApi.generate({ ...config, columns: configuredColumns() })
         generateResult.value = res.data.files || []
         showResult.value = true
         ElMessage.success(t('generator.generateSuccess'))
+    } catch (error) {
+        const files = (error as { data?: { files?: unknown[] } }).data?.files
+        if (files) {
+            generateResult.value = files
+            showResult.value = true
+        }
     } finally {
         generateLoading.value = false
     }

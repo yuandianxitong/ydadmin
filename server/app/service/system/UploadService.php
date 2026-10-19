@@ -7,6 +7,7 @@ namespace app\service\system;
 use core\base\Service;
 use core\context\RequestContext;
 use core\exception\BusinessException;
+use core\storage\ImageContentGuard;
 use core\storage\StorageManager;
 use core\storage\UploadExtensionGuard;
 use DI\Attribute\Inject;
@@ -19,11 +20,11 @@ use Webman\Http\UploadFile;
  *
  * 流程：
  *   1. 文件存在且有效；
- *   2. 图片端点：MIME 白名单（jpeg/png/gif/webp，契约 §2.9.2）；
+ *   2. 图片端点：声明 MIME 白名单（jpeg/png/gif/webp，契约 §2.9.2）；
  *   3. 扩展名：危险扩展名黑名单（压过配置）→ 图片端点再过图片白名单 → 过 storage_upload_allowed_ext；
  *   4. 大小：图片读 storage_image_max_size，文件读 storage_upload_max_size（spec §1.1 第 8 条，
  *      不再是 TP8 写死的 2MB / 10MB）；
- *   5. 落盘 uploads/{images|files}/{Ymd}/{32位随机名}.{ext}；
+ *   5. 校验图片真实 MIME、图片结构与扩展名，再落盘 uploads/{images|files}/{Ymd}/{32位随机名}.{ext}；
  *   6. 写 files 行，失败只 Log::warning；
  *   7. 返回 {url, path, filename, size, storage}。
  *
@@ -72,6 +73,7 @@ class UploadService extends Service
         }
         $this->assertExtensionAllowed($file->getUploadExtension(), true);
         $this->assertSizeWithin($file, 'storage_image_max_size', self::DEFAULT_IMAGE_MAX_MB, 'business.image_size_exceeded');
+        $this->assertImageContent($file);
 
         return $this->store($file, self::GROUP_IMAGES);
     }
@@ -88,6 +90,11 @@ class UploadService extends Service
 
         $this->assertExtensionAllowed($file->getUploadExtension(), false);
         $this->assertSizeWithin($file, 'storage_upload_max_size', self::DEFAULT_FILE_MAX_MB, 'business.file_size_exceeded');
+        // 普通文件端点同样不能绕过图片内容校验。
+        if (UploadExtensionGuard::isAllowedImageExtension($file->getUploadExtension())
+            || in_array((string) $file->getUploadMimeType(), self::ALLOWED_IMAGE_MIME, true)) {
+            $this->assertImageContent($file);
+        }
 
         return $this->store($file, self::GROUP_FILES);
     }
@@ -100,6 +107,13 @@ class UploadService extends Service
         }
 
         return $file;
+    }
+
+    private function assertImageContent(UploadFile $file): void
+    {
+        if (ImageContentGuard::detect($file->getPathname(), $file->getUploadExtension()) === null) {
+            throw new BusinessException(lang('business.upload_image_only'));
+        }
     }
 
     /**
@@ -143,7 +157,7 @@ class UploadService extends Service
         $size = (int) $file->getSize();
         $extension = strtolower($file->getUploadExtension());
         $originalName = (string) $file->getUploadName();
-        $mimeType = (string) $file->getUploadMimeType();
+        $mimeType = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($file->getPathname());
         $localTmpPath = (string) $file->getPathname();
 
         // 契约写的是 {uniqid}，即「一个唯一名」。这里用密码学随机名而不是 uniqid()：

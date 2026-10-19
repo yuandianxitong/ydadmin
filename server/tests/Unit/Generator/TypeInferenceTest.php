@@ -55,14 +55,14 @@ final class TypeInferenceTest extends TestCase
             ['price', 'decimal', 'number', false, true, true, 'string'],
             ['view_count', 'integer', 'number', false, true, true, 'int'],
             ['slug', 'string', 'input', false, true, true, null],
-            ['published_at', 'datetime', 'datepicker', false, true, true, 'datetime'],
+            ['published_at', 'datetime', 'datepicker', false, true, true, 'datetime:Y-m-d H:i:s'],
             ['status', 'integer', 'switch', true, true, true, 'int'],
             ['sort', 'integer', 'number', false, true, true, 'int'],
             ['created_by', 'integer', 'number', false, true, false, 'int'],
             ['dept_id', 'integer', 'number', false, true, false, 'int'],
-            ['created_at', 'datetime', 'datepicker', false, true, false, 'datetime'],
-            ['updated_at', 'datetime', 'datepicker', false, true, false, 'datetime'],
-            ['deleted_at', 'datetime', 'datepicker', false, false, false, 'datetime'],
+            ['created_at', 'datetime', 'datepicker', false, true, false, 'datetime:Y-m-d H:i:s'],
+            ['updated_at', 'datetime', 'datepicker', false, true, false, 'datetime:Y-m-d H:i:s'],
+            ['deleted_at', 'datetime', 'datepicker', false, false, false, 'datetime:Y-m-d H:i:s'],
         ];
     }
 
@@ -100,6 +100,20 @@ final class TypeInferenceTest extends TestCase
 
         $this->assertSame(['news', 'tech', 'life'], $columns['category']->enumValues);
         $this->assertSame([], $columns['title']->enumValues);
+    }
+
+    public function test_tinyint_one_status_uses_numeric_switch_and_filter_values(): void
+    {
+        $raw = ['Field' => 'status', 'Type' => 'tinyint(1)', 'Null' => 'NO', 'Default' => '1'];
+        $status = $this->inference->describe($raw);
+
+        $this->assertSame('integer', $status->type);
+        $this->assertSame('int', $this->inference->cast($status));
+        $this->assertSame('equal', $this->inference->queryStrategy($status));
+        $this->assertSame([['label' => '启用', 'value' => '1'], ['label' => '禁用', 'value' => '0']], $status->selectOptions());
+
+        $raw['Field'] = 'is_public';
+        $this->assertSame('boolean', $this->inference->describe($raw)->type);
     }
 
     public function test_nullable_reflects_the_raw_null_column(): void

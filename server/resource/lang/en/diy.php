@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'initial_version'      => 'Initial state',
     'widget_invalid'       => 'Invalid component format',
     'widget_id_required'   => 'Component is missing id',
     'widget_id_duplicate'  => 'Duplicate component id',

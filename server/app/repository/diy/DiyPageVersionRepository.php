@@ -21,6 +21,11 @@ class DiyPageVersionRepository extends Repository
 
     protected ?string $creatorColumn = null;
 
+    public function hasVersions(int $pageId): bool
+    {
+        return $this->query()->where($this->qualify('page_id'), $pageId)->exists();
+    }
+
     protected function getModel(): Model
     {
         return new DiyPageVersion();

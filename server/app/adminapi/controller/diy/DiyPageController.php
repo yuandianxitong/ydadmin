@@ -295,7 +295,7 @@ class DiyPageController extends AuthenticatedController
     private function draftRules(): array
     {
         return [
-            'components'    => 'required|array',
+            'components'    => 'present|array',
             'page_settings' => 'nullable|array',
         ];
     }

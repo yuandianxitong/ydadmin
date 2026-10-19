@@ -71,7 +71,7 @@ class GenCategoryController extends AuthenticatedController
     #[ResponseSchema(GenCategoryResource::class)]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->storeRules(), $this->messages());
 
         return $this->success(GenCategoryResource::make($this->genCategoryService->createGenCategory($data)), lang('messages.create_success'));
     }
@@ -80,7 +80,7 @@ class GenCategoryController extends AuthenticatedController
     #[Permission('catalog.gen_category.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->updateRules(), $this->messages());
         $this->genCategoryService->updateGenCategory((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -108,6 +108,13 @@ class GenCategoryController extends AuthenticatedController
         $this->genCategoryService->batchDelete(array_map('intval', (array) $data['ids']));
 
         return $this->success([], lang('messages.batch_delete_success'));
+    }
+
+    /** @return array<string, mixed> */
+    private function input(Request $request): array
+    {
+        $data = $this->body($request);
+        return $data;
     }
 
     /** @return array<string, string> */

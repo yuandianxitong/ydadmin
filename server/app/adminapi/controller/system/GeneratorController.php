@@ -63,7 +63,11 @@ class GeneratorController extends AuthenticatedController
     {
         $data = $this->validate($this->body($request), $this->generateRules(), $this->generatorMessages());
 
-        return $this->success($this->generatorService->generate($this->buildGeneratorRequest($data)), lang('messages.create_success'));
+        $result = $this->generatorService->generate($this->buildGeneratorRequest($data));
+        if ($result['has_conflicts']) {
+            return $this->error(lang('generator.generate_incomplete'), 409, $result);
+        }
+        return $this->success($result, lang('messages.create_success'));
     }
 
     #[Post('/plan')]
@@ -71,7 +75,8 @@ class GeneratorController extends AuthenticatedController
     public function plan(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->planRules(), $this->generatorMessages());
-        return $this->success($this->generatorService->plan($this->buildGeneratorRequest($data)));
+        $result = $this->generatorService->plan($this->buildGeneratorRequest($data));
+        return $this->success($result, $result['has_conflicts'] ? lang('generator.generate_incomplete') : lang('messages.get_success'));
     }
 
     #[Post('/update')]
@@ -79,7 +84,10 @@ class GeneratorController extends AuthenticatedController
     public function updateGenerated(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->updateGeneratedRules(), $this->generatorMessages());
-        return $this->success($this->generatorService->updateGenerated($this->buildGeneratorRequest($data), (string) $data['plan_token']));
+        $result = $this->generatorService->updateGenerated($this->buildGeneratorRequest($data), (string) $data['plan_token']);
+        return $result['has_conflicts']
+            ? $this->error(lang('generator.generate_incomplete'), 409, $result)
+            : $this->success($result, lang('messages.update_success'));
     }
 
     /** @return array<string, string> */
@@ -113,6 +121,7 @@ class GeneratorController extends AuthenticatedController
                 'searchable' => (bool) $column['searchable'],
                 'in_list'    => (bool) $column['in_list'],
                 'in_form'    => (bool) $column['in_form'],
+                'options'    => (array) ($column['options'] ?? []),
             ];
         }
 
@@ -156,7 +165,7 @@ class GeneratorController extends AuthenticatedController
     {
         return [
             'table_name'           => 'required|string|max:64',
-            'module_name'          => 'required|string|regex:/^[a-z][a-z0-9_]{0,30}$/|not_in:admin_log,auth,business,messages,validation,generator,apidoc',
+            'module_name'          => 'required|string|regex:/^[a-z][a-z0-9_]{0,30}$/|not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc',
             'model_name'           => 'required|string|regex:/^[A-Z][A-Za-z0-9]{0,40}$/',
             'table_comment'        => 'nullable|string|max:100|regex:/^[^\r\n<>]*$/u',
             'columns'              => 'nullable|array',
@@ -165,6 +174,9 @@ class GeneratorController extends AuthenticatedController
             'columns.*.searchable' => 'required|boolean',
             'columns.*.in_list'    => 'required|boolean',
             'columns.*.in_form'    => 'required|boolean',
+            'columns.*.options' => 'nullable|array|max:100',
+            'columns.*.options.*.label' => 'required|string|max:100',
+            'columns.*.options.*.value' => 'required|string|max:100',
         ];
     }
 

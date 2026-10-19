@@ -45,13 +45,17 @@ final class ApiDocServiceTest extends TestCase
             ['/adminapi/auth/login', 'post'],
             ['/adminapi/auth/captcha', 'get'],
             ['/adminapi/health', 'get'],
-            ['/adminapi/system/api-doc', 'get'],
-            ['/adminapi/system/api-doc/openapi.json', 'get'],
         ];
         foreach ($public as [$path, $method]) {
             $operation = $paths[$path][$method];
             $this->assertSame([], $operation['security'], "{$method} {$path} 是公开路由");
             $this->assertSame('公开接口，无需登录', $operation['description'], "{$method} {$path}");
+        }
+
+        foreach (['/adminapi/system/api-doc', '/adminapi/system/api-doc/openapi.json'] as $path) {
+            $operation = $paths[$path]['get'];
+            $this->assertSame([['bearerAuth' => []]], $operation['security']);
+            $this->assertSame('system.api_doc', $operation['x-permission']);
         }
 
         $info = $paths['/adminapi/auth/info']['get'];

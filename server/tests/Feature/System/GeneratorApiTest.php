@@ -20,6 +20,40 @@ final class GeneratorApiTest extends ApiTestCase
 
     private const FIXTURE_TABLE = 'gen_articles';
 
+    public function test_conflicting_generation_is_not_reported_as_success(): void
+    {
+        $original = \support\Container::get(\app\service\system\GeneratorService::class);
+        $fake = new class () extends \app\service\system\GeneratorService {
+            public function generate(\core\generator\GeneratorRequest $request): array
+            {
+                return ['files' => [['path' => 'admin/src/example.vue', 'status' => 'skipped', 'reason' => 'exists']], 'has_conflicts' => true];
+            }
+        };
+        \support\Container::set(\app\service\system\GeneratorService::class, $fake);
+        try {
+            $admin = $this->actingAsAdmin('super');
+            $response = $this->post(self::BASE . '/generate', [
+                'table_name' => self::FIXTURE_TABLE, 'module_name' => 'demo', 'model_name' => 'GenArticle',
+            ], $admin->token)->assertCode(409);
+            $this->assertSame('skipped', $response->data()['files'][0]['status']);
+            $this->assertSame(lang('generator.generate_incomplete'), $response->message());
+        } finally {
+            \support\Container::set(\app\service\system\GeneratorService::class, $original);
+        }
+    }
+
+    public function test_select_requires_options_and_keeps_them_in_the_generated_form(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $data = ['table_name' => self::FIXTURE_TABLE, 'module_name' => 'demo', 'model_name' => 'GenArticle', 'columns' => [[
+            'name' => 'view_count', 'form_type' => 'select', 'searchable' => true, 'in_list' => true, 'in_form' => true,
+        ]]];
+        $this->post(self::BASE . '/preview', $data, $admin->token)->assertCode(422);
+        $data['columns'][0]['options'] = [['label' => '分类一', 'value' => '1']];
+        $preview = $this->post(self::BASE . '/preview', $data, $admin->token)->assertOk()->data();
+        $this->assertStringContainsString('<el-option label="分类一" :value="1" />', $preview['form']['content']);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -118,7 +152,7 @@ final class GeneratorApiTest extends ApiTestCase
         $columns = $this->get(self::BASE . '/columns', ['table' => self::FIXTURE_TABLE], $admin->token)->assertOk()->data();
 
         $this->assertCount(17, $columns);
-        $expectedKeys = ['name', 'type', 'raw_type', 'nullable', 'default', 'comment', 'key', 'extra', 'form_type', 'searchable', 'in_list', 'in_form'];
+        $expectedKeys = ['name', 'type', 'raw_type', 'nullable', 'default', 'comment', 'key', 'extra', 'form_type', 'searchable', 'in_list', 'in_form', 'options'];
         foreach ($columns as $column) {
             $this->assertSame($expectedKeys, array_keys($column), '字段列表必须齐全十二个字段：' . json_encode($column, JSON_UNESCAPED_UNICODE));
         }

@@ -44,7 +44,10 @@ namespace app\service\<?= $module ?>;
 
 use app\repository\<?= $module ?>\<?= $model ?>Repository;
 use core\base\Service;
+<?php if ($uniqueColumns !== []): ?>
 use core\exception\BusinessException;
+<?php endif; ?>
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 <?php if ($uniqueColumns !== []) { ?>
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -91,6 +94,11 @@ class <?= $model ?>Service extends Service
     public function create<?= $model ?>(array $data): array
     {
         $row = array_intersect_key($data, array_flip([<?= $writable ?>]));
+<?php foreach ($formColumns as $column): if (!$inference->isPassword($column)) continue; ?>
+        if (isset($row['<?= $column->name ?>']) && $row['<?= $column->name ?>'] !== '') {
+            $row['<?= $column->name ?>'] = password_hash((string) $row['<?= $column->name ?>'], PASSWORD_DEFAULT);
+        }
+<?php endforeach; ?>
 <?php foreach ($uniqueColumns as $unique) { ?>
         if (isset($row['<?= $unique ?>']) && $this-><?= $repository ?>->existsBy<?= $studly($unique) ?>((string) $row['<?= $unique ?>'])) {
             throw new BusinessException(lang('<?= $module ?>/<?= $modelSnake ?>.<?= $unique ?>_exists'));
@@ -110,17 +118,21 @@ class <?= $model ?>Service extends Service
     }
 
     /**
-     * 局部更新：只写传了的字段，值为 null 的丢弃；白名单与 create 一致。
+     * 局部更新：只写已校验且传入的字段，保留可空字段的 null 以支持清空；密码留空则保留。
      *
      * @param array<string, mixed> $data 控制器 validate() 的返回值（字段白名单）
      */
     public function update<?= $model ?>(int $id, array $data): void
     {
         $this->find<?= $model ?>OrFail($id);
-        $update = array_filter(
-            array_intersect_key($data, array_flip([<?= $writable ?>])),
-            static fn ($value) => $value !== null
-        );
+        $update = array_intersect_key($data, array_flip([<?= $writable ?>]));
+<?php foreach ($formColumns as $column): if (!$inference->isPassword($column)) continue; ?>
+        if (($update['<?= $column->name ?>'] ?? '') === '') {
+            unset($update['<?= $column->name ?>']);
+        } else {
+            $update['<?= $column->name ?>'] = password_hash((string) $update['<?= $column->name ?>'], PASSWORD_DEFAULT);
+        }
+<?php endforeach; ?>
         if ($update === []) {
             return;
         }
@@ -186,6 +198,6 @@ class <?= $model ?>Service extends Service
     /** @return array<string, mixed> */
     private function find<?= $model ?>OrFail(int $id): array
     {
-        return $this-><?= $repository ?>->find($id) ?? throw new BusinessException(lang('<?= $module ?>/<?= $modelSnake ?>.not_found'));
+        return $this-><?= $repository ?>->find($id) ?? throw new NotFoundException(lang('<?= $module ?>/<?= $modelSnake ?>.not_found'));
     }
 }

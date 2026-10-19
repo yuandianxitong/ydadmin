@@ -85,7 +85,7 @@
 
 ### 环境要求
 
-- PHP >= 8.4（pdo_mysql、redis、pcntl、posix）
+- PHP >= 8.4（pdo_mysql、redis、pcntl、posix、mbstring、gd、fileinfo、openssl、curl）
 - MySQL >= 8.0
 - Redis >= 5.0
 - Composer 2
@@ -95,19 +95,23 @@
 
 ```bash
 git clone https://github.com/yuandianxitong/ydadmin.git
-cd ydadmin/server
-composer install
-cd ../docker
+cd ydadmin/docker
 cp .env.example .env
 ```
 
 在 `docker/.env` 里填写 `MYSQL_ROOT_PASSWORD`、`MYSQL_PASSWORD`、`REDIS_PASSWORD`，然后：
 
 ```bash
-docker compose up -d --build
+docker compose build webman
+docker compose run --rm --no-deps --entrypoint composer webman install --no-dev --optimize-autoloader
+docker compose up -d
 ```
 
-浏览器打开 `http://localhost/install/` 完成安装向导。装完执行：
+Composer 使用容器内的 PHP 8.4，宿主机无需安装 PHP 或 Composer。
+
+连接参数、可信代理与容器网络配置详见 [Docker 部署说明](docker/README.md)。
+
+浏览器打开 `http://localhost/install/` 完成安装向导。数据库主机填 `mysql`、端口 `3306`、库名和用户均填 `ydadmin`（以 `docker/.env` 中的 `MYSQL_DATABASE` / `MYSQL_USER` 为准），密码填 `MYSQL_PASSWORD`；Redis 主机填 `redis`、端口 `6379`、密码填 `REDIS_PASSWORD`，DB 填 `0`。这里使用容器端口。装完执行：
 
 ```bash
 docker compose restart webman
@@ -198,7 +202,21 @@ php start.php reload
 
 也可以在管理后台「开发工具 → 代码生成器」里操作。
 
+安装器会将 `server/.env` 中的 `APP_DEBUG` 设为 `false`。生产模式下生成器的预览、生成、更新等写操作会被拒绝，CLI 也受此限制。二次开发请在独立开发环境设置 `APP_DEBUG=true`，手动部署执行 `php start.php restart`，Docker 在 `docker/` 中执行 `docker compose restart webman`。生成完成后构建前端并恢复生产配置。
+
 自动生成：Model、Repository、Service、Controller、路由、语言包、前端 API、列表页、表单组件。生成后需要 `reload`，新路由才会生效。
+
+枚举列会自动提供下拉选项。将其他字段改成下拉框时，需在字段配置中按每行 `值=标签` 填写选项，例如 `1=分类一`；数字字段填写数字值，关联分类需使用实际分类 ID。没有选项时会拒绝生成，避免产生无法提交的空下拉框。
+
+`system` 等核心模块名不可用于生成。密码字段只用于写入、自动哈希，不出现在列表和接口响应中；令牌、密钥等敏感字段也不会自动对外输出。
+
+Docker 开发环境必须同时挂载 `server/` 和 `admin/`，详见 [Docker 部署说明](docker/README.md)。已有生成模块不会被模板修复自动覆盖，请先备份并检查增量预览；已有前端页面会保留手工修改，需要按新模板核对或手工合并。
+
+## API 文档与页面版本
+
+API 文档在开发和生产模式下均可使用：登录后台后进入「开发工具 → API 文档」，管理员需拥有 `system.api_doc` 权限（超级管理员可直接访问）。查看、在新窗口打开及下载 JSON 均使用管理端认证，无需开启 `APP_DEBUG`。
+
+页面设计器首次保存修改前会保留初始快照，发布时继续生成版本。历史版本的「载入草稿」只替换草稿，检查后需重新发布才对外生效；草稿允许保存空白组件列表。已有页面在此前未留存的状态无法补回。
 
 ## 项目结构
 

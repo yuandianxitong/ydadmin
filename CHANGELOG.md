@@ -2,6 +2,23 @@
 
 本文件按里程碑记录元点Admin 2.x（webman）已交付能力，不从 git 自动生成。2.x 与 1.x（ThinkPHP）数据库不兼容。
 
+## [未发布]
+
+- Docker 生成器挂载前端源码并在写入前检查挂载，避免生成文件只留在容器内。
+- 修复生成代码的空日期、选填文本、可空字段清空、日期格式及列表 TypeScript 错误；状态筛选使用下拉框，时间字段补充中文标签。
+- 生成器支持配置下拉选项，缺失选项时拒绝生成；冲突返回 409 业务码并展示文件结果。
+- 禁止生成到核心模块；密码自动哈希并隐藏，敏感字段不进入响应和列表。
+
+- API 文档在生产模式下也可用，两条端点统一要求管理端登录及 `system.api_doc` 权限；新窗口与 JSON 下载支持认证。
+- 页面设计器允许空白草稿，首次保存前保留初始快照；历史版本操作明确为载入草稿，需重新发布生效。
+- 实时站内通知增加弹窗提示，继续同步铃铛未读数。
+
+- 修复 Docker 重复安装 mbstring、验证码缺 GD、大型静态资源代理连接及日志客户端 IP 配置。
+- 图片上传校验真实 MIME、图片结构与扩展名；普通文件端点同样校验图片内容。
+- 修复文章抽屉关闭时重置编辑器的问题；补充分类必填校验，新增成功后返回列表第一页。
+- 部门电话增加前后端格式校验；图片上传成功后收起编辑器菜单；修复暗色模式自定义主色覆盖。
+- PC 公告链接增加详情页；补齐容器内 Composer 安装、连接参数及生产模式生成器限制说明。
+
 ## [2.0.9]
 
 移除独立模块描述、模块清单接口与检查命令；CRUD 生成和增量合并继续使用生成基线。
@@ -22,7 +39,7 @@
 
 ## [M8]
 
-安装向导（`GET /install/` 与 JSON 步骤）和 CLI `php webman install` 共用 `core/install/Installer`：空库灌 `schema.sql` / `init.sql` / `regions.sql`，写 `.env` 与 JWT，建超管，打标 `system_upgrades` 2.0.0 并写 `runtime/install.lock`。已有表则拒绝，不 `DROP`。`php webman yd:update`（`--dry-run` / `--baseline`）按 `database/updates/vX.Y.Z/` 升级；M8 无待跑目录，已有库首次用 `--baseline=2.0.0` 只打标。
+安装向导（`GET /install/` 与 JSON 步骤）和 CLI `php webman install` 共用 `core/install/Installer`：空库灌 `schema.sql` / `init.sql` / `regions.sql`，写 `.env` 与 JWT，建超管，打标 `system_upgrades` 2.0.0 并写 `config/install.lock`。已有表则拒绝，不 `DROP`。`php webman yd:update`（`--dry-run` / `--baseline`）按 `database/updates/vX.Y.Z/` 升级；M8 无待跑目录，已有库首次用 `--baseline=2.0.0` 只打标。
 
 Docker：仓库根 `docker/` 提供 nginx + webman（PHP 8.4 cli，反代 HTTP 8000 与 `/ws` → 8001）+ 空 MySQL 8 + Redis 7。`docker compose up` 后走 `/install/` 或 `docker compose exec webman php webman install`。不灌 init SQL，不挂宿主机开发库。
 

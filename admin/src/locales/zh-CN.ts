@@ -495,7 +495,8 @@ export default {
         phonePlaceholder: '请输入联系电话',
         emailPlaceholder: '请输入邮箱',
         validate: {
-            nameRequired: '请输入部门名称'
+            nameRequired: '请输入部门名称',
+            phoneFormat: '请输入有效的手机号或座机号码'
         }
     },
     // 字典管理

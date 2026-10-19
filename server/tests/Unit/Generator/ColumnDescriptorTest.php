@@ -46,6 +46,7 @@ final class ColumnDescriptorTest extends TestCase
                 'searchable' => false,
                 'in_list' => true,
                 'in_form' => true,
+                'options' => [['label' => 'news', 'value' => 'news'], ['label' => 'tech', 'value' => 'tech'], ['label' => 'life', 'value' => 'life']],
             ],
             $column->toArray(),
         );
@@ -57,7 +58,7 @@ final class ColumnDescriptorTest extends TestCase
 
         $this->assertArrayNotHasKey('enum_values', $array);
         $this->assertArrayNotHasKey('enumValues', $array);
-        $this->assertCount(12, $array);
+        $this->assertCount(13, $array);
     }
 
     public function test_with_overrides_replaces_only_the_four_editable_fields(): void

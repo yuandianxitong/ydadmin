@@ -12,7 +12,7 @@ use ReflectionAttribute;
 use ReflectionClass;
 use support\annotation\route\Route;
 
-/** API 文档控制器不写任何路由属性：两条路由由 config/route.php 在 APP_DEBUG=true 时注册，生产环境不存在。 */
+/** API 文档控制器不写任何路由属性：两条路由由 config/route.php 注册，认证栈来自 AuthenticatedController。 */
 final class ApiDocAttributeTest extends TestCase
 {
     public function test_route_file_does_not_register_business_controllers(): void

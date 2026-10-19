@@ -36,6 +36,12 @@ class <?= $model ?> extends Model
 
 <?php endif; ?>
     protected $table = '<?= $bareTableName ?>';
+<?php $hidden = array_values(array_map(static fn ($c) => $c->name, array_filter($columns, static fn ($c) => $inference->isSensitive($c)))); ?>
+<?php if ($hidden !== []): ?>
+
+    /** @var list<string> */
+    protected $hidden = [<?= implode(', ', array_map(static fn (string $name): string => var_export($name, true), $hidden)) ?>];
+<?php endif; ?>
 <?php if ($primaryKey !== 'id'): ?>
 
     protected $primaryKey = '<?= $primaryKey ?>';

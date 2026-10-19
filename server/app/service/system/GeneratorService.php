@@ -40,7 +40,7 @@ class GeneratorService extends Service
      * {module}.php。模块名仍然不能用现有分组：文章的手写语言键读的是 article.php，
      * 生成代码若再占用这个分组，手写键和生成键会缠在一起。清单 = 下面这几条 + zh_CN 目录里的文件名。
      */
-    private const RESERVED_MODULES = ['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'];
+    private const RESERVED_MODULES = ['system', 'operations', 'dataimport', 'mobile', 'admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc'];
 
     #[Inject]
     protected SchemaRepository $schemaRepository;
@@ -95,7 +95,7 @@ class GeneratorService extends Service
      * 生成：buildArtifacts() 再落盘，没有第二条渲染路径（spec §5.3）。
      * 「预览即所得」（spec §11.3）靠的就是两个端点渲染的是同一份字节。
      *
-     * @return array{files: list<array{path: string, status: string, reason?: string}>}
+     * @return array{files: list<array{path: string, status: string, reason?: string}>, has_conflicts: bool}
      */
     public function generate(GeneratorRequest $request): array
     {
@@ -103,6 +103,7 @@ class GeneratorService extends Service
 
         // 全部产物完成渲染与 PHP 语法检查后才落盘。
         $artifacts = $this->buildArtifacts($request);
+        $this->assertFrontendMounted();
 
         // 第二阶段：落盘，控制器最后写，单文件失败不中断整批，已写的不回滚
         $statuses = $this->store($request)->create($this->writable($artifacts));
@@ -118,6 +119,7 @@ class GeneratorService extends Service
 
         return [
             'files' => $files,
+            'has_conflicts' => count(array_filter($files, static fn (array $file): bool => $file['status'] !== 'created')) > 0,
         ];
     }
 
@@ -134,6 +136,7 @@ class GeneratorService extends Service
     public function updateGenerated(GeneratorRequest $request, string $planToken): array
     {
         $this->assertWritesEnabled();
+        $this->assertFrontendMounted();
         $this->assertNames($request);
         $request = $this->store($request)->defaults();
         return $this->store($request)->update($this->writable($this->buildArtifacts($request)), $planToken);
@@ -143,6 +146,7 @@ class GeneratorService extends Service
     public function forceGenerate(GeneratorRequest $request): array
     {
         $this->assertWritesEnabled();
+        $this->assertFrontendMounted();
         $files = $this->writable($this->buildArtifacts($request));
         $result = [];
         foreach ($this->store($request)->force($files) as $key => $status) {
@@ -207,6 +211,21 @@ class GeneratorService extends Service
     protected function repoRoot(): string
     {
         return dirname(base_path());
+    }
+
+    private function assertFrontendMounted(): void
+    {
+        if (!(bool) env('GENERATOR_REQUIRE_ADMIN_MOUNT', false)) {
+            return;
+        }
+        $target = $this->repoRoot() . '/admin';
+        foreach (explode("\n", (string) @file_get_contents('/proc/self/mountinfo')) as $line) {
+            $fields = explode(' ', $line);
+            if (($fields[4] ?? '') === $target && is_file($target . '/package.json')) {
+                return;
+            }
+        }
+        throw new BusinessException(lang('generator.frontend_mount_missing'));
     }
 
     /**
@@ -288,7 +307,6 @@ class GeneratorService extends Service
         foreach (glob(base_path('resource/lang/zh_CN/*.php')) ?: [] as $file) {
             $reserved[] = basename($file, '.php');
         }
-
         return array_values(array_unique($reserved));
     }
 
@@ -322,7 +340,7 @@ class GeneratorService extends Service
      * 客户端传来的 name / raw_type / nullable / default / key / extra 一律不采信——用它们渲染代码
      * 等于让客户端控制生成内容。overrides 里出现表中不存在的列名时忽略该项（§4.3）。
      *
-     * @param array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool}> $overrides
+     * @param array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool, options?: list<array{label: string, value: string}>}> $overrides
      * @return list<ColumnDescriptor>
      */
     private function columnsOf(string $table, array $overrides): array
@@ -331,14 +349,28 @@ class GeneratorService extends Service
         foreach ($this->schemaRepository->listColumns($table) as $raw) {
             $column = $this->typeInference->describe($raw);
             $override = $overrides[$column->name] ?? null;
-            $columns[] = $override === null
+            $configured = $override === null
                 ? $column
                 : $column->withOverrides(
                     $override['form_type'],
                     $override['searchable'],
                     $override['in_list'],
                     $override['in_form'],
+                    $override['options'] ?? [],
                 );
+            if ($configured->inForm && $configured->formType === 'select' && $configured->selectOptions() === []) {
+                throw new ValidationException(['columns' => lang('generator.select_options_required', ['field' => $column->name])]);
+            }
+            foreach ($configured->selectOptions() as $option) {
+                $value = $option['value'];
+                if (($column->type === 'integer' && filter_var($value, FILTER_VALIDATE_INT) === false)
+                    || ($column->type === 'decimal' && !is_numeric($value))
+                    || ($column->type === 'boolean' && !in_array($value, ['0', '1'], true))
+                    || ($column->type === 'enum' && !in_array($value, $column->enumValues, true))) {
+                    throw new ValidationException(['columns' => lang('generator.invalid_select_option', ['field' => $column->name])]);
+                }
+            }
+            $columns[] = $configured;
         }
 
         return $columns;

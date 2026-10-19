@@ -172,7 +172,7 @@
             v-model="formVisible"
             :form-data="formData"
             :category-options="categoryOptions"
-            @success="getList"
+            @success="handleFormSuccess"
         />
     </div>
 </template>
@@ -220,6 +220,11 @@ const categoryOptions = ref<any[]>([])
 // 弹窗相关
 const formVisible = ref(false)
 const formData = ref<Record<string, any>>({})
+
+const handleFormSuccess = () => {
+    if (!formData.value.id) pagination.page = 1
+    void getList()
+}
 
 // 获取分类选项
 const getCategoryOptions = async () => {

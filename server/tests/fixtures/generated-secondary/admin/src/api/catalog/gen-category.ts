@@ -12,8 +12,8 @@ export interface GenCategoryInfo {
     settings?: Record<string, any>
     contact_email?: string
     sort: number
-    created_at?: string
-    updated_at?: string
+    created_at?: string | null
+    updated_at?: string | null
 }
 
 export interface GenCategoryReq {

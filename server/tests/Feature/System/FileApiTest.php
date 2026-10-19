@@ -47,7 +47,7 @@ final class FileApiTest extends ApiTestCase
     /** 经上传接口造一条真实落盘的文件,返回 [files.id, 相对路径]。 @return array{0: int, 1: string} */
     private function uploadReal(TestAdmin $admin): array
     {
-        $data = $this->postFile('/adminapi/upload/image', 'file', 'real.png', "\x89PNG\r\n\x1a\ndata", 'image/png', $admin->token)->assertOk()->data();
+        $data = $this->postFile('/adminapi/upload/image', 'file', 'real.png', \tests\Support\ImageFixture::png(), 'image/png', $admin->token)->assertOk()->data();
         $path = (string) $data['path'];
         $this->trackStorageFile($path);
         $id = (int) Db::table('files')->where('path', $path)->value('id');

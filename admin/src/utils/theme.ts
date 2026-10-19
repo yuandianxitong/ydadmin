@@ -32,8 +32,6 @@ const darkConfig = {
     'dark-2': 'tint(20%)'
 }
 
-const themeId = 'theme-vars'
-
 /**
  * @author Jason
  * @description 用于生成elementui主题的行为变量
@@ -71,24 +69,14 @@ export const setTheme = (options: Record<string, string>, isDark = false) => {
         return Object.assign(prev, generateVars(options[key], key, isDark))
     }, {})
 
-    let theme = Object.keys(varsMap).reduce((prev, key) => {
-        const color = colors.convert(varsMap[key])
-        return `${prev}${key}:${color};`
-    }, '')
-    theme = `:root{${theme}}`
-    let style = document.getElementById(themeId)
-    if (style) {
-        style.innerHTML = theme
-    } else {
-        style = document.createElement('style')
-        style.setAttribute('type', 'text/css')
-        style.setAttribute('id', themeId)
-        style.innerHTML = theme
-        document.head.append(style)
+    // 行内变量优先于 html.dark 及懒加载组件样式，刷新后也使用已保存的主色。
+    for (const [key, value] of Object.entries(varsMap)) {
+        setCssVar(key, colors.convert(value))
     }
 
     // 同步更新设计 token 层的品牌色，让侧边栏等使用 --color-brand 的组件跟随变化
     if (options.primary) {
         setCssVar('--color-brand', options.primary)
+        setCssVar('--color-brand-ghost', colors.convert(`color(${options.primary} a(15%))`))
     }
 }

@@ -216,7 +216,10 @@ request.interceptors.response.use(
 
         // 其他业务错误处理
         ElMessage.error(data.message || t('http.operationFailed'))
-        const err = new Error(data.message || t('http.operationFailed'))
+        const err = Object.assign(new Error(data.message || t('http.operationFailed')), {
+            code: data.code,
+            data: data.data
+        })
         ;(err as any).__handled = true
         return Promise.reject(err)
     },

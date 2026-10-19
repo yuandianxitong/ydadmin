@@ -4,6 +4,10 @@
 // the rest are registered here up front for the later preview()/generate() tasks to reuse,
 // so the language file is not created twice by concurrent tasks.
 return [
+    'invalid_select_option' => 'Option values do not match the database type for :field',
+    'frontend_mount_missing' => 'Mount the host admin/ source at /var/www/admin before generating code',
+    'select_options_required' => 'Configure options for :field before generating a select',
+    'generate_incomplete' => 'Generation has conflicts or failed files; inspect the file results',
     'path_changed' => 'Artifact path changed; migrate it manually first',
     'generated_file_deleted' => 'Generated file was deleted; review whether to restore it',
     'baseline_missing' => 'Existing file has no trusted generation baseline and cannot be overwritten automatically',

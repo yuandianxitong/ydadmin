@@ -104,7 +104,7 @@ final class Test16_GeneratorSafetyTest extends ApiTestCase
         $admin = $this->actingAsAdmin('super');
         $before = $this->snapshot();
 
-        foreach (['admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc', 'article', 'payment', 'wechat'] as $reserved) {
+        foreach (['system', 'operations', 'dataimport', 'mobile', 'admin_log', 'auth', 'business', 'messages', 'validation', 'generator', 'apidoc', 'article', 'payment', 'wechat'] as $reserved) {
             foreach ([self::PREVIEW, self::GENERATE] as $uri) {
                 $response = $this->post($uri, $this->payload(module: $reserved), $admin->token);
                 $response->assertCode(422);

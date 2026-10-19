@@ -503,7 +503,8 @@ export default {
         phonePlaceholder: 'Enter phone number',
         emailPlaceholder: 'Enter email',
         validate: {
-            nameRequired: 'Please enter department name'
+            nameRequired: 'Please enter department name',
+            phoneFormat: 'Please enter a valid mobile or landline number'
         }
     },
     // Dictionary management

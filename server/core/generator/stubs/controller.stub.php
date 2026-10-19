@@ -38,6 +38,12 @@ foreach ($formColumns as $column) {
         $ruleValues[$column->name] = "'" . $fragment . "'";
     }
 
+    if ($inference->isPassword($column)) {
+        $ruleValues[$column->name] = $column->nullable || $column->default !== null
+            ? "'sometimes|nullable|string|max:255'"
+            : '"{$passwordRequired}|string|max:255"';
+    }
+
     foreach ($inference->ruleTokens($column) as $token) {
         $rule = $ruleOfToken[$token] ?? $token;
         $messageKeys["'" . $column->name . '.' . $rule . "'"] = $langPrefix . '.' . $column->name . '_' . $token;
@@ -142,7 +148,7 @@ if ($ranges !== []): ?>
     #[ResponseSchema(<?= $model ?>Resource::class)]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->storeRules(), $this->messages());
 
         return $this->success(<?= $model ?>Resource::make($this-><?= $service ?>->create<?= $model ?>($data)), lang('messages.create_success'));
     }
@@ -151,7 +157,7 @@ if ($ranges !== []): ?>
     #[Permission('<?= $permission ?>.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->updateRules(), $this->messages());
         $this-><?= $service ?>->update<?= $model ?>((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -196,6 +202,22 @@ if ($ranges !== []): ?>
         return $this->success([], lang('messages.status_update_success'));
     }
 <?php } ?>
+
+    /** @return array<string, mixed> */
+    private function input(Request $request): array
+    {
+        $data = $this->body($request);
+<?php foreach ($formColumns as $column): if (!in_array($column->type, ['date', 'datetime'], true) || (!$column->nullable && $column->default === null)) continue; ?>
+        if (array_key_exists('<?= $column->name ?>', $data) && ($data['<?= $column->name ?>'] === '' || $data['<?= $column->name ?>'] === null)) {
+<?php if ($column->nullable): ?>
+            $data['<?= $column->name ?>'] = null;
+<?php else: ?>
+            unset($data['<?= $column->name ?>']);
+<?php endif; ?>
+        }
+<?php endforeach; ?>
+        return $data;
+    }
 
     /** @return array<string, string> */
     private function indexRules(): array
@@ -270,6 +292,9 @@ if ($ranges !== []): ?>
     private function <?= $rulesMethod ?>(string $scene): array
     {
         $required = $scene === 'create' ? 'required' : 'sometimes|required';
+<?php if (array_filter($formColumns, static fn ($c) => $inference->isPassword($c)) !== []): ?>
+        $passwordRequired = $scene === 'create' ? 'required' : 'sometimes|nullable';
+<?php endif; ?>
 
         return [
 <?php foreach ($ruleValues as $name => $value) { ?>

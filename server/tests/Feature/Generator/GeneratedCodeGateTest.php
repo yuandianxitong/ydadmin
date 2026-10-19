@@ -454,7 +454,7 @@ final class GeneratedCodeGateTest extends TestCase
     {
         $controllerFile = $this->findGeneratedFile('/app/adminapi/controller/demo/GenArticleController.php');
         $original = (string) file_get_contents($controllerFile);
-        $needle = '$data = $this->validate($this->body($request), $this->storeRules(), $this->messages());';
+        $needle = '$data = $this->validate($this->input($request), $this->storeRules(), $this->messages());';
         $this->assertStringContainsString($needle, $original, '生成的 store() 形状变了，注入点选取失败');
         $mutated = str_replace(
             $needle,

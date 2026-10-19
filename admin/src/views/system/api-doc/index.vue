@@ -28,9 +28,9 @@
                 </div>
             </template>
 
-            <div ref="swaggerContainer" class="swagger-wrapper"></div>
+            <div v-show="!loadError" ref="swaggerContainer" class="swagger-wrapper"></div>
 
-            <el-empty v-if="loadError" :description="$t('apiDoc.loadFailed')">
+            <el-empty v-if="loadError" :description="loadErrorMessage || $t('apiDoc.loadFailed')">
                 <el-button type="primary" @click="initSwagger">{{ $t('apiDoc.retry') }}</el-button>
             </el-empty>
         </el-card>
@@ -39,34 +39,44 @@
 
 <script setup lang="ts">
 import { Download, Link } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 
+import { fetchOpenApiDocument } from '@/api/api-doc'
 import { getToken } from '@/utils/auth'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const swaggerContainer = ref<HTMLElement>()
 const loadError = ref(false)
+const loadErrorMessage = ref('')
+let loadSequence = 0
+let loadController: AbortController | undefined
 let swaggerUI: any = null
 
-const apiType = ref('admin')
-
-const getOpenapiUrl = () => {
-    // 始终用相对路径，开发环境走 Vite 代理，生产环境走同域
-    return `/adminapi/system/api-doc/openapi.json?type=${apiType.value}`
-}
+const apiType = ref<'admin' | 'api'>(route.query.type === 'api' ? 'api' : 'admin')
 
 const initSwagger = async () => {
+    const sequence = ++loadSequence
+    loadController?.abort()
+    loadController = new AbortController()
     loadError.value = false
+    loadErrorMessage.value = ''
     if (!swaggerContainer.value) return
+    swaggerUI?.destroy?.()
+    swaggerUI = null
+    swaggerContainer.value.replaceChildren()
 
     try {
-        // 动态加载 Swagger UI
+        const spec = await fetchOpenApiDocument(apiType.value, loadController.signal)
         const SwaggerUIBundle = await loadSwaggerUI()
-
+        if (sequence !== loadSequence) return
         swaggerUI = SwaggerUIBundle({
-            url: getOpenapiUrl(),
+            spec,
             domNode: swaggerContainer.value,
             deepLinking: true,
             presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
@@ -76,17 +86,19 @@ const initSwagger = async () => {
             filter: true,
             persistAuthorization: true,
             requestInterceptor: (req: any) => {
-                // 自动注入当前登录 token
                 const token = getToken()
-                if (token) {
-                    req.headers.Authorization = `Bearer ${token}`
-                }
+                if (token) req.headers.Authorization = `Bearer ${token}`
                 return req
             }
         })
-    } catch (e) {
-        console.error(t('apiDoc.swaggerLoadFailed') + ':', e)
+    } catch (error) {
+        if (
+            sequence !== loadSequence ||
+            (error instanceof DOMException && error.name === 'AbortError')
+        )
+            return
         loadError.value = true
+        loadErrorMessage.value = error instanceof Error ? error.message : t('apiDoc.loadFailed')
     }
 }
 
@@ -124,16 +136,38 @@ const handleTypeChange = () => {
 }
 
 const openSwaggerUI = () => {
-    window.open(`/adminapi/system/api-doc?type=${apiType.value}`, '_blank')
+    const href = router.resolve({
+        path: route.path,
+        query: { ...route.query, type: apiType.value }
+    }).href
+    window.open(href, '_blank', 'noopener')
 }
 
-const downloadJson = () => {
-    window.open(getOpenapiUrl(), '_blank')
+const downloadJson = async () => {
+    try {
+        const document = await fetchOpenApiDocument(apiType.value)
+        const url = URL.createObjectURL(
+            new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' })
+        )
+        const link = window.document.createElement('a')
+        link.href = url
+        link.download = `openapi-${apiType.value}.json`
+        window.document.body.appendChild(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 0)
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        ElMessage.error(error instanceof Error ? error.message : t('apiDoc.loadFailed'))
+    }
 }
 
 onMounted(initSwagger)
 
 onBeforeUnmount(() => {
+    loadSequence++
+    loadController?.abort()
+    swaggerUI?.destroy?.()
     swaggerUI = null
 })
 </script>

@@ -3,6 +3,10 @@
 // 代码生成器（spec §10）。本任务只用到 table_require / table_not_found；
 // 其余键先在此登记，供 preview()/generate() 的后续任务直接引用，避免语言包文件被多个任务并发新建。
 return [
+    'invalid_select_option' => '字段 :field 的下拉选项值与数据库类型或枚举值不一致',
+    'frontend_mount_missing' => '请先将宿主机 admin/ 源码挂载到 /var/www/admin，再生成代码',
+    'select_options_required' => '请先为字段 :field 配置下拉选项，再预览或生成',
+    'generate_incomplete' => '生成存在冲突或写入失败，请检查文件结果；已有文件未被覆盖',
     'path_changed' => '产物路径发生变化，请先人工迁移',
     'generated_file_deleted' => '已生成的文件被删除，请确认是否恢复',
     'baseline_missing' => '已有文件缺少可信生成基线，不能自动覆盖',
@@ -21,7 +25,7 @@ return [
     'render_failed'           => '模板渲染失败',
     'invalid_module_name'     => '模块名只能以小写字母开头，由小写字母、数字、下划线组成，最长 31 个字符',
     'invalid_model_name'      => '模型名只能以大写字母开头，由字母和数字组成，最长 41 个字符',
-    'module_name_reserved'    => '模块名与既有语言分组冲突（admin_log/auth/business/messages/validation/generator/apidoc），请换一个模块名',
+    'module_name_reserved' => '模块名属于系统核心模块或既有语言分组，请换一个独立业务模块名',
     'invalid_table_comment'   => '模块中文说明不能包含换行、回车或尖括号，最长 100 个字符',
     'unknown_error'           => '未知错误',
 ];

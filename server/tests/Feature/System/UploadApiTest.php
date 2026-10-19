@@ -20,10 +20,10 @@ final class UploadApiTest extends ApiTestCase
 
     private const FILE = '/adminapi/upload/file';
 
-    /** 一小段 PNG 头 + 填充，够当作真实二进制内容用 */
+    /** 真实 PNG 图片 + 填充 */
     private function pngBytes(int $padding = 64): string
     {
-        return "\x89PNG\r\n\x1a\n" . str_repeat("\x00\xff", $padding);
+        return \tests\Support\ImageFixture::png($padding);
     }
 
     /**
@@ -92,7 +92,7 @@ final class UploadApiTest extends ApiTestCase
     public function test_image_size_limit_comes_from_storage_image_max_size(): void
     {
         $admin = $this->actingAsAdmin();
-        $big = str_repeat('A', 1024 * 1024 + 512); // 略大于 1MB
+        $big = $this->pngBytes(1024 * 1024 + 512); // 略大于 1MB
 
         $this->setConfig('storage_image_max_size', '1');
         $response = $this->postFile(self::IMAGE, 'file', 'big.png', $big, 'image/png', $admin->token)->assertCode(400);
@@ -158,6 +158,38 @@ final class UploadApiTest extends ApiTestCase
         foreach ([self::IMAGE, self::FILE] as $uri) {
             $this->assertSame(lang('business.please_select_upload'), $this->post($uri, [], $admin->token)->assertCode(400)->message());
         }
+    }
+
+    public function test_disguised_image_content_is_rejected_by_both_endpoints_without_side_effects(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $beforeRows = Db::table('files')->count();
+        $beforeFiles = $this->storageFiles();
+        foreach ([self::IMAGE, self::FILE] as $uri) {
+            foreach (['<?php echo "pwned";', "\x89PNG\r\n\x1a\n", '<html>not an image</html>'] as $bytes) {
+                $this->postFile($uri, 'file', 'disguised.png', $bytes, 'image/png', $admin->token)->assertCode(400);
+            }
+            $this->postFile($uri, 'file', 'wrong.jpg', $this->pngBytes(), 'image/jpeg', $admin->token)->assertCode(400);
+        }
+        $this->assertSame($beforeRows, Db::table('files')->count());
+        $this->assertSame($beforeFiles, $this->storageFiles());
+    }
+
+    /** @return list<string> */
+    private function storageFiles(): array
+    {
+        $root = public_path('storage/uploads');
+        if (!is_dir($root)) {
+            return [];
+        }
+        $paths = [];
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isFile()) {
+                $paths[] = $file->getPathname();
+            }
+        }
+        sort($paths);
+        return $paths;
     }
 
     public function test_upload_needs_login_only(): void

@@ -107,12 +107,12 @@ final class GoldenModuleTest extends TestCase
         [, $content] = $this->renderGolden('controller');
 
         $this->assertStringContainsString(
-            '$this->validate($this->body($request), $this->storeRules(), $this->messages());',
+            '$this->validate($this->input($request), $this->storeRules(), $this->messages());',
             $content,
             'store() 必须通过 storeRules() 取规则'
         );
         $this->assertStringContainsString(
-            '$this->validate($this->body($request), $this->updateRules(), $this->messages());',
+            '$this->validate($this->input($request), $this->updateRules(), $this->messages());',
             $content,
             'update() 必须通过 updateRules() 取规则'
         );

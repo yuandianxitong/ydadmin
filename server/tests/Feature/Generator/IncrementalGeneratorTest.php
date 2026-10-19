@@ -72,6 +72,25 @@ final class IncrementalGeneratorTest extends TestCase
         $this->assertCount(11, $plan['files']);
     }
 
+    public function test_missing_docker_frontend_mount_stops_all_writes(): void
+    {
+        $old = $_ENV['GENERATOR_REQUIRE_ADMIN_MOUNT'] ?? null;
+        $_ENV['GENERATOR_REQUIRE_ADMIN_MOUNT'] = 'true';
+        try {
+            $this->service->generate($this->request());
+            $this->fail('未挂载前端源码时必须拒绝生成');
+        } catch (\core\exception\BusinessException $exception) {
+            $this->assertSame(lang('generator.frontend_mount_missing'), $exception->getMessage());
+            $this->assertDirectoryDoesNotExist($this->root);
+        } finally {
+            if ($old === null) {
+                unset($_ENV['GENERATOR_REQUIRE_ADMIN_MOUNT']);
+            } else {
+                $_ENV['GENERATOR_REQUIRE_ADMIN_MOUNT'] = $old;
+            }
+        }
+    }
+
     public function test_schema_addition_keeps_custom_php_and_vue_code_and_updates_the_baseline(): void
     {
         $this->service->generate($this->request());

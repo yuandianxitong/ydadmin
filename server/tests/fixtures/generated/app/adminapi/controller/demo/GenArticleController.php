@@ -72,7 +72,7 @@ class GenArticleController extends AuthenticatedController
     #[ResponseSchema(GenArticleResource::class)]
     public function store(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->storeRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->storeRules(), $this->messages());
 
         return $this->success(GenArticleResource::make($this->genArticleService->createGenArticle($data)), lang('messages.create_success'));
     }
@@ -81,7 +81,7 @@ class GenArticleController extends AuthenticatedController
     #[Permission('demo.gen_article.update')]
     public function update(Request $request, string $id): Response
     {
-        $data = $this->validate($this->body($request), $this->updateRules(), $this->messages());
+        $data = $this->validate($this->input($request), $this->updateRules(), $this->messages());
         $this->genArticleService->updateGenArticle((int) $id, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -123,6 +123,16 @@ class GenArticleController extends AuthenticatedController
         $this->genArticleService->updateStatus((int) $id, (int) $data['status']);
 
         return $this->success([], lang('messages.status_update_success'));
+    }
+
+    /** @return array<string, mixed> */
+    private function input(Request $request): array
+    {
+        $data = $this->body($request);
+        if (array_key_exists('published_at', $data) && ($data['published_at'] === '' || $data['published_at'] === null)) {
+            $data['published_at'] = null;
+        }
+        return $data;
     }
 
     /** @return array<string, string> */

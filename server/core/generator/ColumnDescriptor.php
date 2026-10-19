@@ -32,13 +32,15 @@ final class ColumnDescriptor
         public readonly bool $inList,
         public readonly bool $inForm,
         public readonly array $enumValues,
+        /** @var list<array{label: string, value: string}> */
+        public readonly array $options = [],
     ) {
     }
 
     /**
-     * 契约 §4.2 的十二个字段，不含 enumValues（前端不消费它）。
+     * 契约 §4.2 的列描述及可编辑选项，enumValues 转为统一的 options 结构。
      *
-     * @return array{name: string, type: string, raw_type: string, nullable: bool, default: ?string, comment: string, key: string, extra: string, form_type: string, searchable: bool, in_list: bool, in_form: bool}
+     * @return array{name: string, type: string, raw_type: string, nullable: bool, default: ?string, comment: string, key: string, extra: string, form_type: string, searchable: bool, in_list: bool, in_form: bool, options: list<array{label: string, value: string}>}
      */
     public function toArray(): array
     {
@@ -55,13 +57,16 @@ final class ColumnDescriptor
             'searchable' => $this->searchable,
             'in_list' => $this->inList,
             'in_form' => $this->inForm,
+            'options' => $this->selectOptions(),
         ];
     }
 
     /**
-     * 只替换前端可编辑的四个字段（契约 §4.3：客户端回传只采信这四个），其余八个字段原样保留。
+     * 只替换前端可编辑的控件、展示、搜索及选项设置，数据库列属性原样保留。
+     *
+     * @param list<array{label: string, value: string}> $options
      */
-    public function withOverrides(string $formType, bool $searchable, bool $inList, bool $inForm): self
+    public function withOverrides(string $formType, bool $searchable, bool $inList, bool $inForm, array $options = []): self
     {
         return new self(
             $this->name,
@@ -77,6 +82,22 @@ final class ColumnDescriptor
             $inList,
             $inForm,
             $this->enumValues,
+            $options,
         );
+    }
+
+    /** @return list<array{label: string, value: string}> */
+    public function selectOptions(): array
+    {
+        if ($this->options !== []) {
+            return $this->options;
+        }
+        if ($this->enumValues !== []) {
+            return array_map(static fn (string $value): array => ['label' => $value, 'value' => $value], $this->enumValues);
+        }
+        if (strtolower($this->name) === 'status' || $this->type === 'boolean') {
+            return [['label' => '启用', 'value' => '1'], ['label' => '禁用', 'value' => '0']];
+        }
+        return [];
     }
 }

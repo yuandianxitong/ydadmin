@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'phone_format' => '请输入有效的手机号或座机号码',
     // 应用级校验消息：控制器 messages() 里以 'validation.xxx' 引用
     'username_require'     => '用户名不能为空',
     'username_length_3_50' => '用户名长度为3-50个字符',

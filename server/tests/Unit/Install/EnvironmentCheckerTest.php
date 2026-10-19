@@ -42,7 +42,7 @@ final class EnvironmentCheckerTest extends TestCase
             $this->assertNotSame('', $row['name']);
         }
         $keys = array_column($rows, 'key');
-        foreach (['mbstring', 'json', 'openssl', 'curl'] as $key) {
+        foreach (['mbstring', 'gd', 'fileinfo', 'json', 'openssl', 'curl'] as $key) {
             $this->assertContains($key, $keys);
         }
     }

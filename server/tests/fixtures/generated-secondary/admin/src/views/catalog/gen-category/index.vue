@@ -48,7 +48,7 @@
 
             <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" />
-                <el-table-column label="id" prop="id" width="80" />
+                <el-table-column label="ID" prop="id" width="80" />
                 <el-table-column label="名称" prop="name" show-overflow-tooltip />
                 <el-table-column label="是否精选" width="100" align="center">
                     <template #default="{ row }">
@@ -64,8 +64,8 @@
                 </el-table-column>
                 <el-table-column label="联系邮箱" prop="contact_email" show-overflow-tooltip />
                 <el-table-column label="排序" prop="sort" />
-                <el-table-column label="created_at" prop="created_at" />
-                <el-table-column label="updated_at" prop="updated_at" />
+                <el-table-column label="创建时间" prop="created_at" />
+                <el-table-column label="更新时间" prop="updated_at" />
                 <el-table-column label="操作" width="150" fixed="right">
                     <template #default="{ row }">
                         <el-button
@@ -73,7 +73,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row.id)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -150,8 +150,13 @@ const handleAdd = () => {
     formVisible.value = true
 }
 
-const handleEdit = (row: GenCategoryInfo) => {
-    formData.value = { ...row }
-    formVisible.value = true
+const handleEdit = async (id: number) => {
+    try {
+        const res = await genCategoryApi.getDetail(id)
+        formData.value = { ...res.data }
+        formVisible.value = true
+    } catch {
+        // 请求拦截器已提示错误。
+    }
 }
 </script>

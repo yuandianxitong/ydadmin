@@ -9,6 +9,35 @@ use tests\Support\ApiTestCase;
 
 final class DiyPageApiTest extends ApiTestCase
 {
+    public function test_empty_draft_and_initial_snapshot_can_be_restored_before_first_publish(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        $key = 'empty-' . bin2hex(random_bytes(3));
+        $page = $this->post('/adminapi/diy/pages', ['title' => '空白页', 'page_key' => $key], $admin->token)->assertOk()->data();
+        $this->track('diy_pages', (int) $page['id']);
+        $base = '/adminapi/diy/pages/' . $key;
+        $this->put($base . '/draft', ['components' => [], 'page_settings' => []], $admin->token)->assertOk();
+        $versions = $this->get($base . '/versions', [], $admin->token)->assertOk()->data();
+        foreach ($versions as $version) {
+            $this->track('diy_page_versions', (int) $version['id']);
+        }
+        $this->assertCount(1, $versions);
+        $this->assertSame(lang('diy.initial_version'), $versions[0]['note']);
+        $initialId = (int) $versions[0]['id'];
+        $this->put($base . '/draft', [
+            'components' => [['id' => 'new', 'type' => 'rich-text', 'props' => ['html' => '<p>new</p>']]],
+            'page_settings' => ['background_color' => '#123456'],
+        ], $admin->token)->assertOk();
+        $this->post($base . '/versions/' . $initialId . '/restore', [], $admin->token)->assertOk();
+        $restored = $this->get($base . '/draft', [], $admin->token)->assertOk()->data();
+        $this->assertSame([], $restored['components']);
+        $this->assertSame([], $restored['page_settings']);
+        $this->assertCount(1, $this->get($base . '/versions', [], $admin->token)->assertOk()->data());
+        foreach ([[], ['components' => null], ['components' => 'bad']] as $invalid) {
+            $this->put($base . '/draft', $invalid, $admin->token)->assertCode(422);
+        }
+    }
+
     public function test_custom_crud_copy_and_system_page_protected(): void
     {
         $admin = $this->actingAsAdmin('super');

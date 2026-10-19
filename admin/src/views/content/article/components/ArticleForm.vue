@@ -4,6 +4,7 @@
         :title="form.id ? t('articleMgmt.editArticle') : t('articleMgmt.addArticle')"
         size="60%"
         :close-on-click-modal="false"
+        destroy-on-close
         @closed="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -63,7 +64,7 @@
             </el-form-item>
 
             <el-form-item :label="t('articleMgmt.content')" prop="content">
-                <WangEditor v-model="form.content" :height="400" />
+                <WangEditor v-if="visible" v-model="form.content" :height="400" />
             </el-form-item>
 
             <el-form-item :label="t('articleMgmt.tags')" prop="tags">
@@ -193,6 +194,7 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
         modelValue: () => props.modelValue,
         onUpdate: (v) => emit('update:modelValue', v),
         onSuccess: () => emit('success'),
+        resetOnClose: false,
         createFn: (data) => articleApi.create(data),
         updateFn: (id, data) => articleApi.update(id, data),
         sourceData: () => props.formData as Partial<ArticleFormData>
@@ -209,7 +211,16 @@ const categoryTreeData = computed(() => {
 })
 
 const rules = computed<FormRules>(() => ({
-    title: [{ required: true, message: t('articleMgmt.validate.titleRequired'), trigger: 'blur' }]
+    title: [{ required: true, message: t('articleMgmt.validate.titleRequired'), trigger: 'blur' }],
+    category_id: [
+        {
+            required: true,
+            type: 'number',
+            min: 1,
+            message: t('articleMgmt.selectCategory'),
+            trigger: 'change'
+        }
+    ]
 }))
 
 // 封面上传成功

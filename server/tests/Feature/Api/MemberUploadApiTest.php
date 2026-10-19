@@ -16,7 +16,7 @@ final class MemberUploadApiTest extends ApiTestCase
     {
         $user = $this->actingAsUser();
 
-        $data = $this->postFile(self::URI, 'file', 'avatar.png', "\x89PNG\r\n\x1a\nimage", 'image/png', $user->token)
+        $data = $this->postFile(self::URI, 'file', 'avatar.png', \tests\Support\ImageFixture::png(), 'image/png', $user->token)
             ->assertOk()
             ->data();
         $this->trackStorageFile((string) $data['path']);
@@ -32,7 +32,7 @@ final class MemberUploadApiTest extends ApiTestCase
 
     public function test_anonymous_upload_is_rejected(): void
     {
-        $this->postFile(self::URI, 'file', 'avatar.png', "\x89PNG\r\n\x1a\nimage", 'image/png')
+        $this->postFile(self::URI, 'file', 'avatar.png', \tests\Support\ImageFixture::png(), 'image/png')
             ->assertCode(401);
     }
 }

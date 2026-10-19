@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'initial_version'      => '初始状态',
     'widget_invalid'       => '组件格式错误',
     'widget_id_required'   => '组件缺少 id',
     'widget_id_duplicate'  => '组件 id 重复',

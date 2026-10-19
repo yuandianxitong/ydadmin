@@ -105,6 +105,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { genArticleApi } from '@/api/demo/gen-article'
+
 import { useFormDialog } from '@/hooks/useFormDialog'
 import { useAppStore } from '@/store'
 import { getToken } from '@/utils/auth'
@@ -122,7 +123,7 @@ interface GenArticleFormData {
     price?: number
     view_count?: number
     slug: string
-    published_at?: string
+    published_at?: string | null
     status?: number
     sort?: number
 }
@@ -152,7 +153,7 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
             price: 0,
             view_count: 0,
             slug: '',
-            published_at: '',
+            published_at: null,
             status: 1,
             sort: 0
         },

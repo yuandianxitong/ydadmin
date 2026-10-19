@@ -30,12 +30,16 @@ class DiyPageRepository extends Repository
      *
      * @return array<string, mixed>|null
      */
-    public function findByKey(string $key, string $platform = 'uniapp'): ?array
+    public function findByKey(string $key, string $platform = 'uniapp', bool $forUpdate = false): ?array
     {
-        return $this->query()
+        $query = $this->query()
             ->where($this->qualify('page_key'), $key)
-            ->where($this->qualify('platform'), $platform)
-            ->first()?->toArray();
+            ->where($this->qualify('platform'), $platform);
+        if ($forUpdate) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first()?->toArray();
     }
 
     /**

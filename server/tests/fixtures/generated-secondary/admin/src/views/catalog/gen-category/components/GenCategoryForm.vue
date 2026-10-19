@@ -48,6 +48,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { genCategoryApi } from '@/api/catalog/gen-category'
+import type { GenCategoryReq } from '@/api/catalog/gen-category'
 import { useFormDialog } from '@/hooks/useFormDialog'
 
 const { t } = useI18n()
@@ -90,13 +91,13 @@ function decodeJsonFields(row: Record<string, any>): Record<string, any> {
     return data
 }
 
-function encodeJsonFields<T extends Record<string, any>>(data: T): T {
+function encodeJsonFields(data: GenCategoryFormData): GenCategoryReq {
     const payload: Record<string, any> = { ...data }
     for (const field of JSON_FIELDS) {
         const text = typeof payload[field] === 'string' ? payload[field].trim() : ''
         payload[field] = text === '' ? null : JSON.parse(text)
     }
-    return payload as T
+    return payload as unknown as GenCategoryReq
 }
 
 function validateJsonField(_rule: unknown, value: unknown, callback: (error?: Error) => void) {

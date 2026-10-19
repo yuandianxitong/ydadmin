@@ -69,35 +69,51 @@ class DiyPageService extends Service
     public function saveDraft(string $key, array $components, array $pageSettings): void
     {
         $clean = $this->widgetRegistry->validate(array_values($components));
-        $row = $this->diyPageRepository->findByKey($key);
-
-        if ($row === null) {
-            if (!isset(self::SYSTEM_PAGES[$key])) {
-                throw new NotFoundException();
+        $this->runInTransaction(function () use ($key, $clean, $pageSettings): void {
+            $row = $this->diyPageRepository->findByKey($key, 'uniapp', true);
+            if ($row === null) {
+                if (!isset(self::SYSTEM_PAGES[$key])) {
+                    throw new NotFoundException();
+                }
+                $row = $this->diyPageRepository->create([
+                    'page_type'        => self::SYSTEM_PAGES[$key]['page_type'],
+                    'page_key'         => $key,
+                    'platform'         => 'uniapp',
+                    'title'            => self::SYSTEM_PAGES[$key]['title'],
+                    'components_draft' => [],
+                    'page_settings'    => [],
+                    'status'           => 1,
+                ]);
             }
-            $this->diyPageRepository->create([
-                'page_type'        => self::SYSTEM_PAGES[$key]['page_type'],
-                'page_key'         => $key,
-                'platform'         => 'uniapp',
-                'title'            => self::SYSTEM_PAGES[$key]['title'],
+            $this->ensureInitialVersion($row);
+            $this->diyPageRepository->update((int) $row['id'], [
                 'components_draft' => $clean,
                 'page_settings'    => $pageSettings,
-                'status'           => 1,
             ]);
+        });
+    }
 
+    /** @param array<string, mixed> $row 调用方在事务内持有页面行锁，保证只保存一次初始快照。 */
+    private function ensureInitialVersion(array $row): void
+    {
+        $pageId = (int) $row['id'];
+        if ($this->diyPageVersionRepository->hasVersions($pageId)) {
             return;
         }
-
-        $this->diyPageRepository->update((int) $row['id'], [
-            'components_draft' => $clean,
-            'page_settings'    => $pageSettings,
-        ]);
+        $published = $this->normalizeComponents($row['components_published'] ?? []);
+        $this->diyPageVersionRepository->insertSnapshot(
+            $pageId,
+            $published !== [] ? $published : $this->normalizeComponents($row['components_draft'] ?? []),
+            $this->normalizeSettings($published !== [] ? ($row['page_settings_published'] ?? []) : ($row['page_settings'] ?? [])),
+            RequestContext::actingUser(),
+            lang('diy.initial_version'),
+        );
     }
 
     public function publish(string $key): void
     {
         $this->runInTransaction(function () use ($key): void {
-            $row = $this->diyPageRepository->findByKey($key);
+            $row = $this->diyPageRepository->findByKey($key, 'uniapp', true);
             if ($row === null) {
                 if (!isset(self::SYSTEM_PAGES[$key])) {
                     throw new NotFoundException();
@@ -105,6 +121,7 @@ class DiyPageService extends Service
                 throw new BusinessException(lang('diy.draft_required'), 422);
             }
 
+            $this->ensureInitialVersion($row);
             $draft = $this->normalizeComponents($row['components_draft'] ?? []);
             $settings = $this->normalizeSettings($row['page_settings'] ?? []);
             if ($draft !== ($row['components_draft'] ?? null) || $settings !== ($row['page_settings'] ?? null)) {

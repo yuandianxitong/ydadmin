@@ -5,17 +5,43 @@ declare(strict_types=1);
 namespace tests\Feature\System;
 
 use tests\Support\ApiTestCase;
+use tests\Support\ConfigOverride;
+use tests\Support\TestResponse;
 
-/**
- * ApiDocController 两个动作：openapi() 返回裸 OpenAPI JSON（不套响应信封），
- * index() 返回独立 Swagger 页（HTML，CDN 加载 swagger-ui-dist@5）。两条路由都不需要登录——
- * 前端「Swagger UI」「下载 JSON」两个按钮走 window.open，浏览器导航带不了 Authorization 头。
- */
+/** 文档需要管理端登录和 system.api_doc 权限，返回裸 OpenAPI JSON。 */
 final class ApiDocControllerTest extends ApiTestCase
 {
-    public function test_openapi_json_is_reachable_without_auth_and_is_not_wrapped_in_the_envelope(): void
+    use ConfigOverride;
+
+    private function docGet(string $path, array $params = []): TestResponse
     {
-        $response = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => 'admin']);
+        $admin = $this->actingAsAdmin(['system.api_doc']);
+        return $this->get($path, $params, $admin->token);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreConfig();
+        parent::tearDown();
+    }
+
+    public function test_production_document_requires_login_and_document_permission(): void
+    {
+        $this->overrideConfig('app.debug', false);
+        $nobody = $this->actingAsAdmin();
+        $member = $this->actingAsUser();
+        $authorized = $this->actingAsAdmin(['system.api_doc']);
+        foreach (['/adminapi/system/api-doc', '/adminapi/system/api-doc/openapi.json'] as $path) {
+            $this->get($path)->assertCode(401);
+            $this->get($path, [], $nobody->token)->assertCode(403);
+            $this->get($path, [], $member->token)->assertCode(401);
+            $this->assertSame(200, $this->get($path, [], $authorized->token)->status());
+        }
+    }
+
+    public function test_openapi_json_is_authenticated_and_is_not_wrapped_in_the_envelope(): void
+    {
+        $response = $this->docGet('/adminapi/system/api-doc/openapi.json', ['type' => 'admin']);
 
         $this->assertSame(200, $response->status());
         $this->assertStringContainsString('application/json', (string) $response->header('Content-Type'));
@@ -25,9 +51,9 @@ final class ApiDocControllerTest extends ApiTestCase
         $this->assertNotSame([], $json['paths'] ?? null);
     }
 
-    public function test_index_html_is_reachable_without_auth_and_loads_swagger_ui_dist_5_from_cdn(): void
+    public function test_index_html_is_authenticated_and_loads_swagger_ui_dist_5_from_cdn(): void
     {
-        $response = $this->get('/adminapi/system/api-doc', ['type' => 'admin']);
+        $response = $this->docGet('/adminapi/system/api-doc', ['type' => 'admin']);
 
         $this->assertSame(200, $response->status());
         $this->assertStringContainsString('text/html', (string) $response->header('Content-Type'));
@@ -43,7 +69,7 @@ final class ApiDocControllerTest extends ApiTestCase
     public function test_api_openapi_json_contains_only_api_endpoints_and_keeps_paths_an_object(): void
     {
         foreach (['api', 'bogus-type-does-not-exist'] as $type) {
-            $response = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => $type]);
+            $response = $this->docGet('/adminapi/system/api-doc/openapi.json', ['type' => $type]);
 
             $this->assertSame(200, $response->status(), "type={$type}");
 
@@ -63,7 +89,7 @@ final class ApiDocControllerTest extends ApiTestCase
      */
     public function test_admin_openapi_json_never_encodes_an_empty_properties_array(): void
     {
-        $response = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => 'admin']);
+        $response = $this->docGet('/adminapi/system/api-doc/openapi.json', ['type' => 'admin']);
 
         $this->assertSame(200, $response->status());
         $this->assertDoesNotMatchRegularExpression(
@@ -74,16 +100,16 @@ final class ApiDocControllerTest extends ApiTestCase
     }
 
     /**
-     * ?type[]=x 时 $request->get('type') 拿到的是数组；两个端点都必须公开、免鉴权，
+     * ?type[]=x 时 $request->get('type') 拿到的是数组；两个端点都不能因非法参数崩溃，
      * 不能因为一个不合法的查询参数就把 (string) 数组的 "Array to string conversion"
      * 警告放大成未捕获异常，返回 500（debug 下错误页可能带文件路径）。
      */
     public function test_array_type_query_parameter_does_not_crash_either_endpoint(): void
     {
-        $openapi = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => ['x']]);
+        $openapi = $this->docGet('/adminapi/system/api-doc/openapi.json', ['type' => ['x']]);
         $this->assertSame(200, $openapi->status(), $openapi->body());
 
-        $index = $this->get('/adminapi/system/api-doc', ['type' => ['x']]);
+        $index = $this->docGet('/adminapi/system/api-doc', ['type' => ['x']]);
         $this->assertSame(200, $index->status(), $index->body());
     }
 
@@ -93,12 +119,12 @@ final class ApiDocControllerTest extends ApiTestCase
      */
     public function test_both_endpoints_normalise_an_unknown_type_identically(): void
     {
-        $openapi = $this->get('/adminapi/system/api-doc/openapi.json', ['type' => 'bogus']);
+        $openapi = $this->docGet('/adminapi/system/api-doc/openapi.json', ['type' => 'bogus']);
         $this->assertSame(200, $openapi->status());
         $this->assertStringContainsString('/api/common/sms-code', $openapi->body(), '未知 type 归一为 api：拿到的是 C 端文档');
         $this->assertStringNotContainsString('/adminapi/', $openapi->body(), '未知 type 不能被猜成 admin');
 
-        $index = $this->get('/adminapi/system/api-doc', ['type' => 'bogus']);
+        $index = $this->docGet('/adminapi/system/api-doc', ['type' => 'bogus']);
         $this->assertSame(200, $index->status());
         $this->assertStringContainsString('openapi.json?type=api', $index->body(), 'index 页必须与 openapi.json 用同一个归一结果');
     }

@@ -7531,12 +7531,16 @@
                     "system"
                 ],
                 "summary": "ApiDocController::index",
-                "description": "公开接口，无需登录",
-                "x-permission": null,
-                "security": [],
+                "description": "需登录，且需权限 `system.api_doc`",
+                "x-permission": "system.api_doc",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;其余非 200 的 code 为业务错误",
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -7575,12 +7579,16 @@
                     "system"
                 ],
                 "summary": "ApiDocController::openapi",
-                "description": "公开接口，无需登录",
-                "x-permission": null,
-                "security": [],
+                "description": "需登录，且需权限 `system.api_doc`",
+                "x-permission": "system.api_doc",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;其余非 200 的 code 为业务错误",
+                        "description": "HTTP 状态恒为 200(未捕获异常除外),结果靠响应体 code 区分:code 200 为成功;code 401 为未登录或令牌无效/过期;code 403 为无权限;其余非 200 的 code 为业务错误",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8895,7 +8903,9 @@
                                     "phone": {
                                         "type": "string",
                                         "nullable": true,
-                                        "maxLength": 20
+                                        "maxLength": 20,
+                                        "pattern": "^\\+?[0-9][0-9 -]{5,18}[0-9]$",
+                                        "description": "regex:/^\\+?[0-9][0-9 -]{5,18}[0-9]$/"
                                     },
                                     "email": {
                                         "type": "string",
@@ -9177,7 +9187,9 @@
                                     "phone": {
                                         "type": "string",
                                         "nullable": true,
-                                        "maxLength": 20
+                                        "maxLength": 20,
+                                        "pattern": "^\\+?[0-9][0-9 -]{5,18}[0-9]$",
+                                        "description": "regex:/^\\+?[0-9][0-9 -]{5,18}[0-9]$/"
                                     },
                                     "email": {
                                         "type": "string",
@@ -10767,7 +10779,7 @@
                                     "module_name": {
                                         "type": "string",
                                         "pattern": "^[a-z][a-z0-9_]{0,30}$",
-                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc"
                                     },
                                     "model_name": {
                                         "type": "string",
@@ -10811,6 +10823,28 @@
                                                 },
                                                 "in_form": {
                                                     "type": "boolean"
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "nullable": true,
+                                                    "maxItems": 100,
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "label": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            },
+                                                            "value": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "label",
+                                                            "value"
+                                                        ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -10897,7 +10931,7 @@
                                     "module_name": {
                                         "type": "string",
                                         "pattern": "^[a-z][a-z0-9_]{0,30}$",
-                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc"
                                     },
                                     "model_name": {
                                         "type": "string",
@@ -10941,6 +10975,28 @@
                                                 },
                                                 "in_form": {
                                                     "type": "boolean"
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "nullable": true,
+                                                    "maxItems": 100,
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "label": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            },
+                                                            "value": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "label",
+                                                            "value"
+                                                        ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -11027,7 +11083,7 @@
                                     "module_name": {
                                         "type": "string",
                                         "pattern": "^[a-z][a-z0-9_]{0,30}$",
-                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc"
                                     },
                                     "model_name": {
                                         "type": "string",
@@ -11071,6 +11127,28 @@
                                                 },
                                                 "in_form": {
                                                     "type": "boolean"
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "nullable": true,
+                                                    "maxItems": 100,
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "label": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            },
+                                                            "value": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "label",
+                                                            "value"
+                                                        ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -11205,7 +11283,7 @@
                                     "module_name": {
                                         "type": "string",
                                         "pattern": "^[a-z][a-z0-9_]{0,30}$",
-                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:admin_log,auth,business,messages,validation,generator,apidoc"
+                                        "description": "regex:/^[a-z][a-z0-9_]{0,30}$/;not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc"
                                     },
                                     "model_name": {
                                         "type": "string",
@@ -11249,6 +11327,28 @@
                                                 },
                                                 "in_form": {
                                                     "type": "boolean"
+                                                },
+                                                "options": {
+                                                    "type": "array",
+                                                    "nullable": true,
+                                                    "maxItems": 100,
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "label": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            },
+                                                            "value": {
+                                                                "type": "string",
+                                                                "maxLength": 100
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "label",
+                                                            "value"
+                                                        ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -16797,20 +16897,22 @@
         "AdminController::store 字段 mobile:regex:/^1[3-9]\\d{9}$/",
         "AdminController::changePassword 字段 new_password:different:old_password",
         "AdminController::update 字段 mobile:regex:/^1[3-9]\\d{9}$/",
+        "DepartmentController::store 字段 phone:regex:/^\\+?[0-9][0-9 -]{5,18}[0-9]$/",
+        "DepartmentController::update 字段 phone:regex:/^\\+?[0-9][0-9 -]{5,18}[0-9]$/",
         "GeneratorController::generate 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
-        "GeneratorController::generate 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::generate 字段 module_name:not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::generate 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::generate 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
         "GeneratorController::plan 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
-        "GeneratorController::plan 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::plan 字段 module_name:not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::plan 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::plan 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
         "GeneratorController::preview 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
-        "GeneratorController::preview 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::preview 字段 module_name:not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::preview 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::preview 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
         "GeneratorController::updateGenerated 字段 module_name:regex:/^[a-z][a-z0-9_]{0,30}$/",
-        "GeneratorController::updateGenerated 字段 module_name:not_in:admin_log,auth,business,messages,validation,generator,apidoc",
+        "GeneratorController::updateGenerated 字段 module_name:not_in:system,operations,dataimport,mobile,admin_log,auth,business,messages,validation,generator,apidoc",
         "GeneratorController::updateGenerated 字段 model_name:regex:/^[A-Z][A-Za-z0-9]{0,40}$/",
         "GeneratorController::updateGenerated 字段 table_comment:regex:/^[^\\r\\n<>]*$/u",
         "GeneratorController::updateGenerated 字段 plan_token:size:64",

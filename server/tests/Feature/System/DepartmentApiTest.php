@@ -88,6 +88,20 @@ final class DepartmentApiTest extends ApiTestCase
         $this->assertSame(lang('business.dept_parent_not_child'), $this->put(self::BASE . "/{$parent}", ['parent_id' => $child, 'name' => '接口父部门'], $super->token)->assertCode(400)->message());
     }
 
+    public function test_phone_format_is_checked_on_create_and_update(): void
+    {
+        $super = $this->actingAsAdmin('super');
+        $id = $this->createViaApi($super->token, ['parent_id' => 0, 'name' => '电话校验', 'phone' => '13800138000']);
+        foreach (['abc', '123', '13800138000abc'] as $phone) {
+            $this->post(self::BASE, ['parent_id' => 0, 'name' => '非法电话', 'phone' => $phone], $super->token)->assertCode(422);
+            $this->put(self::BASE . "/{$id}", ['name' => '电话校验', 'phone' => $phone], $super->token)->assertCode(422);
+        }
+        $this->assertSame('13800138000', Db::table('departments')->where('id', $id)->value('phone'));
+        foreach (['010-12345678', '0571-12345678-123', '400-123-4567', ''] as $phone) {
+            $this->put(self::BASE . "/{$id}", ['name' => '电话校验', 'phone' => $phone], $super->token)->assertOk();
+        }
+    }
+
     public function test_blank_parent_status_or_sort_is_rejected(): void
     {
         $super = $this->actingAsAdmin('super');

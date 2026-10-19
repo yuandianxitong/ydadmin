@@ -12,6 +12,8 @@ final class EnvironmentChecker
         'pcntl',
         'posix',
         'mbstring',
+        'gd',
+        'fileinfo',
         'json',
         'openssl',
         'curl',

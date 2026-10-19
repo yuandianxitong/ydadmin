@@ -2,6 +2,9 @@
 // 输出字段与 OpenAPI 使用同一份声明；扩展业务字段时在生成的 Resource 中补充。
 $properties = [];
 foreach ($columns as $column) {
+    if ($inference->isSensitive($column)) {
+        continue;
+    }
     $schema = match ($column->type) {
         'integer' => ['type' => 'integer'],
         'boolean' => ['type' => 'boolean'],

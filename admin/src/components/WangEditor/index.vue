@@ -1,5 +1,5 @@
 <template>
-    <div class="wang-editor-container">
+    <div ref="containerRef" class="wang-editor-container">
         <Toolbar
             :editor="editorRef"
             :default-config="toolbarConfig"
@@ -43,7 +43,25 @@ const emit = defineEmits<{
 }>()
 
 const editorRef = shallowRef<IDomEditor>()
+const containerRef = ref<HTMLElement>()
 const valueHtml = ref(props.modelValue)
+
+// 图片分组由 :hover 展开，hidePanelOrModal() 只会关闭菜单内部的面板。
+// 上传后暂时隐藏分组，指针离开或下一次进入时恢复，允许再次上传。
+const dismissImageMenu = () => {
+    const group = containerRef.value
+        ?.querySelector('[data-menu-key="uploadImage"]')
+        ?.closest('.w-e-bar-item-group')
+    if (!group) return
+    group.classList.add('upload-menu-dismissed')
+    const restore = () => {
+        group.classList.remove('upload-menu-dismissed')
+        group.removeEventListener('mouseleave', restore)
+        group.removeEventListener('mouseenter', restore)
+    }
+    group.addEventListener('mouseleave', restore, { once: true })
+    group.addEventListener('mouseenter', restore, { once: true })
+}
 
 const toolbarConfig: Partial<IToolbarConfig> = {}
 
@@ -68,7 +86,10 @@ const editorConfig: Partial<IEditorConfig> = {
                 )
                 const url = res?.data?.url || res?.data?.path || ''
                 if (url) {
+                    if (!editorRef.value || editorRef.value.isDestroyed) return
                     insertFn(url, '', '')
+                    editorRef.value.hidePanelOrModal()
+                    dismissImageMenu()
                 }
             }
         }
@@ -104,6 +125,9 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .wang-editor-container {
+    :deep(.w-e-bar-item-group.upload-menu-dismissed .w-e-bar-item-menus-container) {
+        display: none;
+    }
     border: 1px solid #ccc;
     border-radius: 4px;
     overflow: hidden;

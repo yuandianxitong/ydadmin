@@ -11,9 +11,7 @@
 
 $modelCamel = lcfirst($model);
 
-$label = static function (\core\generator\ColumnDescriptor $column): string {
-    return $column->comment !== '' ? $column->comment : $column->name;
-};
+$label = static fn (\core\generator\ColumnDescriptor $column): string => htmlspecialchars($inference->label($column), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 $tsEnumType = static function (array $values): string {
     if ($values === []) {
@@ -32,7 +30,7 @@ $tsType = static function (\core\generator\ColumnDescriptor $column, bool $forFo
         'integer' => 'number',
         'decimal' => $forForm ? 'number' : 'string',
         'boolean' => 'boolean',
-        'date', 'datetime' => 'string',
+        'date', 'datetime' => $column->nullable ? 'string | null' : 'string',
         'enum' => $tsEnumType($column->enumValues),
         // json 列在表单状态里是 JSON 文本（打开时解码、提交前编码，见下方 JSON 辅助代码）；行数据里才是对象
         'json' => $forForm ? 'string' : 'Record<string, any>',
@@ -65,12 +63,16 @@ $defaultLiteral = static function (\core\generator\ColumnDescriptor $column): st
         return '0';
     }
 
+    if ($column->formType === 'select' && in_array($column->type, ['integer', 'decimal'], true) && $column->default === null) {
+        return '0';
+    }
+
     // input / textarea / select / datepicker / image
     if ($column->default !== null && $column->type !== 'date' && $column->type !== 'datetime') {
         return "'" . addslashes((string) $column->default) . "'";
     }
 
-    return "''";
+    return in_array($column->type, ['date', 'datetime'], true) && $column->nullable ? 'null' : "''";
 };
 
 $triggerFor = static function (string $formType): string {
@@ -95,6 +97,12 @@ $itemBlocks = [];
 foreach ($formColumns as $column) {
     $colLabel = $label($column);
     $name = $column->name;
+    if ($inference->isPassword($column)) {
+        $itemBlocks[] = "            <el-form-item label=\"{$colLabel}\" prop=\"{$name}\">\n"
+            . "                <el-input v-model=\"form.{$name}\" type=\"password\" show-password autocomplete=\"new-password\" placeholder=\"编辑时留空保留原密码\" />\n"
+            . "            </el-form-item>";
+        continue;
+    }
     if ($column->type === 'json') {
         $itemBlocks[] = "            <el-form-item label=\"{$colLabel}\" prop=\"{$name}\">\n"
             . "                <el-input v-model=\"form.{$name}\" type=\"textarea\" :rows=\"6\" placeholder=\"请输入{$colLabel}（JSON 格式）\" />\n"
@@ -124,10 +132,12 @@ foreach ($formColumns as $column) {
                 . "                <el-switch v-model=\"form.{$name}\" :active-value=\"1\" :inactive-value=\"0\" />\n"
                 . "            </el-form-item>",
         'select' => (function () use ($column, $colLabel, $name): string {
-            $options = implode("\n", array_map(
-                static fn (string $v): string => "                    <el-option label=\"{$v}\" value=\"{$v}\" />",
-                $column->enumValues
-            ));
+            $optionLines = [];
+            foreach ($column->selectOptions() as $option) {
+                $value = in_array($column->type, ['integer', 'decimal', 'boolean'], true) ? ':value="' . htmlspecialchars(json_encode($column->type === 'boolean' ? (bool) $option['value'] : (float) $option['value']), ENT_QUOTES) . '"' : 'value="' . htmlspecialchars($option['value'], ENT_QUOTES) . '"';
+                $optionLines[] = '                    <el-option label="' . htmlspecialchars($option['label'], ENT_QUOTES) . '" ' . $value . ' />';
+            }
+            $options = implode("\n", $optionLines);
             return "            <el-form-item label=\"{$colLabel}\" prop=\"{$name}\">\n"
                 . "                <el-select v-model=\"form.{$name}\" placeholder=\"请选择{$colLabel}\" clearable style=\"width: 100%\">\n"
                 . "{$options}\n"
@@ -183,13 +193,20 @@ foreach ($formColumns as $column) {
     $defaultLines[] = "            {$column->name}: " . $defaultLiteral($column);
 
     $ruleItems = [];
-    if ($isRequiredInForm($column) && $column->formType !== 'switch') {
+    if ($isRequiredInForm($column) && $column->formType === 'select') {
+        $values = array_map(static fn (array $option) => in_array($column->type, ['integer', 'decimal'], true) ? (float) $option['value'] : $option['value'], $column->selectOptions());
+        $ruleItems[] = "{ required: true, type: 'enum', enum: " . json_encode($values, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ", message: t('message.required'), trigger: 'change' }";
+    } elseif ($isRequiredInForm($column) && $column->formType !== 'switch' && !$inference->isPassword($column)) {
         $ruleItems[] = "{ required: true, message: t('message.required'), trigger: '"
             . $triggerFor($column->formType) . "' }";
     }
     if ($column->type === 'json') {
         // 前端先校验 JSON 合法且是对象/数组，避免提交后才撞后端 array 规则的 422
         $ruleItems[] = "{ validator: validateJsonField, trigger: 'blur' }";
+    }
+    if ($isRequiredInForm($column) && $inference->isPassword($column)) {
+        $requiredRules[] = "    {$column->name}: form.id ? [] : [{ required: true, message: t('message.required'), trigger: 'blur' }]";
+        continue;
     }
     if ($ruleItems !== []) {
         $requiredRules[] = "    {$column->name}: [" . implode(', ', $ruleItems) . ']';
@@ -248,13 +265,13 @@ $jsonHelpers = $hasJson
         . "    }\n"
         . "    return data\n"
         . "}\n\n"
-        . "function encodeJsonFields<T extends Record<string, any>>(data: T): T {\n"
+        . "function encodeJsonFields(data: {$model}FormData): {$model}Req {\n"
         . "    const payload: Record<string, any> = { ...data }\n"
         . "    for (const field of JSON_FIELDS) {\n"
         . "        const text = typeof payload[field] === 'string' ? payload[field].trim() : ''\n"
         . "        payload[field] = text === '' ? null : JSON.parse(text)\n"
         . "    }\n"
-        . "    return payload as T\n"
+        . "    return payload as unknown as {$model}Req\n"
         . "}\n\n"
         . "function validateJsonField(_rule: unknown, value: unknown, callback: (error?: Error) => void) {\n"
         . "    const text = typeof value === 'string' ? value.trim() : ''\n"
@@ -336,6 +353,7 @@ __EL_MESSAGE_IMPORT__import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { __MODEL_CAMEL__Api } from '@/api/__MODULE__/__MODEL_KEBAB__'
+__REQ_IMPORT__
 import { useFormDialog } from '@/hooks/useFormDialog'
 __STORE_IMPORT__
 const { t } = useI18n()
@@ -393,6 +411,7 @@ $replacements = [
     '__RULES_BLOCK__' => $rulesBlock,
     '__IMAGE_HELPERS__' => $imageHelpers,
     '__JSON_HELPERS__' => $jsonHelpers,
+    '__REQ_IMPORT__' => $hasJson ? "import type { {$model}Req } from '@/api/{$module}/{$modelKebab}'" : '',
     '__SUBMIT_DATA__' => $createData,
     '__SOURCE_DATA__' => $sourceData,
     '__IMAGE_STYLE__' => $imageStyle,

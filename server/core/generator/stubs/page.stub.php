@@ -17,9 +17,7 @@
 $modelCamel = lcfirst($model);
 $permBase = "{$module}.{$modelSnake}.";
 
-$label = static function (\core\generator\ColumnDescriptor $column): string {
-    return $column->comment !== '' ? $column->comment : $column->name;
-};
+$label = static fn (\core\generator\ColumnDescriptor $column): string => htmlspecialchars($inference->label($column), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 $hasImageInList = false;
 foreach ($listColumns as $c) {
@@ -50,7 +48,16 @@ if ($nameColumn === null) {
 $searchItems = [];
 foreach ($searchColumns as $column) {
     $colLabel = $label($column);
-    if ($inference->queryStrategy($column) === 'range') {
+    if ($column->selectOptions() !== []) {
+        $options = [];
+        foreach ($column->selectOptions() as $option) {
+            $value = in_array($column->type, ['integer', 'decimal', 'boolean'], true) ? ':value="' . htmlspecialchars(json_encode($column->type === 'boolean' ? (bool) $option['value'] : (float) $option['value']), ENT_QUOTES) . '"' : 'value="' . htmlspecialchars($option['value'], ENT_QUOTES) . '"';
+            $options[] = '                        <el-option label="' . htmlspecialchars($option['label'], ENT_QUOTES) . '" ' . $value . ' />';
+        }
+        $searchItems[] = "                <el-form-item label=\"{$colLabel}\">\n"
+            . "                    <el-select v-model=\"searchForm.{$column->name}\" placeholder=\"请选择{$colLabel}\" clearable>\n"
+            . implode("\n", $options) . "\n                    </el-select>\n                </el-form-item>";
+    } elseif ($inference->queryStrategy($column) === 'range') {
         $searchItems[] = "                <el-form-item label=\"{$colLabel}\">\n"
             . "                    <el-date-picker\n"
             . "                        v-model=\"searchForm.{$column->name}_start\"\n"
@@ -244,7 +251,7 @@ __COLUMNS_BLOCK__
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row.__PK__)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -308,9 +315,14 @@ const handleAdd = () => {
     formVisible.value = true
 }
 
-const handleEdit = (row: __MODEL__Info) => {
-    formData.value = { ...row }
-    formVisible.value = true
+const handleEdit = async (id: number) => {
+    try {
+        const res = await __MODEL_CAMEL__Api.getDetail(id)
+        formData.value = { ...res.data }
+        formVisible.value = true
+    } catch {
+        // 请求拦截器已提示错误。
+    }
 }
 </script>
 VUE;

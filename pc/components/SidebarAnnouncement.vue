@@ -5,7 +5,7 @@
     </div>
     <ul class="flex flex-col gap-3">
       <li v-for="item in list" :key="item.id">
-        <a href="javascript:;" class="text-sm text-gray-700 line-clamp-1 hover:text-[var(--color-primary)] transition-colors">{{ item.title }}</a>
+        <NuxtLink :to="`/announcement/${item.id}`" class="text-sm text-gray-700 line-clamp-1 hover:text-[var(--color-primary)] transition-colors">{{ item.title }}</NuxtLink>
       </li>
       <li v-if="!list.length" class="text-sm text-gray-400 text-center py-4">暂无公告</li>
     </ul>

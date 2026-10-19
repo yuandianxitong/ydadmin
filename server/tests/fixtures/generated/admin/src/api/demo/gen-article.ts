@@ -15,14 +15,14 @@ export interface GenArticleInfo {
     price: string
     view_count: number
     slug: string
-    published_at?: string
+    published_at?: string | null
     status: number
     sort: number
     created_by?: number
     dept_id?: number
-    created_at?: string
-    updated_at?: string
-    deleted_at?: string
+    created_at?: string | null
+    updated_at?: string | null
+    deleted_at?: string | null
 }
 
 export interface GenArticleReq {
@@ -34,7 +34,7 @@ export interface GenArticleReq {
     price?: number
     view_count?: number
     slug: string
-    published_at?: string
+    published_at?: string | null
     status?: number
     sort?: number
 }

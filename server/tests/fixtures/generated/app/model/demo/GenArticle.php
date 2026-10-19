@@ -19,14 +19,14 @@ class GenArticle extends Model
         'id'           => 'int',
         'price'        => 'string',
         'view_count'   => 'int',
-        'published_at' => 'datetime',
+        'published_at' => 'datetime:Y-m-d H:i:s',
         'status'       => 'int',
         'sort'         => 'int',
         'created_by'   => 'int',
         'dept_id'      => 'int',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'created_at'   => 'datetime:Y-m-d H:i:s',
+        'updated_at'   => 'datetime:Y-m-d H:i:s',
+        'deleted_at'   => 'datetime:Y-m-d H:i:s',
     ];
 
     /** @var list<string> */

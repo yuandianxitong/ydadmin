@@ -290,7 +290,8 @@
         <section id="step-done">
             <h2>安装完成</h2>
             <p id="done-msg"></p>
-            <p class="muted">请执行 <code>php start.php restart</code> 使新配置生效，然后访问管理后台。</p>
+            <p class="muted">Docker 部署请在 docker/ 目录执行 <code>docker compose restart webman</code>；手动部署请执行 <code>php start.php restart</code>，使新配置生效后访问管理后台。</p>
+            <p class="muted">安装器已设置 APP_DEBUG=false（生产模式），代码生成器写操作默认关闭。二次开发请在独立开发环境设为 true 并重启。</p>
         </section>
     </div>
     <footer>

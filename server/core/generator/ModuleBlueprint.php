@@ -89,6 +89,8 @@ final class ModuleBlueprint
     private function vars(string $modelSnake, string $modelKebab): array
     {
         $columns = $this->table->columns;
+        $inference = new TypeInference();
+        $responseColumns = array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => !$inference->isSensitive($c)));
         // 请求里没填中文说明时退回表注释（与 make:crud 的 --comment 缺省行为一致，spec §5.5）
         $tableComment = $this->request->tableComment !== '' ? $this->request->tableComment : $this->table->comment;
 
@@ -113,9 +115,10 @@ final class ModuleBlueprint
             'tableCommentSql'    => $this->sqlComment($tableComment),
             'table'         => $this->table,
             'columns'       => $columns,
-            'formColumns'   => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->inForm)),
-            'listColumns'   => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->inList)),
-            'searchColumns' => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->searchable)),
+            'responseColumns' => $responseColumns,
+            'formColumns'   => array_values(array_filter($columns, static fn (ColumnDescriptor $c): bool => $c->inForm && (!$inference->isSensitive($c) || $inference->isPassword($c)))),
+            'listColumns'   => array_values(array_filter($responseColumns, static fn (ColumnDescriptor $c): bool => $c->inList)),
+            'searchColumns' => array_values(array_filter($responseColumns, static fn (ColumnDescriptor $c): bool => $c->searchable)),
             'hasStatus'     => $this->table->hasStatus(),
             'softDeletes'   => $this->table->hasSoftDeletes(),
             // 裁定（推翻计划原公式 creatorColumn||deptColumn）：dataScoped 只认「有创建人列」。

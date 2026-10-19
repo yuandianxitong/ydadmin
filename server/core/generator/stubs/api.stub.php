@@ -32,7 +32,7 @@ $tsType = static function (\core\generator\ColumnDescriptor $column, bool $forFo
         'integer' => 'number',
         'decimal' => $forForm ? 'number' : 'string',
         'boolean' => 'boolean',
-        'date', 'datetime' => 'string',
+        'date', 'datetime' => $column->nullable ? 'string | null' : 'string',
         'enum' => $tsEnumType($column->enumValues),
         'json' => 'Record<string, any>',
         default => 'string',
@@ -46,6 +46,9 @@ $isRequiredInForm = static function (\core\generator\ColumnDescriptor $column): 
 
 $infoFields = [];
 foreach ($columns as $column) {
+    if ($inference->isSensitive($column)) {
+        continue;
+    }
     $infoFields[] = '    ' . $column->name . ($column->nullable ? '?' : '') . ': ' . $tsType($column, false);
 }
 

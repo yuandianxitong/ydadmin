@@ -46,6 +46,8 @@ export interface UseFormDialogOptions<T extends { id?: number | undefined }> {
     successText?: { create?: string; update?: string }
     /** 外部传入的 formData（watch 它变化同步到内部 form） */
     sourceData?: () => Partial<T> | undefined | null
+    /** false 时由弹窗 @closed 重置，避免关闭动画期间清空仍挂载的富文本编辑器。 */
+    resetOnClose?: boolean
 }
 
 export function useFormDialog<T extends { id?: number | undefined }>(
@@ -59,7 +61,8 @@ export function useFormDialog<T extends { id?: number | undefined }>(
         createFn,
         updateFn,
         successText = {},
-        sourceData
+        sourceData,
+        resetOnClose = true
     } = options
 
     const formRef = ref<FormInstance>()
@@ -98,7 +101,7 @@ export function useFormDialog<T extends { id?: number | undefined }>(
     /** 关闭弹窗并清空表单 */
     function handleClose() {
         onUpdate(false)
-        resetForm()
+        if (resetOnClose) resetForm()
     }
 
     /**
@@ -124,7 +127,7 @@ export function useFormDialog<T extends { id?: number | undefined }>(
             }
             onUpdate(false)
             onSuccess?.()
-            resetForm()
+            if (resetOnClose) resetForm()
         } catch {
             // request.ts 响应拦截器已显示 ElMessage 错误提示，此处静默吞掉错误。
             // 不能让错误继续冒泡到事件处理器，否则会触发 App.vue 的 ErrorBoundary 错误页面。

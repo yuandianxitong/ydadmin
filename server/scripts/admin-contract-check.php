@@ -1329,8 +1329,8 @@ check(
 $r = http('GET', "{$base}/adminapi/system/generator/columns?table=dictionaries", $auth);
 $genColumnRow = (array) (respData($r)[0] ?? []);
 check(
-    'generator/columns：每列十二个字段全部出现',
-    respCode($r) === 200 && array_keys($genColumnRow) === ['name', 'type', 'raw_type', 'nullable', 'default', 'comment', 'key', 'extra', 'form_type', 'searchable', 'in_list', 'in_form'],
+    'generator/columns：每列字段与下拉选项全部出现',
+    respCode($r) === 200 && array_keys($genColumnRow) === ['name', 'type', 'raw_type', 'nullable', 'default', 'comment', 'key', 'extra', 'form_type', 'searchable', 'in_list', 'in_form', 'options'],
     $r['body']
 );
 
@@ -1392,13 +1392,13 @@ if (in_array($genAppDebug, ['false', '0', ''], true)) {
 }
 
 echo "\n=== M2b：API 文档 ===\n";
-$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=admin", $api);
-check('openapi.json：未登录也可达（两个按钮走 window.open，带不了 Authorization）', $r['status'] === 200, $r['body']);
+$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=admin", $auth);
+check('openapi.json：管理员登录后可达', $r['status'] === 200, $r['body']);
 check('openapi.json：Content-Type 是 application/json', str_contains($r['headers']['content-type'] ?? '', 'application/json'), (string) ($r['headers']['content-type'] ?? ''));
 check('openapi.json：不是 {code,message,data,timestamp} 信封，是裸 OpenAPI 文档', !isEnvelope($r['json']) && ($r['json']['openapi'] ?? null) !== null, $r['body']);
 check('openapi.json：type=admin 下 paths 非空', is_array($r['json']['paths'] ?? null) && $r['json']['paths'] !== [], $r['body']);
 
-$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=api", $api);
+$r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=api", $auth);
 check(
     // M5a 起 /api 路由组已有真实的 C 端认证与会员接口，推导器不再产出空文档——这条断言曾经钉的是
     // 「本仓库当前只有 /adminapi」这一前提，Task 6-9 落地 /api 路由后前提已不成立，改钉 paths 非空。
@@ -1408,20 +1408,17 @@ check(
     $r['body']
 );
 
-$r = http('GET', "{$base}/adminapi/system/api-doc?type=admin", $api);
-check('api-doc 页面：未登录也可达', $r['status'] === 200, (string) $r['status']);
+$r = http('GET', "{$base}/adminapi/system/api-doc?type=admin", $auth);
+check('api-doc 页面：管理员登录后可达', $r['status'] === 200, (string) $r['status']);
 check('api-doc 页面：Content-Type 是 text/html', str_contains($r['headers']['content-type'] ?? '', 'text/html'), (string) ($r['headers']['content-type'] ?? ''));
 check('api-doc 页面：引用 swagger-ui-dist@5 CDN（决策 5，不落地本地副本）', str_contains($r['body'], 'swagger-ui-dist@5'), '');
 
 $r = http('POST', "{$base}/adminapi/system/generator/preview", $auth, [...$genPayload, 'module_name' => 'apidoc']);
 check('generator/preview：module_name 撞新增语言分组 apidoc → 422', respCode($r) === 422 && (respData($r)['errors']['module_name'] ?? '') === lang('generator.module_name_reserved'), $r['body']);
 
-if (in_array($genAppDebug, ['false', '0', ''], true)) {
-    $r = http('GET', "{$base}/adminapi/system/api-doc/openapi.json?type=admin", $api);
-    check('api-doc：APP_DEBUG=false 时两条路由压根不存在（HTTP 404 走 fallback，不是 401/403）', $r['status'] === 404 && respCode($r) === 404, $r['body']);
-    echo "  （当前 APP_DEBUG=false，已覆盖生产闸门分支）\n";
-} else {
-    echo "  （当前 APP_DEBUG={$genAppDebug}，跳过生产闸门分支的活体断言——已由 tests/Unit/ApiDoc/ApiDocProductionGateTest.php 覆盖）\n";
+foreach (['/adminapi/system/api-doc', '/adminapi/system/api-doc/openapi.json'] as $docPath) {
+    $r = http('GET', "{$base}{$docPath}", $api);
+    check('api-doc：未登录不能读取 ' . $docPath, respCode($r) === 401, $r['body']);
 }
 
 // ---------------------------------------------------------------- M3

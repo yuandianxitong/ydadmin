@@ -19,6 +19,7 @@ export interface GeneratorColumnInfo {
     searchable: boolean
     in_list: boolean
     in_form: boolean
+    options?: Array<{ label: string; value: string }>
 }
 
 export interface GeneratorConfig {

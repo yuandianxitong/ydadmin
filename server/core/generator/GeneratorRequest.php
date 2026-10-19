@@ -11,7 +11,7 @@ namespace core\generator;
  */
 final class GeneratorRequest
 {
-    /** @param array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool}> $overrides */
+    /** @param array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool, options?: list<array{label: string, value: string}>}> $overrides */
     public function __construct(
         public readonly string $tableName,
         public readonly string $moduleName,

@@ -241,7 +241,7 @@ final class ManagedArtifacts
     }
 
     /** @param array<string, array{path: string, display: string, content: string}> $files
-     * @return array{format_version: int, identity: array<string, string>, options: array{table_comment: string, overrides: array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool}>}, artifacts: array<string, array{path: string, content: string, sha256: string}>} */
+     * @return array{format_version: int, identity: array<string, string>, options: array{table_comment: string, overrides: array<string, array{form_type: string, searchable: bool, in_list: bool, in_form: bool, options?: list<array{label: string, value: string}>}>}, artifacts: array<string, array{path: string, content: string, sha256: string}>} */
     private function state(array $files): array
     {
         $identity = ['table' => $this->request->tableName, 'module' => $this->request->moduleName, 'model' => $this->request->modelName];

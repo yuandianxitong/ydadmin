@@ -13,12 +13,10 @@
                     />
                 </el-form-item>
                 <el-form-item label="状态">
-                    <el-input
-                        v-model="searchForm.status"
-                        placeholder="请输入状态"
-                        clearable
-                        style="width: 200px"
-                    />
+                    <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
+                        <el-option label="启用" :value="1" />
+                        <el-option label="禁用" :value="0" />
+                    </el-select>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
@@ -56,7 +54,7 @@
 
             <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
                 <el-table-column type="selection" width="55" />
-                <el-table-column label="id" prop="id" width="80" />
+                <el-table-column label="ID" prop="id" width="80" />
                 <el-table-column label="标题" prop="title" show-overflow-tooltip />
                 <el-table-column label="摘要" prop="summary" show-overflow-tooltip />
                 <el-table-column label="封面图" width="90">
@@ -91,8 +89,8 @@
                 <el-table-column label="排序" prop="sort" />
                 <el-table-column label="created_by" prop="created_by" />
                 <el-table-column label="dept_id" prop="dept_id" />
-                <el-table-column label="created_at" prop="created_at" />
-                <el-table-column label="updated_at" prop="updated_at" />
+                <el-table-column label="创建时间" prop="created_at" />
+                <el-table-column label="更新时间" prop="updated_at" />
                 <el-table-column label="操作" width="150" fixed="right">
                     <template #default="{ row }">
                         <el-button
@@ -100,7 +98,7 @@
                             type="primary"
                             size="small"
                             text
-                            @click="handleEdit(row)"
+                            @click="handleEdit(row.id)"
                         >
                             {{ $t('common.edit') }}
                         </el-button>
@@ -184,8 +182,13 @@ const handleAdd = () => {
     formVisible.value = true
 }
 
-const handleEdit = (row: GenArticleInfo) => {
-    formData.value = { ...row }
-    formVisible.value = true
+const handleEdit = async (id: number) => {
+    try {
+        const res = await genArticleApi.getDetail(id)
+        formData.value = { ...res.data }
+        formVisible.value = true
+    } catch {
+        // 请求拦截器已提示错误。
+    }
 }
 </script>
