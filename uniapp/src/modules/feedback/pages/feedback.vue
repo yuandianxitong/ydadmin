@@ -1,6 +1,7 @@
 <template>
   <d-page :safe-area="true">
     <view class="feedback-page">
+      <view class="history-link" @tap="goHistory">我的反馈 · 查看处理进度 →</view>
       <!-- 反馈类型 -->
       <view class="section-card">
         <view class="section-title">反馈类型</view>
@@ -97,6 +98,7 @@ const typeOptions = [
 ]
 
 const loading = ref(false)
+const goHistory = () => uni.navigateTo({ url: '/modules/feedback/pages/feedback-list' })
 
 const form = reactive({
   type: 'suggestion',
@@ -153,6 +155,8 @@ async function handleSubmit() {
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
+
+.history-link { text-align: right; padding: 8rpx 0 24rpx; color: $primary-color; font-size: 26rpx; }
 
 .feedback-page {
   padding: 0;

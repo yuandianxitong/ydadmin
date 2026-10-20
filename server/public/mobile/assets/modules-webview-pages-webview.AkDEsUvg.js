@@ -1,0 +1,1 @@
+import{d as e,r as t,E as l,G as s,a,al as n,e as o}from"./index-CIPP3e4G.js";const r=e({__name:"webview",setup(e){const r=t("");return l(e=>{(null==e?void 0:e.url)&&(r.value=decodeURIComponent(e.url)),(null==e?void 0:e.title)&&s({title:decodeURIComponent(e.title)})}),(e,t)=>{const l=n;return o(),a(l,{src:r.value},null,8,["src"])}}});export{r as default};

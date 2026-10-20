@@ -1,0 +1,1 @@
+import{a7 as e}from"./index-CIPP3e4G.js";const s={getList:s=>e.get("/api/message/list",s),getUnreadCount:()=>e.get("/api/message/unread-count"),markAsRead:s=>e.post("/api/message/read",{ids:s})};export{s as m};

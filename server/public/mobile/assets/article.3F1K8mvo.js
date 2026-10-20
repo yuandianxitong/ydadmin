@@ -1,0 +1,1 @@
+import{a7 as t}from"./index-CIPP3e4G.js";const e={getList:e=>t.get("/api/article/list",e),getDetail:e=>t.get(`/api/article/detail/${e}`),getCategoryList:()=>t.get("/api/article-category/list")};export{e as a};

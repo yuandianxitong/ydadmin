@@ -71,7 +71,7 @@ final class DepartmentApiTest extends ApiTestCase
         $admin = $this->actingAsAdmin(['system.department.list']);
 
         $this->assertSame('TECH', $this->get(self::BASE . '/2', [], $admin->token)->assertOk()->data()['code']);
-        $this->assertSame(lang('business.dept_not_found'), $this->get(self::BASE . '/999999', [], $admin->token)->assertCode(400)->message());
+        $this->assertSame(lang('business.dept_not_found'), $this->get(self::BASE . '/999999', [], $admin->token)->assertCode(404)->message());
     }
 
     public function test_store_and_update_validations(): void

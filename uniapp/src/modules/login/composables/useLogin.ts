@@ -14,9 +14,9 @@ export function useLogin() {
   const needBindPhone = ref(false)
   const tempToken = ref('')
 
-  async function loginByPassword(mobile: string, password: string) {
-    if (!isMobile(mobile)) {
-      uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+  async function loginByPassword(account: string, password: string) {
+    if (!account.trim()) {
+      uni.showToast({ title: '请输入手机号、邮箱或昵称', icon: 'none' })
       return
     }
     if (!isPassword(password)) {
@@ -26,7 +26,7 @@ export function useLogin() {
 
     loading.value = true
     try {
-      await userStore.login({ mobile, password })
+      await userStore.login({ account: account.trim(), password })
       uni.reLaunch({ url: '/pages/index/index' })
     } finally {
       loading.value = false

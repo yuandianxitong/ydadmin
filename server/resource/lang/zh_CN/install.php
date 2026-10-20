@@ -11,7 +11,7 @@ return [
     'storage_not_writable' => '演示资源存储目录不可写，请检查目录权限后重试。',
     'baseline_required'   => '当前库没有升级记录，请使用 --baseline 指定已有版本后再升级。',
     'invalid_update_dir'  => '升级目录名称或路径不合法，已拒绝加载。',
-    'restart_hint'        => '安装完成。Docker 部署请在 docker/ 目录执行 docker compose restart webman；手动部署请执行 php start.php restart 使新配置生效。',
+    'restart_hint'        => '安装完成，已请求自动重载配置，可以进入管理后台。若配置仍未生效，Docker 部署执行 docker compose restart webman；手动部署执行 php start.php restart。',
     'env_php'             => 'PHP 版本必须不低于 8.4。',
     'env_extension'       => '必须安装 :name 扩展。',
     'env_writable'        => ':path 必须可写。',

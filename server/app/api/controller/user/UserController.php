@@ -50,7 +50,11 @@ class UserController extends AuthenticatedController
     #[PermissionSkip]
     public function updateProfile(Request $request): Response
     {
-        $data = $this->validate($this->body($request), $this->updateProfileRules(), $this->updateProfileMessages());
+        $input = $this->body($request);
+        if (array_key_exists('birthday', $input) && $input['birthday'] === '') {
+            $input['birthday'] = null;
+        }
+        $data = $this->validate($input, $this->updateProfileRules(), $this->updateProfileMessages());
         $this->userService->updateProfile((int) $request->userId, $data);
 
         return $this->success([], lang('messages.update_success'));
@@ -138,7 +142,7 @@ class UserController extends AuthenticatedController
     {
         return [
             'nickname' => 'sometimes|required|string|max:50',
-            'avatar'   => 'sometimes|required|string|max:255',
+            'avatar'   => 'sometimes|string|max:255',
             'gender'   => 'sometimes|required|integer|in:0,1,2',
             'birthday' => 'sometimes|nullable|date_format:Y-m-d',
         ];

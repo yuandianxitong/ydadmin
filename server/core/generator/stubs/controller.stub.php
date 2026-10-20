@@ -33,13 +33,13 @@ foreach ($formColumns as $column) {
     $fragment = $inference->validationRule($column);
     $needsRequired = !str_starts_with($fragment, 'nullable') && !str_starts_with($fragment, 'sometimes');
     if ($needsRequired) {
-        $ruleValues[$column->name] = $fragment === '' ? '"{$required}"' : '"{$required}|' . $fragment . '"';
+        $ruleValues[$column->name] = $fragment === '' ? '"{$required}"' : '"{$required}|' . addcslashes($fragment, '\\"$') . '"';
     } else {
-        $ruleValues[$column->name] = "'" . $fragment . "'";
+        $ruleValues[$column->name] = var_export($fragment, true);
     }
 
     if ($inference->isPassword($column)) {
-        $ruleValues[$column->name] = $column->nullable || $column->default !== null
+        $ruleValues[$column->name] = $column->nullable
             ? "'sometimes|nullable|string|max:255'"
             : '"{$passwordRequired}|string|max:255"';
     }
@@ -292,7 +292,7 @@ if ($ranges !== []): ?>
     private function <?= $rulesMethod ?>(string $scene): array
     {
         $required = $scene === 'create' ? 'required' : 'sometimes|required';
-<?php if (array_filter($formColumns, static fn ($c) => $inference->isPassword($c)) !== []): ?>
+<?php if (array_filter($formColumns, static fn ($c) => $inference->isPassword($c) && !$c->nullable) !== []): ?>
         $passwordRequired = $scene === 'create' ? 'required' : 'sometimes|nullable';
 <?php endif; ?>
 

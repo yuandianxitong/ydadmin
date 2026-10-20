@@ -92,6 +92,7 @@ $searchBlock = implode("\n", $searchItems);
 
 // ---- 表格列：switch/image/其余三支，status 列且 $hasStatus 时是实时开关 ----
 $columnItems = [];
+$selectLabels = [];
 foreach ($listColumns as $column) {
     $colLabel = $label($column);
     if ($column->name === 'status' && $hasStatus) {
@@ -126,6 +127,19 @@ foreach ($listColumns as $column) {
             . "                            preview-teleported\n"
             . "                        />\n"
             . "                        <span v-else>-</span>\n"
+            . "                    </template>\n"
+            . "                </el-table-column>";
+    } elseif ($column->formType === 'select' && $column->selectOptions() !== []) {
+        $numeric = in_array($column->type, ['integer', 'decimal', 'boolean'], true);
+        $optionMap = [];
+        foreach ($column->selectOptions() as $option) {
+            $optionMap[$numeric ? (string) (float) $option['value'] : $option['value']] = $option['label'];
+        }
+        $selectLabels[$column->name] = (object) $optionMap;
+        $valueExpression = $numeric ? "String(Number(row.{$column->name}))" : "String(row.{$column->name})";
+        $columnItems[] = "                <el-table-column label=\"{$colLabel}\" show-overflow-tooltip>\n"
+            . "                    <template #default=\"{ row }\">\n"
+            . "                        {{ row.{$column->name} == null ? '' : (selectLabels.{$column->name}[{$valueExpression}] ?? row.{$column->name}) }}\n"
             . "                    </template>\n"
             . "                </el-table-column>";
     } elseif ($column->type === 'json') {
@@ -295,6 +309,8 @@ __STORE_IMPORT_LINE__
 
 import __MODEL__Form from './components/__MODEL__Form.vue'
 
+__SELECT_LABELS__
+
 __STORE_INIT_BLOCK__
 const {
 __LISTPAGE_KEYS__
@@ -345,6 +361,7 @@ $replacements = [
     '__PK__' => $primaryKey,
     '__SEARCH_BLOCK__' => $searchBlock,
     '__COLUMNS_BLOCK__' => $columnsBlock,
+    '__SELECT_LABELS__' => $selectLabels === [] ? '' : 'const selectLabels: Record<string, Record<string, string>> = ' . json_encode((object) $selectLabels, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE),
     '__DELETE_CALL__' => $deleteCall,
     '__MODEL__' => $model,
     '__MODEL_CAMEL__' => $modelCamel,

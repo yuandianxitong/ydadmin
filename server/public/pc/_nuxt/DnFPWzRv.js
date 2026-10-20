@@ -1,0 +1,1 @@
+import{s as i}from"./B4uFHSC_.js";const e={getList:t=>i("/api/article/list",t),getDetail:t=>i(`/api/article/detail/${t}`),getCategoryList:()=>i("/api/article-category/list")};export{e as a};

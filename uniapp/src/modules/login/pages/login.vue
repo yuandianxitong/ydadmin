@@ -35,9 +35,9 @@
         <view class="i-ri-smartphone-line input-prefix" style="font-size: 36rpx; color: #999" />
         <input
           v-model="mobile"
-          type="number"
-          maxlength="11"
-          placeholder="请输入手机号"
+          :type="loginType === 'sms' ? 'number' : 'text'"
+          :maxlength="loginType === 'sms' ? 11 : 50"
+          :placeholder="loginType === 'sms' ? '请输入手机号' : '请输入手机号、邮箱或昵称'"
           class="uni-input"
           placeholder-class="input-placeholder"
         />

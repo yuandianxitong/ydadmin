@@ -136,12 +136,16 @@ async function handleSave() {
     return
   }
 
-  await updateProfile({
-    avatar: form.avatar,
-    nickname: form.nickname.trim(),
-    gender: form.gender,
-    birthday: formatBirthday(form.birthday),
-  })
+  try {
+    await updateProfile({
+      avatar: form.avatar,
+      nickname: form.nickname.trim(),
+      gender: form.gender,
+      birthday: formatBirthday(form.birthday),
+    })
+  } catch {
+    // 请求层已展示错误，保留表单供修改后重试。
+  }
 }
 </script>
 

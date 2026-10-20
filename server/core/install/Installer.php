@@ -355,7 +355,15 @@ final class Installer
                 'password' => (string) $input['db_password'],
             ])->query('SELECT 1');
         } catch (\Throwable $e) {
-            throw new BusinessException('数据库无法连接', 400, $e);
+            $driverCode = $e instanceof \PDOException ? (int) ($e->errorInfo[1] ?? 0) : 0;
+            $message = match ($driverCode) {
+                1045 => '数据库认证失败，请检查用户名和密码',
+                1044 => '数据库账号权限不足，请检查授权',
+                1049 => '数据库不存在，请先创建数据库或授权账号建库',
+                2002, 2003, 2005 => '数据库主机无法连接，请检查主机、端口和网络',
+                default => '数据库无法连接，请检查连接配置和 MySQL 服务状态',
+            };
+            throw new BusinessException($message, 400, $e);
         }
     }
 

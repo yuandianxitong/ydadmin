@@ -18,7 +18,7 @@ final class GeneratorSensitiveFieldsTest extends TestCase
         $inference = new TypeInference();
         $columns = [];
         foreach (['id', 'password', 'api_secret', 'access_token'] as $name) {
-            $columns[] = $inference->describe(['Field' => $name, 'Type' => $name === 'id' ? 'int' : 'varchar(255)', 'Key' => $name === 'id' ? 'PRI' : '', 'Null' => 'NO'])
+            $columns[] = $inference->describe(['Field' => $name, 'Type' => $name === 'id' ? 'int' : 'varchar(255)', 'Key' => $name === 'id' ? 'PRI' : '', 'Null' => 'NO', 'Default' => $name === 'password' ? '' : null])
                 ->withOverrides('input', true, true, true);
         }
         $blueprint = new ModuleBlueprint(new TableDefinition('sensitive_records', '敏感信息', $columns), new GeneratorRequest('sensitive_records', 'demo', 'SensitiveRecord', '', []));
@@ -36,5 +36,13 @@ final class GeneratorSensitiveFieldsTest extends TestCase
         self::assertStringContainsString('type="password"', $artifacts['form']);
         self::assertStringContainsString('password_hash(', $artifacts['service']);
         self::assertStringContainsString('new NotFoundException', $artifacts['service']);
+        preg_match('/private function sensitiveRecordRules\(string \$scene\): array\s*(\{.*?\n    \})/s', $artifacts['controller'], $matches);
+        $rules = eval('return function (string $scene): array ' . $matches[1] . ';');
+        self::assertSame('required|string|max:255', $rules('create')['password']);
+        self::assertSame('sometimes|nullable|string|max:255', $rules('update')['password']);
+        \core\validation\ValidatorFactory::validate(['password' => ''], $rules('update'));
+        $this->expectException(\core\exception\ValidationException::class);
+        \core\validation\ValidatorFactory::validate([], $rules('create'));
+
     }
 }

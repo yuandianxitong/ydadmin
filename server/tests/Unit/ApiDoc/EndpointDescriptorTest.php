@@ -49,6 +49,14 @@ final class EndpointDescriptorTest extends TestCase
         $this->assertSame([['name' => 'id', 'type' => 'integer']], $endpoint->pathParameters());
     }
 
+    public function test_quantifiers_are_part_of_the_route_regex(): void
+    {
+        $path = '/api/agreement/{code:[a-z][a-z0-9_]{1,49}}/{id:\\d{1,8}}';
+        $endpoint = new EndpointDescriptor('GET', $path, 'C', 'show', null, true, 'agreement', false);
+        $this->assertSame('/api/agreement/{code}/{id}', \core\apidoc\OpenApiDocument::normalizePathTemplate($path));
+        $this->assertSame([['name' => 'code', 'type' => 'string'], ['name' => 'id', 'type' => 'string']], $endpoint->pathParameters());
+    }
+
     public function test_expects_body_is_true_only_for_post_put_patch(): void
     {
         $get = new EndpointDescriptor('GET', '/adminapi/x', 'C', 'index', null, true, 'x', true);

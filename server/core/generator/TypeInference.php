@@ -134,6 +134,10 @@ final class TypeInference
                 break;
         }
 
+        if ($column->formType === 'select' && $column->type !== 'enum' && $column->selectOptions() !== []) {
+            $parts[] = 'in:' . implode(',', array_column($column->selectOptions(), 'value'));
+        }
+
         if (str_contains($lowerName, 'email')) {
             $parts[] = 'email';
         }
@@ -170,7 +174,7 @@ final class TypeInference
         }
 
         $tokens = [];
-        if (!$column->nullable && !($column->default !== null && in_array($column->type, ['string', 'text'], true))) {
+        if (!$column->nullable && ($this->isPassword($column) || !($column->default !== null && in_array($column->type, ['string', 'text'], true)))) {
             $tokens[] = 'require';
         }
 
@@ -203,6 +207,10 @@ final class TypeInference
 
         if (str_contains($lowerName, 'email')) {
             $tokens[] = 'email';
+        }
+
+        if ($column->formType === 'select' && $column->type !== 'enum' && $column->selectOptions() !== []) {
+            $tokens[] = 'invalid';
         }
 
         return $tokens;

@@ -33,6 +33,7 @@ final class GeneratedFrontendTest extends TestCase
             foreach (['event_date' => 'date', 'settings' => 'json', 'password' => 'varchar(255)'] as $name => $type) {
                 $columns[] = $inference->describe(['Field' => $name, 'Type' => $type, 'Null' => 'YES']);
             }
+            $columns[] = $inference->describe(['Field' => 'password_hash', 'Type' => 'varchar(255)', 'Null' => 'NO', 'Default' => '']);
             $columns[] = $inference->describe(['Field' => 'category_id', 'Type' => 'int', 'Null' => 'NO'])
                 ->withOverrides('select', true, true, true, [['label' => '分类一', 'value' => '1']]);
             $blueprint = new ModuleBlueprint(new TableDefinition('gen_articles', '测试', $columns), new GeneratorRequest('gen_articles', 'demo', 'GenArticle', '', []));

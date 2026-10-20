@@ -40,7 +40,7 @@ final class EndpointDescriptor
      */
     public function pathParameters(): array
     {
-        preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]*))?\}/', $this->path, $matches, PREG_SET_ORDER);
+        preg_match_all('~' . \FastRoute\RouteParser\Std::VARIABLE_REGEX . '~x', $this->path, $matches, PREG_SET_ORDER);
 
         return array_map(
             static fn (array $match): array => [

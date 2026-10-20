@@ -56,6 +56,19 @@ final class AuthApiTest extends ApiTestCase
         $this->assertSame(lang('auth.account_login_failed'), $unknown->message());
     }
 
+    public function test_password_login_accepts_unique_nickname_and_email_but_rejects_ambiguous_nicknames(): void
+    {
+        $name = '登录测试' . bin2hex(random_bytes(4));
+        $user = $this->actingAsUser(['nickname' => $name, 'email' => 'login-' . bin2hex(random_bytes(4)) . '@example.com']);
+        $email = (string) Db::table('users')->where('id', $user->id)->value('email');
+        foreach ([$name, $email] as $account) {
+            $response = $this->post('/api/auth/login', ['account' => $account, 'password' => $user->password])->assertOk();
+            $this->assertSame($user->id, $response->data()['user_info']['id']);
+        }
+        $this->actingAsUser(['nickname' => $name]);
+        $this->post('/api/auth/login', ['account' => $name, 'password' => $user->password])->assertCode(400);
+    }
+
     public function test_login_rejects_disabled_account(): void
     {
         $user = $this->actingAsUser(['status' => 0]);

@@ -13,7 +13,7 @@ namespace core\realtime;
  */
 final class RealtimeMessage
 {
-    public const EVENTS = ['notification.created', 'force_logout', 'task.progress'];
+    public const EVENTS = ['notification.created', 'notification.changed', 'force_logout', 'task.progress'];
 
     /** @var 'all'|list<int> */
     public readonly string|array $targets;

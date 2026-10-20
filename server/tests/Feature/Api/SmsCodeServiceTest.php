@@ -157,27 +157,19 @@ final class SmsCodeServiceTest extends ApiTestCase
      * 第一次报「未注册」在预期之内；第二次如果还报「未注册」，说明探测请求完全没有计入限流配额——
      * 攻击者可以无限速、免费探测任意号码是否已注册。第二次必须直接被手机号限流拦下（code 429）。
      */
-    public function test_the_minute_rate_limit_still_counts_a_probe_against_an_unregistered_mobile(): void
+    public function test_failed_scene_checks_allow_retry_but_still_consume_the_ip_budget(): void
     {
-        try {
-            $this->service()->send(self::MOBILE, 'login', self::IP);
-            $this->fail('第一次：未注册的手机号必须报「未注册」');
-        } catch (BusinessException $e) {
-            $this->assertSame(lang('business.sms_mobile_not_registered'), $e->getMessage());
-            $this->assertNotSame(429, $e->getCode(), '第一次不该被限流——这一次探测本身才是「消耗配额」的那一次');
+        for ($i = 0; $i < 2; $i++) {
+            try {
+                $this->service()->send(self::MOBILE, 'login', self::IP);
+                $this->fail('未注册号码不能登录');
+            } catch (BusinessException $e) {
+                $this->assertSame(lang('business.sms_mobile_not_registered'), $e->getMessage());
+            }
         }
-
-        try {
-            $this->service()->send(self::MOBILE, 'login', self::IP);
-            $this->fail('第二次探测必须被限流拦下，而不是又报一次「未注册」');
-        } catch (BusinessException $e) {
-            $this->assertSame(429, $e->getCode(), '限流判断必须先于存在性校验执行，探测请求才会真的消耗配额');
-            $this->assertSame(
-                lang('business.sms_rate_limited_minute', ['seconds' => (string) SmsCodeService::MINUTE_WINDOW]),
-                $e->getMessage()
-            );
-        }
-        $this->assertSame([], $this->driver->sent, '两次探测全程没有一条真的该发出去');
+        $this->assertSame(0, (int) Redis::exists('sms_rate:minute:' . self::MOBILE));
+        $this->assertSame('2', (string) Redis::get('sms_rate:ip:' . md5(self::IP)));
+        $this->assertSame([], $this->driver->sent);
     }
 
     public function test_second_request_within_a_minute_is_rate_limited_with_code_429(): void
@@ -280,7 +272,7 @@ final class SmsCodeServiceTest extends ApiTestCase
         $this->service()->verify(self::MOBILE, 'register', $code);
     }
 
-    public function test_a_failed_send_drops_the_cached_code_but_keeps_the_rate_counter(): void
+    public function test_failed_send_releases_the_minute_interval_and_allows_a_successful_retry(): void
     {
         $this->driver->failWith = new BusinessException(lang('business.sms_send_failed'));
 
@@ -292,7 +284,12 @@ final class SmsCodeServiceTest extends ApiTestCase
         }
 
         $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE), '用户根本拿不到这串码，留着只是给撞码开窗口');
-        $this->assertSame('1', (string) Redis::get('sms_rate:minute:' . self::MOBILE), '限流计数不回退：网关坏掉时更不能让同一个号码每秒重试');
+        $this->assertSame(0, (int) Redis::exists('sms_rate:minute:' . self::MOBILE));
+        $this->assertSame('1', (string) Redis::get('sms_rate:ip:' . md5(self::IP)));
+        $this->driver->failWith = null;
+        $this->service()->send(self::MOBILE, 'register', self::IP);
+        $this->assertSame(1, (int) Redis::exists('sms_rate:minute:' . self::MOBILE));
+        $this->assertNotEmpty(Redis::get('sms_code:register:' . self::MOBILE));
     }
 
     /**

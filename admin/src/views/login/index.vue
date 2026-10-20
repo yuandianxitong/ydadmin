@@ -31,6 +31,7 @@
                 </div>
 
                 <!-- 表单 -->
+                <el-alert v-if="loginError" :title="loginError" type="error" :closable="false" show-icon class="mb-4" />
                 <el-form
                     ref="loginFormRef"
                     :model="loginForm"
@@ -155,6 +156,7 @@ const loginRules: FormRules = {
 
 const loading = ref(false)
 const captchaImage = ref('')
+const loginError = ref('')
 
 // 获取验证码
 const refreshCaptcha = async () => {
@@ -175,6 +177,7 @@ const handleLogin = async () => {
     try {
         await loginFormRef.value.validate()
 
+        loginError.value = ''
         loading.value = true
 
         await userStore.login({
@@ -187,6 +190,9 @@ const handleLogin = async () => {
         const redirect = (route.query.redirect as string) || '/'
         await router.push(redirect)
     } catch (error) {
+        if (error instanceof Error) {
+            loginError.value = (error as any).response?.data?.message || error.message
+        }
         // 登录失败时刷新验证码
         refreshCaptcha()
         console.error('登录失败:', error)

@@ -12,7 +12,7 @@ export const useUserStore = defineStore('user', () => {
   const nickname = computed(() => userInfo.value?.nickname || '')
   const avatar = computed(() => userInfo.value?.avatar || '')
 
-  async function login(params: { mobile: string; password: string }): Promise<LoginResult> {
+  async function login(params: { account: string; password: string }): Promise<LoginResult> {
     const result = await authApi.login(params)
     applyLoginResult(result)
     await afterLogin()

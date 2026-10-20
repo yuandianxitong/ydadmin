@@ -103,7 +103,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                 imports: ["vue", "@vueuse/core", "pinia", "vue-router", "vue-i18n"],
                 resolvers: [
                     // 导入 Element Plus 函数，如：ElMessage、ElMessageBox 等
-                    ElementPlusResolver({ importStyle: "sass" }),
+                    ElementPlusResolver({ importStyle: mode === "test" ? false : "sass" }),
                 ],
                 eslintrc: {
                     enabled: true,
@@ -119,7 +119,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
             Components({
                 resolvers: [
                     // 导入 Element Plus 组件
-                    ElementPlusResolver({ importStyle: "sass" }),
+                    ElementPlusResolver({ importStyle: mode === "test" ? false : "sass" }),
                 ],
                 // 通用组件目录
                 dirs: [

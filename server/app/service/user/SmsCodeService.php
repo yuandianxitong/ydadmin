@@ -28,12 +28,8 @@ use support\Redis;
  * 直接代价是运营方的短信费。20 次/小时是有意放宽的阈值：企业 NAT 出口大量真实用户共用一个公网 IP，
  * 定得太严会连带误伤这些正常用户；20 次仍然把单 IP 轰炸的成本压得很低。
  *
- * 限流计数（IP 与手机号）都在**存在性校验与发送之前**记：
- * 1) 网关坏掉、配置没填全的时候更不能让同一个号码每秒重试。代价是配置没配好时，用户要等 60 秒才能
- *    再试一次——这正确，因为重试也不会成功。
- * 2) 存在性校验（手机号是否已注册）不消耗限流配额的话，攻击者可以用任意号码换 login/register 场景
- *    无限速探测号码是否注册，一次都不占用配额（修复轮第 1 条）——所以限流必须排在
- *    assertMobileFitsScene() 之前，让探测请求本身也计一次数。
+ * IP 与每日配额按尝试计数，防止号码探测和网关故障期间的无限重试。
+ * 每分钟间隔只在实际发送成功后保留；失败按令牌释放本次预约，允许用户立即修正后重试。
  *
  * 容器单例，无状态（请求态一律经参数传递）。
  */
@@ -115,27 +111,27 @@ LUA;
         if ($scene === 'register' && !$this->systemConfigService->isSecuritySwitchOn('user_register')) {
             throw new BusinessException(lang('business.register_closed'));
         }
-        // 限流排在存在性校验之前（修复轮第 1 条）：未注册号码走 login 场景的探测请求也必须计入配额，
-        // 否则攻击者可以无限速探测任意号码是否已注册。IP 闸门排最前——探测请求同样要消耗它。
         $this->assertWithinIpRateLimit($ip);
-        $this->assertWithinRateLimit($mobile);
         $this->assertMobileFitsScene($mobile, $scene);
-
-        $code = str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
-        Redis::setEx(self::codeKey($mobile, $scene), self::CODE_TTL, $code);
-        // 换了新码就把上一轮的失败计数一并清零：否则被锁的人重发之后只要再手滑一次，就会立刻又撞上上限、
-        // 把刚收到的这条码也作废，最差要熬到计数自然过期（TTL 从第一次失败起算，重发不会延长它）。
-        // 不放水：每次发码都覆写验证码，攻击者对任一串码的猜测次数仍被 VERIFY_FAIL_LIMIT 卡死，
-        // 总预算由发送侧限流决定（同号每分钟 1 次、每天 10 次，同 IP 每小时 20 次）。
-        Redis::del(self::verifyFailKey($mobile, $scene));
-
+        $template = $this->templateId($scene);
+        $token = bin2hex(random_bytes(16));
+        $reserved = false;
         try {
-            $this->smsDriver->send($mobile, $this->templateId($scene), ['code' => $code]);
+            $this->assertWithinRateLimit($mobile, $token);
+            $reserved = true;
+            $perDay = (int) Redis::eval(self::INCR_WITH_TTL, 1, "sms_rate:day:{$mobile}", self::DAY_WINDOW);
+            if ($perDay > self::DAY_LIMIT) {
+                throw new BusinessException(lang('business.sms_rate_limited_day', ['limit' => (string) self::DAY_LIMIT]), 429);
+            }
+            $code = str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
+            $this->smsDriver->send($mobile, $template, ['code' => $code]);
+            Redis::setEx(self::codeKey($mobile, $scene), self::CODE_TTL, $code);
+            Redis::del(self::verifyFailKey($mobile, $scene));
         } catch (\Throwable $e) {
-            // 发不出去就别把验证码留在缓存里：用户根本拿不到它，留着只是白白开一个 5 分钟的撞码窗口。
-            // 限流计数**不**回退，理由见类注释。
-            Redis::del(self::codeKey($mobile, $scene));
-
+            if ($reserved) {
+                // 只释放自己的预约，不能删除耗时发送期间新请求建立的间隔。
+                Redis::eval("if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end return 0", 1, "sms_rate:minute:{$mobile}", $token);
+            }
             throw $e;
         }
     }
@@ -198,16 +194,16 @@ LUA;
         }
     }
 
-    private function assertWithinRateLimit(string $mobile): void
+    private function assertWithinRateLimit(string $mobile, string $token): void
     {
-        $perMinute = (int) Redis::eval(self::INCR_WITH_TTL, 1, "sms_rate:minute:{$mobile}", self::MINUTE_WINDOW);
-        if ($perMinute > self::MINUTE_LIMIT) {
+        $script = "if redis.call('EXISTS', KEYS[1]) == 1 then return 0 end redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) return 1";
+        $arguments = ["sms_rate:minute:{$mobile}", $token, (string) self::MINUTE_WINDOW];
+        $connection = Redis::connection();
+        $reserved = (int) ($connection instanceof \Illuminate\Redis\Connections\PhpRedisConnection
+            ? $connection->eval($script, 1, ...$arguments)
+            : $connection->command('eval', [$script, 1, ...$arguments]));
+        if ($reserved !== 1) {
             throw new BusinessException(lang('business.sms_rate_limited_minute', ['seconds' => (string) self::MINUTE_WINDOW]), 429);
-        }
-
-        $perDay = (int) Redis::eval(self::INCR_WITH_TTL, 1, "sms_rate:day:{$mobile}", self::DAY_WINDOW);
-        if ($perDay > self::DAY_LIMIT) {
-            throw new BusinessException(lang('business.sms_rate_limited_day', ['limit' => (string) self::DAY_LIMIT]), 429);
         }
     }
 

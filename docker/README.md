@@ -38,7 +38,7 @@ Composer 在 Webman 镜像内运行，宿主机无需安装 PHP 8.4 或 Composer
 
 向导使用容器网络地址与端口，与宿主机映射的 `MYSQL_PORT` / `REDIS_PORT` 无关。`docker/.env` 用于 Compose，安装器写入的应用配置在 `server/.env`，安装锁为 `server/config/install.lock`。
 
-装完执行（不要在宿主机运行 `php start.php restart`）：
+安装器会请求自动重载，完成后可直接进入后台。如果配置尚未生效，再执行（不要在宿主机运行 `php start.php restart`）：
 
 ```bash
 docker compose restart webman
@@ -62,6 +62,29 @@ docker compose up -d --force-recreate webman
 
 - nginx 把 `/` 反代到 webman `8000`，把 `/ws` 反代到 `8001`，并设置 `client_max_body_size 50m`。
 - MySQL 与 Redis 默认只绑定宿主机回环地址；需要外连时再改 `docker/.env` 里的绑定项，并自行评估暴露面。
-- Nginx 的固定容器 IP 默认为 `172.30.84.2`，启动脚本将其写入应用的 `TRUSTED_PROXIES`，登录日志与操作日志由此记录实际客户端 IP。若子网冲突，成对修改 `DOCKER_SUBNET` 与 `NGINX_INTERNAL_IP`，然后 `docker compose up -d --force-recreate` 重建容器。不要把整个私网或所有来源设为可信代理。
+- Nginx 的固定容器 IP 默认为 `172.30.84.2`，启动脚本将其写入应用的 `TRUSTED_PROXIES`，登录日志与操作日志由此记录实际客户端 IP。若子网冲突，同时修改 `DOCKER_SUBNET`、`DOCKER_IP_RANGE` 与 `NGINX_INTERNAL_IP`（固定 IP 必须在子网内、动态地址池外），然后 `docker compose up -d --force-recreate` 重建容器。不要把整个私网或所有来源设为可信代理。
 - 镜像包含验证码所需 GD（PNG / JPEG / WebP / FreeType）以及上传检测所需 fileinfo。
 - 安装器默认设置 `APP_DEBUG=false`，生成器写操作在生产模式下关闭。仅在独立开发环境将 `server/.env` 改为 `APP_DEBUG=true` 并执行 `docker compose restart webman`，详见[代码生成器](../README.md#代码生成)。
+
+## 前端构建与更新
+
+仓库的 `server/public/{admin,pc,mobile}` 是可直接部署的构建产物。修改前端源码后必须重新构建，再部署对应目录；只更新源码不会更新浏览器看到的页面。构建环境需要 Node.js 和 pnpm，PHP 宿主机无需安装这些工具，也可以在独立构建机完成后复制产物。
+
+在仓库根目录执行：
+
+```bash
+pnpm --dir admin install --frozen-lockfile
+pnpm --dir admin build
+pnpm --dir pc install --frozen-lockfile
+pnpm --dir pc generate
+pnpm --dir uniapp install --frozen-lockfile
+pnpm --dir uniapp build:h5
+```
+
+三个命令分别写入 `server/public/admin`、`server/public/pc`、`server/public/mobile`。H5 入口为 `/mobile/`，PC 入口为 `/pc/`，后台入口为 `/admin/`。复制到 Docker 宿主机的挂载源码目录即可使用；生产发布应上传完整目录，避免旧入口引用已经移除的文件。
+
+## 安装前日志
+
+全新部署在安装器保存数据库与 Redis 凭据之前，队列进程可能出现 Redis `NOAUTH` 或数据库连接失败并重试。安装器会写入配置并请求自动重载，安装完成后这些错误应停止。若持续出现，请核对 `server/.env` 的连接信息与 `docker/.env` 的密码，再执行 `docker compose restart webman`，然后检查就绪探针 `/adminapi/health/ready`。
+
+已有部署更新网络地址池时，需要重建 Compose 网络：先检查 `NGINX_INTERNAL_IP` 在动态池外（默认 `.2`，不要保留此前的 `.250` 临时配置），然后执行 `docker compose down` 和 `docker compose up -d`。不要添加 `-v`，数据库与 Redis 数据卷会保留。

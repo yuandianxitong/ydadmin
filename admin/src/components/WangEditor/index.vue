@@ -4,7 +4,7 @@
             :editor="editorRef"
             :default-config="toolbarConfig"
             :mode="mode"
-            style="border-bottom: 1px solid #ccc"
+            style="border-bottom: 1px solid var(--el-border-color)"
         />
         <Editor
             v-model="valueHtml"
@@ -128,7 +128,17 @@ onBeforeUnmount(() => {
     :deep(.w-e-bar-item-group.upload-menu-dismissed .w-e-bar-item-menus-container) {
         display: none;
     }
-    border: 1px solid #ccc;
+    --w-e-textarea-bg-color: var(--el-bg-color);
+    --w-e-textarea-color: var(--el-text-color-primary);
+    --w-e-toolbar-bg-color: var(--el-bg-color);
+    --w-e-toolbar-color: var(--el-text-color-regular);
+    --w-e-toolbar-active-color: var(--el-color-primary);
+    --w-e-toolbar-active-bg-color: var(--el-fill-color);
+    --w-e-toolbar-disabled-color: var(--el-text-color-disabled);
+    --w-e-toolbar-border-color: var(--el-border-color);
+    --w-e-modal-button-bg-color: var(--el-fill-color);
+    --w-e-modal-button-border-color: var(--el-border-color);
+    border: 1px solid var(--el-border-color);
     border-radius: 4px;
     overflow: hidden;
     width: 100%;

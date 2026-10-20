@@ -282,3 +282,14 @@ API 文档在开发和生产模式下均可使用：登录后台后进入「开�
 - 文档中心: [http://docs.dev007.cn/admin/](http://docs.dev007.cn/admin/)
 - GitHub: [https://github.com/yuandianxitong/ydadmin](https://github.com/yuandianxitong/ydadmin)
 - Gitee: [https://gitee.com/yuandianxitong/ydadmin](https://gitee.com/yuandianxitong/ydadmin)
+
+### 移动端 H5 构建与部署
+
+`pnpm dev:h5` 仅用于开发。生产部署在仓库根目录执行：
+
+```bash
+pnpm --dir uniapp install --frozen-lockfile
+pnpm --dir uniapp build:h5
+```
+
+构建后会自动将 `uniapp/dist/build/h5` 发布到 `server/public/mobile`，通过 `/mobile/` 访问。后台执行 `pnpm --dir admin build`，PC 执行 `pnpm --dir pc generate`，产物分别为 `server/public/admin` 和 `server/public/pc`。源码更新后需要重新构建这些目录，Docker 部署的构建步骤见 [部署说明](docker/README.md#前端构建与更新)。发布脚本 `server/scripts/release.sh` 会构建三个前端。

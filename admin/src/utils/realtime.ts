@@ -16,6 +16,7 @@ export type RealtimeEvent =
     | 'connected'
     | 'pong'
     | 'notification.created'
+    | 'notification.changed'
     | 'force_logout'
     | 'task.progress'
 

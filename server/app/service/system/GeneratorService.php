@@ -363,7 +363,8 @@ class GeneratorService extends Service
             }
             foreach ($configured->selectOptions() as $option) {
                 $value = $option['value'];
-                if (($column->type === 'integer' && filter_var($value, FILTER_VALIDATE_INT) === false)
+                if (strpbrk($value, ',|') !== false
+                    || ($column->type === 'integer' && filter_var($value, FILTER_VALIDATE_INT) === false)
                     || ($column->type === 'decimal' && !is_numeric($value))
                     || ($column->type === 'boolean' && !in_array($value, ['0', '1'], true))
                     || ($column->type === 'enum' && !in_array($value, $column->enumValues, true))) {

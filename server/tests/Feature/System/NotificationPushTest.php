@@ -138,6 +138,20 @@ final class NotificationPushTest extends ApiTestCase
         $this->assertSame($id, $spy->calls[0]['payload']['id']);
     }
 
+    public function test_deleting_a_notification_requests_badge_refresh_after_commit(): void
+    {
+        $spy = new SpyRealtimePublisher();
+        $this->swapPublisher($spy);
+        $admin = $this->actingAsAdmin(self::ALL);
+        $id = $this->store($admin->token, ['status' => 1]);
+        $spy->calls = [];
+        $this->delete(self::BASE . "/{$id}", [], $admin->token)->assertOk();
+        $this->assertCount(1, $spy->calls);
+        $this->assertSame('notification.changed', $spy->calls[0]['event']);
+        $this->assertSame('all', $spy->calls[0]['targets']);
+        $this->get(self::BASE . '/unread-count', [], $admin->token)->assertOk();
+    }
+
     public function test_rejected_requests_do_not_push(): void
     {
         $spy = new SpyRealtimePublisher();

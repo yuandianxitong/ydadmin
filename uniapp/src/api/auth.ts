@@ -2,7 +2,7 @@ import http from '@/utils/request'
 import type { LoginResult, UserInfo } from '@/types/api'
 
 export const authApi = {
-  login: (data: { mobile: string; password: string }) =>
+  login: (data: { account: string; password: string }) =>
     http.post<LoginResult>('/api/auth/login', data),
 
   smsLogin: (data: { mobile: string; code: string }) =>

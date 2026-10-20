@@ -163,9 +163,12 @@
                     :label="key"
                     :name="key"
                 >
-                    <div class="text-sm text-gray-500 mb-2">{{ file.path }}</div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-500">{{ file.path }}</span>
+                        <el-button size="small" @click="copyCode(file.content)">{{ $t('common.copy') }}</el-button>
+                    </div>
                     <div class="code-block">
-                        <pre><code>{{ file.content }}</code></pre>
+                        <pre><code v-html="highlightCode(file.path, file.content)"></code></pre>
                     </div>
                 </el-tab-pane>
             </el-tabs>
@@ -207,6 +210,9 @@
 </template>
 
 <script setup lang="ts">
+import 'highlight.js/styles/atom-one-dark.css'
+import hljs from 'highlight.js'
+
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -215,6 +221,24 @@ import { useI18n } from 'vue-i18n'
 import { generatorApi } from '@/api/generator'
 
 const { t } = useI18n()
+
+function highlightCode(path: string, content: string): string {
+    const extension = path.split('.').pop() || ''
+    const language = ({ vue: 'xml', ts: 'typescript' } as Record<string, string>)[extension] || extension
+    return hljs.getLanguage(language)
+        ? hljs.highlight(content, { language }).value
+        : hljs.highlightAuto(content).value
+}
+
+async function copyCode(content: string) {
+    try {
+        const { default: useClipboard } = await import('vue-clipboard3')
+        await useClipboard().toClipboard(content)
+        ElMessage.success(t('message.copySuccess'))
+    } catch {
+        ElMessage.error(t('message.copyFailed'))
+    }
+}
 
 const step = ref(0)
 const tableLoading = ref(false)

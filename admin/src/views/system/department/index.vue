@@ -210,7 +210,7 @@ const getParentOptions = async () => {
     try {
         const res = await departmentApi.getOptions()
         // 添加顶级选项
-        parentOptions.value = [{ id: 0, name: t('department.title'), children: res.data }]
+        parentOptions.value = [{ id: 0, name: t('department.topLevel'), children: res.data }]
     } catch {
         ElMessage.error(t('message.fetchFailed'))
     }

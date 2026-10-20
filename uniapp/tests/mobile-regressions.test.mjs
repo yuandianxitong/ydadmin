@@ -158,3 +158,41 @@ test('legacy agreement routes preserve privacy links without changing the launch
   assert.equal(pages.pages[0].path, 'pages/index/index')
   assert.ok(pages.pages.some(page => page.path === 'pages/user_agreement/agreement'))
 })
+
+test('failed profile saves keep the form and do not leak an unhandled rejection', async () => {
+  const state = load('src/modules/user/pages/edit-profile.vue', {
+    imports: {
+      vue: { ref, reactive, computed, onMounted() {} },
+      '../composables/useUser': {
+        useUser: () => ({ loading: ref(false), updateProfile: async () => { throw new Error('保存失败') } }),
+      },
+    },
+    expose: '({ form, handleSave })',
+  })
+  state.form.nickname = '保留昵称'
+  await assert.doesNotReject(state.handleSave())
+  assert.equal(state.form.nickname, '保留昵称')
+})
+
+test('password login accepts email and nickname while SMS login still requires a mobile number', async () => {
+  const requests = []
+  const toasts = []
+  const { useLogin } = load('src/modules/login/composables/useLogin.ts', {
+    imports: {
+      vue: { ref },
+      '@/store/user.store': { useUserStore: () => ({ login: async data => requests.push(data) }) },
+      '@/api/auth': { authApi: {} },
+      '@/hooks/useCountdown': { useCountdown: () => ({ countdown: ref(0), start() {} }) },
+      '@/utils/validate': { isMobile: value => /^1\d{10}$/.test(value), isPassword: () => true, isVerifyCode: () => true },
+      '@/utils/auth': { setToken() {} },
+    },
+    uni: { reLaunch() {}, showToast: options => toasts.push(options.title) },
+  })
+  const login = useLogin()
+  await login.loginByPassword(' member@example.com ', 'Secret123!')
+  await login.loginByPassword('测试昵称', 'Secret123!')
+  assert.equal(requests[0].account, 'member@example.com')
+  assert.equal(requests[1].account, '测试昵称')
+  await login.loginBySms('member@example.com', '123456')
+  assert.deepEqual(toasts, ['请输入正确的手机号'])
+})

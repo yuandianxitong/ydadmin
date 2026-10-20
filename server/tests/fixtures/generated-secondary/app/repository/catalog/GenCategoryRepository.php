@@ -29,6 +29,19 @@ class GenCategoryRepository extends Repository
     }
 
     /**
+     * 回读数据库默认值，使新增响应与后续详情一致。
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function create(array $data): array
+    {
+        $row = parent::create($data);
+
+        return $this->find((int) $row['id']) ?? $row;
+    }
+
+    /**
      * 列表查询，搜索项：name（模糊）。
      *
      * @param array<string, mixed> $params

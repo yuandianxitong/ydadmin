@@ -76,6 +76,7 @@ export default {
         rememberMe: '记住我',
         forgetPassword: '忘记密码？',
         message: {
+        copyFailed: '复制失败，请选中文本手动复制',
             username: {
                 required: '请输入用户名'
             },
@@ -144,7 +145,7 @@ export default {
         interface: '界面设置',
         navigation: '导航设置',
         themeColor: '主题颜色',
-        tagsView: '开启 Tags-View',
+        tagsView: '开启标签页',
         sidebarLogo: '侧边栏 Logo',
         sidebarColorScheme: '侧边栏配色',
         breadcrumb: '面包屑',
@@ -478,6 +479,7 @@ export default {
     },
     // 部门管理
     department: {
+        topLevel: '顶级部门',
         title: '部门管理',
         addDept: '新增部门',
         editDept: '编辑部门',

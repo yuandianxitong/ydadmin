@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace tests\Feature\Api;
 
-use app\service\user\SmsCodeService;
 use support\Redis;
 use tests\Support\ApiTestCase;
 
@@ -111,17 +110,13 @@ final class SmsCodeApiTest extends ApiTestCase
         $this->assertSame(0, (int) Redis::exists('sms_code:register:' . self::MOBILE));
     }
 
-    /** 限流在发送之前计数：第一次即使因为配置不全没发出去，第二次也照样 429（否则网关一坏就能被打满）。 */
-    public function test_second_request_within_a_minute_returns_code_429(): void
+    /** 配置失败没有发出短信，不应让用户等待一分钟；IP 仍限制错误重试。 */
+    public function test_configuration_failure_does_not_start_the_minute_interval(): void
     {
-        $this->post(self::URI, ['mobile' => self::MOBILE, 'scene' => 'register']);
-
-        $response = $this->post(self::URI, ['mobile' => self::MOBILE, 'scene' => 'register'])->assertCode(429);
-
-        $this->assertSame(
-            lang('business.sms_rate_limited_minute', ['seconds' => (string) SmsCodeService::MINUTE_WINDOW]),
-            $response->message()
-        );
-        $this->assertSame(200, $response->status(), '限流是 HTTP 200 + code 429，不照 TP8 的 HTTP 429');
+        for ($i = 0; $i < 2; $i++) {
+            $response = $this->post(self::URI, ['mobile' => self::MOBILE, 'scene' => 'register'])->assertCode(400);
+            $this->assertSame(lang('business.sms_template_missing'), $response->message());
+        }
+        $this->assertSame(0, (int) Redis::exists('sms_rate:minute:' . self::MOBILE));
     }
 }

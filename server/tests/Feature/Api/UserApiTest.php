@@ -53,6 +53,16 @@ final class UserApiTest extends ApiTestCase
         $this->assertSame('2000-01-01', substr((string) $row->birthday, 0, 10));
     }
 
+    public function test_member_without_an_avatar_can_save_other_profile_fields(): void
+    {
+        $user = $this->actingAsUser(['avatar' => '']);
+        $this->put('/api/user/profile', ['avatar' => '', 'nickname' => '新昵称', 'gender' => 0, 'birthday' => ''], $user->token)->assertOk();
+        $profile = $this->get('/api/user/profile', [], $user->token)->assertOk()->data();
+        $this->assertSame('新昵称', $profile['nickname']);
+        $this->assertSame('', $profile['avatar']);
+        $this->assertNull($profile['birthday']);
+    }
+
     public function test_update_profile_rejects_an_invalid_gender(): void
     {
         $user = $this->actingAsUser();

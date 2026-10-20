@@ -28,6 +28,12 @@ final class RoleApiTest extends ApiTestCase
         return (int) Db::table('admin_roles')->where('admin_id', $admin->id)->value('role_id');
     }
 
+    public function test_missing_role_detail_returns_not_found(): void
+    {
+        $admin = $this->actingAsAdmin(['system.role.list']);
+        $this->get(self::BASE . '/999999999', [], $admin->token)->assertCode(404)->assertStatus(200);
+    }
+
     public function test_index_rows_include_counts_and_dept_ids(): void
     {
         $super = $this->actingAsAdmin('super');

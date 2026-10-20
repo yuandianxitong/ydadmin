@@ -111,6 +111,8 @@ final class InstallWizardTest extends ApiTestCase
         $this->assertSame(200, $page->status());
         $this->assertStringContainsString('text/html', (string) $page->header('Content-Type'));
         $this->assertStringContainsString(lang('install.already_installed'), $page->body());
+        $this->assertStringContainsString('href="/admin/"', $page->body());
+        $this->assertStringNotContainsString('<title>Install</title>', $page->body());
 
         $trailing = $this->get('/install/');
         $this->assertSame(200, $trailing->status());
@@ -198,15 +200,15 @@ final class InstallWizardTest extends ApiTestCase
      * 线上反代经常把 Host 改成上游地址（127.0.0.1:8000），浏览器 Origin 仍是公网域名。
      * 这种请求来自向导页本身，不能当成跨站。
      */
-    public function test_public_origin_is_accepted_when_upstream_host_is_an_ip(): void
+    public function test_public_origin_is_rejected_when_host_does_not_match(): void
     {
-        foreach (['127.0.0.1:8000', 'webman:8000'] as $host) {
+        foreach (['127.0.0.1:8000', 'webman:8000', 'localhost'] as $host) {
             $headers = $this->tokenHeaders();
             $headers['Host'] = $host;
             $headers['Origin'] = 'https://admin.dev007.cn';
             $headers['Referer'] = 'https://admin.dev007.cn/install/';
 
-            $this->post('/install/test-connection', $this->payload(), null, $headers)->assertOk();
+            $this->post('/install/test-connection', $this->payload(), null, $headers)->assertCode(403);
         }
     }
 
@@ -256,6 +258,21 @@ final class InstallWizardTest extends ApiTestCase
         $encoded = json_encode($defaults);
         $this->assertIsString($encoded);
         $this->assertStringNotContainsString('JWT_', $encoded);
+    }
+
+    public function test_chinese_wizard_ignores_browser_english_preference(): void
+    {
+        $response = $this->get('/install/environment', [], null, ['Accept-Language' => 'en-US,en;q=0.9'])->assertOk();
+        $this->assertStringContainsString('版本', $response->data()['checks'][0]['name']);
+    }
+
+    public function test_database_auth_failure_has_an_actionable_message(): void
+    {
+        $response = $this->post('/install/test-connection', $this->payload([
+            'db_user' => 'invalid_' . bin2hex(random_bytes(4)), 'db_password' => 'never-expose-this',
+        ]), null, $this->tokenHeaders())->assertCode(400);
+        $this->assertStringContainsString('认证失败', $response->message());
+        $this->assertStringNotContainsString('never-expose-this', $response->body());
     }
 
     public function test_test_connection_accepts_test_database_and_redis(): void
@@ -358,7 +375,7 @@ final class InstallWizardTest extends ApiTestCase
         Container::set(InstallController::class, Container::make(InstallController::class));
         try {
             $headers = $this->tokenHeaders();
-            $headers['Host'] = '127.0.0.1:8000';
+            $headers['Host'] = 'admin.dev007.cn';
             $headers['Origin'] = 'https://admin.dev007.cn';
             $headers['Referer'] = 'https://admin.dev007.cn/install/';
             $response = $this->post('/install/run', $this->payload([

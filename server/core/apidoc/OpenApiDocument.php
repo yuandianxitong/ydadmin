@@ -159,7 +159,7 @@ final class OpenApiDocument
      */
     public static function normalizePathTemplate(string $rawPath): string
     {
-        return (string) preg_replace('/\{([A-Za-z_][A-Za-z0-9_]*):[^}]+\}/', '{$1}', $rawPath);
+        return (string) preg_replace('~' . \FastRoute\RouteParser\Std::VARIABLE_REGEX . '~x', '{$1}', $rawPath);
     }
 
     /** @return list<array<string, mixed>> */

@@ -29,7 +29,11 @@ class InstallController extends Controller
         if ($this->installer->isInstalled()) {
             $message = htmlspecialchars(lang('install.already_installed'), ENT_QUOTES, 'UTF-8');
 
-            return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Install</title></head><body><p>' . $message . '</p></body></html>');
+            return new Response(200, ['Content-Type' => 'text/html; charset=utf-8', 'Cache-Control' => 'no-store'], str_replace(
+                '__MESSAGE__',
+                $message,
+                (string) file_get_contents(resource_path('views/install/installed.html')),
+            ));
         }
 
         // 装完之前这页未登录可达，所以写操作要防跨站：这里发一个随机令牌，
@@ -50,8 +54,7 @@ class InstallController extends Controller
     /**
      * 写操作前的跨站防护：令牌对得上，且（带了 Origin/Referer 时）来源与本站同源。
      * 不依赖 session / Redis——这两样在装完之前都还没配好。
-     * 主机名必须一致；两边都写了端口时端口也要一致。只有一边带端口则放行。
-     * 反代把 Host 换成上游 IP 时，浏览器 Origin 仍是公网域名，这种也放行。
+     * 主机名必须一致；两边都写了端口时端口也要一致。反代必须保留浏览器 Host。
      */
     private function assertSameSiteRequest(Request $request): void
     {
@@ -87,9 +90,7 @@ class InstallController extends Controller
             return $originPort === null || $headerPort === null || $originPort === $headerPort;
         }
 
-        // nginx 默认把 Host 设成 proxy_pass 的上游（127.0.0.1:8000 或 webman），
-        // 浏览器 Origin 仍是用户打开的域名。
-        return $this->isUpstreamHost($headerName) && str_contains($originName, '.');
+        return false;
     }
 
     private function isUpstreamHost(string $host): bool
@@ -127,7 +128,7 @@ class InstallController extends Controller
     }
 
     /**
-     * 安装时的对外地址。Host 是上游 IP 或单标签名时，用浏览器 Origin / Referer。
+     * 安装时的对外地址。使用已经通过同源校验的浏览器 Origin / Referer。
      * 请求体里的 site_url 不采用。
      */
     private function resolveSiteUrl(Request $request): string
@@ -136,7 +137,7 @@ class InstallController extends Controller
         [$headerHost, $headerPort] = $this->splitHostPort($hostHeader);
         $headerName = $this->bareHost($headerHost);
         $browser = $this->browserSiteUrl($request);
-        if ($browser !== null && ($headerName === '' || $this->isUpstreamHost($headerName))) {
+        if ($browser !== null && $this->sameHost($hostHeader, $browser)) {
             return Installer::normalizeSiteUrl($browser);
         }
 
@@ -219,13 +220,17 @@ class InstallController extends Controller
         }
         $this->assertSameSiteRequest($request);
 
-        $data = $this->validate((array) $request->all(), $this->runRules());
+        $data = $this->validate((array) $request->all(), $this->runRules(), [
+            'password.min' => '管理员密码长度须为 6–20 位',
+            'password.max' => '管理员密码长度须为 6–20 位',
+            'username.alpha_dash' => '管理员账号只允许字母、数字、下划线和短横线',
+        ]);
         $data['import_demo'] = Installer::wantsDemo($data['import_demo'] ?? null);
-        // 反代常把 Host 换成 127.0.0.1。浏览器 Origin 才是安装时打开的域名，网站地址和演示封面都用它。
+        // 同源校验已通过，浏览器地址用于网站链接与演示封面；不采用请求体中的站点地址。
         $data['site_url'] = $this->resolveSiteUrl($request);
         $this->installer->run($data);
 
-        return $this->success(['restart' => true], lang('install.restart_hint'));
+        return $this->success(['restart' => false], lang('install.restart_hint'));
     }
 
     /** @return array<string, string> */

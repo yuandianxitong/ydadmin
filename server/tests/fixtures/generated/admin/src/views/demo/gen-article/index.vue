@@ -70,7 +70,11 @@
                         <span v-else>-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="分类" prop="category" />
+                <el-table-column label="分类" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        {{ row.category == null ? '' : (selectLabels.category[String(row.category)] ?? row.category) }}
+                    </template>
+                </el-table-column>
                 <el-table-column label="价格" prop="price" />
                 <el-table-column label="浏览量" prop="view_count" />
                 <el-table-column label="别名" prop="slug" show-overflow-tooltip />
@@ -141,6 +145,8 @@ import { useListPage } from '@/hooks/useListPage'
 import { useAppStore, useUserStore } from '@/store'
 
 import GenArticleForm from './components/GenArticleForm.vue'
+
+const selectLabels: Record<string, Record<string, string>> = {"category":{"news":"news","tech":"tech","life":"life"}}
 
 const appStore = useAppStore()
 const userStore = useUserStore()

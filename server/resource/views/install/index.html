@@ -267,7 +267,7 @@
                     <legend>超级管理员</legend>
                     <div class="row">
                         <div><label for="username">用户名</label><input id="username" name="username" type="text" value="admin" required></div>
-                        <div><label for="password">密码</label><input id="password" name="password" type="password" required></div>
+                        <div><label for="password">密码</label><input id="password" name="password" type="password" minlength="6" maxlength="20" required placeholder="6–20 位密码"></div>
                         <div><label for="email">邮箱（可选）</label><input id="email" name="email" type="email"></div>
                         <div><label for="nickname">昵称（可选）</label><input id="nickname" name="nickname" type="text"></div>
                     </div>
@@ -290,7 +290,8 @@
         <section id="step-done">
             <h2>安装完成</h2>
             <p id="done-msg"></p>
-            <p class="muted">Docker 部署请在 docker/ 目录执行 <code>docker compose restart webman</code>；手动部署请执行 <code>php start.php restart</code>，使新配置生效后访问管理后台。</p>
+            <p><a href="/admin/">进入管理后台 →</a></p>
+            <p class="muted">安装器已请求自动重载配置。若后台暂时不可用，稍等后重试；仍未生效时，Docker 部署执行 <code>docker compose restart webman</code>，手动部署执行 <code>php start.php restart</code>。</p>
             <p class="muted">安装器已设置 APP_DEBUG=false（生产模式），代码生成器写操作默认关闭。二次开发请在独立开发环境设为 true 并重启。</p>
         </section>
     </div>
@@ -350,7 +351,7 @@
     async function api(path, options) {
         // 写操作要带上向导页下发的令牌（双提交），跨站页面拿不到它。
         const opts = Object.assign({ credentials: 'same-origin' }, options);
-        opts.headers = Object.assign({ 'Accept': 'application/json', 'X-Install-Token': installToken() }, (options || {}).headers || {});
+        opts.headers = Object.assign({ 'Accept': 'application/json', 'X-Install-Token': installToken(), 'think-lang': 'zh-cn' }, (options || {}).headers || {});
         const res = await fetch('/install' + path, opts);
         return res.json();
     }
@@ -407,6 +408,13 @@
     });
 
     document.getElementById('run-btn').addEventListener('click', async function () {
+        const passwordInput = document.getElementById('password');
+        if (passwordInput.value.length < 6 || passwordInput.value.length > 20) {
+            configMsg.textContent = '管理员密码长度须为 6–20 位';
+            passwordInput.focus();
+            return;
+        }
+        if (!form.reportValidity()) return;
         configMsg.textContent = '正在安装…';
         try {
             const json = await api('/run', {

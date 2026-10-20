@@ -38,8 +38,8 @@ $tsType = static function (\core\generator\ColumnDescriptor $column, bool $forFo
     };
 };
 
-$isRequiredInForm = static function (\core\generator\ColumnDescriptor $column): bool {
-    return !$column->nullable && $column->default === null;
+$isRequiredInForm = static function (\core\generator\ColumnDescriptor $column) use ($inference): bool {
+    return !$column->nullable && ($inference->isPassword($column) || $column->default === null);
 };
 
 $extractLength = static function (string $rawType): ?int {
@@ -204,7 +204,7 @@ foreach ($formColumns as $column) {
         // 前端先校验 JSON 合法且是对象/数组，避免提交后才撞后端 array 规则的 422
         $ruleItems[] = "{ validator: validateJsonField, trigger: 'blur' }";
     }
-    if ($isRequiredInForm($column) && $inference->isPassword($column)) {
+    if (!$column->nullable && $inference->isPassword($column)) {
         $requiredRules[] = "    {$column->name}: form.id ? [] : [{ required: true, message: t('message.required'), trigger: 'blur' }]";
         continue;
     }

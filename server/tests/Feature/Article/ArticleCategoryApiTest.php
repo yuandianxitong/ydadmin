@@ -45,6 +45,10 @@ final class ArticleCategoryApiTest extends ApiTestCase
         $this->assertNotSame([], $hit);
         $this->assertSame((int) $child['id'], (int) $hit[0]['children'][0]['id']);
 
+        $all = $this->get('/adminapi/article-category/options', [], $admin->token)->assertOk()->data();
+        $allIds = $this->flattenIds($all);
+        $this->assertSame($allIds, array_values(array_unique($allIds)), '分类下拉每个 ID 只出现一次');
+        $this->assertContains((int) $child['id'], $allIds);
         $opts = $this->get('/adminapi/article-category/options', ['exclude_id' => $root['id']], $admin->token)->assertOk()->data();
         $ids = $this->flattenIds($opts);
         $this->assertNotContains((int) $root['id'], $ids);

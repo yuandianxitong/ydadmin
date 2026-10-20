@@ -32,14 +32,20 @@ class UserRepository extends Repository
     }
 
     /**
-     * 按手机号查未删除的会员（登录账号目前只支持手机号，spec §4.3；含 password，仅供登录校验——
+     * 按手机号、邮箱或唯一昵称查未删除会员（含 password，仅供登录校验——
      * 模型 $hidden 挡了 toArray() 里的 password，这里显式 makeVisible 找回，同 AdminRepository::findByUsername()）。
      *
      * @return array<string, mixed>|null
      */
     public function findByAccount(string $account): ?array
     {
-        return $this->query()->where($this->qualify('mobile'), $account)->first()?->makeVisible(['password', 'token_version'])->toArray();
+        $field = preg_match('/^1[3-9]\d{9}$/', $account) === 1 ? 'mobile'
+            : (filter_var($account, FILTER_VALIDATE_EMAIL) !== false ? 'email' : 'nickname');
+        // 昵称与邮箱允许重复；有歧义时拒绝登录，避免选中另一个账号。
+        /** @var \Illuminate\Database\Eloquent\Collection<int, User> $matches */
+        $matches = $this->query()->where($this->qualify($field), $account)->limit(2)->get();
+
+        return $matches->count() === 1 ? $matches->first()?->makeVisible(['password', 'token_version'])->toArray() : null;
     }
 
     /**

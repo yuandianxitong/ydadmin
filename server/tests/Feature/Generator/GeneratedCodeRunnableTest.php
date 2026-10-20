@@ -74,7 +74,7 @@ final class GeneratedCodeRunnableTest extends TestCase
               `summary` varchar(500) DEFAULT NULL COMMENT '摘要',
               `content` longtext COMMENT '正文',
               `cover_image` varchar(255) DEFAULT NULL COMMENT '封面图',
-              `category` enum('news','tech','life') NOT NULL DEFAULT 'news' COMMENT '分类',
+              `category` varchar(30) NOT NULL DEFAULT 'news' COMMENT '分类',
               `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '价格',
               `view_count` int unsigned NOT NULL DEFAULT '0' COMMENT '浏览量',
               `slug` varchar(100) NOT NULL COMMENT '别名',
@@ -100,7 +100,10 @@ final class GeneratedCodeRunnableTest extends TestCase
     {
         $service = Container::get(TestableGeneratorService::class);
         $service->useTempRoots($root . '/server', $root . '/repo');
-        $request = new GeneratorRequest('gen_articles', self::MODULE, self::MODEL, '生成器夹具表', []);
+        $request = new GeneratorRequest('gen_articles', self::MODULE, self::MODEL, '生成器夹具表', ['category' => [
+            'form_type' => 'select', 'searchable' => false, 'in_list' => true, 'in_form' => true,
+            'options' => [['value' => 'news', 'label' => '新闻'], ['value' => 'tech', 'label' => '技术'], ['value' => 'life', 'label' => '生活']],
+        ]]);
 
         // preview() 按 spec §5.3 与 generate() 共用同一条渲染路径，返回的 content 与磁盘上落盘的
         // 字节一致（这一点由 Task 8 的「预览即所得」测试钉死，本类不重复验证）；这里用它是因为它
@@ -192,6 +195,8 @@ final class GeneratedCodeRunnableTest extends TestCase
         $storeResponse = $controller->store($this->request('POST', '/adminapi/demo/gen-article', $payload));
         $storeBody = json_decode((string) $storeResponse->rawBody(), true);
         $this->assertSame(200, $storeBody['code'], (string) $storeResponse->rawBody());
+        $this->assertSame(1, $storeBody['data']['status']);
+        $this->assertNotEmpty($storeBody['data']['status_text']);
         $id = (string) $storeBody['data']['id'];
 
         $showResponse = $controller->show($this->request('GET', "/adminapi/demo/gen-article/{$id}"), $id);
@@ -202,6 +207,13 @@ final class GeneratedCodeRunnableTest extends TestCase
         $deleteResponse = $controller->delete($this->request('DELETE', "/adminapi/demo/gen-article/{$id}"), $id);
         $this->assertSame(200, json_decode((string) $deleteResponse->rawBody(), true)['code']);
         $this->assertNotNull(Db::table('gen_articles')->where('id', $id)->value('deleted_at'), '有 deleted_at 列应软删');
+    }
+
+    public function test_configured_select_rejects_an_unknown_option(): void
+    {
+        $controller = Container::get($this->controllerClass());
+        $this->expectException(\core\exception\ValidationException::class);
+        $controller->store($this->request('POST', '/', json_encode(['title' => '测试', 'slug' => uniqid(), 'category' => 'nope'])));
     }
 
     public function test_empty_dates_optional_text_password_and_date_serialization(): void

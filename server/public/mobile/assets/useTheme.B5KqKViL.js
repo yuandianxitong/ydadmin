@@ -1,0 +1,1 @@
+import{u as a,c as r,o as s}from"./index-CIPP3e4G.js";function o(){const s=a();return{primary:r(()=>s.themeColor),colors:r(()=>s.themeColors),cssVars:r(()=>s.themeCssVars),applyNavBar:()=>s.applyNavigationBarTheme()}}function e(){const a=o();return s(()=>a.applyNavBar()),a}export{e as a,o as u};

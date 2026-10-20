@@ -76,6 +76,7 @@ export default {
         rememberMe: 'Remember Me',
         forgetPassword: 'Forgot Password?',
         message: {
+        copyFailed: 'Copy failed. Please select and copy the text manually.',
             username: {
                 required: 'Please enter your username'
             },
@@ -486,6 +487,7 @@ export default {
     },
     // Department management
     department: {
+        topLevel: 'Top-level department',
         title: 'Department Management',
         addDept: 'Add Department',
         editDept: 'Edit Department',

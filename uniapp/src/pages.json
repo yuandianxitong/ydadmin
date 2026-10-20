@@ -143,6 +143,10 @@
 			"root": "modules/feedback",
 			"pages": [
 				{
+					"path": "pages/feedback-list",
+					"style": { "navigationBarTitleText": "我的反馈", "enablePullDownRefresh": true }
+				},
+				{
 					"path": "pages/feedback",
 					"style": {
 						"navigationBarTitleText": "意见反馈"

@@ -16,6 +16,7 @@ use core\database\Like;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 
 /**
@@ -79,7 +80,7 @@ class RoleService extends Service
     {
         $role = $this->roleRepository->getDetailWithMenus($id);
         if ($role === null) {
-            return ['menu_ids' => [], 'menus' => []];
+            throw new NotFoundException(lang('business.role_not_found'));
         }
 
         return ['menu_ids' => array_map('intval', array_column($role['menus'], 'id')), 'menus' => $role['menus']];

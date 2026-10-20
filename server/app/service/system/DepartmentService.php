@@ -13,6 +13,7 @@ use core\context\RequestContext;
 use core\datascope\DataScope;
 use core\datascope\DataScopeResolver;
 use core\exception\BusinessException;
+use core\exception\NotFoundException;
 use DI\Attribute\Inject;
 
 /**
@@ -67,13 +68,13 @@ class DepartmentService extends Service
     }
 
     /**
-     * 部门详情。不存在时抛 business.dept_not_found（code 400，契约如此）。
+     * 部门详情。不存在时抛 business.dept_not_found（code 404）。
      *
      * @return array<string, mixed>
      */
     public function getDepartmentDetail(int $id): array
     {
-        return $this->departmentRepository->find($id) ?? throw new BusinessException(lang('business.dept_not_found'));
+        return $this->departmentRepository->find($id) ?? throw new NotFoundException(lang('business.dept_not_found'));
     }
 
     /**
@@ -153,7 +154,7 @@ class DepartmentService extends Service
     {
         $department = $this->departmentRepository->find($id);
         if ($department === null) {
-            throw new BusinessException(lang('business.dept_not_found'));
+            throw new NotFoundException(lang('business.dept_not_found'));
         }
         $this->assertDepartmentWritable($id);
         if (isset($data['parent_id']) && (int) $data['parent_id'] !== (int) $department['parent_id']) {
@@ -219,7 +220,7 @@ class DepartmentService extends Service
     {
         $department = $this->departmentRepository->find($id);
         if ($department === null) {
-            throw new BusinessException(lang('business.dept_not_found'));
+            throw new NotFoundException(lang('business.dept_not_found'));
         }
         $this->assertDepartmentWritable($id);
 
@@ -244,7 +245,7 @@ class DepartmentService extends Service
     {
         $department = $this->departmentRepository->find($id);
         if ($department === null) {
-            throw new BusinessException(lang('business.dept_not_found'));
+            throw new NotFoundException(lang('business.dept_not_found'));
         }
         $this->assertDepartmentWritable($id);
 

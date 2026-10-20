@@ -147,7 +147,13 @@ const offNotificationCreated = realtimeClient.on('notification.created', () => {
     }
 })
 
+const offNotificationChanged = realtimeClient.on('notification.changed', () => {
+    void fetchUnreadCount()
+    if (popoverVisible.value) void loadNotifications()
+})
+
 onUnmounted(() => {
+    offNotificationChanged()
     offNotificationCreated()
 })
 </script>

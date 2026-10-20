@@ -117,6 +117,9 @@ class NotificationService extends Service
             if ($adminIds !== null) {
                 $this->notificationRepository->replaceRecipients($id, $adminIds);
             }
+            if ((int) $current['status'] === 1 && ((isset($update['status']) && (int) $update['status'] === 0) || $adminIds !== null)) {
+                $this->afterCommit(fn () => $this->realtimePublisher->publish('all', 'notification.changed', []));
+            }
             if ((int) $current['status'] === 0 && isset($update['status']) && (int) $update['status'] === 1) {
                 $row = array_merge($current, $update);
                 $this->afterCommit(fn () => $this->pushCreated($row));
@@ -128,7 +131,10 @@ class NotificationService extends Service
     public function deleteNotification(int $id): void
     {
         $this->findOrFail($id);
-        $this->notificationRepository->delete($id);
+        $this->runInTransaction(function () use ($id): void {
+            $this->notificationRepository->delete($id);
+            $this->afterCommit(fn () => $this->realtimePublisher->publish('all', 'notification.changed', []));
+        });
     }
 
     /**

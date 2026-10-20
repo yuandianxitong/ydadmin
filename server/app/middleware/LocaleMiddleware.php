@@ -19,7 +19,7 @@ class LocaleMiddleware implements MiddlewareInterface
 
     public function process(Request $request, callable $handler): Response
     {
-        Context::set('locale', self::resolve(
+        Context::set('locale', str_starts_with($request->path(), '/install') ? self::DEFAULT_LOCALE : self::resolve(
             (string) $request->header('think-lang', ''),
             (string) $request->header('accept-language', '')
         ));

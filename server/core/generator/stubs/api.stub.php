@@ -40,8 +40,8 @@ $tsType = static function (\core\generator\ColumnDescriptor $column, bool $forFo
 };
 
 // 7.5：NOT NULL 且无默认值才是必填；表单/请求体的可选性跟这条走。
-$isRequiredInForm = static function (\core\generator\ColumnDescriptor $column): bool {
-    return !$column->nullable && $column->default === null;
+$isRequiredInForm = static function (\core\generator\ColumnDescriptor $column) use ($inference): bool {
+    return !$column->nullable && ($inference->isPassword($column) || $column->default === null);
 };
 
 $infoFields = [];
