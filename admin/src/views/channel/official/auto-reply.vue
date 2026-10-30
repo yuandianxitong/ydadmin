@@ -1,5 +1,16 @@
 <template>
     <div class="auto-reply">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('channel.autoReply.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.channel_official_auto-reply') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button type="primary" @click="handleAdd">{{
+                    $t('channel.autoReply.addReply')
+                }}</el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline>
@@ -28,77 +39,91 @@
         </el-card>
 
         <!-- 表格 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('channel.autoReply.title') }}</div>
-                <el-button type="primary" @click="handleAdd">{{
-                    $t('channel.autoReply.addReply')
+        <ProTable
+            :title="$t('channel.autoReply.title')"
+            storage-key="channel-official-auto-reply-list"
+            :columns="[
+                {
+                    key: 'type',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_type'),
+                    width: 120,
+                    required: true
+                },
+                {
+                    key: 'keyword',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_keyword'),
+                    width: 200,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'match_type',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_match_type'),
+                    width: 120
+                },
+                {
+                    key: 'content',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_content'),
+                    minWidth: 250,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_status'),
+                    width: 100,
+                    align: 'center'
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_channel_official_auto_reply_vue_action'),
+                    width: 150,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #type="{ row }">
+                <el-tag :type="typeTagMap[row.type]" size="small">{{
+                    typeTextMap[row.type]
+                }}</el-tag>
+            </template>
+            <template #match_type="{ row }">
+                {{
+                    row.match_type === 'exact'
+                        ? $t('channel.autoReply.matchExact')
+                        : $t('channel.autoReply.matchFuzzy')
+                }}
+            </template>
+            <template #status="{ row }">
+                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+                    {{ row.status === 1 ? $t('common.enable') : $t('common.disable') }}
+                </el-tag>
+            </template>
+            <template #action="{ row }">
+                <el-button type="primary" size="small" text @click="handleEdit(row)">{{
+                    $t('common.edit')
                 }}</el-button>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('channel.autoReply.type')" width="120">
-                    <template #default="{ row }">
-                        <el-tag :type="typeTagMap[row.type]" size="small">{{
-                            typeTextMap[row.type]
-                        }}</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('channel.autoReply.keyword')"
-                    prop="keyword"
-                    width="200"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('channel.autoReply.matchType')" width="100">
-                    <template #default="{ row }">
-                        {{
-                            row.match_type === 'exact'
-                                ? $t('channel.autoReply.matchExact')
-                                : $t('channel.autoReply.matchFuzzy')
-                        }}
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('channel.autoReply.replyContent')"
-                    prop="content"
-                    min-width="250"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('common.status')" width="80" align="center">
-                    <template #default="{ row }">
-                        <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-                            {{ row.status === 1 ? $t('common.enable') : $t('common.disable') }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column :label="$t('common.operation')" width="150" fixed="right">
-                    <template #default="{ row }">
-                        <el-button type="primary" size="small" text @click="handleEdit(row)">{{
-                            $t('common.edit')
-                        }}</el-button>
-                        <el-button
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDelete(row.id, row.keyword || row.content)"
-                            >{{ $t('common.delete') }}</el-button
-                        >
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+                <el-button
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDelete(row.id, row.keyword || row.content)"
+                    >{{ $t('common.delete') }}</el-button
+                >
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 编辑弹窗 -->
         <el-dialog

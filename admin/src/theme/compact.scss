@@ -1,0 +1,48 @@
+/* Pro compact spacing, adapted to the current layout class names. */
+body.compact {
+    .main-content {
+        padding: 14px;
+    }
+    .search-card .el-card__body {
+        padding: 12px 14px;
+    }
+    .page-head {
+        margin-bottom: 12px;
+    }
+    .table-header {
+        padding: 12px 14px;
+    }
+    .table-footer {
+        padding: 10px 14px;
+    }
+    .kpi-card {
+        padding: 18px 20px;
+        min-height: 112px;
+    }
+    .kpi-value {
+        font-size: 26px;
+    }
+    .el-table th.el-table__cell {
+        padding: 8px 12px;
+    }
+    .el-table td.el-table__cell {
+        padding: 10px 12px;
+    }
+    .el-dialog__header {
+        padding: 12px 16px;
+    }
+    .el-dialog__body {
+        padding: 16px 20px 4px;
+    }
+    .el-dialog__footer {
+        padding: 12px 16px;
+    }
+}
+body.hide-labels .sidebar-main {
+    .nav-label {
+        display: none;
+    }
+    .nav-item {
+        padding: 10px 6px;
+    }
+}

@@ -19,11 +19,7 @@ import VChart from 'vue-echarts'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
-import {
-    getActiveRanking,
-    getDashboardStats,
-    getRecentActivities
-} from '@/api/dashboard'
+import { getActiveRanking, getDashboardStats, getRecentActivities } from '@/api/dashboard'
 import useSettingStore from '@/store/modules/settings.store'
 import type { ActivityItem, DashboardStats, RankingItem } from '@/types/dashboard'
 
@@ -40,13 +36,13 @@ const isDark = computed(() => {
 
 // 仪表盘调色板（KPI、快捷导航、图表共用）
 const P = {
-    indigo: { from: '#6A6BFF', to: '#8E8FFE', dark: '#5557E0' },
-    teal:   { from: '#34D8C5', to: '#5BE9D8', dark: '#1FB8A6' },
-    amber:  { from: '#FF9F40', to: '#FFC078', dark: '#E0820F' },
-    coral:  { from: '#FF6B81', to: '#FF95A8', dark: '#E04055' },
+    indigo: { from: '#4f6bff', to: '#7a8dff', dark: '#3f58e6' },
+    teal: { from: '#14b8a6', to: '#2dd4bf', dark: '#0f766e' },
+    amber: { from: '#FF9F40', to: '#FFC078', dark: '#E0820F' },
+    coral: { from: '#FF6B81', to: '#FF95A8', dark: '#E04055' },
     purple: { from: '#9B59B6', to: '#BB77D0' },
-    blue:   { from: '#4C84FF', to: '#6C9FFF' },
-    green:  { from: '#52c41a' },
+    blue: { from: '#4C84FF', to: '#6C9FFF' },
+    green: { from: '#52c41a' },
     yellow: { from: '#faad14' }
 }
 const grad = (c: { from: string; to?: string }, dir = '135deg') =>
@@ -64,10 +60,10 @@ const chartColors = computed(() =>
           }
         : {
               tooltipBg: 'rgba(255,255,255,0.96)',
-              tooltipBorder: '#eee',
-              tooltipText: '#333',
-              axisLine: '#e5e7eb',
-              splitLine: '#f0f0f0',
+              tooltipBorder: '#eef1f6',
+              tooltipText: '#334155',
+              axisLine: '#e2e8f0',
+              splitLine: '#eef1f6',
               axisLabel: '#94a3b8'
           }
 )
@@ -161,13 +157,48 @@ const kpiCards = computed(() => {
 
 // Quick nav items
 const quickNavItems = [
-    { label: 'dashboard.quickNavItems.userManage',    icon: User,       route: '/user/list',                  gradient: grad(P.indigo) },
-    { label: 'dashboard.quickNavItems.roleManage',    icon: UserFilled, route: '/system/role',                gradient: grad(P.teal)   },
-    { label: 'dashboard.quickNavItems.menuManage',    icon: MenuIcon,   route: '/system/menu',                gradient: grad(P.amber)  },
-    { label: 'dashboard.quickNavItems.systemConfig',  icon: Setting,    route: '/system/config',              gradient: grad(P.teal)   },
-    { label: 'dashboard.quickNavItems.loginLog',      icon: Document,   route: '/system/log/login',           gradient: grad(P.coral)  },
-    { label: 'dashboard.quickNavItems.article',       icon: Document,   route: '/content/article',            gradient: grad(P.blue)   },
-    { label: 'dashboard.quickNavItems.announcement',  icon: Monitor,    route: '/content/announcement',       gradient: grad(P.amber)  }
+    {
+        label: 'dashboard.quickNavItems.userManage',
+        icon: User,
+        route: '/user/list',
+        gradient: grad(P.indigo)
+    },
+    {
+        label: 'dashboard.quickNavItems.roleManage',
+        icon: UserFilled,
+        route: '/system/role',
+        gradient: grad(P.teal)
+    },
+    {
+        label: 'dashboard.quickNavItems.menuManage',
+        icon: MenuIcon,
+        route: '/system/menu',
+        gradient: grad(P.amber)
+    },
+    {
+        label: 'dashboard.quickNavItems.systemConfig',
+        icon: Setting,
+        route: '/system/config',
+        gradient: grad(P.teal)
+    },
+    {
+        label: 'dashboard.quickNavItems.loginLog',
+        icon: Document,
+        route: '/system/log/login',
+        gradient: grad(P.coral)
+    },
+    {
+        label: 'dashboard.quickNavItems.article',
+        icon: Document,
+        route: '/content/article',
+        gradient: grad(P.blue)
+    },
+    {
+        label: 'dashboard.quickNavItems.announcement',
+        icon: Monitor,
+        route: '/content/announcement',
+        gradient: grad(P.amber)
+    }
 ]
 
 // Activity icon and color mapping
@@ -244,75 +275,42 @@ const navigateTo = (path: string) => router.push(path)
 </script>
 
 <template>
-    <div class="dashboard">
-        <!-- KPI Cards Row -->
+    <div class="content dashboard">
         <div class="kpi-row">
             <div
                 v-for="(card, i) in kpiCards"
-                :key="i"
+                :key="card.label"
                 class="kpi-card"
-                :style="{ background: grad(card.palette, '120deg') }"
+                :class="'kpi-' + ['primary', 'purple', 'orange', 'sky'][i]"
             >
-                <!-- Decorative SVG curves -->
-                <svg
-                    class="kpi-deco"
-                    viewBox="0 0 240 200"
-                    preserveAspectRatio="xMaxYMid slice"
-                    aria-hidden="true"
-                >
-                    <defs>
-                        <linearGradient :id="`kpi-grad-${i}`" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#fff" stop-opacity="0.32" />
-                            <stop offset="100%" stop-color="#fff" stop-opacity="0" />
-                        </linearGradient>
-                    </defs>
-                    <circle cx="220" cy="40" r="80" :fill="`url(#kpi-grad-${i})`" />
-                    <circle cx="180" cy="160" r="60" fill="#fff" fill-opacity="0.10" />
-                    <path
-                        d="M120 200 Q180 120 240 140 L240 200 Z"
-                        fill="#fff"
-                        fill-opacity="0.08"
-                    />
-                    <path
-                        d="M160 -20 Q210 60 240 30"
-                        stroke="#fff"
-                        stroke-opacity="0.18"
-                        stroke-width="1.5"
-                        fill="none"
-                    />
-                </svg>
-
-                <div class="kpi-head">
-                    <span class="kpi-title">{{ card.label }}</span>
-                    <el-icon class="kpi-badge"><component :is="card.icon" /></el-icon>
+                <span v-if="i === 0" class="kpi-watermark" aria-hidden="true">#</span>
+                <div class="kpi-icon">
+                    <el-icon><component :is="card.icon" /></el-icon>
                 </div>
-
                 <div class="kpi-value">{{ card.value?.toLocaleString() }}</div>
-
-                <div v-if="card.trend" class="kpi-trend">
-                    <span class="kpi-trend-pill" :class="`is-${card.trend.type}`">
-                        <span class="kpi-trend-arrow">{{
-                            card.trend.type === 'up' ? '↑' : '↓'
-                        }}</span>
-                        {{ card.trend.value
-                        }}{{ card.trend.unit === 'percent' ? '%' : '' }}
-                    </span>
-                    <span class="kpi-trend-label">{{ t('dashboard.comparedLastWeek') }}</span>
+                <div class="kpi-label">{{ card.label }}</div>
+                <div
+                    v-if="card.trend"
+                    class="kpi-trend"
+                    :class="{ up: card.trend.type === 'up', down: card.trend.type === 'down' }"
+                >
+                    <span
+                        >{{ card.trend.type === 'up' ? '↑' : '↓' }} {{ card.trend.value
+                        }}{{ card.trend.unit === 'percent' ? '%' : '' }}</span
+                    >
+                    <span class="kpi-comparison">{{ t('dashboard.comparedLastWeek') }}</span>
                 </div>
             </div>
         </div>
-
-        <!-- Middle Section: Recent Activity + Active Ranking -->
-        <div class="middle-section">
-            <!-- Recent Activities -->
-            <div class="soft-card activity-card">
-                <div class="card-header">
-                    <span class="card-title">{{ t('dashboard.recentActivities') }}</span>
-                    <span class="card-link" @click="navigateTo('/system/log/operation')">{{
-                        t('dashboard.viewMore')
-                    }}</span>
+        <div class="row-3">
+            <section class="card activity-card">
+                <div class="card-head">
+                    <span class="card-title">{{ t('dashboard.recentActivities') }}</span
+                    ><button class="card-link" @click="navigateTo('/system/log/operation')">
+                        {{ t('dashboard.viewMore') }}
+                    </button>
                 </div>
-                <div class="activity-list">
+                <div class="card-body activity-list">
                     <div
                         v-for="(item, idx) in activities.slice(0, 6)"
                         :key="idx"
@@ -329,37 +327,58 @@ const navigateTo = (path: string) => router.push(path)
                         </div>
                         <div class="activity-body">
                             <div class="activity-text">
-                                <span class="activity-user">{{ item.username }}</span>
-                                <span class="activity-desc">{{ item.description }}</span>
+                                <span class="activity-user">{{ item.username }}</span
+                                ><span class="activity-desc">{{ item.description }}</span>
                             </div>
                             <span class="activity-time">{{ item.relative_time }}</span>
                         </div>
                     </div>
                     <div v-if="!activities.length" class="activity-empty">
-                        <el-icon><Document /></el-icon>
-                        <span>暂无动态</span>
+                        <el-icon><Document /></el-icon><span>暂无动态</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Active Ranking -->
-            <div class="soft-card ranking-card">
-                <div class="card-header">
-                    <span class="card-title">
-                        <el-icon class="title-icon"><Trophy /></el-icon>
-                        {{ t('dashboard.activeRanking') }}
-                    </span>
-                    <div class="period-tabs">
-                        <span
-                            v-for="p in (['day', 'week', 'month'] as const)"
+            </section>
+            <section class="card trend-card">
+                <div class="card-head">
+                    <span class="card-title">{{ t('dashboard.loginTrend') }}</span>
+                    <div class="segment-btns">
+                        <button
+                            v-for="days in [7, 30]"
+                            :key="days"
+                            class="seg-btn"
+                            :class="{ active: trendDays === days }"
+                            @click="switchTrendDays(days)"
+                        >
+                            {{
+                                t(
+                                    days === 7
+                                        ? 'dashboard.trendPeriod.week'
+                                        : 'dashboard.trendPeriod.month'
+                                )
+                            }}
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <v-chart class="line-chart" :option="loginTrendOption" autoresize />
+                </div>
+            </section>
+            <section class="card ranking-card">
+                <div class="card-head">
+                    <span class="card-title">{{ t('dashboard.activeRanking') }}</span>
+                    <div class="segment-btns">
+                        <button
+                            v-for="p in ['day', 'week', 'month'] as const"
                             :key="p"
-                            class="period-tab"
+                            class="seg-btn"
                             :class="{ active: rankingPeriod === p }"
                             @click="switchRankingPeriod(p)"
-                        >{{ t(`dashboard.rankPeriod.${p}`) }}</span>
+                        >
+                            {{ t(`dashboard.rankPeriod.${p}`) }}
+                        </button>
                     </div>
                 </div>
-                <div class="ranking-list">
+                <div class="card-body ranking-list">
                     <div
                         v-for="item in rankingList.slice(0, 6)"
                         :key="item.rank"
@@ -369,246 +388,602 @@ const navigateTo = (path: string) => router.push(path)
                         <div class="rank-badge">
                             <span v-if="item.rank <= 3" class="rank-medal">{{
                                 ['🥇', '🥈', '🥉'][item.rank - 1]
-                            }}</span>
-                            <span v-else class="rank-num">{{ item.rank }}</span>
+                            }}</span
+                            ><span v-else class="rank-num">{{ item.rank }}</span>
                         </div>
-                        <span class="rank-name">{{ item.username }}</span>
-                        <span class="rank-count">
-                            {{ item.count }}
-                            <span class="rank-unit">{{ t('dashboard.times') }}</span>
-                        </span>
+                        <span class="rank-name">{{ item.username }}</span
+                        ><span class="rank-count"
+                            >{{ item.count }}
+                            <span class="rank-unit">{{ t('dashboard.times') }}</span></span
+                        >
                     </div>
                     <div v-if="!rankingList.length" class="activity-empty">
-                        <el-icon><Trophy /></el-icon>
-                        <span>暂无排行</span>
+                        <el-icon><Trophy /></el-icon><span>暂无排行</span>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
-
-        <!-- Quick Nav (full width) -->
-        <div class="soft-card quicknav-card">
-            <div class="card-header">
-                <span class="card-title">{{ t('dashboard.quickNav') }}</span>
-            </div>
-            <div class="quick-nav-grid">
-                <div
-                    v-for="(item, i) in quickNavItems"
-                    :key="i"
-                    class="nav-item"
-                    @click="navigateTo(item.route)"
-                >
-                    <div class="nav-icon" :style="{ background: item.gradient }">
-                        <el-icon :size="20" color="#fff"><component :is="item.icon" /></el-icon>
-                    </div>
-                    <span class="nav-label">{{ t(item.label) }}</span>
+        <div class="row-2">
+            <section class="card register-card">
+                <div class="card-head">
+                    <span class="card-title">{{ t('dashboard.registerTrend') }}</span
+                    ><span class="card-meta">{{
+                        t(
+                            trendDays === 7
+                                ? 'dashboard.trendPeriod.week'
+                                : 'dashboard.trendPeriod.month'
+                        )
+                    }}</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Trend Overview -->
-        <div class="soft-card trend-card">
-            <div class="card-header">
-                <span class="card-title">{{ t('dashboard.trendOverview') }}</span>
-                <div class="period-tabs">
-                    <span
-                        class="period-tab"
-                        :class="{ active: trendDays === 7 }"
-                        @click="switchTrendDays(7)"
-                        >{{ t('dashboard.trendPeriod.week') }}</span
+                <div class="card-body">
+                    <v-chart class="bar-chart" :option="registerTrendOption" autoresize />
+                </div>
+            </section>
+            <section class="card quicknav-card">
+                <div class="card-head">
+                    <span class="card-title">{{ t('dashboard.quickNav') }}</span>
+                </div>
+                <div class="card-body quick-nav-grid">
+                    <button
+                        v-for="item in quickNavItems"
+                        :key="item.route"
+                        class="nav-item"
+                        @click="navigateTo(item.route)"
                     >
-                    <span
-                        class="period-tab"
-                        :class="{ active: trendDays === 30 }"
-                        @click="switchTrendDays(30)"
-                        >{{ t('dashboard.trendPeriod.month') }}</span
-                    >
+                        <div class="nav-icon" :style="{ background: item.gradient }">
+                            <el-icon :size="20" color="#fff"><component :is="item.icon" /></el-icon>
+                        </div>
+                        <span class="nav-label">{{ t(item.label) }}</span>
+                    </button>
                 </div>
-            </div>
-            <div class="trend-charts">
-                <div class="trend-chart-wrapper">
-                    <div class="trend-label">
-                        <span class="trend-dot" :style="{ background: P.indigo.from }"></span>
-                        {{ t('dashboard.registerTrend') }}
-                    </div>
-                    <v-chart class="trend-chart" :option="registerTrendOption" autoresize />
-                </div>
-                <div class="trend-chart-wrapper">
-                    <div class="trend-label">
-                        <span class="trend-dot" :style="{ background: P.teal.from }"></span>
-                        {{ t('dashboard.loginTrend') }}
-                    </div>
-                    <v-chart class="trend-chart" :option="loginTrendOption" autoresize />
-                </div>
-            </div>
+            </section>
         </div>
     </div>
 </template>
 
 <style scoped lang="scss">
-.dashboard {
+// ═══════ Layout ═══════
+.content {
     padding: 0;
     min-height: 100%;
 }
 
-// ===== KPI Cards =====
+// ═══════ KPI Row ═══════
 .kpi-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-    margin-bottom: 18px;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
 .kpi-card {
     position: relative;
-    border-radius: 6px;
-    padding: 22px 24px 22px;
-    color: #fff;
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    background: var(--card-bg);
+    border: 1px solid var(--ink-100);
+    box-shadow: var(--shadow-sm);
+    min-height: 128px;
     overflow: hidden;
-    transition: transform 0.3s var(--motion-easing), box-shadow 0.3s var(--motion-easing);
-    cursor: default;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    min-height: 138px;
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
-    }
 }
 
-.kpi-deco {
+.kpi-watermark {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    right: -8px;
+    bottom: -18px;
+    font-size: 130px;
+    font-weight: 800;
+    opacity: 0.08;
+    color: #fff;
+    line-height: 1;
     pointer-events: none;
-}
-
-.kpi-head {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.kpi-title {
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    opacity: 0.95;
-}
-
-.kpi-badge {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.20);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+    font-family: var(--font-num);
 }
 
 .kpi-value {
-    position: relative;
-    z-index: 1;
-    font-size: 36px;
+    font-size: 30px;
     font-weight: 700;
-    letter-spacing: -0.6px;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
+    font-family: var(--font-num);
+    color: var(--ink-900);
+    margin-bottom: 4px;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: var(--ink-500);
 }
 
 .kpi-trend {
-    position: relative;
-    z-index: 1;
-    margin-top: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-}
+    font-size: 12.5px;
+    margin-top: 8px;
 
-.kpi-trend-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.22);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.kpi-trend-arrow {
-    font-weight: 700;
-}
-
-.kpi-trend-label {
-    opacity: 0.78;
-}
-
-// ===== Soft Card =====
-.soft-card {
-    background: var(--color-surface);
-    border: none;
-    border-radius: 6px;
-    padding: 22px 22px 20px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 18px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.25s var(--motion-easing);
-
-    &:hover {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 26px rgba(0, 0, 0, 0.07);
+    &.up {
+        color: var(--success);
+    }
+    &.down {
+        color: var(--danger);
     }
 }
 
-html.dark .soft-card {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
+.kpi-icon {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.card-header {
+// Primary KPI — gradient
+.kpi-primary {
+    background: linear-gradient(135deg, #4f6bff 0%, #6d7dff 60%, #8b5cf6 100%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 30px var(--brand-shadow);
+
+    .kpi-value,
+    .kpi-label {
+        color: #fff;
+    }
+    .kpi-label {
+        opacity: 0.85;
+    }
+    .kpi-trend {
+        color: rgba(255, 255, 255, 0.75) !important;
+    }
+    .kpi-icon {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+    }
+}
+
+.kpi-purple .kpi-icon {
+    background: var(--purple-50);
+    color: var(--purple-500);
+}
+
+.kpi-orange .kpi-icon {
+    background: var(--amber-50);
+    color: var(--amber-500);
+}
+
+.kpi-sky .kpi-icon {
+    background: var(--sky-50);
+    color: var(--sky-500);
+}
+
+// Non-primary trend colors
+.kpi-purple,
+.kpi-orange,
+.kpi-sky {
+    .kpi-trend.up {
+        color: var(--success);
+    }
+    .kpi-trend.down {
+        color: var(--danger);
+    }
+}
+
+// ═══════ Card Component ═══════
+.card {
+    background: var(--card-bg);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ink-100);
+    overflow: hidden;
+}
+
+.card-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 18px;
+    justify-content: space-between;
+    padding: 16px 20px 0;
 }
 
 .card-title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-text-primary);
-    display: inline-flex;
+    color: var(--ink-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+        content: '';
+        width: 3px;
+        height: 14px;
+        border-radius: 2px;
+        background: var(--brand-500);
+        flex-shrink: 0;
+    }
+}
+
+.card-body {
+    padding: 16px 20px 20px;
+}
+
+.card-meta {
+    font-size: 12px;
+    color: var(--ink-400);
+}
+
+// ═══════ Row-3 ═══════
+.row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+// ─── Order Pills ───
+.order-pills {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+}
+
+.pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pill-bar {
+    width: 4px;
+    height: 28px;
+    border-radius: 2px;
+
+    &.brand {
+        background: var(--brand-500);
+    }
+    &.rose {
+        background: var(--rose-500);
+    }
+}
+
+.pill-label {
+    font-size: 12px;
+    color: var(--ink-400);
+}
+
+.pill-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink-900);
+    font-family: var(--font-num);
+}
+
+// ─── Donut ───
+.donut-chart {
+    width: 100%;
+    height: 200px;
+}
+
+.donut-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin-top: 4px;
+}
+
+.legend-item {
+    display: flex;
     align-items: center;
     gap: 6px;
-
-    .title-icon {
-        color: var(--el-color-primary);
-        font-size: 16px;
-    }
 }
 
-.card-link {
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.legend-name {
+    font-size: 12.5px;
+    color: var(--ink-500);
+}
+
+.legend-pct {
+    font-size: 12.5px;
+    color: var(--ink-800);
+    font-weight: 600;
+    font-family: var(--font-num);
+}
+
+// ─── Segment Buttons ───
+.segment-btns {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--ink-200);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.seg-btn {
     font-size: 12px;
-    color: var(--color-text-tertiary);
+    padding: 4px 14px;
+    background: var(--card-bg);
+    color: var(--ink-500);
+    border: none;
     cursor: pointer;
-    transition: color var(--motion-duration-fast);
+    font-weight: 500;
+    transition: all 0.15s;
 
-    &:hover {
-        color: var(--el-color-primary);
+    &.active {
+        background: var(--brand-500);
+        color: #fff;
+    }
+
+    &:hover:not(.active) {
+        background: var(--ink-50);
     }
 }
 
-// ===== Middle Section =====
-.middle-section {
+// ─── Line Chart ───
+.trend-card {
+    display: flex;
+    flex-direction: column;
+
+    > .card-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .line-chart {
+        flex: 1;
+        width: 100%;
+        height: auto;
+        min-height: 280px;
+    }
+}
+
+// ─── Feedback ───
+.feedback-body {
+    text-align: center;
+}
+
+.feedback-score {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--ink-900);
+    font-family: var(--font-num);
+    line-height: 1.1;
+}
+
+.feedback-stars {
+    font-size: 22px;
+    color: var(--amber-500);
+    margin: 4px 0 2px;
+    letter-spacing: 2px;
+}
+
+.feedback-count {
+    font-size: 12px;
+    color: var(--ink-400);
+    margin-bottom: 20px;
+}
+
+.rating-bars {
+    text-align: left;
+}
+
+.rating-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.rating-label {
+    font-size: 12px;
+    color: var(--ink-500);
+    width: 24px;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.rating-track {
+    flex: 1;
+    height: 6px;
+    background: var(--ink-100);
+    border-radius: 3px;
+    position: relative;
+}
+
+.rating-fill {
+    height: 100%;
+    border-radius: 3px;
+    position: relative;
+    transition: width 0.4s ease;
+}
+
+.rating-dot {
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.rating-pct {
+    font-size: 12px;
+    color: var(--ink-500);
+    width: 32px;
+    flex-shrink: 0;
+    font-family: var(--font-num);
+}
+
+// ═══════ Row-2 ═══════
+.row-2 {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: 18px;
-    margin-bottom: 18px;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 16px;
+}
+
+// ─── Bar Chart ───
+.bar-body {
+    position: relative;
+}
+
+.bar-chart {
+    width: 100%;
+    height: 300px;
+}
+
+.bar-legend {
+    display: flex;
+    gap: 16px;
+}
+
+.bar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink-500);
+}
+
+.bar-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+
+    &.brand-dot {
+        background: var(--brand-500);
+    }
+    &.expense-dot {
+        background: var(--brand-100);
+    }
+}
+
+// ─── Ticket (工单情况) ───
+.ticket-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.ticket-total {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--brand-50);
+    border-radius: 10px;
+}
+
+.ticket-total-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--brand-500);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ticket-total-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ticket-total-label {
+    font-size: 12px;
+    color: var(--ink-400);
+}
+
+.ticket-total-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink-900);
+    font-family: var(--font-num);
+}
+
+.ticket-cells {
+    display: flex;
+    gap: 12px;
+}
+
+.ticket-cell {
+    flex: 1;
+    background: var(--ink-50);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.ticket-cell-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-800);
+    margin-bottom: 10px;
+}
+
+.ticket-cell-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.ticket-cell-label {
+    font-size: 12px;
+    color: var(--ink-400);
+}
+
+.ticket-cell-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink-900);
+    font-family: var(--font-num);
+}
+
+// ═══════ Responsive ═══════
+@media (max-width: 1200px) {
+    .row-3 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .row-3 {
+        grid-template-columns: 1fr;
+    }
+    .row-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .kpi-card {
+        padding: 20px 16px;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
 }
 
 // ===== Activity =====
@@ -715,13 +1090,13 @@ html.dark .soft-card {
     }
 
     &.rank-1 {
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.10), transparent 70%);
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent 70%);
     }
     &.rank-2 {
-        background: linear-gradient(90deg, rgba(192, 192, 192, 0.10), transparent 70%);
+        background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), transparent 70%);
     }
     &.rank-3 {
-        background: linear-gradient(90deg, rgba(205, 127, 50, 0.10), transparent 70%);
+        background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), transparent 70%);
     }
 }
 
@@ -847,72 +1222,48 @@ html.dark .soft-card {
     }
 }
 
-// ===== Trend =====
-.trend-card {
-    margin-bottom: 18px;
+.card-link {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--brand-500);
+    font-size: 12px;
+    cursor: pointer;
 }
-
-.trend-charts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
+.kpi-comparison {
+    margin-left: 6px;
+    font-size: 11.5px;
+    opacity: 0.8;
 }
-
-.trend-chart-wrapper {
-    flex: 1;
+.kpi-icon {
+    font-size: 20px;
 }
-
-.trend-label {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    margin-bottom: 8px;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+.activity-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 }
-
-.trend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.trend-chart {
+.activity-text {
     width: 100%;
-    height: 240px;
 }
-
-// ===== Responsive =====
-@media (max-width: 1280px) {
-    .quick-nav-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
+.card-head {
+    gap: 10px;
+    flex-wrap: wrap;
 }
-
-@media (max-width: 1024px) {
-    .kpi-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .middle-section {
-        grid-template-columns: 1fr;
-    }
+.card-body {
+    min-width: 0;
 }
-
-@media (max-width: 768px) {
-    .kpi-card {
-        padding: 18px 18px 16px;
-        min-height: auto;
-    }
-    .kpi-value {
-        font-size: 28px;
-    }
-    .quick-nav-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .trend-charts {
-        grid-template-columns: 1fr;
-    }
+.quick-nav-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.nav-item {
+    border: 0;
+    background: transparent;
+    font: inherit;
+}
+.row-3 > *,
+.row-2 > *,
+.kpi-row > * {
+    min-width: 0;
 }
 </style>

@@ -1,7 +1,9 @@
 <template>
-    <el-breadcrumb class="app-breadcrumb">
-        <el-breadcrumb-item v-for="item in breadcrumbs" :key="item.path">
-            {{ translateRouteTitle(item.meta.title as string, item.name) }}
+    <el-breadcrumb class="app-breadcrumb" separator="/">
+        <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="item.path">
+            <span :class="index === breadcrumbs.length - 1 ? 'crumb-cur' : 'crumb-item'">
+                {{ translateRouteTitle(item.meta.title as string, item.name) }}
+            </span>
         </el-breadcrumb-item>
     </el-breadcrumb>
 </template>
@@ -21,3 +23,23 @@ useWatchRoute((route) => {
     getBreadcrumb(route)
 })
 </script>
+
+<style scoped lang="scss">
+.app-breadcrumb {
+    font-size: 13px;
+
+    :deep(.el-breadcrumb__separator) {
+        color: var(--ink-300);
+        margin: 0 6px;
+    }
+}
+
+.crumb-item {
+    color: var(--ink-400);
+}
+
+.crumb-cur {
+    color: var(--ink-700);
+    font-weight: 500;
+}
+</style>

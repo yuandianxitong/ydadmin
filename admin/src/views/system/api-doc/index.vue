@@ -14,13 +14,13 @@
                     <div class="flex items-center gap-2">
                         <el-tooltip :content="$t('apiDoc.openSwagger')" placement="bottom">
                             <el-button type="primary" link @click="openSwaggerUI">
-                                <el-icon class="mr-1"><Link /></el-icon>
+                                <i class="i-svg:link mr-1" />
                                 Swagger UI
                             </el-button>
                         </el-tooltip>
                         <el-tooltip :content="$t('apiDoc.downloadJson')" placement="bottom">
                             <el-button type="primary" link @click="downloadJson">
-                                <el-icon class="mr-1"><Download /></el-icon>
+                                <i class="i-svg:download mr-1" />
                                 OpenAPI JSON
                             </el-button>
                         </el-tooltip>
@@ -38,7 +38,6 @@
 </template>
 
 <script setup lang="ts">
-import { Download, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'

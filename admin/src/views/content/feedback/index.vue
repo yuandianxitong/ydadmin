@@ -1,5 +1,11 @@
 <template>
     <div class="feedback-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ t('feedbackMgmt.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.content_feedback_index') }}</div>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -31,11 +37,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -43,101 +49,112 @@
         </el-card>
 
         <!-- 列表 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ t('feedbackMgmt.title') }}</div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="t('common.id')" prop="id" width="70" />
-
-                <el-table-column
-                    :label="t('feedbackMgmt.content')"
-                    prop="content"
-                    min-width="250"
-                    show-overflow-tooltip
-                />
-
-                <el-table-column :label="t('feedbackMgmt.type')" prop="type" width="100">
-                    <template #default="{ row }">
-                        <el-tag :type="typeTagMap[row.type] || 'info'" size="small">
-                            {{ typeText(row.type) }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('feedbackMgmt.contact')"
-                    prop="contact"
-                    width="150"
-                    show-overflow-tooltip
-                />
-
-                <el-table-column :label="t('common.status')" prop="status" width="100">
-                    <template #default="{ row }">
-                        <el-tag :type="statusTagMap[row.status] || 'info'" size="small">
-                            {{ statusText(row.status) }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('feedbackMgmt.submittedAt')"
-                    prop="created_at"
-                    width="170"
-                />
-
-                <el-table-column :label="t('common.operation')" width="200" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['feedback.detail']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleDetail(row as FeedbackInfo)"
-                            >{{ t('common.detail') }}</el-button
-                        >
-                        <el-button
-                            v-if="row.status < 2"
-                            v-has-perm="['feedback.reply']"
-                            type="success"
-                            size="small"
-                            text
-                            @click="handleReply(row as FeedbackInfo)"
-                            >{{ t('feedbackMgmt.reply') }}</el-button
-                        >
-                        <el-button
-                            v-if="row.status < 3"
-                            v-has-perm="['feedback.close']"
-                            type="warning"
-                            size="small"
-                            text
-                            @click="handleClose(row as FeedbackInfo)"
-                            >{{ t('feedbackMgmt.close') }}</el-button
-                        >
-                        <el-button
-                            v-has-perm="['feedback.delete']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDeleteRow(row as FeedbackInfo)"
-                            >{{ t('common.delete') }}</el-button
-                        >
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="t('feedbackMgmt.title')"
+            storage-key="content-feedback-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_content_feedback_index_vue_id'),
+                    width: 70,
+                    required: true
+                },
+                {
+                    key: 'content',
+                    label: $t('proPage.table_content_feedback_index_vue_content'),
+                    minWidth: 250,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'type',
+                    label: $t('proPage.table_content_feedback_index_vue_type'),
+                    width: 120
+                },
+                {
+                    key: 'contact',
+                    label: $t('proPage.table_content_feedback_index_vue_contact'),
+                    width: 150,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_content_feedback_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_content_feedback_index_vue_created_at'),
+                    width: 170
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_content_feedback_index_vue_action'),
+                    width: 200,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #type="{ row }">
+                <el-tag :type="typeTagMap[row.type] || 'info'" size="small">
+                    {{ typeText(row.type) }}
+                </el-tag>
+            </template>
+            <template #status="{ row }">
+                <el-tag :type="statusTagMap[row.status] || 'info'" size="small">
+                    {{ statusText(row.status) }}
+                </el-tag>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['feedback.detail']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="handleDetail(row as FeedbackInfo)"
+                    >{{ t('common.detail') }}</el-button
+                >
+                <el-button
+                    v-if="row.status < 2"
+                    v-has-perm="['feedback.reply']"
+                    type="success"
+                    size="small"
+                    text
+                    @click="handleReply(row as FeedbackInfo)"
+                    >{{ t('feedbackMgmt.reply') }}</el-button
+                >
+                <el-button
+                    v-if="row.status < 3"
+                    v-has-perm="['feedback.close']"
+                    type="warning"
+                    size="small"
+                    text
+                    @click="handleClose(row as FeedbackInfo)"
+                    >{{ t('feedbackMgmt.close') }}</el-button
+                >
+                <el-button
+                    v-has-perm="['feedback.delete']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDeleteRow(row as FeedbackInfo)"
+                    >{{ t('common.delete') }}</el-button
+                >
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 详情/回复对话框 -->
         <el-dialog
@@ -209,14 +226,13 @@
 </template>
 
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { feedbackApi } from '@/api/feedback'
-import type { FeedbackInfo } from '@/types/content'
 import { useListPage } from '@/hooks/useListPage'
+import type { FeedbackInfo } from '@/types/content'
 
 const { t } = useI18n()
 
@@ -335,8 +351,4 @@ const handleDeleteRow = async (row: FeedbackInfo) => {
 }
 </script>
 
-<style scoped lang="scss">
-.feedback-container {
-    padding: 16px;
-}
-</style>
+<style scoped lang="scss"></style>

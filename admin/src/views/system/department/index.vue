@@ -1,5 +1,20 @@
 <template>
     <div class="dept-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('department.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_department_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button
+                    v-has-perm="['system.department.create']"
+                    type="primary"
+                    @click="handleAdd()"
+                >
+                    <i class="i-svg:plus" />{{ $t('department.addDept') }}
+                </el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -24,11 +39,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -38,18 +53,13 @@
         <!-- 操作区域 -->
         <el-card class="table-card" shadow="never">
             <div class="table-header">
-                <div class="table-title">{{ $t('department.title') }}</div>
+                <div class="table-title">
+                    {{ $t('department.title')
+                    }}<span class="table-count">共 {{ list.length }} 条</span>
+                </div>
                 <div class="table-actions">
                     <el-button @click="expandAll">
                         {{ isExpandAll ? $t('common.collapseAll') : $t('common.expandAll') }}
-                    </el-button>
-                    <el-button
-                        v-has-perm="['system.department.create']"
-                        type="primary"
-                        @click="handleAdd()"
-                    >
-                        <el-icon><Plus /></el-icon>
-                        {{ $t('department.addDept') }}
                     </el-button>
                 </div>
             </div>
@@ -88,7 +98,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('common.sort')" prop="sort" width="80" />
+                <el-table-column :label="$t('common.sort')" prop="sort" width="100" />
 
                 <el-table-column :label="$t('common.status')" prop="status" width="100">
                     <template #default="{ row }">
@@ -102,7 +112,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="180" />
+                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="200" />
 
                 <el-table-column :label="$t('common.operation')" width="200" fixed="right">
                     <template #default="{ row }">
@@ -149,7 +159,7 @@
 </template>
 
 <script setup lang="ts" name="DepartmentList">
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+
 import { ElMessage } from 'element-plus'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'

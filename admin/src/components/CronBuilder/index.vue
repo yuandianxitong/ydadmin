@@ -1,123 +1,129 @@
 <template>
     <div class="cron-builder">
-        <!-- 频率 + 内联参数（一行） -->
-        <div class="cron-builder__row">
-            <el-select
-                v-model="frequency"
-                class="cron-builder__freq"
-                @change="handleFrequencyChange"
-            >
-                <el-option label="每分钟" value="minute" />
-                <el-option label="每 N 分钟" value="everyNMinute" />
-                <el-option label="每小时" value="hour" />
-                <el-option label="每 N 小时" value="everyNHour" />
-                <el-option label="每天" value="day" />
-                <el-option label="每周" value="week" />
-                <el-option label="每月" value="month" />
-            </el-select>
+        <el-select
+            v-model="frequency"
+            placeholder="请选择执行频率"
+            style="width: 100%"
+            @change="handleFrequencyChange"
+        >
+            <el-option label="每分钟" value="minute" />
+            <el-option label="每N分钟" value="everyNMinute" />
+            <el-option label="每小时" value="hour" />
+            <el-option label="每N小时" value="everyNHour" />
+            <el-option label="每天" value="day" />
+            <el-option label="每周" value="week" />
+            <el-option label="每月" value="month" />
+            <el-option label="自定义表达式" value="custom" />
+        </el-select>
 
-            <!-- 每 N 分钟 -->
-            <template v-if="frequency === 'everyNMinute'">
-                <span class="cron-builder__text">每</span>
+        <div class="cron-builder__params">
+            <div v-if="frequency === 'custom'" class="cron-builder__param-row">
+                <el-input
+                    v-model="customExpression"
+                    placeholder="分 时 日 月 周，如 */10 8-20 * * *"
+                    style="width: 240px"
+                />
+                <span>Cron 表达式</span>
+            </div>
+
+            <div v-if="frequency === 'everyNMinute'" class="cron-builder__param-row">
+                <span>每</span>
                 <el-input-number
                     v-model="interval"
                     :min="1"
                     :max="59"
                     size="default"
                     controls-position="right"
-                    class="cron-builder__num"
                 />
-                <span class="cron-builder__text">分钟执行一次</span>
-            </template>
+                <span>分钟执行一次</span>
+            </div>
 
-            <!-- 每小时 -->
-            <template v-else-if="frequency === 'hour'">
-                <span class="cron-builder__text">第</span>
-                <el-select v-model="minute" class="cron-builder__sub-select">
-                    <el-option
-                        v-for="m in 60"
-                        :key="m - 1"
-                        :label="`${m - 1} 分`"
-                        :value="m - 1"
-                    />
+            <div v-if="frequency === 'hour'" class="cron-builder__param-row">
+                <span>每小时第</span>
+                <el-select v-model="minute" style="width: 100px">
+                    <el-option v-for="m in 60" :key="m - 1" :label="`${m - 1} 分`" :value="m - 1" />
                 </el-select>
-                <span class="cron-builder__text">执行</span>
-            </template>
+                <span>执行</span>
+            </div>
 
-            <!-- 每 N 小时 -->
-            <template v-else-if="frequency === 'everyNHour'">
-                <span class="cron-builder__text">每</span>
+            <div v-if="frequency === 'everyNHour'" class="cron-builder__param-row">
+                <span>每</span>
                 <el-input-number
                     v-model="interval"
                     :min="1"
                     :max="23"
                     size="default"
                     controls-position="right"
-                    class="cron-builder__num"
                 />
-                <span class="cron-builder__text">小时，第</span>
-                <el-select v-model="minute" class="cron-builder__sub-select">
-                    <el-option
-                        v-for="m in 60"
-                        :key="m - 1"
-                        :label="`${m - 1} 分`"
-                        :value="m - 1"
-                    />
+                <span>小时，第</span>
+                <el-select v-model="minute" style="width: 100px">
+                    <el-option v-for="m in 60" :key="m - 1" :label="`${m - 1} 分`" :value="m - 1" />
                 </el-select>
-                <span class="cron-builder__text">分执行</span>
-            </template>
+                <span>执行</span>
+            </div>
 
-            <!-- 每天 / 每周 / 每月：行内时间选择 -->
-            <template
-                v-else-if="
-                    frequency === 'day' || frequency === 'week' || frequency === 'month'
-                "
-            >
-                <span class="cron-builder__text">执行时间</span>
+            <div v-if="frequency === 'day'" class="cron-builder__param-row">
+                <span>每天</span>
                 <el-time-picker
                     v-model="timeValue"
                     format="HH:mm"
                     placeholder="选择时间"
-                    class="cron-builder__time"
+                    style="width: 140px"
                     @change="handleTimeChange"
                 />
-            </template>
-        </div>
+                <span>执行</span>
+            </div>
 
-        <!-- 每周 -->
-        <div v-if="frequency === 'week'" class="cron-builder__panel">
-            <div class="cron-builder__panel-label">选择星期</div>
-            <el-checkbox-group v-model="weekdays" class="cron-builder__checkbox-group">
-                <el-checkbox-button
-                    v-for="(label, idx) in weekdayLabels"
-                    :key="idx"
-                    :value="idx"
+            <div v-if="frequency === 'week'" class="cron-builder__param-group">
+                <div class="cron-builder__param-row">
+                    <span>选择星期：</span>
+                </div>
+                <el-checkbox-group v-model="weekdays" class="cron-builder__checkbox-group">
+                    <el-checkbox v-for="(label, idx) in weekdayLabels" :key="idx" :value="idx">
+                        {{ label }}
+                    </el-checkbox>
+                </el-checkbox-group>
+                <div class="cron-builder__param-row">
+                    <span>执行时间：</span>
+                    <el-time-picker
+                        v-model="timeValue"
+                        format="HH:mm"
+                        placeholder="选择时间"
+                        style="width: 140px"
+                        @change="handleTimeChange"
+                    />
+                </div>
+            </div>
+
+            <div v-if="frequency === 'month'" class="cron-builder__param-group">
+                <div class="cron-builder__param-row">
+                    <span>选择日期：</span>
+                </div>
+                <el-checkbox-group
+                    v-model="monthDays"
+                    class="cron-builder__checkbox-group cron-builder__checkbox-group--days"
                 >
-                    {{ label }}
-                </el-checkbox-button>
-            </el-checkbox-group>
+                    <el-checkbox v-for="d in 31" :key="d" :value="d"> {{ d }}日 </el-checkbox>
+                </el-checkbox-group>
+                <div class="cron-builder__param-row">
+                    <span>执行时间：</span>
+                    <el-time-picker
+                        v-model="timeValue"
+                        format="HH:mm"
+                        placeholder="选择时间"
+                        style="width: 140px"
+                        @change="handleTimeChange"
+                    />
+                </div>
+            </div>
         </div>
-
-        <!-- 每月 -->
-        <div v-if="frequency === 'month'" class="cron-builder__panel">
-            <div class="cron-builder__panel-label">选择日期</div>
-            <el-checkbox-group
-                v-model="monthDays"
-                class="cron-builder__checkbox-group cron-builder__checkbox-group--days"
-            >
-                <el-checkbox-button v-for="d in 31" :key="d" :value="d">
-                    {{ d }}
-                </el-checkbox-button>
-            </el-checkbox-group>
-        </div>
-
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-type Frequency = 'minute' | 'everyNMinute' | 'hour' | 'everyNHour' | 'day' | 'week' | 'month'
+import { type CronFrequency, parseCron } from './utils'
 
 const props = defineProps<{
     modelValue: string
@@ -127,7 +133,8 @@ const emit = defineEmits<{
     'update:modelValue': [value: string]
 }>()
 
-const frequency = ref<Frequency>('minute')
+const frequency = ref<CronFrequency | 'custom'>('minute')
+const customExpression = ref('')
 const minute = ref(0)
 const hour = ref(0)
 const interval = ref(5)
@@ -154,13 +161,24 @@ const handleTimeChange = (val: Date | null) => {
 }
 
 const handleFrequencyChange = () => {
+    if (frequency.value === 'custom' && !customExpression.value) {
+        customExpression.value = props.modelValue
+    }
     if (frequency.value === 'day' || frequency.value === 'week' || frequency.value === 'month') {
         initTimeValue()
+    }
+    if (frequency.value === 'week' && weekdays.value.length === 0) {
+        weekdays.value = [1]
+    }
+    if (frequency.value === 'month' && monthDays.value.length === 0) {
+        monthDays.value = [1]
     }
 }
 
 const generatedExpression = computed(() => {
     switch (frequency.value) {
+        case 'custom':
+            return customExpression.value
         case 'minute':
             return '* * * * *'
         case 'everyNMinute':
@@ -184,72 +202,28 @@ const generatedExpression = computed(() => {
     }
 })
 
-const parseExpression = (expr: string) => {
-    if (!expr || !expr.trim()) return
+const applyParsed = (expr: string) => {
+    const parsed = parseCron(expr)
 
-    const parts = expr.trim().split(/\s+/)
-    if (parts.length !== 5) return
-
-    const [mPart, hPart, dPart, monPart, wPart] = parts
-
-    if (mPart === '*' && hPart === '*' && dPart === '*' && monPart === '*' && wPart === '*') {
-        frequency.value = 'minute'
+    // 可视化模式解析不了的合法表达式：进入自定义模式原样保留，绝不覆盖用户数据
+    if (!parsed.supported && expr && expr.trim()) {
+        frequency.value = 'custom'
+        customExpression.value = expr
         return
     }
 
-    const everyNMinMatch = mPart.match(/^\*\/(\d+)$/)
-    if (everyNMinMatch && hPart === '*' && dPart === '*' && monPart === '*' && wPart === '*') {
-        frequency.value = 'everyNMinute'
-        interval.value = parseInt(everyNMinMatch[1])
-        return
-    }
-
-    const minuteOnly = mPart.match(/^(\d+)$/)
-    if (minuteOnly && hPart === '*' && dPart === '*' && monPart === '*' && wPart === '*') {
-        frequency.value = 'hour'
-        minute.value = parseInt(minuteOnly[1])
-        return
-    }
-
-    const everyNHourMatch = hPart.match(/^\*\/(\d+)$/)
-    if (minuteOnly && everyNHourMatch && dPart === '*' && monPart === '*' && wPart === '*') {
-        frequency.value = 'everyNHour'
-        minute.value = parseInt(mPart)
-        interval.value = parseInt(everyNHourMatch[1])
-        return
-    }
-
-    const hourMatch = hPart.match(/^(\d+)$/)
-    if (minuteOnly && hourMatch && dPart === '*' && monPart === '*' && wPart !== '*') {
-        const weekMatch = wPart.match(/^[\d,]+$/)
-        if (weekMatch) {
-            frequency.value = 'week'
-            minute.value = parseInt(mPart)
-            hour.value = parseInt(hPart)
-            weekdays.value = wPart.split(',').map(Number)
-            initTimeValue()
-            return
-        }
-    }
-
-    if (minuteOnly && hourMatch && dPart !== '*' && monPart === '*' && wPart === '*') {
-        const dayMatch = dPart.match(/^[\d,]+$/)
-        if (dayMatch) {
-            frequency.value = 'month'
-            minute.value = parseInt(mPart)
-            hour.value = parseInt(hPart)
-            monthDays.value = dPart.split(',').map(Number)
-            initTimeValue()
-            return
-        }
-    }
-
-    if (minuteOnly && hourMatch && dPart === '*' && monPart === '*' && wPart === '*') {
-        frequency.value = 'day'
-        minute.value = parseInt(mPart)
-        hour.value = parseInt(hPart)
+    frequency.value = parsed.frequency
+    minute.value = parsed.minute
+    hour.value = parsed.hour
+    interval.value = parsed.interval
+    weekdays.value = parsed.weekdays
+    monthDays.value = parsed.monthDays
+    if (parsed.frequency === 'day' || parsed.frequency === 'week' || parsed.frequency === 'month') {
         initTimeValue()
-        return
+    }
+    // 空值场景（新建表单）：回填默认的「每分钟」表达式
+    if (!parsed.supported) {
+        emit('update:modelValue', generatedExpression.value)
     }
 }
 
@@ -261,7 +235,7 @@ watch(
     () => props.modelValue,
     (val) => {
         if (val === generatedExpression.value) return
-        parseExpression(val)
+        applyParsed(val)
     },
     { immediate: true }
 )
@@ -270,78 +244,44 @@ watch(
 <style lang="scss" scoped>
 .cron-builder {
     width: 100%;
-
     display: flex;
     flex-direction: column;
     gap: 12px;
 
-    &__row {
+    &__params {
+        min-height: 32px;
+    }
+
+    &__param-row {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
         gap: 8px;
+        flex-wrap: wrap;
+
+        > span {
+            font-size: 13px;
+            color: var(--el-text-color-regular);
+            white-space: nowrap;
+        }
     }
 
-    &__freq {
-        width: 140px;
-        flex-shrink: 0;
-    }
-
-    &__text {
-        font-size: 13px;
-        color: var(--el-text-color-regular);
-        white-space: nowrap;
-    }
-
-    &__num {
-        width: 110px;
-    }
-
-    &__sub-select {
-        width: 100px;
-    }
-
-    &__time {
-        width: 140px;
-    }
-
-    &__panel {
-        background-color: var(--el-fill-color-lighter);
-        border: 1px solid var(--el-border-color-lighter);
-        border-radius: 6px;
-        padding: 12px;
-    }
-
-    &__panel-label {
-        font-size: 13px;
-        color: var(--el-text-color-secondary);
-        margin-bottom: 10px;
+    &__param-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
 
     &__checkbox-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-
-        :deep(.el-checkbox-button) {
-            margin: 0;
-        }
-
-        :deep(.el-checkbox-button__inner) {
-            border-radius: 4px !important;
-            border-left: 1px solid var(--el-border-color);
-            padding: 6px 12px;
-            font-size: 13px;
+        :deep(.el-checkbox) {
+            margin-right: 12px;
         }
 
         &--days {
-            :deep(.el-checkbox-button__inner) {
-                min-width: 40px;
-                padding: 6px 0;
-                text-align: center;
+            :deep(.el-checkbox) {
+                margin-right: 4px;
+                margin-bottom: 4px;
             }
         }
     }
-
 }
 </style>

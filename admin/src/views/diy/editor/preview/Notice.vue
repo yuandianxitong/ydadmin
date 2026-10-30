@@ -1,12 +1,16 @@
 <template>
   <div class="pv-notice">
-    <img v-if="props.props?.icon" :src="props.props.icon" class="pv-notice__icon" />
+    <img v-if="props.props?.icon" :src="appStore.getImageUrl(props.props.icon)" class="pv-notice__icon" />
     <span class="pv-notice__tag">公告</span>
     <span class="pv-notice__text">{{ items[0]?.text || '公告内容' }}</span>
   </div>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const items = computed(() => props.props?.items || [])
 </script>

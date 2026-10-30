@@ -113,7 +113,7 @@
                             :src="appStore.getImageUrl(form.avatar)"
                             class="avatar"
                         />
-                        <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+                        <i v-else class="i-svg:plus avatar-uploader-icon" />
                     </el-upload>
                     <div class="upload-tip">{{ $t('admin.avatarTip') }}</div>
                 </div>
@@ -155,7 +155,6 @@
 </template>
 
 <script setup lang="ts" name="AdminForm">
-import { Plus } from '@element-plus/icons-vue'
 import type { FormRules, UploadProps } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { computed } from 'vue'
@@ -351,7 +350,7 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
 
 .avatar-uploader-icon {
     font-size: 28px;
-    color: var(--color-text-disabled);
+    color: var(--ink-400);
     text-align: center;
 }
 

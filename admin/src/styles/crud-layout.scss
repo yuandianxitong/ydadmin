@@ -1,49 +1,579 @@
 /* ============================================================
- * 通用 CRUD 列表页布局工具类
+ * 通用 CRUD 列表页布局工具类 — YDAdmin Pro 风格
  *
- * 所有列表页几乎都有相同的 "搜索卡片 + 表格卡片 + 分页" 结构，
- * 这里把共享的样式提取为全局工具类，避免在每个页面的 scoped SCSS 里复制粘贴。
- *
- * 使用约定：外层容器可保留业务命名（如 .admin-container），但不再重复
- * 定义 .table-header / .table-title / .table-actions / .pagination 这些共享 class。
+ * 所有列表页共享 "搜索卡片 + 表格卡片 + 分页" 结构，
+ * 这里统一样式为 YDAdmin 设计规范（filter-bar + tbl-wrap 视觉）。
  * ============================================================ */
 
-/* 搜索卡片：放在顶部的搜索表单 */
+/* 筛选栏间隔符：推送右侧操作按钮到行尾 */
+.filter-sp {
+    flex: 1 !important;
+    min-width: 0;
+}
+
+/* 搜索卡片：模拟 YDAdmin .filter-bar 视觉 */
 .search-card {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+
+    &.el-card {
+        --el-card-border-color: var(--ink-100);
+        border: 1px solid var(--ink-100);
+        border-radius: var(--r-md);
+        box-shadow: var(--shadow-xs) !important;
+    }
+
+    .el-card__body {
+        padding: 14px 16px;
+    }
 
     .search-form {
         margin: 0;
+
+        .el-form-item {
+            margin-bottom: 0;
+            margin-right: 10px;
+        }
     }
 }
 
-/* 表格卡片头部：左边 title + 右边操作按钮组 */
+/* 表格卡片 */
+.table-card {
+    &.el-card {
+        --el-card-border-color: var(--ink-100);
+        border: 1px solid var(--ink-100);
+        border-radius: var(--r-md);
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    .el-card__body {
+        padding: 0;
+    }
+}
+
+/* 表格卡片头部 — YDAdmin .tbl-head 风格 */
 .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--ink-100);
 }
 
 .table-title {
-    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--ink-900);
+
+    &::before {
+        content: '';
+        width: 3px;
+        height: 13px;
+        background: var(--brand-500);
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+
+    .table-count {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--ink-400);
+        margin-left: 4px;
+    }
 }
 
 .table-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
-/* 表格下方分页区域，右对齐 */
+/* 表格本体 padding */
+.table-card .el-table {
+    --el-table-border-color: var(--ink-100);
+}
+
+/* 分页 — YDAdmin .pg 风格，右对齐 */
 .pagination {
-    margin-top: 16px;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
+    padding: 12px 16px;
+    border-top: 1px solid var(--ink-100);
+    font-size: 12.5px;
+    color: var(--ink-500);
 }
 
-/* 兼容历史命名：pagination-wrap */
+/* 兼容历史命名 */
 .pagination-wrap {
     @extend .pagination;
+}
+
+/* 页面容器通用间距 */
+
+/* ============================================================
+ * 设置/配置页布局 — YDAdmin .set-* 风格
+ * 用于渠道配置、系统设置等表单配置页面
+ * ============================================================ */
+
+.set-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.set-card {
+    background: var(--card-bg);
+    border-radius: var(--r-md);
+    border: 1px solid var(--ink-100);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.set-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ink-100);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink-900);
+
+        &::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 13px;
+            background: var(--brand-500);
+            border-radius: 2px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    }
+
+    .dsc {
+        font-size: 12px;
+        color: var(--ink-400);
+        margin-left: 8px;
+    }
+}
+
+.set-card-body {
+    padding: 20px;
+}
+
+.set-item {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ink-100);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    // Full width item (no grid, single column)
+    &.full {
+        grid-template-columns: 1fr;
+    }
+}
+
+.set-item-label {
+    font-size: 13px;
+    color: var(--ink-800);
+    font-weight: 500;
+}
+
+.set-item-desc {
+    font-size: 12px;
+    color: var(--ink-400);
+    margin-top: 2px;
+}
+
+.set-item-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-input,
+    .el-select {
+        max-width: 320px;
+    }
+}
+
+// Page head for settings pages
+.page-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 系统设置 · 左侧导航 + 右侧内容分栏 */
+.set-split {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 14px;
+}
+
+.set-nav {
+    background: var(--card-bg);
+    border-radius: var(--r-md);
+    border: 1px solid var(--ink-100);
+    padding: 8px;
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+}
+
+.set-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    color: var(--ink-600);
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: var(--ink-50);
+    }
+
+    &.on {
+        background: var(--brand-50);
+        color: var(--brand-600);
+        font-weight: 500;
+    }
+
+    .ic {
+        width: 15px;
+        height: 15px;
+        color: var(--ink-400);
+        flex-shrink: 0;
+    }
+
+    &.on .ic {
+        color: var(--brand-500);
+    }
+}
+
+/* ============================================================
+ * 分栏布局 — 菜单管理等 tree + form 页面
+ * ============================================================ */
+
+.split {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 14px;
+}
+
+.panel {
+    background: var(--card-bg);
+    border-radius: var(--r-md);
+    border: 1px solid var(--ink-100);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.panel-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--ink-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+        content: '';
+        width: 3px;
+        height: 13px;
+        background: var(--brand-500);
+        border-radius: 2px;
+    }
+}
+
+.panel-body {
+    padding: 14px;
+}
+
+/* 菜单树 */
+.tree-search {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--ink-100);
+}
+
+.tree {
+    padding: 6px;
+}
+
+.tree-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink-700);
+    transition: all 0.15s;
+
+    &:hover {
+        background: var(--ink-50);
+    }
+
+    &.on {
+        background: var(--brand-50);
+        color: var(--brand-600);
+        font-weight: 500;
+    }
+
+    .tw {
+        width: 14px;
+        height: 14px;
+        color: var(--ink-400);
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s;
+    }
+
+    .ic {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        color: var(--ink-500);
+    }
+
+    &.on .ic {
+        color: var(--brand-500);
+    }
+
+    .nm {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cnt {
+        font-size: 11px;
+        color: var(--ink-400);
+        font-family: var(--font-num, inherit);
+    }
+}
+
+.tree-child {
+    padding-left: 16px;
+}
+
+/* 表单网格 */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &.full {
+        grid-column: 1 / -1;
+    }
+}
+
+.form-label {
+    font-size: 12.5px;
+    color: var(--ink-600);
+    display: flex;
+    gap: 4px;
+
+    .req {
+        color: var(--danger);
+    }
+}
+
+.form-hint {
+    font-size: 11.5px;
+    color: var(--ink-400);
+    margin-top: 2px;
+}
+
+.form-sec-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-900);
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--ink-200);
+    margin: 6px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+        content: '';
+        width: 3px;
+        height: 12px;
+        background: var(--brand-500);
+        border-radius: 2px;
+    }
+}
+
+.form-foot {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    margin-top: 18px;
+    border-top: 1px solid var(--ink-100);
+}
+
+/* ============================================================
+ * ProTable 选中态 + 分页底栏
+ * ============================================================ */
+
+/* 选中信息 */
+.table-sel-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--ink-700);
+
+    b {
+        color: var(--brand-500);
+        font-family: var(--font-num);
+    }
+}
+
+.table-sel-clear {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: var(--ink-500);
+    font-size: 12.5px;
+
+    &:hover {
+        color: var(--brand-500);
+        text-decoration: underline;
+    }
+}
+
+/* 分页底栏 — 左右分栏 */
+.table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--ink-100);
+    font-size: 12.5px;
+    color: var(--ink-500);
+}
+
+.table-footer-total {
+    b {
+        color: var(--ink-800);
+        font-family: var(--font-num);
+    }
+}
+
+/* Current project compatibility and narrow-screen layouts. */
+.table-header {
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.table-actions,
+.page-actions {
+    flex-wrap: wrap;
+}
+.table-card > .el-card__body > .table-title {
+    padding: 14px 16px;
+}
+.pagination,
+.pagination-wrap {
+    margin-top: 0;
+}
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+    .page-head {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+    .set-split,
+    .split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .set-nav {
+        position: static;
+        display: flex;
+        overflow-x: auto;
+    }
+    .set-nav-item {
+        flex-shrink: 0;
+    }
+    .set-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+    .set-item-ctrl {
+        min-width: 0;
+    }
+    .set-item-ctrl > .el-input,
+    .set-item-ctrl > .el-select {
+        max-width: 100%;
+    }
+    .form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .table-footer,
+    .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+@media (max-width: 640px) {
+    .search-card .search-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .search-card .search-form > .el-form-item {
+        flex: 1 1 100%;
+        margin: 0;
+        min-width: 0;
+    }
+    .search-card .el-input,
+    .search-card .el-select,
+    .search-card .el-date-editor {
+        max-width: 100%;
+    }
+    .el-pagination {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
 }

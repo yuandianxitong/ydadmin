@@ -1,184 +1,243 @@
 <template>
     <div class="generator-page">
-        <el-steps :active="step" finish-status="success" class="mb-6">
-            <el-step :title="$t('generator.step1')" />
-            <el-step :title="$t('generator.step2')" />
-            <el-step :title="$t('generator.step3')" />
-        </el-steps>
+        <div class="page-head">
+            <div>
+                <div class="page-title">{{ $t('generator.title') }}</div>
+                <div class="page-desc">{{ $t('proPage.system_generator_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button @click="fetchTables"
+                    ><i class="i-svg:refresh-cw" />{{ $t('proPage.syncTables') }}</el-button
+                >
+            </div>
+        </div>
 
         <!-- Step 1: 选择数据表 -->
-        <el-card v-if="step === 0" shadow="never">
-            <template #header>{{ $t('generator.step1') }}</template>
-            <el-input
-                v-model="tableSearch"
-                :placeholder="$t('generator.searchTable')"
-                :prefix-icon="Search"
-                clearable
-                class="mb-4"
-                style="width: 300px"
-            />
-            <el-table
-                v-loading="tableLoading"
-                :data="filteredTables"
-                highlight-current-row
-                border
-                size="small"
-                max-height="500"
-                @current-change="handleTableSelect"
+        <ProTable
+            v-if="step === 0"
+            :title="$t('proPage.databaseTables')"
+            storage-key="generator-tables"
+            row-key="name"
+            :columns="[
+                {
+                    key: 'name',
+                    label: $t('proPage.table_system_generator_index_vue_name'),
+                    minWidth: 180
+                },
+                {
+                    key: 'comment',
+                    label: $t('proPage.table_system_generator_index_vue_comment'),
+                    minWidth: 160,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'entity',
+                    label: $t('proPage.table_system_generator_index_vue_entity'),
+                    minWidth: 140
+                },
+                {
+                    key: 'rows',
+                    label: $t('proPage.table_system_generator_index_vue_rows'),
+                    width: 100
+                },
+                { key: 'engine', label: $t('generator.engine'), width: 100, defaultVisible: false },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_system_generator_index_vue_action'),
+                    width: 220,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="pagedTables"
+            :loading="tableLoading"
+            :pagination="{ page: tablePage, limit: tableLimit, total: filteredTables.length }"
+            @page-change="tablePage = $event"
+            @size-change="handleTableSizeChange"
+        >
+            <template #headerExtra
+                ><el-input
+                    v-model="tableSearch"
+                    :placeholder="$t('generator.searchTable')"
+                    clearable
+                    size="small"
+                    style="width: 200px"
+                    @input="tablePage = 1"
+                    ><template #prefix><i class="i-svg:search" /></template></el-input
+            ></template>
+            <template #name="{ row }"
+                ><code class="tbl-name">{{ row.name }}</code></template
             >
-                <el-table-column prop="name" :label="$t('generator.tableName')" min-width="200" />
-                <el-table-column
-                    prop="comment"
-                    :label="$t('generator.tableComment')"
-                    min-width="200"
-                />
-                <el-table-column prop="engine" :label="$t('generator.engine')" width="100" />
-                <el-table-column
-                    prop="rows"
-                    :label="$t('generator.rows')"
-                    width="80"
-                    align="center"
-                />
-            </el-table>
-            <div class="mt-4 flex justify-end">
-                <el-button type="primary" :disabled="!selectedTable" @click="goStep2">{{
-                    $t('generator.nextStep')
-                }}</el-button>
-            </div>
-        </el-card>
+            <template #entity="{ row }"
+                ><code class="tbl-entity">{{ tableEntityName(row.name) }}</code></template
+            >
+            <template #action="{ row }"
+                ><el-button type="primary" size="small" text @click="configureTable(row)">{{
+                    $t('proPage.configureGenerator')
+                }}</el-button></template
+            >
+        </ProTable>
 
-        <!-- Step 2: 配置 -->
-        <el-card v-if="step === 1" shadow="never">
-            <template #header>{{ $t('generator.basicConfig') }} — {{ selectedTable }}</template>
-            <el-form label-width="120px" class="mb-6">
-                <el-row :gutter="24">
-                    <el-col :span="8">
-                        <el-form-item :label="$t('generator.moduleName')">
-                            <el-input
-                                v-model="config.module_name"
-                                :placeholder="$t('generator.moduleNamePlaceholder')"
-                            />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item :label="$t('generator.modelName')">
-                            <el-input
-                                v-model="config.model_name"
-                                :placeholder="$t('generator.modelNamePlaceholder')"
-                            />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-form-item :label="$t('generator.cnName')">
-                            <el-input
-                                v-model="config.table_comment"
-                                :placeholder="$t('generator.cnNamePlaceholder')"
-                            />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
+        <el-dialog
+            :model-value="step > 0"
+            :title="
+                step === 1
+                    ? $t('generator.basicConfig') + ' · ' + selectedTable
+                    : $t('generator.previewTitle')
+            "
+            width="1000px"
+            :close-on-click-modal="false"
+            @close="step = 0"
+            class="pro-generator-dialog"
+        >
+            <!-- Step 2: 配置 -->
+            <el-steps :active="step" finish-status="success" class="mb-6">
+                <el-step :title="$t('generator.step1')" />
+                <el-step :title="$t('generator.step2')" />
+                <el-step :title="$t('generator.step3')" />
+            </el-steps>
+            <el-card v-if="step === 1" shadow="never">
+                <template #header>{{ $t('generator.basicConfig') }} — {{ selectedTable }}</template>
+                <el-form label-width="120px" class="mb-6">
+                    <el-row :gutter="24">
+                        <el-col :span="8">
+                            <el-form-item :label="$t('generator.moduleName')">
+                                <el-input
+                                    v-model="config.module_name"
+                                    :placeholder="$t('generator.moduleNamePlaceholder')"
+                                />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item :label="$t('generator.modelName')">
+                                <el-input
+                                    v-model="config.model_name"
+                                    :placeholder="$t('generator.modelNamePlaceholder')"
+                                />
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item :label="$t('generator.cnName')">
+                                <el-input
+                                    v-model="config.table_comment"
+                                    :placeholder="$t('generator.cnNamePlaceholder')"
+                                />
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
 
-            <h4 class="mb-3">{{ $t('generator.fieldConfig') }}</h4>
-            <el-table :data="columns" border size="small" max-height="400">
-                <el-table-column prop="name" :label="$t('generator.fieldName')" width="140" />
-                <el-table-column prop="comment" :label="$t('generator.comment')" width="120" />
-                <el-table-column prop="raw_type" :label="$t('generator.fieldType')" width="130" />
-                <el-table-column :label="$t('generator.formType')" width="130">
-                    <template #default="{ row }">
-                        <el-select v-model="row.form_type" size="small" :disabled="!row.in_form">
-                            <el-option
-                                :label="$t('generator.formTypeOptions.input')"
-                                value="input"
+                <h4 class="mb-3">{{ $t('generator.fieldConfig') }}</h4>
+                <el-table :data="columns" border size="small" max-height="400">
+                    <el-table-column prop="name" :label="$t('generator.fieldName')" width="140" />
+                    <el-table-column prop="comment" :label="$t('generator.comment')" width="120" />
+                    <el-table-column
+                        prop="raw_type"
+                        :label="$t('generator.fieldType')"
+                        width="130"
+                    />
+                    <el-table-column :label="$t('generator.formType')" width="130">
+                        <template #default="{ row }">
+                            <el-select
+                                v-model="row.form_type"
+                                size="small"
+                                :disabled="!row.in_form"
+                            >
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.input')"
+                                    value="input"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.textarea')"
+                                    value="textarea"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.number')"
+                                    value="number"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.switch')"
+                                    value="switch"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.select')"
+                                    value="select"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.date')"
+                                    value="datepicker"
+                                />
+                                <el-option
+                                    :label="$t('generator.formTypeOptions.image')"
+                                    value="image"
+                                />
+                            </el-select>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="下拉选项" min-width="190">
+                        <template #default="{ row }">
+                            <el-input
+                                v-if="row.form_type === 'select'"
+                                v-model="row.options_text"
+                                type="textarea"
+                                :rows="3"
+                                placeholder="每行：值=标签，例如 1=分类一"
                             />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.textarea')"
-                                value="textarea"
-                            />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.number')"
-                                value="number"
-                            />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.switch')"
-                                value="switch"
-                            />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.select')"
-                                value="select"
-                            />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.date')"
-                                value="datepicker"
-                            />
-                            <el-option
-                                :label="$t('generator.formTypeOptions.image')"
-                                value="image"
-                            />
-                        </el-select>
-                    </template>
-                </el-table-column>
-                <el-table-column label="下拉选项" min-width="190">
-                    <template #default="{ row }">
-                        <el-input
-                            v-if="row.form_type === 'select'"
-                            v-model="row.options_text"
-                            type="textarea"
-                            :rows="3"
-                            placeholder="每行：值=标签，例如 1=分类一"
-                        />
-                    </template>
-                </el-table-column>
-                <el-table-column :label="$t('generator.listShow')" width="80" align="center">
-                    <template #default="{ row }">
-                        <el-checkbox v-model="row.in_list" />
-                    </template>
-                </el-table-column>
-                <el-table-column :label="$t('generator.formShow')" width="80" align="center">
-                    <template #default="{ row }">
-                        <el-checkbox v-model="row.in_form" />
-                    </template>
-                </el-table-column>
-                <el-table-column :label="$t('generator.searchable')" width="80" align="center">
-                    <template #default="{ row }">
-                        <el-checkbox v-model="row.searchable" />
-                    </template>
-                </el-table-column>
-            </el-table>
-            <div class="mt-4 flex justify-between">
-                <el-button @click="step = 0">{{ $t('generator.prevStep') }}</el-button>
-                <el-button type="primary" :loading="previewLoading" @click="handlePreview">{{
-                    $t('generator.previewCode')
-                }}</el-button>
-            </div>
-        </el-card>
+                        </template>
+                    </el-table-column>
+                    <el-table-column :label="$t('generator.listShow')" width="80" align="center">
+                        <template #default="{ row }">
+                            <el-checkbox v-model="row.in_list" />
+                        </template>
+                    </el-table-column>
+                    <el-table-column :label="$t('generator.formShow')" width="80" align="center">
+                        <template #default="{ row }">
+                            <el-checkbox v-model="row.in_form" />
+                        </template>
+                    </el-table-column>
+                    <el-table-column :label="$t('generator.searchable')" width="80" align="center">
+                        <template #default="{ row }">
+                            <el-checkbox v-model="row.searchable" />
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="mt-4 flex justify-between">
+                    <el-button @click="step = 0">{{ $t('generator.prevStep') }}</el-button>
+                    <el-button type="primary" :loading="previewLoading" @click="handlePreview">{{
+                        $t('generator.previewCode')
+                    }}</el-button>
+                </div>
+            </el-card>
 
-        <!-- Step 3: 预览 & 生成 -->
-        <el-card v-if="step === 2" shadow="never">
-            <template #header>{{ $t('generator.previewTitle') }}</template>
-            <el-tabs v-model="activeTab">
-                <el-tab-pane
-                    v-for="(file, key) in previewFiles"
-                    :key="key"
-                    :label="key"
-                    :name="key"
-                >
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-500">{{ file.path }}</span>
-                        <el-button size="small" @click="copyCode(file.content)">{{ $t('common.copy') }}</el-button>
-                    </div>
-                    <div class="code-block">
-                        <pre><code v-html="highlightCode(file.path, file.content)"></code></pre>
-                    </div>
-                </el-tab-pane>
-            </el-tabs>
-            <div class="mt-4 flex justify-between">
-                <el-button @click="step = 1">{{ $t('generator.prevStep') }}</el-button>
-                <el-button type="primary" :loading="generateLoading" @click="handleGenerate">{{
-                    $t('generator.confirmGenerate')
-                }}</el-button>
-            </div>
-        </el-card>
+            <!-- Step 3: 预览 & 生成 -->
+            <el-card v-if="step === 2" shadow="never">
+                <template #header>{{ $t('generator.previewTitle') }}</template>
+                <el-tabs v-model="activeTab">
+                    <el-tab-pane
+                        v-for="(file, key) in previewFiles"
+                        :key="key"
+                        :label="key"
+                        :name="key"
+                    >
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-500">{{ file.path }}</span>
+                            <el-button size="small" @click="copyCode(file.content)">{{
+                                $t('common.copy')
+                            }}</el-button>
+                        </div>
+                        <div class="code-block">
+                            <pre><code v-html="highlightCode(file.path, file.content)"></code></pre>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
+                <div class="mt-4 flex justify-between">
+                    <el-button @click="step = 1">{{ $t('generator.prevStep') }}</el-button>
+                    <el-button type="primary" :loading="generateLoading" @click="handleGenerate">{{
+                        $t('generator.confirmGenerate')
+                    }}</el-button>
+                </div>
+            </el-card>
+        </el-dialog>
 
         <!-- 生成结果 -->
         <el-dialog v-model="showResult" :title="$t('generator.resultTitle')" width="600px">
@@ -211,14 +270,14 @@
 
 <script setup lang="ts">
 import 'highlight.js/styles/atom-one-dark.css'
-import hljs from 'highlight.js'
 
-import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import hljs from 'highlight.js'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { generatorApi } from '@/api/generator'
+import type { GeneratorTableInfo } from '@/types/generator'
 
 const { t } = useI18n()
 
@@ -362,10 +421,56 @@ const handleGenerate = async () => {
 }
 
 onMounted(fetchTables)
+
+// Client-side presentation only; API requests and generation payloads stay unchanged.
+const tablePage = ref(1)
+const tableLimit = ref(20)
+function handleTableSizeChange(size: number) {
+    tableLimit.value = size
+    tablePage.value = 1
+}
+function configureTable(row: GeneratorTableInfo) {
+    handleTableSelect(row)
+    goStep2()
+}
+const pagedTables = computed(() => filteredTables.value.slice((tablePage.value - 1) * tableLimit.value, tablePage.value * tableLimit.value))
+const tableEntityName = (name: string) => name.replace(/^[a-z]+_/, '').split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')
 </script>
 
 <style lang="scss" scoped>
 .generator-page {
     width: 100%;
+}
+
+.generator-page :deep(.el-card__header) {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-900);
+}
+
+@media (max-width: 768px) {
+    .generator-page :deep(.el-form > .el-row > .el-col) {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
+}
+
+.tbl-name {
+    color: var(--brand-500);
+    background: var(--brand-50);
+    padding: 3px 7px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+.tbl-entity {
+    color: var(--ink-600);
+    font-size: 12px;
+}
+.pro-generator-dialog :deep(.el-card) {
+    border: 0;
+    box-shadow: none;
+}
+.pro-generator-dialog :deep(.el-card__header) {
+    display: none;
 }
 </style>

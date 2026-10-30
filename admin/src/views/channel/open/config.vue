@@ -1,80 +1,92 @@
 <template>
     <div class="channel-config">
-        <!-- 开放平台配置 -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><Key /></el-icon>
-                    <span>{{ t('channel.open.wechatOpenTitle') }}</span>
-                </div>
-            </template>
-            <el-alert type="info" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title
-                    >{{ t('channel.open.wechatOpenAlert')
-                    }}<el-link type="primary" href="https://open.weixin.qq.com" target="_blank">{{
-                        t('channel.open.wechatOpenTitle')
-                    }}</el-link></template
-                >
-            </el-alert>
-            <el-form
-                :model="formData"
-                label-width="150px"
-                label-position="left"
-                style="max-width: 600px"
-            >
-                <el-form-item label="AppID">
-                    <el-input
-                        v-model="formData.wechat_open_app_id"
-                        :placeholder="t('channel.open.appIdPlaceholder')"
-                    />
-                </el-form-item>
-                <el-form-item label="AppSecret">
-                    <el-input
-                        v-model="formData.wechat_open_app_secret"
-                        type="password"
-                        show-password
-                        :placeholder="t('channel.open.appSecretPlaceholder')"
-                    />
-                </el-form-item>
-            </el-form>
-        </el-card>
+        <!-- 页头 -->
+        <div class="page-head">
+            <div>
+                <div class="page-title">{{ t('channel.open.wechatOpenTitle') }}</div>
+                <div class="page-desc">{{ t('channel.open.wechatOpenAlert') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button :loading="loading" type="primary" @click="handleSave">{{
+                    t('channel.open.saveBtn')
+                }}</el-button>
+            </div>
+        </div>
 
-        <!-- 回调域名信息 -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><Link /></el-icon>
-                    <span>{{ t('channel.open.callbackTitle') }}</span>
+        <div class="set-sections">
+            <!-- 开放平台配置 -->
+            <div class="set-card">
+                <div class="set-card-head">
+                    <h3>{{ t('channel.open.wechatOpenTitle') }}</h3>
+                    <span class="dsc">
+                        {{ t('channel.open.wechatOpenAlert') }}
+                        <el-link type="primary" href="https://open.weixin.qq.com" target="_blank">{{
+                            t('channel.open.wechatOpenTitle')
+                        }}</el-link>
+                    </span>
                 </div>
-            </template>
-            <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>{{ t('channel.open.callbackAlert') }}</template>
-            </el-alert>
-            <el-form label-width="150px" label-position="left" style="max-width: 600px">
-                <el-form-item :label="t('channel.open.callbackDomain')">
-                    <el-input :model-value="callbackDomain" disabled>
-                        <template #append>
-                            <el-button @click="copyText(callbackDomain)">{{
-                                t('channel.open.copyBtn')
-                            }}</el-button>
-                        </template>
-                    </el-input>
-                    <div class="form-tip">{{ t('channel.open.callbackDomainTip') }}</div>
-                </el-form-item>
-            </el-form>
-        </el-card>
+                <div class="set-card-body">
+                    <div class="set-item">
+                        <div>
+                            <div class="set-item-label">AppID</div>
+                        </div>
+                        <div class="set-item-ctrl">
+                            <el-input
+                                style="width: 320px"
+                                v-model="formData.wechat_open_app_id"
+                                :placeholder="t('channel.open.appIdPlaceholder')"
+                            />
+                        </div>
+                    </div>
+                    <div class="set-item">
+                        <div>
+                            <div class="set-item-label">AppSecret</div>
+                        </div>
+                        <div class="set-item-ctrl">
+                            <el-input
+                                style="width: 320px"
+                                v-model="formData.wechat_open_app_secret"
+                                type="password"
+                                show-password
+                                :placeholder="t('channel.open.appSecretPlaceholder')"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <!-- 保存按钮 -->
-        <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">{{
-                t('channel.open.saveBtn')
-            }}</el-button>
+            <!-- 回调域名信息 -->
+            <div class="set-card">
+                <div class="set-card-head">
+                    <h3>{{ t('channel.open.callbackTitle') }}</h3>
+                    <span class="dsc">{{ t('channel.open.callbackAlert') }}</span>
+                </div>
+                <div class="set-card-body">
+                    <div class="set-item">
+                        <div>
+                            <div class="set-item-label">{{ t('channel.open.callbackDomain') }}</div>
+                        </div>
+                        <div class="set-item-ctrl">
+                            <el-input :model-value="callbackDomain" style="width: 320px" disabled>
+                                <template #append>
+                                    <el-button @click="copyText(callbackDomain)">{{
+                                        t('channel.open.copyBtn')
+                                    }}</el-button>
+                                </template>
+                            </el-input>
+                            <div class="set-item-tip">
+                                {{ t('channel.open.callbackDomainTip') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts" name="ChannelOpenConfig">
-import { Key, Link } from '@element-plus/icons-vue'
+
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -141,26 +153,9 @@ const handleSave = async () => {
 </script>
 
 <style lang="scss" scoped>
-.channel-config {
-    .config-card {
-        margin-bottom: 16px;
-    }
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 600;
-    }
-    .form-tip {
-        font-size: 12px;
-        color: var(--el-text-color-placeholder);
-        margin-top: 4px;
-    }
-    .save-bar {
-        padding: 12px 0;
-        display: flex;
-        justify-content: flex-start;
-    }
+.set-item-tip {
+    font-size: 12px;
+    color: var(--ink-400);
+    margin-top: 6px;
 }
 </style>

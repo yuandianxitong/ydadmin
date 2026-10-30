@@ -23,7 +23,7 @@
             @click="selIdx = idx"
           >
             <div class="tb-item__icon">
-              <img v-if="item.icon" :src="item.icon" alt="" />
+              <img v-if="item.icon" :src="appStore.getImageUrl(item.icon)" alt="" />
             </div>
             <div class="tb-item__main">
               <div class="tb-item__label">{{ item.text || '未命名' }}</div>
@@ -111,9 +111,12 @@ import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import { mobileConfigApi, type MobileTabbarItem, type TabbarStyle } from '@/api/mobile-config'
+import { useAppStore } from '@/store/modules/app.store'
 
 import DecorPageHeader from './components/DecorPageHeader.vue'
 import DecorSection from './components/DecorSection.vue'
+
+const appStore = useAppStore()
 
 const BUILTIN_BY_PATH: Record<string, string> = {
   'pages/index/index': '__home__',

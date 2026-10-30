@@ -179,7 +179,9 @@ function tagType(sev: SpecIssue['severity']) {
                 <el-table-column label="字段" prop="ref" width="220" />
                 <el-table-column label="级别" width="90">
                     <template #default="{ row }">
-                        <el-tag :type="tagType(row.severity)" size="small">{{ row.severity }}</el-tag>
+                        <el-tag :type="tagType(row.severity)" size="small">{{
+                            row.severity
+                        }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="说明" prop="message" />
@@ -188,10 +190,19 @@ function tagType(sev: SpecIssue['severity']) {
             <el-form v-if="questions.length" label-position="top" class="mb-4">
                 <el-form-item v-for="q in questions" :key="q.id" :label="q.text">
                     <div v-if="q.why" class="q-why">{{ q.why }}</div>
-                    <el-select v-if="q.kind === 'choice'" v-model="answers[q.id]" placeholder="请选择">
+                    <el-select
+                        v-if="q.kind === 'choice'"
+                        v-model="answers[q.id]"
+                        placeholder="请选择"
+                    >
                         <el-option v-for="opt in q.options" :key="opt" :label="opt" :value="opt" />
                     </el-select>
-                    <el-switch v-else-if="q.kind === 'boolean'" v-model="answers[q.id]" active-value="是" inactive-value="否" />
+                    <el-switch
+                        v-else-if="q.kind === 'boolean'"
+                        v-model="answers[q.id]"
+                        active-value="是"
+                        inactive-value="否"
+                    />
                     <el-input v-else v-model="answers[q.id]" />
                 </el-form-item>
             </el-form>
@@ -206,14 +217,18 @@ function tagType(sev: SpecIssue['severity']) {
 
             <div class="mt-3">
                 <el-button :loading="loading" @click="runRefine">按回答再精炼一轮</el-button>
-                <el-button type="primary" :loading="loading" @click="confirmSpec">确认并保存规格</el-button>
+                <el-button type="primary" :loading="loading" @click="confirmSpec"
+                    >确认并保存规格</el-button
+                >
             </div>
         </el-card>
 
         <el-card v-else shadow="never" class="mt-4">
             <el-result icon="success" title="规格已保存" sub-title="可编译为数据库 DDL + CRUD 代码">
                 <template #extra>
-                    <el-button type="primary" :loading="loading" @click="runCompile">编译预览</el-button>
+                    <el-button type="primary" :loading="loading" @click="runCompile"
+                        >编译预览</el-button
+                    >
                     <el-button @click="resetAll">再建一个</el-button>
                 </template>
             </el-result>
@@ -221,23 +236,30 @@ function tagType(sev: SpecIssue['severity']) {
             <template v-if="compileResult">
                 <el-divider content-position="left">检查</el-divider>
                 <el-alert
-                    :title="compileResult.check_summary.passed
-                        ? `检查通过，可应用：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`
-                        : `检查未通过：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`"
+                    :title="
+                        compileResult.check_summary.passed
+                            ? `检查通过，可应用：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`
+                            : `检查未通过：${compileResult.check_summary.error_count} error / ${compileResult.check_summary.warning_count} warning / ${compileResult.check_summary.skipped.length} skipped`
+                    "
                     :type="compileResult.check_summary.passed ? 'success' : 'error'"
                     :closable="false"
                     class="mb-3"
                 />
                 <div class="mb-3">
-                    <el-button size="small" :loading="loading" @click="runRecheck">重新检查</el-button>
+                    <el-button size="small" :loading="loading" @click="runRecheck"
+                        >重新检查</el-button
+                    >
                     <el-button
                         type="primary"
                         size="small"
                         :loading="loading"
                         :disabled="!compileResult.check_summary.passed"
                         @click="runApply"
-                    >应用到开发环境</el-button>
-                    <span v-if="!compileResult.check_summary.passed" class="q-why">检查未通过，无法应用</span>
+                        >应用到开发环境</el-button
+                    >
+                    <span v-if="!compileResult.check_summary.passed" class="q-why"
+                        >检查未通过，无法应用</span
+                    >
                 </div>
                 <el-table
                     v-if="compileResult.check_summary.results.length"
@@ -249,9 +271,16 @@ function tagType(sev: SpecIssue['severity']) {
                     <el-table-column label="级别" width="100">
                         <template #default="{ row }">
                             <el-tag
-                                :type="row.severity === 'error' ? 'danger' : (row.severity === 'warning' ? 'warning' : 'info')"
+                                :type="
+                                    row.severity === 'error'
+                                        ? 'danger'
+                                        : row.severity === 'warning'
+                                          ? 'warning'
+                                          : 'info'
+                                "
                                 size="small"
-                            >{{ row.severity }}</el-tag>
+                                >{{ row.severity }}</el-tag
+                            >
                         </template>
                     </el-table-column>
                     <el-table-column label="位置" prop="ref" width="180">
@@ -263,9 +292,17 @@ function tagType(sev: SpecIssue['severity']) {
                 </el-table>
 
                 <el-divider content-position="left">DDL（schema_patch.sql）</el-divider>
-                <el-input :model-value="compileResult.schema_patch" type="textarea" :rows="14" readonly spellcheck="false" />
+                <el-input
+                    :model-value="compileResult.schema_patch"
+                    type="textarea"
+                    :rows="14"
+                    readonly
+                    spellcheck="false"
+                />
 
-                <el-divider content-position="left">生成文件（{{ compileResult.files.length }}）</el-divider>
+                <el-divider content-position="left"
+                    >生成文件（{{ compileResult.files.length }}）</el-divider
+                >
                 <el-table :data="compileResult.files" size="small">
                     <el-table-column label="文件" prop="path" />
                     <el-table-column label="字节" prop="bytes" width="120" />
@@ -273,7 +310,9 @@ function tagType(sev: SpecIssue['severity']) {
 
                 <el-divider content-position="left">编译历史</el-divider>
                 <div class="mb-3">
-                    <el-button size="small" :loading="loading" @click="loadArtifacts">查看历史</el-button>
+                    <el-button size="small" :loading="loading" @click="loadArtifacts"
+                        >查看历史</el-button
+                    >
                 </div>
                 <el-table v-if="artifacts.length" :data="artifacts" size="small">
                     <el-table-column label="ID" prop="id" width="80" />
@@ -282,7 +321,9 @@ function tagType(sev: SpecIssue['severity']) {
                     <el-table-column label="检查结果" width="220">
                         <template #default="{ row }">
                             <span v-if="row.check_summary">
-                                {{ row.check_summary.error_count }} error / {{ row.check_summary.warning_count }} warning / {{ row.check_summary.skipped.length }} skipped
+                                {{ row.check_summary.error_count }} error /
+                                {{ row.check_summary.warning_count }} warning /
+                                {{ row.check_summary.skipped.length }} skipped
                             </span>
                             <span v-else>-</span>
                         </template>
@@ -296,10 +337,30 @@ function tagType(sev: SpecIssue['severity']) {
 </template>
 
 <style scoped>
-.ydspec-wizard { padding: 16px; }
-.mt-3 { margin-top: 12px; }
-.mt-4 { margin-top: 16px; }
-.mb-3 { margin-bottom: 12px; }
-.mb-4 { margin-bottom: 16px; }
-.q-why { color: var(--el-text-color-secondary); font-size: 12px; margin-bottom: 6px; }
+.ydspec-wizard {
+    min-width: 0;
+}
+.ydspec-wizard :deep(.el-steps--simple) {
+    border: 1px solid var(--ink-100);
+    border-radius: var(--r-md);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-xs);
+}
+.mt-3 {
+    margin-top: 12px;
+}
+.mt-4 {
+    margin-top: 16px;
+}
+.mb-3 {
+    margin-bottom: 12px;
+}
+.mb-4 {
+    margin-bottom: 16px;
+}
+.q-why {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    margin-bottom: 6px;
+}
 </style>

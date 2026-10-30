@@ -5,7 +5,7 @@
     >
         <!-- Logo 区域 -->
         <div
-            class="flex items-center cursor-pointer overflow-hidden flex-shrink-0"
+            class="sidebar-brand flex items-center cursor-pointer overflow-hidden flex-shrink-0"
             :class="isCollapsed ? 'justify-center px-2 h-[50px]' : 'px-4 h-[50px]'"
             @click="router.push('/')"
         >
@@ -13,13 +13,16 @@
                 :src="appStore.getImageUrl(appStore.config.site_logo)"
                 class="w-[32px] h-[32px] rounded-sm flex-shrink-0"
             />
-            <span v-show="!isCollapsed" class="ml-2 text-white text-sm font-semibold truncate">
+            <span
+                v-show="!isCollapsed"
+                class="sidebar-site-name ml-2 text-sm font-semibold truncate"
+            >
                 {{ appStore.config.site_name || '元点Admin' }}
             </span>
         </div>
 
         <!-- 分割线 -->
-        <div class="border-t border-white/8 mx-2"></div>
+        <div class="sidebar-divider mx-2"></div>
 
         <!-- 菜单区域 -->
         <el-scrollbar class="flex-1">
@@ -28,9 +31,9 @@
                 :collapse="isCollapsed"
                 :unique-opened="settingStore.isUniqueOpened"
                 mode="vertical"
-                background-color="var(--color-sidebar-bg)"
-                text-color="#fff"
-                active-text-color="#fff"
+                background-color="var(--card-bg)"
+                text-color="var(--ink-600)"
+                active-text-color="var(--ink-600)"
                 class="standard-el-menu"
                 @select="onMenuSelect"
             >
@@ -74,27 +77,74 @@ function onMenuSelect(index: string) {
 
 <style lang="scss" scoped>
 .standard-sidebar {
-    background-color: var(--color-sidebar-bg);
-    transition: width 0.3s ease;
+    background: var(--card-bg);
+    border-right: 1px solid var(--ink-100);
+    transition: width 0.2s ease;
     overflow: hidden;
 }
 
+.sidebar-site-name {
+    color: var(--ink-900);
+}
+
+.sidebar-brand {
+    height: var(--header-h);
+}
+
+.sidebar-divider {
+    border-top: 1px solid var(--ink-100);
+}
+
 .standard-el-menu {
-    border-right: none !important;
+    border-right: none;
+    padding: 12px 8px;
 
     &:not(.el-menu--collapse) {
         width: 220px;
     }
 
+    :deep(> .el-menu-item),
+    :deep(> .el-sub-menu) {
+        margin: 4px 0;
+    }
+
+    :deep(> .el-menu-item),
+    :deep(> .el-sub-menu > .el-sub-menu__title) {
+        height: 44px;
+        line-height: 44px;
+
+        > .standard-menu-label {
+            margin-left: 10px;
+        }
+    }
+
+    &.el-menu--collapse {
+        width: 100%;
+
+        :deep(> .el-menu-item),
+        :deep(> .el-sub-menu > .el-sub-menu__title),
+        :deep(> .el-menu-item > .el-menu-tooltip__trigger) {
+            padding: 0;
+            justify-content: center;
+
+            > .standard-menu-label {
+                display: none;
+            }
+
+            > i {
+                flex-shrink: 0;
+            }
+        }
+    }
+
     :deep(.el-menu-item.is-active) {
-        color: #fff !important;
-        background-color: var(--el-color-primary-dark-2);
-        border-right: 3px solid var(--el-color-primary);
+        color: var(--brand-600);
+        background: var(--brand-50);
     }
 
     :deep(.el-sub-menu__title:hover),
     :deep(.el-menu-item:hover:not(.is-active)) {
-        background-color: rgba(255, 255, 255, 0.08);
+        background: var(--ink-50);
     }
 }
 </style>

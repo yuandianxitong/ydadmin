@@ -20,7 +20,7 @@
                         </div>
                     </template>
                 </el-image>
-                <span v-else class="text-gray-400">{{ t('userMgmt.detail.noAvatar') }}</span>
+                <span v-else class="text-ink-400">{{ t('userMgmt.detail.noAvatar') }}</span>
             </el-descriptions-item>
             <el-descriptions-item :label="t('userMgmt.nickname')">
                 {{ userData?.nickname || '-' }}

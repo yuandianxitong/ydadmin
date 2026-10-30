@@ -1,12 +1,6 @@
 <template>
-    <div
-        class="h-[var(--navbar-height)] flex items-center content-center cursor-pointer overflow-hidden py-2 px-4"
-        @click="handleClick"
-    >
-        <img
-            :src="appStore.getImageUrl(config.site_logo)"
-            class="w-[34px] h-[34px] rounded-sm overflow-hidden"
-        />
+    <div class="sidebar-brand-mark" @click="handleClick">
+        <img :src="appStore.getImageUrl(config.site_logo)" class="sidebar-brand-image" />
     </div>
 </template>
 
@@ -28,6 +22,22 @@ const handleClick = () => {
 }
 </script>
 <style lang="scss" scoped>
+.sidebar-brand-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.sidebar-brand-image {
+    display: block;
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    border-radius: 2px;
+}
+
 .logo {
     height: var(--navbar-height);
     overflow: hidden;

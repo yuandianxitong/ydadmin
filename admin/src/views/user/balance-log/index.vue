@@ -1,5 +1,11 @@
 <template>
     <div class="balance-log-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ t('userMgmt.balanceLog.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.user_balance-log_index') }}</div>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -37,11 +43,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -49,90 +55,94 @@
         </el-card>
 
         <!-- 表格区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ t('userMgmt.balanceLog.title') }}</div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column label="ID" prop="id" width="80" />
-
-                <el-table-column
-                    :label="t('common.userNickname')"
-                    prop="user_nickname"
-                    width="120"
-                    show-overflow-tooltip
-                />
-
-                <el-table-column :label="t('userMgmt.balanceLog.changeAmount')" width="130">
-                    <template #default="{ row }">
-                        <span
-                            :class="
-                                parseFloat(row.amount) >= 0 ? 'amount-positive' : 'amount-negative'
-                            "
-                        >
-                            {{ parseFloat(row.amount) >= 0 ? '+' : '' }}{{ row.amount }}
-                        </span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="t('userMgmt.balanceLog.beforeBalance')" width="130">
-                    <template #default="{ row }"> ¥{{ row.before_balance }} </template>
-                </el-table-column>
-
-                <el-table-column :label="t('userMgmt.balanceLog.afterBalance')" width="130">
-                    <template #default="{ row }"> ¥{{ row.after_balance }} </template>
-                </el-table-column>
-
-                <el-table-column :label="t('userMgmt.balanceLog.type')" width="110">
-                    <template #default="{ row }">
-                        <el-tag :type="getTypeTagType(row.type)" size="small">
-                            {{ row.type_text }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('common.remark')"
-                    prop="remark"
-                    min-width="160"
-                    show-overflow-tooltip
-                />
-
-                <el-table-column
-                    :label="t('userMgmt.balanceLog.operator')"
-                    prop="operator_name"
-                    width="110"
-                >
-                    <template #default="{ row }">
-                        {{ row.operator_name || '-' }}
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('userMgmt.balanceLog.time')"
-                    prop="created_at"
-                    width="170"
-                />
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="t('userMgmt.balanceLog.title')"
+            storage-key="user-balance-log-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_user_balance_log_index_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                {
+                    key: 'user_nickname',
+                    label: $t('proPage.table_user_balance_log_index_vue_user_nickname'),
+                    width: 120,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'amount',
+                    label: $t('proPage.table_user_balance_log_index_vue_amount'),
+                    width: 130
+                },
+                {
+                    key: 'before_balance',
+                    label: $t('proPage.table_user_balance_log_index_vue_before_balance'),
+                    width: 130
+                },
+                {
+                    key: 'after_balance',
+                    label: $t('proPage.table_user_balance_log_index_vue_after_balance'),
+                    width: 130
+                },
+                {
+                    key: 'type',
+                    label: $t('proPage.table_user_balance_log_index_vue_type'),
+                    width: 110
+                },
+                {
+                    key: 'remark',
+                    label: $t('proPage.table_user_balance_log_index_vue_remark'),
+                    minWidth: 160,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'operator_name',
+                    label: $t('proPage.table_user_balance_log_index_vue_operator_name'),
+                    width: 110
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_user_balance_log_index_vue_created_at'),
+                    width: 170
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #amount="{ row }">
+                <span :class="parseFloat(row.amount) >= 0 ? 'amount-positive' : 'amount-negative'">
+                    {{ parseFloat(row.amount) >= 0 ? '+' : '' }}{{ row.amount }}
+                </span>
+            </template>
+            <template #before_balance="{ row }"> ¥{{ row.before_balance }} </template>
+            <template #after_balance="{ row }"> ¥{{ row.after_balance }} </template>
+            <template #type="{ row }">
+                <el-tag :type="getTypeTagType(row.type)" size="small">
+                    {{ row.type_text }}
+                </el-tag>
+            </template>
+            <template #operator_name="{ row }">
+                {{ row.operator_name || '-' }}
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
     </div>
 </template>
 
 <script setup lang="ts" name="BalanceLog">
-import { Refresh, Search } from '@element-plus/icons-vue'
+
 import { useI18n } from 'vue-i18n'
 
 import type { BalanceLogItem } from '@/api/user'

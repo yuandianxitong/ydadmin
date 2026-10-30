@@ -1,5 +1,17 @@
 <template>
     <div class="article-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('articleMgmt.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.content_article_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button v-has-perm="['article.create']" type="primary" @click="handleAdd">
+                    <i class="i-svg:plus" />
+                    {{ $t('common.add') }}
+                </el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -39,11 +51,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -51,121 +63,118 @@
         </el-card>
 
         <!-- 操作区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('articleMgmt.title') }}</div>
-                <div class="table-actions">
-                    <el-button v-has-perm="['article.create']" type="primary" @click="handleAdd">
-                        <el-icon><Plus /></el-icon>
-                        {{ $t('common.add') }}
-                    </el-button>
-                </div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column
-                    :label="$t('articleMgmt.articleTitle')"
-                    prop="title"
-                    min-width="250"
-                    show-overflow-tooltip
+        <ProTable
+            :title="$t('articleMgmt.title')"
+            storage-key="content-article-list"
+            :columns="[
+                {
+                    key: 'title',
+                    label: $t('proPage.table_content_article_index_vue_title'),
+                    minWidth: 250,
+                    showOverflowTooltip: true,
+                    required: true
+                },
+                {
+                    key: 'cover',
+                    label: $t('proPage.table_content_article_index_vue_cover'),
+                    width: 120
+                },
+                {
+                    key: 'category_name',
+                    label: $t('proPage.table_content_article_index_vue_category_name'),
+                    width: 120
+                },
+                {
+                    key: 'tags',
+                    label: $t('proPage.table_content_article_index_vue_tags'),
+                    width: 180
+                },
+                {
+                    key: 'view_count',
+                    label: $t('proPage.table_content_article_index_vue_view_count'),
+                    width: 100
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_content_article_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'publish_at',
+                    label: $t('proPage.table_content_article_index_vue_publish_at'),
+                    width: 200
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_content_article_index_vue_action'),
+                    width: 150,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #cover="{ row }">
+                <el-image
+                    v-if="row.cover"
+                    :src="appStore.getImageUrl(row.cover)"
+                    style="width: 60px; height: 60px"
+                    fit="cover"
+                    :preview-src-list="[appStore.getImageUrl(row.cover)]"
+                    preview-teleported
                 />
-
-                <el-table-column :label="$t('articleMgmt.cover')" width="90">
-                    <template #default="{ row }">
-                        <el-image
-                            v-if="row.cover"
-                            :src="appStore.getImageUrl(row.cover)"
-                            style="width: 60px; height: 60px"
-                            fit="cover"
-                            :preview-src-list="[appStore.getImageUrl(row.cover)]"
-                            preview-teleported
-                        />
-                        <span v-else>-</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('articleMgmt.category')"
-                    prop="category_name"
-                    width="120"
+                <span v-else>-</span>
+            </template>
+            <template #tags="{ row }">
+                <template v-if="row.tags && row.tags.length">
+                    <el-tag v-for="tag in row.tags" :key="tag" size="small" class="tag-item">
+                        {{ tag }}
+                    </el-tag>
+                </template>
+                <span v-else>-</span>
+            </template>
+            <template #status="{ row }">
+                <el-switch
+                    v-model="row.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                    :disabled="!userStore.hasPermission('article.status')"
+                    @change="handleStatusChange(row)"
                 />
-
-                <el-table-column :label="$t('articleMgmt.tags')" width="180">
-                    <template #default="{ row }">
-                        <template v-if="row.tags && row.tags.length">
-                            <el-tag
-                                v-for="tag in row.tags"
-                                :key="tag"
-                                size="small"
-                                class="tag-item"
-                            >
-                                {{ tag }}
-                            </el-tag>
-                        </template>
-                        <span v-else>-</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('articleMgmt.viewCount')"
-                    prop="view_count"
-                    width="90"
-                />
-
-                <el-table-column :label="$t('common.status')" prop="status" width="100">
-                    <template #default="{ row }">
-                        <el-switch
-                            v-model="row.status"
-                            :active-value="1"
-                            :inactive-value="0"
-                            :disabled="!userStore.hasPermission('article.status')"
-                            @change="handleStatusChange(row)"
-                        />
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('articleMgmt.publishAt')"
-                    prop="publish_at"
-                    width="160"
-                />
-
-                <el-table-column :label="$t('common.operation')" width="150" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['article.update']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleEdit(row)"
-                        >
-                            {{ $t('common.edit') }}
-                        </el-button>
-                        <el-button
-                            v-has-perm="['article.delete']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDelete(row.id, row.title)"
-                        >
-                            {{ $t('common.delete') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['article.update']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="handleEdit(row)"
+                >
+                    {{ $t('common.edit') }}
+                </el-button>
+                <el-button
+                    v-has-perm="['article.delete']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDelete(row.id, row.title)"
+                >
+                    {{ $t('common.delete') }}
+                </el-button>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 表单抽屉 -->
         <ArticleForm
@@ -178,7 +187,6 @@
 </template>
 
 <script setup lang="ts" name="ArticleList">
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -262,12 +270,8 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.article-container {
-    .table-card {
-        .tag-item {
-            margin-right: 4px;
-            margin-bottom: 2px;
-        }
-    }
+.tag-item {
+    margin-right: 4px;
+    margin-bottom: 2px;
 }
 </style>

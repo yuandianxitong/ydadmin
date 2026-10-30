@@ -20,4 +20,18 @@ describe('saved theme colors', () => {
         setTheme({ primary: '#e67e22' }, false)
         expect(style.getPropertyValue('--el-color-primary-light-9')).not.toBe(darkShade)
     })
+
+    it.each([
+        ['#4f6bff', '#eef1ff'],
+        ['#0ea5e9', '#e0f2fe'],
+        ['#14b8a6', '#e6fbf7'],
+        ['#8b5cf6', '#f3edff'],
+        ['#f97316', '#fff4e9']
+    ])('keeps the Pro light palette for preset %s', (color, tint) => {
+        setTheme({ primary: color }, false)
+        expect(document.documentElement.style.getPropertyValue('--el-color-primary')).toBe(color)
+        expect(document.documentElement.style.getPropertyValue('--el-color-primary-light-9')).toBe(
+            tint
+        )
+    })
 })

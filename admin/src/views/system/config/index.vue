@@ -1,26 +1,60 @@
 <template>
     <div class="system-config">
-        <el-card class="box-card">
-            <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-                <el-tab-pane
+        <div class="page-head">
+            <div>
+                <div class="page-title">{{ $t('proPage.configTitle') }}</div>
+                <div class="page-desc">{{ $t('proPage.configDescription') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button @click="handleReset">{{ $t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="loading" @click="handleSave">{{
+                    $t('config.saveConfig')
+                }}</el-button>
+            </div>
+        </div>
+        <div class="set-split">
+            <nav class="set-nav" :aria-label="$t('proPage.configTitle')">
+                <button
                     v-for="(label, key) in configGroups"
                     :key="key"
-                    :label="label"
-                    :name="key"
+                    type="button"
+                    class="set-nav-item"
+                    :class="{ on: activeTab === key }"
+                    @click="switchTab(key)"
                 >
-                    <div class="config-form">
+                    <i class="ic" :class="navIconClass[key] || 'i-svg:settings'" />
+                    <span>{{ label }}</span>
+                </button>
+            </nav>
+            <div class="set-sections">
+                <div class="set-card" v-loading="loading">
+                    <div class="set-card-head">
+                        <h3>{{ configGroups[activeTab] || activeTab }}</h3>
+                    </div>
+                    <div class="set-card-body">
                         <el-form
                             ref="formRef"
                             :model="formData"
                             :rules="rules"
-                            label-width="140px"
+                            label-width="196px"
                             label-position="left"
+                            class="pro-config-form"
                         >
-                            <template v-for="config in visibleConfigs" :key="config.id">
-                                <el-form-item
-                                    :label="getItemName(config)"
-                                    :prop="config.config_key"
-                                >
+                            <el-form-item
+                                v-for="config in visibleConfigs"
+                                :key="config.id"
+                                :prop="config.config_key"
+                                class="config-item"
+                            >
+                                <template #label>
+                                    <span class="set-item-label">{{ getItemName(config) }}</span>
+                                    <span
+                                        v-if="config.config_desc && config.config_type !== 'file'"
+                                        class="set-item-desc"
+                                        >{{ getItemDesc(config) }}</span
+                                    >
+                                </template>
+                                <div class="set-item-ctrl">
                                     <!-- select 下拉选择 -->
                                     <template v-if="config.config_type === 'select'">
                                         <el-select
@@ -118,32 +152,16 @@
                                             style="width: 400px"
                                         />
                                     </template>
-
-                                    <div
-                                        v-if="config.config_desc && config.config_type !== 'file'"
-                                        class="config-desc"
-                                    >
-                                        {{ getItemDesc(config) }}
-                                    </div>
-                                    <div v-if="notifyAddress(config)" class="config-desc">
-                                        {{ $t('config.notifyAddress', { url: notifyAddress(config) }) }}
-                                    </div>
-                                </el-form-item>
-                            </template>
+                                </div>
+                                <div v-if="notifyAddress(config)" class="config-notify-address">
+                                    {{ $t('config.notifyAddress', { url: notifyAddress(config) }) }}
+                                </div>
+                            </el-form-item>
                         </el-form>
-
-                        <div class="form-actions">
-                            <el-button type="primary" :loading="loading" @click="handleSave">
-                                {{ $t('config.saveConfig') }}
-                            </el-button>
-                            <el-button @click="handleReset">{{
-                                $t('config.resetConfig')
-                            }}</el-button>
-                        </div>
                     </div>
-                </el-tab-pane>
-            </el-tabs>
-        </el-card>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -181,6 +199,17 @@ const getOptionLabel = (configKey: string, optValue: string, fallback: string): 
 const NOTIFY_URL_DEFAULTS: Record<string, string> = {
     pay_alipay_notify_url: '/api/payment/notify/alipay',
     pay_wechat_notify_url: '/api/payment/notify/wechat'
+}
+
+const navIconClass: Record<string, string> = {
+    basic: 'i-svg:settings', email: 'i-svg:mail', sms: 'i-svg:smartphone',
+    storage: 'i-svg:server', payment: 'i-svg:wallet', wechat_official: 'i-svg:bot',
+    wechat_open: 'i-svg:globe', wechat_mini: 'i-svg:message-square'
+}
+
+const switchTab = async (key: string) => {
+    activeTab.value = key
+    await handleTabChange(key)
 }
 
 const activeTab = ref('basic')
@@ -431,34 +460,10 @@ const handleReset = () => {
 
 <style scoped lang="scss">
 .system-config {
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .config-form {
-        margin-top: 20px;
-
-        .config-desc {
-            font-size: 12px;
-            color: var(--color-text-tertiary);
-            margin-top: 4px;
-            margin-left: 10px;
-        }
-
-        .form-actions {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid var(--color-divider);
-            text-align: center;
-        }
-    }
-
     // 图片上传器样式
     .image-uploader {
         :deep(.el-upload) {
-            border: 1px dashed var(--color-border);
+            border: 1px dashed var(--ink-200);
             border-radius: 6px;
             cursor: pointer;
             position: relative;
@@ -471,7 +476,7 @@ const handleReset = () => {
             justify-content: center;
 
             &:hover {
-                border-color: var(--el-color-primary);
+                border-color: var(--brand-500);
             }
         }
 
@@ -484,23 +489,73 @@ const handleReset = () => {
 
         .image-uploader-icon {
             font-size: 28px;
-            color: var(--color-text-disabled);
+            color: var(--ink-400);
         }
     }
 
     .upload-tip {
         font-size: 12px;
-        color: var(--color-text-tertiary);
+        color: var(--ink-500);
         margin-top: 8px;
         line-height: 1.4;
     }
+}
 
-    :deep(.el-tabs__content) {
-        padding-top: 0;
+.set-nav-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font-family: inherit;
+    line-height: 1.5;
+
+    &.on {
+        background: var(--brand-50);
     }
-
+}
+.pro-config-form {
+    :deep(.el-form-item.is-required > .el-form-item__label::before) {
+        display: none;
+    }
+    .config-item {
+        margin-bottom: 0;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--ink-100);
+        align-items: center;
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
     :deep(.el-form-item__label) {
-        font-weight: 500;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        height: auto;
+        line-height: 1.5;
+        padding-right: 16px;
+    }
+    .set-item-ctrl {
+        width: 100%;
+    }
+    .config-notify-address {
+        color: var(--ink-500);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+}
+@media (max-width: 768px) {
+    .set-nav-item {
+        width: auto;
+    }
+    .pro-config-form .config-item {
+        display: block;
+    }
+    .pro-config-form :deep(.el-form-item__label) {
+        width: 100% !important;
+        margin-bottom: 8px;
+    }
+    .pro-config-form :deep(.el-form-item__content) {
+        margin-left: 0 !important;
     }
 }
 </style>

@@ -4,21 +4,7 @@ import { defineStore } from 'pinia'
 import { nextTick } from 'vue'
 
 import { getConfig } from '@/api/app'
-
-/** 演示封面若被装成 http://127.0.0.1/storage/...，浏览器访问公网时会连接被拒绝。 */
-function rewriteLoopbackStorage(url: string): string {
-    try {
-        const parsed = new URL(url)
-        const loopback = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost'
-        if (loopback && parsed.pathname.startsWith('/storage/') && typeof window !== 'undefined') {
-            return `${window.location.origin}${parsed.pathname}${parsed.search}`
-        }
-    } catch {
-        return url
-    }
-
-    return url
-}
+import { resolveImageUrl } from '@/utils/image-url'
 
 /**
  * AppStore 用于管理全局配置、移动端标识、侧边栏折叠状态等。
@@ -40,36 +26,15 @@ export const useAppStore = defineStore('app', {
         isLoadingConfig: false
     }),
     actions: {
-        /** 拼接图片完整地址，如果 URL 不是以 http 开头，则自动加上正确的域名前缀 */
+        /** 统一解析服务器素材、本地上传及云存储图片的显示地址。 */
         getImageUrl(url: string): string {
-            if (!url) return ''
-
-            // 已经是完整 URL。安装向导若把封面写成 127.0.0.1 / localhost，改到当前访问域名。
-            if (url.startsWith('http')) {
-                return rewriteLoopbackStorage(url)
-            }
-
-            // 开发环境：直接返回相对路径，由 Vite proxy 转发到后端
-            if (import.meta.env.DEV) {
-                return url
-            }
-
-            // 生产环境：按优先级拼接域名
-            // 1. OSS 域名（后台配置）
-            if (this.config.storage_oss_domain) {
-                return `${this.config.storage_oss_domain}${url}`
-            }
-            // 2. 站点域名（后台配置）
-            if (this.config.site_url) {
-                return `${this.config.site_url}${url}`
-            }
-            // 3. 环境变量 API 域名（跨域部署时配置）
-            const apiUrl = import.meta.env.VITE_APP_API_URL
-            if (apiUrl) {
-                return `${apiUrl}${url}`
-            }
-            // 4. 当前访问域名（同域部署）
-            return `${window.location.origin}${url}`
+            return resolveImageUrl(url, {
+                development: import.meta.env.DEV,
+                origin: window.location.origin,
+                apiBaseUrl: import.meta.env.VITE_APP_API_URL,
+                storageDomain: this.config.storage_oss_domain,
+                siteUrl: this.config.site_url
+            })
         },
 
         /** 从后端拉取配置，将结果赋给 this.config */

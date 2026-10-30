@@ -1,6 +1,6 @@
 <template>
   <div v-if="props.props?.src" class="pv-video" :style="{ height: h }">
-    <img v-if="props.props?.poster" :src="props.props.poster" style="width:100%;height:100%;object-fit:cover" />
+    <img v-if="props.props?.poster" :src="appStore.getImageUrl(props.props.poster)" style="width:100%;height:100%;object-fit:cover" />
     <div class="pv-video__play">▶</div>
   </div>
   <!-- 空态对齐 uniapp diy-video：无 src 灰底文字占位（200rpx=100px）；容器无圆角（交 componentStyle） -->
@@ -8,6 +8,10 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const h = computed(() => (props.props?.height || 200) / 2 + 'px')
 </script>

@@ -1,5 +1,19 @@
 <template>
     <div class="user-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ t('userMgmt.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.user_user_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <ImportData
+                    v-has-perm="['user.import']"
+                    :import-fun="handleImport"
+                    :template-url="importTemplateUrl"
+                    @success="getList"
+                />
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -8,7 +22,7 @@
                         v-model="searchForm.keyword"
                         :placeholder="t('userMgmt.keywordPlaceholder')"
                         clearable
-                        style="width: 200px"
+                        style="width: 260px"
                     />
                 </el-form-item>
                 <el-form-item :label="t('userMgmt.status')">
@@ -22,132 +36,145 @@
                         <el-option :label="t('userMgmt.statusDisabled')" :value="0" />
                     </el-select>
                 </el-form-item>
+                <el-form-item class="filter-sp" />
                 <el-form-item>
-                    <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
-                        {{ t('common.search') }}
-                    </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
-                        {{ t('common.reset') }}
+                        <i class="i-svg:refresh-cw" />
+                        {{ $t('common.reset') }}
+                    </el-button>
+                    <el-button type="primary" @click="handleSearch">
+                        <i class="i-svg:search" />
+                        {{ $t('common.search') }}
                     </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
         <!-- 表格区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ t('userMgmt.title') }}</div>
-                <ImportData
-                    v-has-perm="['user.import']"
-                    :import-fun="handleImport"
-                    :template-url="importTemplateUrl"
-                    @success="getList"
+        <ProTable
+            :title="t('userMgmt.title')"
+            storage-key="user-user-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_user_user_index_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                {
+                    key: 'avatar',
+                    label: $t('proPage.table_user_user_index_vue_avatar'),
+                    width: 100
+                },
+                {
+                    key: 'nickname',
+                    label: $t('proPage.table_user_user_index_vue_nickname'),
+                    minWidth: 120,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'mobile',
+                    label: $t('proPage.table_user_user_index_vue_mobile'),
+                    width: 140
+                },
+                {
+                    key: 'balance',
+                    label: $t('proPage.table_user_user_index_vue_balance'),
+                    width: 120
+                },
+                {
+                    key: 'points',
+                    label: $t('proPage.table_user_user_index_vue_points'),
+                    width: 100
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_user_user_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_user_user_index_vue_created_at'),
+                    width: 170
+                },
+                {
+                    key: 'last_login_time',
+                    label: $t('proPage.table_user_user_index_vue_last_login_time'),
+                    width: 170
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_user_user_index_vue_action'),
+                    width: 240,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            style="width: 100%"
+            ><template #avatar="{ row }">
+                <el-image
+                    :src="appStore.getImageUrl(row.avatar)"
+                    :alt="row.nickname"
+                    style="width: 40px; height: 40px; border-radius: 50%"
+                    fit="cover"
+                >
+                    <template #error>
+                        <div class="avatar-fallback">
+                            {{ (row.nickname || '用')[0] }}
+                        </div>
+                    </template>
+                </el-image>
+            </template>
+            <template #balance="{ row }">
+                <span class="balance-text">¥{{ row.balance }}</span>
+            </template>
+            <template #points="{ row }">
+                <span class="points-text">{{ row.points }}</span>
+            </template>
+            <template #status="{ row }">
+                <el-switch
+                    v-model="row.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                    @change="handleStatusChange(row)"
                 />
-            </div>
-
-            <el-table v-loading="loading" :data="list" style="width: 100%">
-                <el-table-column label="ID" prop="id" width="80" />
-
-                <el-table-column :label="t('userMgmt.avatar')" width="80">
-                    <template #default="{ row }">
-                        <el-image
-                            :src="appStore.getImageUrl(row.avatar)"
-                            :alt="row.nickname"
-                            style="width: 40px; height: 40px; border-radius: 50%"
-                            fit="cover"
-                        >
-                            <template #error>
-                                <div class="avatar-fallback">
-                                    {{ (row.nickname || '用')[0] }}
-                                </div>
-                            </template>
-                        </el-image>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('userMgmt.nickname')"
-                    prop="nickname"
-                    min-width="120"
-                    show-overflow-tooltip
-                />
-
-                <el-table-column :label="t('userMgmt.mobile')" prop="mobile" width="140" />
-
-                <el-table-column :label="t('userMgmt.balance')" width="120">
-                    <template #default="{ row }">
-                        <span class="balance-text">¥{{ row.balance }}</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="t('userMgmt.points')" width="100">
-                    <template #default="{ row }">
-                        <span class="points-text">{{ row.points }}</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="t('userMgmt.status')" width="100">
-                    <template #default="{ row }">
-                        <el-switch
-                            v-model="row.status"
-                            :active-value="1"
-                            :inactive-value="0"
-                            @change="handleStatusChange(row)"
-                        />
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="t('userMgmt.registerTime')"
-                    prop="created_at"
-                    width="170"
-                />
-
-                <el-table-column
-                    :label="t('userMgmt.lastLogin')"
-                    prop="last_login_time"
-                    width="170"
-                />
-
-                <el-table-column :label="t('userMgmt.actions')" width="240" fixed="right">
-                    <template #default="{ row }">
-                        <el-button type="primary" size="small" text @click="handleDetail(row as UserItem)">
-                            {{ t('userMgmt.viewDetail') }}
-                        </el-button>
-                        <el-button
-                            type="warning"
-                            size="small"
-                            text
-                            @click="handleAdjustBalance(row as UserItem)"
-                        >
-                            {{ t('userMgmt.adjustBalance') }}
-                        </el-button>
-                        <el-button
-                            type="success"
-                            size="small"
-                            text
-                            @click="handleAdjustPoints(row as UserItem)"
-                        >
-                            {{ t('userMgmt.adjustPoints') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+            </template>
+            <template #action="{ row }">
+                <el-button type="primary" size="small" text @click="handleDetail(row as UserItem)">
+                    {{ t('userMgmt.viewDetail') }}
+                </el-button>
+                <el-button
+                    type="warning"
+                    size="small"
+                    text
+                    @click="handleAdjustBalance(row as UserItem)"
+                >
+                    {{ t('userMgmt.adjustBalance') }}
+                </el-button>
+                <el-button
+                    type="success"
+                    size="small"
+                    text
+                    @click="handleAdjustPoints(row as UserItem)"
+                >
+                    {{ t('userMgmt.adjustPoints') }}
+                </el-button>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 用户详情弹窗 -->
         <UserDetailDialog v-model="detailVisible" :user-data="currentUser" />
@@ -171,7 +198,6 @@
 </template>
 
 <script setup lang="ts" name="UserList">
-import { Refresh, Search } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -248,13 +274,6 @@ const handleImport = async (file: File) => {
 
 <style lang="scss" scoped>
 .user-container {
-    .table-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-    }
-
     .avatar-fallback {
         width: 40px;
         height: 40px;

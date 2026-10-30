@@ -2,7 +2,7 @@
   <div class="pv-float" :class="props.props?.position === 'left-bottom' ? 'is-left' : 'is-right'">
     <!-- icon 与 text 可共存（与 uniapp diy-float-button 一致：图标在上文字在下） -->
     <div v-for="(it, i) in items" :key="i" class="pv-float__btn">
-      <img v-if="it.icon" :src="it.icon" class="pv-float__icon" />
+      <img v-if="it.icon" :src="appStore.getImageUrl(it.icon)" class="pv-float__icon" />
       <span v-if="it.text" class="pv-float__t">{{ it.text }}</span>
       <span v-if="!it.icon && !it.text" class="pv-float__t">按钮</span>
     </div>
@@ -11,6 +11,10 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const items = computed(() => props.props?.items || [])
 </script>

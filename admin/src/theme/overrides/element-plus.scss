@@ -1,287 +1,567 @@
-/* ===== 全局：统一 EP 常用变量 ===== */
+// element-plus.scss — Component style overrides for YDAdmin Pro theme.
+// Visual tokens resolve through pro.scss to the existing theme store, including dark mode.
+
+// ─── CSS Variable Bridge ───
 :root {
-  --el-border-radius-base: var(--radius-md);
-  --el-box-shadow-light:   none !important;
-  --el-box-shadow:         var(--shadow-md);
-  --el-box-shadow-dark:    var(--shadow-lg);
+    --el-text-color-primary: var(--ink-800);
+    --el-text-color-regular: var(--ink-700);
+    --el-text-color-secondary: var(--ink-500);
+    --el-text-color-placeholder: var(--ink-400);
+    --el-border-color: var(--ink-200);
+    --el-border-color-light: var(--ink-100);
+    --el-border-color-lighter: var(--ink-100);
+    --el-fill-color-blank: var(--card-bg);
+    --el-fill-color-light: var(--ink-50);
+    --el-bg-color: var(--card-bg);
+    --el-bg-color-page: var(--page-bg);
+    --el-bg-color-overlay: var(--card-bg);
+    --el-border-radius-base: var(--r-sm);
+    --el-border-radius-small: var(--r-xs);
+    --el-border-radius-round: 20px;
+    --el-font-size-base: 13px;
+    --el-font-size-small: 12px;
+    --el-font-size-extra-small: 11.5px;
+    --el-component-size: 32px;
+    --el-component-size-small: 28px;
+    --el-box-shadow: var(--shadow-md);
+    --el-box-shadow-light: var(--shadow-sm);
+    --el-box-shadow-lighter: var(--shadow-xs);
+    --el-mask-color: rgba(15, 23, 42, 0.45);
 }
 
-/* ===== Button ===== */
+// ─── Button ───
 .el-button {
-  --el-button-border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
-  transition: all var(--motion-duration-base) var(--motion-easing);
+    --el-button-font-weight: 500;
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: var(--r-sm);
+    transition: all 0.15s;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-focus-ring);
-    outline-offset: 2px;
-  }
+    &--primary {
+        --el-button-bg-color: var(--brand-500);
+        --el-button-border-color: var(--brand-500);
+        --el-button-hover-bg-color: var(--brand-600);
+        --el-button-hover-border-color: var(--brand-600);
+        --el-button-active-bg-color: var(--brand-600);
+        --el-button-active-border-color: var(--brand-600);
+    }
 
-  &--primary {
-    --el-button-bg-color: var(--el-color-primary);
-    --el-button-border-color: var(--el-color-primary);
+    &--default {
+        --el-button-bg-color: var(--card-bg);
+        --el-button-border-color: var(--ink-200);
+        --el-button-text-color: var(--ink-700);
+        --el-button-hover-bg-color: var(--ink-50);
+        --el-button-hover-border-color: var(--ink-300);
+        --el-button-hover-text-color: var(--ink-800);
+    }
 
-    &:hover,
+    &--danger {
+        --el-button-bg-color: transparent;
+        --el-button-border-color: transparent;
+        --el-button-text-color: var(--danger);
+        --el-button-hover-bg-color: var(--rose-50);
+        --el-button-hover-border-color: transparent;
+        --el-button-hover-text-color: var(--danger);
+    }
+
+    &--small {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+
+    &.is-text:not(.is-disabled),
+    &.is-link:not(.is-disabled) {
+        padding: 4px 8px;
+    }
+}
+
+// ─── Input / Select / Textarea ───
+.el-input {
+    --el-input-border-color: var(--ink-200);
+    --el-input-hover-border-color: var(--ink-300);
+    --el-input-focus-border-color: var(--brand-500);
+    --el-input-text-color: var(--ink-800);
+    --el-input-placeholder-color: var(--ink-400);
+    --el-input-bg-color: var(--card-bg);
+    font-size: 13px;
+
+    .el-input__wrapper {
+        border-radius: var(--r-sm);
+        padding: 0 10px;
+        box-shadow: 0 0 0 1px var(--el-input-border-color) inset;
+        transition: border-color 0.15s;
+
+        &.is-focus {
+            box-shadow: 0 0 0 1px var(--brand-500) inset;
+        }
+    }
+}
+
+.el-select {
+    .el-select__wrapper {
+        min-height: 32px;
+        border-radius: var(--r-sm);
+        padding: 0 10px;
+        font-size: 13px;
+        box-shadow: 0 0 0 1px var(--ink-200) inset;
+
+        &.is-focused {
+            box-shadow: 0 0 0 1px var(--brand-500) inset;
+        }
+    }
+}
+
+.el-textarea__inner {
+    border-radius: var(--r-sm);
+    font-size: 13px;
+    padding: 8px 10px;
+
     &:focus {
-      --el-button-hover-bg-color: var(--el-color-primary-light-3);
-      --el-button-hover-border-color: var(--el-color-primary-light-3);
+        box-shadow: 0 0 0 1px var(--brand-500) inset;
     }
+}
 
-    &:active {
-      --el-button-active-bg-color: var(--el-color-primary-dark-2);
-      --el-button-active-border-color: var(--el-color-primary-dark-2);
+// ─── Switch ───
+.el-switch {
+    --el-switch-on-color: var(--brand-500);
+    --el-switch-off-color: var(--ink-200);
+
+    .el-switch__core {
+        border-radius: 10px;
+        height: 18px;
+        min-width: 34px;
+
+        .el-switch__action {
+            width: 14px;
+            height: 14px;
+        }
     }
-  }
 }
 
-/* ===== Input / Select / Textarea ===== */
-.el-input,
-.el-select,
-.el-textarea {
-  --el-input-border-radius: var(--radius-sm);
-
-  .el-input__wrapper,
-  .el-textarea__inner {
-    transition: border-color var(--motion-duration-fast), box-shadow var(--motion-duration-fast);
-
-    &:focus-within,
-    &.is-focus {
-      box-shadow: 0 0 0 2px var(--color-focus-ring) !important;
-    }
-  }
-}
-
-.el-input__wrapper {
-  background-color: var(--el-fill-color-blank, var(--color-bg));
-}
-
-/* ===== Form ===== */
-.el-form-item {
-  --el-form-label-font-size: var(--font-size-body);
-
-  .el-form-item__label {
-    color: var(--color-text-secondary);
-    font-weight: var(--font-weight-medium);
-  }
-
-  &.is-error .el-input__wrapper {
-    box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
-  }
-}
-
-/* ===== Card ===== */
-.el-card {
-  --el-card-border-radius: var(--radius-lg);
-  border: none !important;
-  border-radius: var(--el-card-border-radius);
-  box-shadow: var(--el-box-shadow-light);
-  background-color: var(--color-surface);
-}
-
-/* ===== Table ===== */
+// ─── Table ───
 .el-table {
-  --el-table-border-color: var(--color-divider);
-  --el-table-header-bg-color: var(--el-fill-color-lighter, var(--color-bg-page));
-  --el-table-row-hover-bg-color: var(--el-fill-color-light, #f5f7fa);
-
-  th.el-table__cell {
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-caption);
-    color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-
-  .el-table__body tr:last-child td {
-    border-bottom: none;
-  }
+    --el-table-border-color: var(--ink-100);
+    --el-table-header-bg-color: var(--ink-50);
+    --el-table-header-text-color: var(--ink-500);
+    --el-table-text-color: var(--ink-700);
+    --el-table-row-hover-bg-color: var(--ink-50);
+    font-size: 13px;
 }
 
-/* ===== Dialog ===== */
+// 表头单元格 — 使用高优先级选择器覆盖 EP 默认样式
+.el-table th.el-table__cell {
+    padding: 10px 16px !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: var(--ink-500) !important;
+    background-color: var(--ink-50) !important;
+    white-space: nowrap;
+}
+
+// 行单元格
+.el-table td.el-table__cell {
+    padding: 12px 16px !important;
+    color: var(--ink-700);
+}
+
+.el-table .el-table__header-wrapper th {
+    border-bottom: 1px solid var(--ink-100);
+}
+
+// Selected row styles (YDAdmin .tbl tbody tr.on)
+.el-table .el-table__body tr.el-table__row.is-selected td.el-table__cell {
+    background: var(--brand-50);
+}
+
+.el-table .el-table__body tr.el-table__row.is-selected:hover td.el-table__cell {
+    background: var(--brand-100);
+}
+
+.el-table .el-table__body tr.el-table__row.is-selected td.el-table__cell:first-child {
+    box-shadow: inset 2px 0 0 var(--brand-500);
+}
+
+// ─── Dialog ───
 .el-dialog {
-  --el-dialog-border-radius: var(--radius-lg);
-  --el-dialog-padding-primary: 0 !important;
-  padding: 0 !important;
-  overflow: hidden;
+    --el-dialog-bg-color: var(--card-bg);
+    --el-dialog-border-radius: var(--r-md);
+    --el-dialog-padding-primary: 0;
+    padding: 0 !important;
+    border-radius: var(--r-md);
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+    overflow: hidden;
 
-  .el-dialog__header {
-    padding: var(--space-4) var(--space-5);
-    border-bottom: 1px solid var(--color-divider);
-    margin-right: 0;
-  }
+    .el-dialog__header {
+        padding: 14px 20px;
+        margin-right: 0;
+        border-bottom: 1px solid var(--ink-100);
+        display: flex;
+        align-items: center;
 
-  .el-dialog__title {
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-subtitle);
-    line-height: var(--line-height-tight);
-  }
+        .el-dialog__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
 
-  .el-dialog__body {
-    padding: var(--space-5);
-  }
+            &::before {
+                content: '';
+                width: 3px;
+                height: 14px;
+                border-radius: 2px;
+                background: var(--brand-500);
+                flex-shrink: 0;
+            }
+        }
+    }
 
-  .el-dialog__footer {
-    padding: var(--space-3) var(--space-5) var(--space-4);
-    border-top: 1px solid var(--color-divider);
-  }
+    .el-dialog__body {
+        padding: 20px;
+    }
+
+    .el-dialog__footer {
+        padding: 14px 20px;
+        background: var(--ink-50);
+        border-top: 1px solid var(--ink-100);
+    }
 }
 
 .el-overlay {
-  background-color: rgba(0, 0, 0, 0.45);
+    background-color: rgba(15, 23, 42, 0.45);
 }
 
-/* ===== Drawer ===== */
-.el-drawer {
-  --el-drawer-padding-primary: var(--space-5);
-
-  .el-drawer__header {
-    border-bottom: 1px solid var(--color-divider);
+// ─── Drawer ───
+.el-drawer__header {
+    padding: 14px 20px;
     margin-bottom: 0;
-    padding-bottom: var(--space-4);
-  }
+    border-bottom: 1px solid var(--ink-100);
 }
 
-/* ===== Dropdown ===== */
-.el-dropdown-menu {
-  --el-dropdown-menu-box-shadow: var(--shadow-lg);
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+// ─── Card ───
+.el-card {
+    --el-card-border-color: var(--ink-100);
+    --el-card-border-radius: var(--r-lg);
+    border: 1px solid var(--ink-100);
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--r-lg);
 
-  .el-dropdown-menu__item {
-    border-radius: var(--radius-sm);
-    padding: 8px 12px;
-    transition: background var(--motion-duration-fast);
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
-      color: var(--el-color-primary);
+    > .el-card__header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--ink-100);
     }
-  }
-}
 
-/* ===== Menu (vertical sidebar) ===== */
-.el-menu {
-  --el-menu-border-color: transparent;
-
-  .el-menu-item,
-  .el-sub-menu__title {
-    border-radius: 0;
-    margin: 0;
-    transition: background var(--motion-duration-fast), color var(--motion-duration-fast);
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
+    > .el-card__body {
+        padding: 16px 20px 20px;
     }
-  }
-
-  .el-menu-item.is-active {
-    background-color: var(--el-color-primary-light-9);
-    color: var(--el-color-primary);
-    font-weight: var(--font-weight-medium);
-  }
 }
 
-/* ===== Tabs ===== */
-.el-tabs__nav-wrap::after {
-  height: 1px !important;
-}
-
-.el-tabs__item {
-  transition: color var(--motion-duration-fast);
-}
-
-/* ===== Pagination ===== */
-.el-pagination {
-  .el-pager li {
-    border-radius: var(--radius-sm);
-    transition: all var(--motion-duration-fast);
-
-    &.is-active {
-      font-weight: var(--font-weight-semibold);
-    }
-  }
-
-  .btn-prev,
-  .btn-next {
-    border-radius: var(--radius-sm);
-  }
-}
-
-/* ===== Tag ===== */
+// ─── Tag ───
 .el-tag {
-  --el-tag-border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-medium);
+    --el-tag-border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 11.5px;
+    border: none;
+    font-weight: 500;
+    line-height: 1.6;
+    gap: 4px;
+
+    &--primary,
+    &--info {
+        --el-tag-bg-color: var(--brand-50);
+        --el-tag-text-color: var(--brand-600);
+        --el-tag-border-color: transparent;
+    }
+
+    &--success {
+        --el-tag-bg-color: var(--teal-50);
+        --el-tag-text-color: var(--teal-500);
+        --el-tag-border-color: transparent;
+    }
+
+    &--warning {
+        --el-tag-bg-color: var(--amber-50);
+        --el-tag-text-color: var(--amber-500);
+        --el-tag-border-color: transparent;
+    }
+
+    &--danger {
+        --el-tag-bg-color: var(--rose-50);
+        --el-tag-text-color: var(--rose-500);
+        --el-tag-border-color: transparent;
+    }
+
+    &--gray {
+        --el-tag-bg-color: var(--ink-100);
+        --el-tag-text-color: var(--ink-600);
+        --el-tag-border-color: transparent;
+    }
+
+    &--purple {
+        --el-tag-bg-color: var(--purple-50);
+        --el-tag-text-color: var(--purple-500);
+        --el-tag-border-color: transparent;
+    }
 }
 
-/* ===== Message / Notification ===== */
+// ─── Form ───
+.el-form-item__label {
+    font-size: 12.5px;
+    color: var(--ink-600);
+}
+
+.el-form-item__error {
+    font-size: 11.5px;
+}
+
+// ─── Pagination ───
+.el-pagination {
+    --el-pagination-bg-color: var(--card-bg);
+    --el-pagination-hover-color: var(--brand-500);
+
+    button,
+    .el-pager li {
+        border-radius: var(--r-sm);
+
+        &.is-active {
+            background-color: var(--brand-500);
+            color: #fff;
+        }
+    }
+}
+
+// ─── Dropdown ───
+.el-dropdown-menu {
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--ink-100);
+    padding: 4px;
+
+    .el-dropdown-menu__item {
+        border-radius: var(--r-xs);
+        font-size: 13px;
+        padding: 6px 12px;
+
+        &:hover {
+            background-color: var(--ink-50);
+            color: var(--ink-800);
+        }
+    }
+}
+
+// ─── Message / Notification ───
 .el-message {
-  --el-message-border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
 }
 
 .el-notification {
-  --el-notification-border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
 }
 
-/* ===== Popover / Tooltip ===== */
+// ─── Popover / Tooltip ───
 .el-popover.el-popper {
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--ink-100);
 }
 
-.el-tooltip__popper {
-  border-radius: var(--radius-sm) !important;
+// ─── Breadcrumb ───
+.el-breadcrumb__item {
+    .el-breadcrumb__inner {
+        color: var(--ink-400);
+        font-size: 13px;
+        transition: color 0.15s;
+
+        &.is-link:hover {
+            color: var(--brand-500);
+        }
+    }
+
+    &:last-child .el-breadcrumb__inner {
+        color: var(--ink-700);
+    }
 }
 
-/* ===== MessageBox (Confirm/Alert/Prompt) ===== */
-.el-message-box {
-  --el-messagebox-border-radius: var(--radius-sm);
-
-  .el-message-box__header {
-    padding-bottom: var(--space-2);
-  }
-
-  .el-message-box__title {
-    font-weight: var(--font-weight-semibold);
-  }
+// ─── Tabs ───
+.el-tabs__header {
+    margin-bottom: 0;
 }
 
-/* ===== Loading ===== */
-.el-loading-mask {
-  background-color: rgba(255, 255, 255, 0.7);
-}
-
-html.dark .el-loading-mask {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-/* ===== Empty ===== */
-.el-empty__description p {
-  color: var(--color-text-tertiary);
-}
-
-/* ===== Scrollbar ===== */
+// ─── Scrollbar ───
 .el-scrollbar__thumb {
-  background-color: var(--gray-400);
-  border-radius: 4px;
+    background-color: var(--ink-300);
+    border-radius: 4px;
 
-  &:hover {
-    background-color: var(--gray-500);
-  }
+    &:hover {
+        background-color: var(--ink-400);
+    }
 }
 
-/* ===== Breadcrumb ===== */
-.el-breadcrumb__item .el-breadcrumb__inner {
-  transition: color var(--motion-duration-fast);
+// ─── Loading ───
+.el-loading-mask {
+    background-color: color-mix(in srgb, var(--card-bg) 80%, transparent);
 }
 
-/* ===== Switch ===== */
-.el-switch {
-  --el-switch-border-radius: 999px;
+// ─── Empty ───
+.el-empty__description p {
+    color: var(--ink-400);
 }
 
-/* ===== Badge ===== */
+// ─── Badge ───
 .el-badge__content {
-  border: none;
+    border: none;
+}
+
+// ─── Menu (sidebar) ───
+.el-menu {
+    border-right: none;
+    --el-menu-bg-color: transparent;
+    --el-menu-hover-bg-color: var(--ink-50);
+    --el-menu-active-color: var(--brand-600);
+    --el-menu-text-color: var(--ink-600);
+
+    .el-menu-item {
+        font-size: 13px;
+        border-radius: var(--r-sm);
+        margin: 2px 0;
+        height: 36px;
+        line-height: 36px;
+
+        &.is-active {
+            background-color: var(--brand-50);
+            color: var(--brand-600);
+            font-weight: 500;
+        }
+    }
+
+    .el-sub-menu__title {
+        font-size: 13px;
+        border-radius: var(--r-sm);
+        height: 36px;
+        line-height: 36px;
+    }
+}
+
+// Preserve component states and size variants while sharing the Pro skin.
+.el-button:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+}
+
+@each $type in primary, success, warning, danger, info {
+    .el-button--#{$type}.is-plain {
+        --el-button-bg-color: var(--el-color-#{$type}-light-9);
+        --el-button-border-color: var(--el-color-#{$type}-light-5);
+        --el-button-text-color: var(--el-color-#{$type});
+    }
+}
+
+.el-button--danger.is-disabled {
+    --el-button-disabled-bg-color: var(--el-color-danger-light-9);
+    --el-button-disabled-border-color: transparent;
+    --el-button-disabled-text-color: var(--el-color-danger-light-5);
+}
+
+.el-input.is-disabled .el-input__wrapper {
+    background: var(--el-disabled-bg-color);
+}
+
+.el-form-item.is-error {
+    .el-input__wrapper,
+    .el-select__wrapper,
+    .el-textarea__inner {
+        box-shadow: 0 0 0 1px var(--el-color-danger) inset;
+    }
+}
+
+.el-table .cell {
+    padding-right: 12px;
+    padding-left: 12px;
+}
+
+.el-table--small {
+    th.el-table__cell,
+    td.el-table__cell {
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .cell {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+}
+
+.el-dialog {
+    max-width: calc(100vw - 32px);
+
+    .el-dialog__headerbtn {
+        top: 5px;
+        right: 8px;
+    }
+}
+
+.el-message-box {
+    --el-messagebox-border-radius: var(--r-md);
+    max-width: min(var(--el-messagebox-width, 420px), calc(100vw - 32px));
+    box-shadow: var(--shadow-lg);
+}
+
+.el-input--large .el-input__wrapper {
+    min-height: 40px;
+}
+
+@media (max-width: 640px) {
+    .el-overlay-dialog .el-dialog {
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    .el-dialog > .el-dialog__body {
+        padding: 16px;
+        max-height: calc(100dvh - 160px);
+        overflow-y: auto;
+    }
+
+    .el-dialog__body .el-form > .el-row > .el-col {
+        flex-basis: 100%;
+        max-width: 100%;
+    }
+
+    .el-form-item__content {
+        min-width: 0;
+    }
+}
+
+html.dark {
+    .el-button--primary.is-text,
+    .el-button--primary.is-link {
+        --el-button-text-color: color-mix(in srgb, var(--brand-500) 65%, white);
+        --el-button-hover-text-color: color-mix(in srgb, var(--brand-500) 50%, white);
+    }
+}
+
+@each $type in primary, success, warning, danger, info {
+    .el-tag.el-tag--#{$type}.el-tag--dark {
+        --el-tag-bg-color: var(--el-color-#{$type});
+        --el-tag-text-color: #fff;
+    }
+
+    .el-tag.el-tag--#{$type}.el-tag--plain {
+        --el-tag-bg-color: transparent;
+        --el-tag-border-color: var(--el-color-#{$type}-light-5);
+        border: 1px solid var(--el-tag-border-color);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .el-button,
+    .el-input__wrapper,
+    .el-menu-item,
+    .el-sub-menu__title {
+        transition: none;
+    }
 }

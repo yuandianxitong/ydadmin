@@ -14,6 +14,8 @@ import cache from '@/utils/cache'
 import { applyDarkClass, applyDarkTheme, setTheme } from '@/utils/theme'
 
 export interface SettingState {
+    compact: boolean
+    sidebarLabels: boolean
     showDrawer: boolean
     // 以下字段源自 defaultSetting
     showCrumb: boolean
@@ -50,6 +52,19 @@ export const useSettingStore = defineStore('setting', {
         // 如果缓存中是一个对象，则把缓存值覆盖到 initialState
         if (isObject(storageSetting)) {
             Object.assign(initialState, storageSetting)
+            // Migrate only the previous built-in palette; keep custom user colors.
+            const previousPalette = {
+                theme: '#1f4fff',
+                successTheme: '#67c23a',
+                warningTheme: '#e6a23c',
+                dangerTheme: '#f56c6c',
+                errorTheme: '#f56c6c',
+                infoTheme: '#909399'
+            } as const
+            for (const key of Object.keys(previousPalette) as (keyof typeof previousPalette)[]) {
+                if (initialState[key] === previousPalette[key])
+                    initialState[key] = defaultSetting[key]
+            }
         }
 
         return initialState as SettingState

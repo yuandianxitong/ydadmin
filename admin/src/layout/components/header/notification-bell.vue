@@ -7,18 +7,13 @@
         @hide="handleHide"
     >
         <template #reference>
-            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="mr-4">
-                <div
-                    class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer"
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+                <button
+                    class="top-btn flex-center w-34px h-34px rounded-lg"
+                    :title="$t('notification.title')"
                 >
-                    <el-tooltip
-                        effect="dark"
-                        :content="$t('notification.title')"
-                        placement="bottom"
-                    >
-                        <Icon name="i-svg:bell" />
-                    </el-tooltip>
-                </div>
+                    <Icon name="i-svg:bell" :size="17" />
+                </button>
             </el-badge>
         </template>
 

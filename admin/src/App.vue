@@ -12,6 +12,14 @@ import useSettingStore from './store/modules/settings.store'
 
 const appStore = useAppStore()
 const settingStore = useSettingStore()
+watch(
+    () => [settingStore.compact, settingStore.sidebarLabels],
+    ([compact, labels]) => {
+        document.body.classList.toggle('compact', compact)
+        document.body.classList.toggle('hide-labels', !labels)
+    },
+    { immediate: true }
+)
 
 const elLocale = computed(() => {
     return getLocale() === 'en-US' ? en : zhCn

@@ -1,6 +1,12 @@
 <template>
-    <div ref="iconSelectRef" :style="{ width }">
-        <el-popover :visible="popoverVisible" :width="popoverWidth" placement="bottom-end">
+    <div ref="iconSelectRef" :style="{ width, maxWidth: '100%' }">
+        <el-popover
+            :visible="popoverVisible"
+            :width="popoverWidth"
+            :popper-style="{ maxWidth: 'calc(100vw - 32px)' }"
+            :popper-options="{ modifiers: [{ name: 'preventOverflow', options: { padding: 16 } }] }"
+            placement="bottom-end"
+        >
             <template #reference>
                 <div @click="popoverVisible = !popoverVisible">
                     <slot>
@@ -21,22 +27,16 @@
                             </template>
                             <template #suffix>
                                 <!-- 清空按钮 -->
-                                <Icon
+                                <i
                                     v-if="selectedIcon"
-                                    name="el-icon-circle-close"
-                                    size="16"
-                                    style="margin-right: 8px; cursor: pointer"
+                                    class="i-svg:x text-14px cursor-pointer mr-8px text-ink-400"
                                     @click.stop="clearSelectedIcon"
                                 />
 
                                 <!-- 下拉箭头 -->
-                                <Icon
-                                    name="el-icon-arrow-down"
-                                    size="16"
-                                    :style="{
-                                        transform: popoverVisible ? 'rotate(180deg)' : 'rotate(0)',
-                                        transition: 'transform .3s'
-                                    }"
+                                <i
+                                    class="i-svg:chevron-down text-14px text-ink-400 transition-transform duration-300"
+                                    :class="{ 'rotate-180': popoverVisible }"
                                     @click.stop="togglePopover"
                                 />
                             </template>
@@ -46,22 +46,29 @@
             </template>
 
             <!-- 图标选择弹窗 -->
-            <div ref="popoverContentRef" class="p-2">
+            <div ref="popoverContentRef" class="icon-select-panel">
                 <el-input
                     v-model="filterText"
                     :placeholder="$t('component.iconSelect.searchPlaceholder')"
                     clearable
                     @input="filterIcons"
-                />
+                    ><template #prefix><i class="i-svg:search text-14px" /></template
+                ></el-input>
 
                 <el-tabs v-model="activeTab" @tab-click="handleTabClick">
-                    <el-tab-pane :label="$t('component.iconSelect.svgIcons')" name="svg">
+                    <el-tab-pane name="svg"
+                        ><template #label
+                            >{{ $t('component.iconSelect.svgIcons') }}
+                            <span class="tab-count">{{ svgIcons.length }}</span></template
+                        >
                         <el-scrollbar :wrap-style="{ maxHeight: '300px' }">
                             <ul class="icon-grid">
                                 <li
                                     v-for="icon in filteredSvgIcons"
                                     :key="icon"
                                     class="icon-grid-item"
+                                    :class="{ active: selectedIcon === `i-svg:${icon}` }"
+                                    :title="icon"
                                     @click="selectIcon(icon, 'svg')"
                                 >
                                     <Icon :name="`i-svg:${icon}`" :size="iconSize" />
@@ -70,13 +77,19 @@
                         </el-scrollbar>
                     </el-tab-pane>
 
-                    <el-tab-pane :label="$t('component.iconSelect.elementIcons')" name="element">
+                    <el-tab-pane name="element"
+                        ><template #label
+                            >{{ $t('component.iconSelect.elementIcons') }}
+                            <span class="tab-count">{{ elementIcons.length }}</span></template
+                        >
                         <el-scrollbar :wrap-style="{ maxHeight: '300px' }">
                             <ul class="icon-grid">
                                 <li
                                     v-for="icon in filteredElementIcons"
                                     :key="icon"
                                     class="icon-grid-item"
+                                    :class="{ active: selectedIcon === `el-icon-${icon}` }"
+                                    :title="icon"
                                     @click="selectIcon(icon, 'element')"
                                 >
                                     <Icon :name="`el-icon-${icon}`" :size="iconSize" />
@@ -195,22 +208,55 @@ onMounted(() => {
 .reference :deep(.el-input__inner) {
     cursor: pointer;
 }
+
+.icon-select-panel {
+    padding: 4px;
+}
+
+.tab-count {
+    font-size: 11px;
+    color: var(--ink-400);
+    margin-left: 4px;
+}
+
 .icon-grid {
     display: flex;
     flex-wrap: wrap;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
 }
+
 .icon-grid-item {
     display: flex;
     align-items: center;
-    padding: 6px;
-    margin: 4px;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
     cursor: pointer;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--ink-100);
     border-radius: 4px;
-    transition: all 0.2s;
+    transition: all 0.15s;
+    color: var(--ink-600);
+
+    &:hover {
+        border-color: var(--brand-400);
+        color: var(--brand-500);
+        transform: scale(1.08);
+    }
+
+    &.active {
+        border-color: var(--brand-500);
+        background: var(--brand-50);
+        color: var(--brand-500);
+    }
 }
-.icon-grid-item:hover {
-    border-color: var(--el-color-primary);
-    transform: scale(1.1);
+
+.icon-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--ink-400);
+    font-size: 13px;
 }
 </style>

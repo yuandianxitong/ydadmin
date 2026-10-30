@@ -2,9 +2,13 @@
     <template v-if="!route.meta?.hidden">
         <!-- Leaf node: no visible children -->
         <el-menu-item v-if="!hasVisibleChildren" :index="resolvePath(route.path)">
-            <Icon v-if="route.meta?.icon" :name="route.meta.icon" :size="20" />
+            <Icon
+                v-if="route.meta?.icon"
+                :name="route.meta.icon"
+                :size="basePath === '' ? 18 : 20"
+            />
             <template #title>
-                <span class="ml-2">{{
+                <span class="standard-menu-label ml-2">{{
                     translateRouteTitle(route.meta?.title as string, route.name)
                 }}</span>
             </template>
@@ -13,8 +17,12 @@
         <!-- Branch node: has visible children -->
         <el-sub-menu v-else :index="resolvePath(route.path)">
             <template #title>
-                <Icon v-if="route.meta?.icon" :name="route.meta.icon" :size="20" />
-                <span class="ml-2">{{
+                <Icon
+                    v-if="route.meta?.icon"
+                    :name="route.meta.icon"
+                    :size="basePath === '' ? 18 : 20"
+                />
+                <span class="standard-menu-label ml-2">{{
                     translateRouteTitle(route.meta?.title as string, route.name)
                 }}</span>
             </template>

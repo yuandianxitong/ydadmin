@@ -16,7 +16,8 @@
                     href="https://www.dev007.cn/"
                     target="_blank"
                     rel="noopener noreferrer"
-                >{{ $t('login.brandName') }}</a>
+                    >{{ $t('login.brandName') }}</a
+                >
                 <span>{{ $t('login.copyright') }}</span>
             </div>
         </div>
@@ -31,7 +32,14 @@
                 </div>
 
                 <!-- 表单 -->
-                <el-alert v-if="loginError" :title="loginError" type="error" :closable="false" show-icon class="mb-4" />
+                <el-alert
+                    v-if="loginError"
+                    :title="loginError"
+                    type="error"
+                    :closable="false"
+                    show-icon
+                    class="mb-4"
+                />
                 <el-form
                     ref="loginFormRef"
                     :model="loginForm"
@@ -45,8 +53,8 @@
                             v-model="loginForm.username"
                             :placeholder="$t('login.message.username.required')"
                             :disabled="loading"
-                            :prefix-icon="User"
-                        />
+                            ><template #prefix><i class="i-svg:user" /></template
+                        ></el-input>
                     </el-form-item>
 
                     <el-form-item prop="password">
@@ -55,10 +63,10 @@
                             type="password"
                             :placeholder="$t('login.message.password.required')"
                             :disabled="loading"
-                            :prefix-icon="Lock"
                             show-password
                             @keyup.enter="handleLogin"
-                        />
+                            ><template #prefix><i class="i-svg:lock" /></template
+                        ></el-input>
                     </el-form-item>
 
                     <el-form-item prop="captcha">
@@ -67,10 +75,10 @@
                                 v-model="loginForm.captcha"
                                 :placeholder="$t('login.captchaPlaceholder')"
                                 :disabled="loading"
-                                :prefix-icon="Key"
                                 maxlength="6"
                                 @keyup.enter="handleLogin"
-                            />
+                                ><template #prefix><i class="i-svg:key-round" /></template
+                            ></el-input>
                             <div
                                 class="captcha-image"
                                 :title="$t('login.captchaRefresh')"
@@ -82,7 +90,7 @@
                                     :alt="$t('login.captchaAlt')"
                                 />
                                 <div v-else class="captcha-loading">
-                                    <el-icon class="is-loading"><Loading /></el-icon>
+                                    <i class="i-svg:loader is-loading" />
                                 </div>
                             </div>
                         </div>
@@ -110,7 +118,8 @@
                     href="https://www.dev007.cn/"
                     target="_blank"
                     rel="noopener noreferrer"
-                >{{ $t('login.brandName') }}</a>
+                    >{{ $t('login.brandName') }}</a
+                >
                 <span>{{ $t('login.copyright') }}</span>
             </div>
         </div>
@@ -118,7 +127,6 @@
 </template>
 
 <script setup lang="ts" name="Login">
-import { Key, Loading, Lock, User } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -222,7 +230,7 @@ onMounted(() => {
     width: 45%;
     min-height: 100vh;
     padding: 60px 40px;
-    background: linear-gradient(135deg, var(--color-brand-active) 0%, var(--color-brand) 50%, var(--color-brand-hover) 100%);
+    background: linear-gradient(140deg, #306ee8, #3038e8);
     color: #fff;
     position: relative;
     overflow: hidden;
@@ -356,7 +364,7 @@ onMounted(() => {
         transition: all 0.2s;
 
         &:hover {
-            box-shadow: 0 0 0 1px var(--gray-400);
+            box-shadow: 0 0 0 1px var(--ink-400);
         }
 
         &.is-focus {
@@ -384,7 +392,7 @@ onMounted(() => {
     overflow: hidden;
     cursor: pointer;
     border: 1px solid var(--color-border);
-    background: var(--gray-100);
+    background: var(--ink-100);
     display: flex;
     align-items: center;
     justify-content: center;

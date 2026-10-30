@@ -41,7 +41,10 @@ export function defaultComponentStyle(type?: string) {
   }
 }
 
-export function componentStyleToCss(style?: ComponentStyle): Record<string, string> {
+export function componentStyleToCss(
+  style?: ComponentStyle,
+  imageUrl: (url: string) => string = (url) => url
+): Record<string, string> {
   const css: Record<string, string> = {}
   if (!style) return css
   const m = style.margin
@@ -55,7 +58,7 @@ export function componentStyleToCss(style?: ComponentStyle): Record<string, stri
       const dir = bg.gradientDirection || 'to bottom'
       css.background = `linear-gradient(${dir}, ${bg.gradientStart}, ${bg.gradientEnd})`
     } else if (bg.type === 'image' && bg.image) {
-      css.backgroundImage = `url("${bg.image}")`
+      css.backgroundImage = `url("${imageUrl(bg.image)}")`
       css.backgroundSize = 'cover'
       css.backgroundPosition = 'center'
     } else if (bg.color) {
@@ -78,9 +81,13 @@ export function componentStyleToCss(style?: ComponentStyle): Record<string, stri
 }
 
 /** 包装层样式：缺省背景时非分割线/悬浮按钮默认白底；显式清空颜色则保持透明 */
-export function wrapComponentStyle(type: string, style?: ComponentStyle): Record<string, string> {
+export function wrapComponentStyle(
+  type: string,
+  style?: ComponentStyle,
+  imageUrl?: (url: string) => string
+): Record<string, string> {
   if (type === 'float-button') return {}
-  const css = componentStyleToCss(style)
+  const css = componentStyleToCss(style, imageUrl)
   if (TRANSPARENT_BG_TYPES.has(type)) return css
   const bg = style?.background
   const explicitTransparent =

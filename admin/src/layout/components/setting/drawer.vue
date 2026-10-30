@@ -10,7 +10,7 @@
         >
             <div class="h-full flex flex-col overflow-y-auto px-1">
                 <!-- 主题模式 -->
-                <div class="setting-section mb-6">
+                <div class="setting-section mb-5">
                     <div class="section-title">{{ $t('settings.themeMode') }}</div>
                     <div class="flex gap-3 mt-3">
                         <div
@@ -27,7 +27,7 @@
                 </div>
 
                 <!-- 主色调 -->
-                <div class="setting-section mb-6">
+                <div class="setting-section mb-5">
                     <div class="section-title">{{ $t('settings.primaryColor') }}</div>
                     <div class="flex gap-3 mt-3 flex-wrap">
                         <el-tooltip
@@ -61,7 +61,7 @@
                 </div>
 
                 <!-- 暗色主题（仅暗色模式可见） -->
-                <div v-if="isDarkMode" class="setting-section mb-6">
+                <div v-if="isDarkMode" class="setting-section mb-5">
                     <div class="section-title">{{ $t('settings.darkTheme') }}</div>
                     <div class="flex gap-3 mt-3 flex-wrap">
                         <el-tooltip
@@ -88,7 +88,7 @@
                 </div>
 
                 <!-- 布局模式 -->
-                <div class="setting-section mb-6">
+                <div class="setting-section mb-5">
                     <div class="section-title">{{ $t('settings.layoutMode') }}</div>
                     <div class="flex gap-4 mt-3">
                         <!-- 经典布局 -->
@@ -144,7 +144,7 @@
                 </div>
 
                 <!-- 其他设置 -->
-                <div class="setting-section mb-6">
+                <div class="setting-section mb-5">
                     <div class="section-title">{{ $t('settings.otherSettings') }}</div>
                     <div class="mt-3 flex flex-col gap-4">
                         <div class="flex justify-between items-center">
@@ -199,7 +199,7 @@ const customColor = ref(settingStore.theme)
 // 预设主题色（单一来源，presetColors 和 primaryColors 共用）
 const THEME_COLORS: Record<string, string> = {
     purple:  '#6f42c1',
-    blue:    '#1f4fff',
+    blue:    '#4f6bff',
     green:   '#18a058',
     orange:  '#ff6a00',
     magenta: '#eb2f96',
@@ -331,9 +331,20 @@ function resetAll() {
 
 <style lang="scss" scoped>
 .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     font-weight: 600;
     color: var(--color-text-primary);
+}
+
+.section-title::before {
+    content: '';
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--brand-500);
 }
 
 .theme-mode-btn {
@@ -344,7 +355,7 @@ function resetAll() {
     width: 80px;
     height: 60px;
     border-radius: var(--radius-sm);
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--color-border);
     cursor: pointer;
     transition: all 0.2s;
     color: var(--color-text-secondary);
@@ -409,7 +420,7 @@ function resetAll() {
     width: 48px;
     height: 36px;
     border-radius: var(--radius-sm);
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--color-border);
     padding: 4px;
     display: flex;
     align-items: flex-end;
@@ -426,7 +437,7 @@ function resetAll() {
     width: 80px;
     height: 56px;
     border-radius: var(--radius-sm);
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--color-border);
     cursor: pointer;
     overflow: hidden;
     transition: all 0.2s;

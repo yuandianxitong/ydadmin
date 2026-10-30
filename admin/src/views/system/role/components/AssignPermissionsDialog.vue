@@ -1,77 +1,190 @@
 <template>
     <el-dialog
-        v-model="visible"
-        :title="$t('role.assignPermissions')"
-        width="600px"
+        :model-value="visible"
+        title=""
+        width="920px"
+        :show-close="false"
         :close-on-click-modal="false"
+        append-to-body
+        class="rp-dialog"
+        @update:model-value="visible = $event"
         @close="handleClose"
     >
-        <div class="assign-header">
-            <div class="role-info">
-                <span class="label">{{ $t('role.roleLabel') }}</span>
-                <el-tag type="primary">{{ roleInfo?.title }}</el-tag>
-                <span class="label">{{ $t('role.codeLabel') }}</span>
-                <el-tag>{{ roleInfo?.name }}</el-tag>
+        <template #header>
+            <div class="modal-head">
+                <div class="modal-title">
+                    权限分配
+                    <span class="sub">配置菜单权限，查看当前角色的数据范围</span>
+                </div>
+                <button class="modal-close" @click="handleClose">
+                    <i class="i-svg:x" />
+                </button>
+            </div>
+        </template>
+
+        <!-- Role Header Card -->
+        <div class="rp-role-hd">
+            <div class="rp-role-av">{{ roleInitial }}</div>
+            <div class="rp-role-meta">
+                <div class="rp-role-nm">
+                    {{ roleInfo?.title }}
+                    <span
+                        class="rp-role-status"
+                        :class="roleInfo?.status === 1 ? 'is-on' : 'is-off'"
+                    >
+                        {{ roleInfo?.status === 1 ? '启用' : '停用' }}
+                    </span>
+                </div>
+                <div class="rp-role-sub">
+                    <span class="rp-role-code">{{ roleInfo?.name }}</span>
+                    <span class="rp-role-dot">&middot;</span>
+                    <span>{{ checkedCount }} 项权限</span>
+                </div>
+            </div>
+            <div class="rp-role-warn">
+                <i class="i-svg:triangle-alert" />
+                权限变更将实时生效，请谨慎操作
             </div>
         </div>
 
-        <div class="tree-actions">
-            <el-checkbox
-                v-model="menuCheckAll"
-                :indeterminate="menuIndeterminate"
-                @change="handleMenuCheckAllChange"
+        <!-- Tabs -->
+        <div class="rp-tabs">
+            <button
+                class="rp-tab-n"
+                :class="{ active: activeTab === 'perm' }"
+                @click="activeTab = 'perm'"
             >
-                {{ $t('role.selectAll') }}
-            </el-checkbox>
-            <el-input
-                v-model="filterText"
-                :placeholder="$t('role.searchMenuPerm')"
-                clearable
-                style="width: 200px"
-                size="small"
-            />
+                功能权限
+                <span class="rp-tab-badge">{{ checkedCount }}</span>
+            </button>
+            <button
+                class="rp-tab-n"
+                :class="{ active: activeTab === 'scope' }"
+                @click="activeTab = 'scope'"
+            >
+                数据范围
+                <span class="rp-tab-badge">{{ dataScopeLabel }}</span>
+            </button>
         </div>
 
-        <el-tree
-            ref="menuTreeRef"
-            :data="menuTree"
-            :props="menuTreeProps"
-            show-checkbox
-            node-key="id"
-            :default-checked-keys="selectedMenus"
-            :default-expanded-keys="menuExpandKeys"
-            :filter-node-method="filterNode"
-            class="menu-tree"
-            @check="handleMenuCheck"
-        >
-            <template #default="{ data }">
-                <div class="tree-node">
-                    <el-icon v-if="data.icon" class="node-icon">
-                        <component :is="data.icon" />
-                    </el-icon>
-                    <span class="node-label">{{ data.title }}</span>
-                    <el-tag
-                        v-if="data.type"
-                        :type="getMenuTypeTag(data.type)"
-                        size="small"
-                        class="node-tag"
-                    >
-                        {{ getMenuTypeText(data.type) }}
-                    </el-tag>
-                    <span v-if="data.permission" class="node-permission">{{
-                        data.permission
-                    }}</span>
+        <!-- 功能权限 Tab -->
+        <div v-show="activeTab === 'perm'" class="rp-perm-panel">
+            <!-- Toolbar -->
+            <div class="rp-bar">
+                <div class="rp-search">
+                    <i class="i-svg:search rp-search-icon" />
+                    <input
+                        v-model="filterText"
+                        type="text"
+                        class="rp-search-input"
+                        placeholder="搜索权限名称或标识"
+                    />
+                    <button v-show="filterText" class="rp-clr" @click="filterText = ''">
+                        <i class="i-svg:x" />
+                    </button>
                 </div>
-            </template>
-        </el-tree>
+                <div class="rp-bar-sp" />
+                <label class="rp-cascade">
+                    <input v-model="cascadeChecked" type="checkbox" />
+                    父子联动
+                </label>
+                <span class="rp-bar-sep" />
+                <button class="rp-link" @click="expandAll">展开全部</button>
+                <button class="rp-link" @click="collapseAll">收起全部</button>
+                <span class="rp-bar-sep" />
+                <button class="rp-link" @click="selectAll">全选</button>
+                <button class="rp-link" @click="invertSelection">反选</button>
+                <button class="rp-link" @click="clearAll">清空</button>
+            </div>
+
+            <!-- Permission Tree -->
+            <div class="rp-tree">
+                <el-tree
+                    ref="menuTreeRef"
+                    :data="menuTree"
+                    :props="menuTreeProps"
+                    show-checkbox
+                    node-key="id"
+                    :default-checked-keys="selectedMenus"
+                    :default-expanded-keys="menuExpandKeys"
+                    :check-strictly="!cascadeChecked"
+                    :filter-node-method="filterNode"
+                    class="rp-el-tree"
+                    @check="handleMenuCheck"
+                >
+                    <template #default="{ node, data }">
+                        <div
+                            class="rp-node"
+                            :class="[`rp-d${node.level - 1 > 2 ? 2 : node.level - 1}`]"
+                        >
+                            <span
+                                class="rp-chev"
+                                :class="{ expanded: node.expanded, leaf: node.isLeaf }"
+                            />
+                            <span
+                                class="rp-type"
+                                :class="{
+                                    'is-dir': data.type === 1,
+                                    'is-menu': data.type === 2,
+                                    'is-btn': data.type === 3
+                                }"
+                            >
+                                {{ getMenuTypeText(data.type) }}
+                            </span>
+                            <span class="rp-name">{{ data.title }}</span>
+                            <span v-if="data.permission" class="rp-code">{{
+                                data.permission
+                            }}</span>
+                        </div>
+                    </template>
+                </el-tree>
+            </div>
+        </div>
+
+        <!-- 数据范围 Tab -->
+        <div v-show="activeTab === 'scope'" class="rp-scope-panel">
+            <div class="rp-hint">
+                <i class="i-svg:info" />
+                以下展示该角色当前的数据范围；如需调整，请使用角色列表的编辑表单。
+            </div>
+            <div class="rp-scope">
+                <label
+                    v-for="opt in dataScopeOptions"
+                    :key="opt.value"
+                    class="rp-scope-card"
+                    :class="{ active: dataScope === opt.value }"
+                >
+                    <input
+                        :checked="dataScope === opt.value"
+                        disabled
+                        type="radio"
+                        :value="opt.value"
+                        class="rp-scope-rd"
+                    />
+                    <span class="rp-scope-t">{{ opt.label }}</span>
+                    <span class="rp-scope-d">{{ opt.desc }}</span>
+                </label>
+            </div>
+        </div>
 
         <template #footer>
-            <span class="dialog-footer">
-                <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-                    {{ $t('common.confirm') }}
-                </el-button>
-            </span>
+            <div class="rp-foot">
+                <div class="rp-foot-info">
+                    已选 <b>{{ checkedCount }}</b> 项
+                    <span class="rp-foot-sep">&middot;</span>
+                    目录 <b>{{ stats.dir }}</b>
+                    <span class="rp-foot-sep">&middot;</span>
+                    菜单 <b>{{ stats.menu }}</b>
+                    <span class="rp-foot-sep">&middot;</span>
+                    按钮 <b>{{ stats.btn }}</b>
+                </div>
+                <div class="rp-foot-actions">
+                    <el-button @click="handleClose">取消</el-button>
+                    <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+                        保存
+                    </el-button>
+                </div>
+            </div>
         </template>
     </el-dialog>
 </template>
@@ -223,16 +336,6 @@ const getMenuTypeText = (type: number) => {
     return typeMap[type] || ''
 }
 
-// 获取菜单类型标签
-const getMenuTypeTag = (type: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
-    const typeMap: Record<number, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
-        1: 'info',
-        2: 'success',
-        3: 'warning'
-    }
-    return typeMap[type] || 'info'
-}
-
 // 提交保存
 const handleSubmit = async () => {
     if (!props.roleInfo?.id) return
@@ -282,71 +385,428 @@ watch(
 onMounted(() => {
     getMenuTree()
 })
-</script>
 
-<style lang="scss" scoped>
-.assign-header {
-    margin-bottom: 16px;
-
-    .role-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .label {
-            color: var(--el-text-color-regular);
-            font-size: 14px;
+// Pro presentation state; API calls and the permission payload remain unchanged.
+const activeTab = ref<'perm' | 'scope'>('perm')
+const cascadeChecked = ref(true)
+const roleInitial = computed(() => props.roleInfo?.title?.charAt(0) || 'R')
+const dataScope = computed(() => props.roleInfo?.data_scope ?? 1)
+const dataScopeOptions = computed(() => [
+    { value: 1, label: t('role.dataScopeOptions.all'), desc: '可查看权限范围内的全部数据' },
+    { value: 2, label: t('role.dataScopeOptions.department'), desc: '可查看本部门的数据' },
+    {
+        value: 3,
+        label: t('role.dataScopeOptions.departmentAndBelow'),
+        desc: '可查看本部门及下属部门的数据'
+    },
+    { value: 4, label: t('role.dataScopeOptions.self'), desc: '仅查看本人数据' },
+    {
+        value: 5,
+        label: t('role.dataScopeOptions.custom'),
+        desc: '按角色编辑中指定的部门范围查看数据'
+    }
+])
+const dataScopeLabel = computed(
+    () => dataScopeOptions.value.find((item) => item.value === dataScope.value)?.label || '-'
+)
+const checkedCount = computed(
+    () =>
+        (menuTreeRef.value?.getCheckedKeys().length || 0) +
+        (menuTreeRef.value?.getHalfCheckedKeys().length || 0)
+)
+const stats = computed(() => {
+    const ids = new Set([
+        ...(menuTreeRef.value?.getCheckedKeys() || []),
+        ...(menuTreeRef.value?.getHalfCheckedKeys() || [])
+    ])
+    const result = { dir: 0, menu: 0, btn: 0 }
+    const visit = (items: MenuInfo[]) =>
+        items.forEach((item) => {
+            if (ids.has(item.id)) {
+                if (item.type === 1) result.dir++
+                else if (item.type === 2) result.menu++
+                else if (item.type === 3) result.btn++
+            }
+            if (item.children?.length) visit(item.children)
+        })
+    visit(menuTree.value)
+    return result
+})
+function setTreeExpanded(expanded: boolean) {
+    for (const id of getAllMenuKeys(menuTree.value)) {
+        const node = menuTreeRef.value?.getNode(id)
+        if (node && !node.isLeaf) {
+            if (expanded) node.expand()
+            else node.collapse()
         }
     }
 }
+const expandAll = () => setTreeExpanded(true)
+const collapseAll = () => setTreeExpanded(false)
+const selectAll = () => handleMenuCheckAllChange(true)
+const clearAll = () => handleMenuCheckAllChange(false)
+function invertSelection() {
+    const ids = new Set(menuTreeRef.value?.getCheckedKeys() || [])
+    menuTreeRef.value?.setCheckedKeys(getAllMenuKeys(menuTree.value).filter((id) => !ids.has(id)))
+    updateMenuCheckAllStatus()
+}
+</script>
 
-.tree-actions {
+<style lang="scss" scoped>
+.rp-dialog :deep(.el-dialog__body) {
+    padding: 20px 24px 4px;
+}
+.modal-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--el-border-color-light);
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
 }
-
-.menu-tree {
-    max-height: 450px;
-    overflow-y: auto;
-    border: 1px solid var(--el-border-color-light);
+.modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink-900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.modal-title .sub {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-400);
+}
+.modal-close {
+    border: 0;
+    background: transparent;
+    color: var(--ink-400);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-close:hover {
+    background: var(--ink-100);
+    color: var(--ink-700);
+}
+.rp-role-hd {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--ink-50);
+    border: 1px solid var(--ink-100);
+    border-radius: var(--r-md);
+}
+.rp-role-av {
+    width: 44px;
+    height: 44px;
+    background: var(--brand-50);
+    color: var(--brand-500);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    flex: none;
+}
+.rp-role-meta {
+    min-width: 0;
+}
+.rp-role-nm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-900);
+}
+.rp-role-status {
+    font-size: 11px;
+    font-weight: 400;
     border-radius: 4px;
-    padding: 8px;
+    padding: 2px 6px;
+    background: var(--ink-100);
+    color: var(--ink-500);
 }
-
-.tree-node {
+.rp-role-status.is-on {
+    background: var(--success-50);
+    color: var(--success);
+}
+.rp-role-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    color: var(--ink-400);
+    font-size: 12px;
+}
+.rp-role-code,
+.rp-code {
+    font-family: var(--font-num);
+}
+.rp-role-warn {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--warning);
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
-
-    .node-icon {
-        font-size: 16px;
-        color: var(--el-color-primary);
-    }
-
-    .node-label {
-        font-size: 14px;
-        color: var(--el-text-color-primary);
-    }
-
-    .node-tag {
-        margin-left: 4px;
-    }
-
-    .node-permission {
-        margin-left: auto;
-        font-size: 12px;
-        color: var(--el-text-color-placeholder);
-    }
 }
-
-.dialog-footer {
+.rp-tabs {
     display: flex;
-    justify-content: flex-end;
+    gap: 24px;
+    border-bottom: 1px solid var(--ink-100);
+    margin: 20px 0 16px;
+}
+.rp-tab-n {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    padding: 0 0 12px;
+    font: inherit;
+    color: var(--ink-500);
+    cursor: pointer;
+}
+.rp-tab-n.active {
+    color: var(--brand-500);
+    border-bottom-color: var(--brand-500);
+    font-weight: 500;
+}
+.rp-tab-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--ink-100);
+    margin-left: 4px;
+}
+.rp-tab-n.active .rp-tab-badge {
+    background: var(--brand-50);
+}
+.rp-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: var(--ink-500);
+}
+.rp-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--ink-200);
+    border-radius: 6px;
+    padding: 6px 8px;
+    max-width: 100%;
+}
+.rp-search-input {
+    width: 170px;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--ink-700);
+    outline: none;
+}
+.rp-clr {
+    display: flex;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--ink-400);
+    cursor: pointer;
+}
+.rp-bar-sp {
+    flex: 1;
+}
+.rp-bar-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--ink-200);
+}
+.rp-cascade {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.rp-link {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--brand-500);
+    cursor: pointer;
+    font: inherit;
+}
+.rp-tree {
+    border: 1px solid var(--ink-100);
+    border-radius: var(--r-md);
+    padding: 8px;
+    max-height: 380px;
+    min-height: 220px;
+    overflow: auto;
+}
+.rp-node {
+    display: flex;
+    align-items: center;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
+    font-size: 12.5px;
+}
+.rp-chev {
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 4px solid var(--ink-400);
+    transition: transform 0.15s;
+    flex: none;
+}
+.rp-chev.expanded {
+    transform: rotate(90deg);
+}
+.rp-chev.leaf {
+    visibility: hidden;
+}
+.rp-type {
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    color: var(--ink-500);
+    background: var(--ink-100);
+    flex: none;
+}
+.rp-type.is-menu {
+    color: var(--brand-500);
+    background: var(--brand-50);
+}
+.rp-type.is-btn {
+    color: var(--success);
+    background: var(--success-50);
+}
+.rp-name {
+    color: var(--ink-800);
+    white-space: nowrap;
+}
+.rp-code {
+    color: var(--ink-400);
+    font-size: 11px;
+    margin-left: auto;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+.rp-d1 {
+    padding-left: 16px;
+}
+.rp-d2 {
+    padding-left: 32px;
+}
+.rp-el-tree {
+    --el-tree-node-hover-bg-color: var(--ink-50);
+    background: transparent;
+}
+.rp-el-tree :deep(.el-tree-node__content) {
+    height: 34px;
+    padding-left: 4px !important;
+}
+.rp-el-tree :deep(.el-tree-node__expand-icon) {
+    display: none;
+}
+.rp-el-tree :deep(.el-checkbox) {
+    margin-right: 4px;
+}
+.rp-hint {
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--brand-50);
+    color: var(--brand-500);
+    font-size: 12px;
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+.rp-scope {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    min-height: 220px;
+}
+.rp-scope-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 14px;
+    border: 1px solid var(--ink-200);
+    border-radius: 8px;
+    color: var(--ink-700);
+}
+.rp-scope-card.active {
+    border-color: var(--brand-500);
+    background: var(--brand-50);
+}
+.rp-scope-rd {
+    accent-color: var(--brand-500);
+}
+.rp-scope-t {
+    font-weight: 500;
+}
+.rp-scope-d {
+    display: block;
+    width: 100%;
+    color: var(--ink-400);
+    font-size: 12px;
+}
+.rp-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.rp-foot-info {
+    color: var(--ink-500);
+    font-size: 12px;
+}
+.rp-foot-info b {
+    color: var(--ink-800);
+}
+.rp-foot-sep {
+    margin: 0 8px;
+    color: var(--ink-300);
+}
+.rp-foot-actions {
+    display: flex;
+    gap: 8px;
+}
+@media (max-width: 640px) {
+    .rp-role-hd {
+        flex-wrap: wrap;
+    }
+    .rp-role-warn {
+        width: 100%;
+        margin: 0;
+    }
+    .rp-scope {
+        grid-template-columns: 1fr;
+    }
+    .rp-search {
+        width: 100%;
+    }
+    .rp-search-input {
+        flex: 1;
+    }
+    .rp-bar-sp {
+        display: none;
+    }
+    .rp-foot-actions {
+        margin-left: auto;
+    }
 }
 </style>

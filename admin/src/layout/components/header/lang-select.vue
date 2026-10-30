@@ -1,12 +1,8 @@
 <template>
     <el-dropdown trigger="click" @command="handleChange">
-        <div
-            class="bg-[var(--gray-100)] text-[var(--color-text-secondary)] w-[34px] h-[34px] rounded-full flex items-center justify-center cursor-pointer mr-4"
-        >
-            <el-tooltip effect="dark" :content="currentLabel" placement="bottom">
-                <span class="text-sm font-medium">{{ currentFlag }}</span>
-            </el-tooltip>
-        </div>
+        <button class="top-btn flex-center w-34px h-34px rounded-lg" :title="currentLabel">
+            <Icon name="i-svg:languages" :size="17" />
+        </button>
         <template #dropdown>
             <el-dropdown-menu>
                 <el-dropdown-item

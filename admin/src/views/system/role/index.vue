@@ -1,5 +1,17 @@
 <template>
     <div class="role-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('role.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_role_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button v-has-perm="['system.role.create']" type="primary" @click="handleAdd">
+                    <i class="i-svg:plus" />
+                    {{ $t('role.addRole') }}
+                </el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -24,11 +36,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -36,125 +48,133 @@
         </el-card>
 
         <!-- 操作区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('role.title') }}</div>
-                <div class="table-actions">
-                    <el-button
-                        v-has-perm="['system.role.create']"
-                        type="primary"
-                        @click="handleAdd"
-                    >
-                        <el-icon><Plus /></el-icon>
-                        {{ $t('role.addRole') }}
-                    </el-button>
-                    <el-button
-                        v-has-perm="['system.role.delete']"
-                        type="danger"
-                        :disabled="!multipleSelection.length"
-                        @click="handleBatchDelete(multipleSelection.map((item) => item.id))"
-                    >
-                        <el-icon><Delete /></el-icon>
-                        {{ $t('common.batchDelete') }}
-                    </el-button>
-                </div>
-            </div>
-
-            <!-- 表格 -->
-            <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
-                <el-table-column type="selection" width="55" />
-
-                <el-table-column label="ID" prop="id" width="80" />
-
-                <el-table-column :label="$t('role.roleCode')" prop="name" width="150" />
-
-                <el-table-column :label="$t('role.roleName')" prop="title" width="150" />
-
-                <el-table-column
-                    :label="$t('role.description')"
-                    prop="description"
-                    show-overflow-tooltip
+        <ProTable
+            :title="$t('role.title')"
+            storage-key="system-role-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_system_role_index_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                { key: 'name', label: $t('proPage.table_system_role_index_vue_name'), width: 150 },
+                {
+                    key: 'title',
+                    label: $t('proPage.table_system_role_index_vue_title'),
+                    width: 150
+                },
+                {
+                    key: 'description',
+                    label: $t('proPage.table_system_role_index_vue_description'),
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'data_scope',
+                    label: $t('proPage.table_system_role_index_vue_data_scope'),
+                    width: 150
+                },
+                {
+                    key: 'is_system',
+                    label: $t('proPage.table_system_role_index_vue_is_system'),
+                    width: 120
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_system_role_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_system_role_index_vue_created_at'),
+                    width: 200
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_system_role_index_vue_action'),
+                    width: 250,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            selection
+            @selection-change="handleSelectionChange"
+            ><template #data_scope="{ row }">
+                <el-tag :type="getDataScopeTagType(row.data_scope)" size="small">
+                    {{ getDataScopeText(row.data_scope) }}
+                </el-tag>
+            </template>
+            <template #is_system="{ row }">
+                <el-tag :type="row.is_system ? 'danger' : 'info'" size="small">
+                    {{ row.is_system ? $t('common.yes') : $t('common.no') }}
+                </el-tag>
+            </template>
+            <template #status="{ row }">
+                <el-switch
+                    v-model="row.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                    :disabled="!userStore.hasPermission('system.role.update') || row.is_system"
+                    @change="handleStatusChange(row)"
                 />
-
-                <el-table-column :label="$t('role.dataScope')" prop="data_scope" width="140">
-                    <template #default="{ row }">
-                        <el-tag :type="getDataScopeTagType(row.data_scope)" size="small">
-                            {{ getDataScopeText(row.data_scope) }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('common.systemRole')" prop="is_system" width="100">
-                    <template #default="{ row }">
-                        <el-tag :type="row.is_system ? 'danger' : 'info'" size="small">
-                            {{ row.is_system ? $t('common.yes') : $t('common.no') }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('common.status')" width="100">
-                    <template #default="{ row }">
-                        <el-switch
-                            v-model="row.status"
-                            :active-value="1"
-                            :inactive-value="0"
-                            :disabled="
-                                !userStore.hasPermission('system.role.update') || row.is_system
-                            "
-                            @change="handleStatusChange(row)"
-                        />
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="180" />
-
-                <el-table-column :label="$t('common.operation')" width="250" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-if="!row.is_system"
-                            v-has-perm="['system.role.update']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleEdit(row as RoleInfo)"
-                        >
-                            {{ $t('common.edit') }}
-                        </el-button>
-                        <el-button
-                            v-has-perm="['system.role.permission']"
-                            type="success"
-                            size="small"
-                            text
-                            @click="handleAssignPermissions(row as RoleInfo)"
-                        >
-                            {{ $t('common.assignPermission') }}
-                        </el-button>
-                        <el-button
-                            v-if="!row.is_system"
-                            v-has-perm="['system.role.delete']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDelete(row.id, row.title)"
-                        >
-                            {{ $t('common.delete') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-if="!row.is_system"
+                    v-has-perm="['system.role.update']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="handleEdit(row as RoleInfo)"
+                >
+                    {{ $t('common.edit') }}
+                </el-button>
+                <el-button
+                    v-has-perm="['system.role.permission']"
+                    type="success"
+                    size="small"
+                    text
+                    @click="handleAssignPermissions(row as RoleInfo)"
+                >
+                    {{ $t('common.assignPermission') }}
+                </el-button>
+                <el-button
+                    v-if="!row.is_system"
+                    v-has-perm="['system.role.delete']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDelete(row.id, row.title)"
+                >
+                    {{ $t('common.delete') }}
+                </el-button>
+            </template>
+            <template #batchActions
+                ><el-button
+                    v-has-perm="['system.role.delete']"
+                    type="danger"
+                    :disabled="!multipleSelection.length"
+                    @click="handleBatchDelete(multipleSelection.map((item) => item.id))"
+                >
+                    <i class="i-svg:trash-2" />
+                    {{ $t('common.batchDelete') }}
+                </el-button></template
+            >
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 新增/编辑弹窗 -->
         <RoleForm v-model="formVisible" :form-data="formData" @success="getList" />
@@ -169,7 +189,7 @@
 </template>
 
 <script setup lang="ts" name="RoleList">
-import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
+
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 

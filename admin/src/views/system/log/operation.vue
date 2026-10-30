@@ -1,5 +1,11 @@
 <template>
     <div class="log-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('log.operationTitle') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_log_operation') }}</div>
+            </div>
+        </div>
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
                 <el-form-item :label="$t('log.keyword')">
@@ -25,74 +31,95 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('log.operationTitle') }}</div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('common.id')" prop="id" width="80" />
-                <el-table-column :label="$t('log.operator')" prop="username" width="120" />
-                <el-table-column :label="$t('log.method')" width="100">
-                    <template #default="{ row }">
-                        <el-tag :type="methodTagType(row.method)" size="small" effect="light">
-                            {{ row.method }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('log.requestPath')"
-                    prop="path"
-                    min-width="200"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('log.action')" prop="action" width="120" />
-                <el-table-column
-                    :label="$t('log.actionDesc')"
-                    prop="description"
-                    min-width="160"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('log.ip')" prop="ip" width="140" />
-                <el-table-column :label="$t('log.duration')" width="100">
-                    <template #default="{ row }">
-                        {{ row.execution_time ? (row.execution_time * 1000).toFixed(0) : '-' }}
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('log.operationTime')"
-                    prop="operation_time"
-                    width="170"
-                />
-            </el-table>
-
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="$t('log.operationTitle')"
+            storage-key="system-log-operation-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_system_log_operation_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                {
+                    key: 'username',
+                    label: $t('proPage.table_system_log_operation_vue_username'),
+                    width: 120
+                },
+                {
+                    key: 'method',
+                    label: $t('proPage.table_system_log_operation_vue_method'),
+                    width: 120
+                },
+                {
+                    key: 'path',
+                    label: $t('proPage.table_system_log_operation_vue_path'),
+                    minWidth: 200,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_system_log_operation_vue_action'),
+                    width: 120,
+                    required: true
+                },
+                {
+                    key: 'description',
+                    label: $t('proPage.table_system_log_operation_vue_description'),
+                    minWidth: 160,
+                    showOverflowTooltip: true
+                },
+                { key: 'ip', label: $t('proPage.table_system_log_operation_vue_ip'), width: 140 },
+                {
+                    key: 'execution_time',
+                    label: $t('proPage.table_system_log_operation_vue_execution_time'),
+                    width: 120
+                },
+                {
+                    key: 'operation_time',
+                    label: $t('proPage.table_system_log_operation_vue_operation_time'),
+                    width: 200
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #method="{ row }">
+                <el-tag :type="methodTagType(row.method)" size="small" effect="light">
+                    {{ row.method }}
+                </el-tag>
+            </template>
+            <template #execution_time="{ row }">
+                {{ row.execution_time ? (row.execution_time * 1000).toFixed(0) : '-' }}
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
+
 
 import { logApi } from '@/api/log'
 import { useListPage } from '@/hooks/useListPage'

@@ -1,0 +1,68 @@
+/* Pro visual tokens bridge to the existing theme store and dark-mode palette.
+ * Keep runtime colors in utils/theme.ts as the single source of truth.
+ */
+:root {
+    --brand-500: var(--el-color-primary);
+    --brand-600: var(--el-color-primary-dark-2);
+    --brand-400: var(--el-color-primary-light-3);
+    --brand-100: var(--el-color-primary-light-7);
+    --brand-200: var(--el-color-primary-light-5);
+    --brand-50: var(--el-color-primary-light-9);
+    --brand-shadow: color-mix(in srgb, var(--brand-500) 35%, transparent);
+    --ink-900: var(--gray-900);
+    --ink-800: var(--color-text-primary);
+    --ink-700: var(--gray-700);
+    --ink-600: var(--color-text-secondary);
+    --ink-500: var(--color-text-tertiary);
+    --ink-400: var(--gray-400);
+    --ink-300: var(--gray-300);
+    --ink-200: var(--color-border);
+    --ink-100: var(--color-divider);
+    --ink-50: var(--gray-50);
+    --card-bg: var(--color-surface);
+    --page-bg: var(--color-bg-page);
+    --success: var(--el-color-success);
+    --success-50: var(--el-color-success-light-9);
+    --warning: var(--el-color-warning);
+    --danger: var(--el-color-danger);
+    --teal-500: #14b8a6;
+    --teal-50: #e6fbf7;
+    --amber-500: #f59e0b;
+    --amber-50: #fff5e0;
+    --rose-500: #f43f5e;
+    --rose-50: #ffecef;
+    --sky-500: #38bdf8;
+    --sky-50: #e6f5ff;
+    --purple-500: #8b5cf6;
+    --purple-50: color-mix(in srgb, #8b5cf6 10%, var(--card-bg));
+    --r-xs: 2px;
+    --r-sm: var(--radius-sm);
+    --r-md: var(--radius-md);
+    --r-lg: var(--radius-lg);
+    --r-xl: var(--radius-xl);
+    --shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
+    --shadow-hairline: 0 0 0 1px var(--ink-100), var(--shadow-xs);
+    --font-sans: var(--font-family-sans);
+    --font-num: 'Helvetica Neue', 'SF Pro Display', Arial, sans-serif;
+    --header-h: 56px;
+    --navbar-height: var(--header-h);
+    --tabs-h: 40px;
+    --sidebar-w: 92px;
+    --sidebar-sub-w: 180px;
+    --color-surface-sunken: var(--ink-50);
+    --color-border-light: var(--ink-100);
+    --color-border-strong: var(--ink-300);
+    --color-text-placeholder: var(--ink-400);
+    --color-text-inverse: #fff;
+}
+
+html.dark {
+    --teal-50: color-mix(in srgb, var(--teal-500) 12%, var(--card-bg));
+    --amber-50: color-mix(in srgb, var(--amber-500) 12%, var(--card-bg));
+    --rose-50: color-mix(in srgb, var(--rose-500) 12%, var(--card-bg));
+    --sky-50: color-mix(in srgb, var(--sky-500) 12%, var(--card-bg));
+    --ink-400: #94a3b8;
+    --color-text-tertiary: #94a3b8;
+    --color-text-disabled: #64748b;
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 15%);
+}

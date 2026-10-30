@@ -1,5 +1,11 @@
 <template>
     <div class="payment-order-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ t('paymentOrder.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.user_payment-order_index') }}</div>
+            </div>
+        </div>
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
                 <el-form-item :label="t('paymentOrder.orderNo')">
@@ -20,61 +26,101 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" @click="handleSearch">{{ t('common.search') }}</el-button>
+                    <el-button type="primary" @click="handleSearch">{{
+                        t('common.search')
+                    }}</el-button>
                     <el-button @click="resetSearch">{{ t('common.reset') }}</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
-        <el-card class="table-card" shadow="never">
-            <div class="table-title">{{ t('paymentOrder.title') }}</div>
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="t('paymentOrder.orderNo')" prop="order_no" min-width="200" />
-                <el-table-column :label="t('paymentOrder.user')" min-width="140">
-                    <template #default="{ row }">
-                        {{ row.user_nickname || row.user_id }}
-                    </template>
-                </el-table-column>
-                <el-table-column :label="t('paymentOrder.amount')" prop="amount" width="110" />
-                <el-table-column :label="t('paymentOrder.refunded')" prop="refunded_amount" width="110" />
-                <el-table-column :label="t('paymentOrder.channel')" prop="channel" width="100" />
-                <el-table-column :label="t('paymentOrder.status')" prop="status" width="110" />
-                <el-table-column :label="t('paymentOrder.createdAt')" prop="created_at" width="170" />
-                <el-table-column :label="t('common.operation')" width="160" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['payment.order.detail']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="openDetail(row.order_no)"
-                        >
-                            {{ t('common.detail') }}
-                        </el-button>
-                        <el-button
-                            v-if="row.status === 'paid'"
-                            v-has-perm="['payment.order.refund']"
-                            type="warning"
-                            size="small"
-                            text
-                            @click="openRefund(row as PaymentOrderItem)"
-                        >
-                            {{ t('paymentOrder.refund') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="t('paymentOrder.title')"
+            storage-key="user-payment-order-list"
+            :columns="[
+                {
+                    key: 'order_no',
+                    label: $t('proPage.table_user_payment_order_index_vue_order_no'),
+                    minWidth: 200,
+                    required: true
+                },
+                {
+                    key: 'user',
+                    label: $t('proPage.table_user_payment_order_index_vue_user'),
+                    minWidth: 140
+                },
+                {
+                    key: 'amount',
+                    label: $t('proPage.table_user_payment_order_index_vue_amount'),
+                    width: 110
+                },
+                {
+                    key: 'refunded_amount',
+                    label: $t('proPage.table_user_payment_order_index_vue_refunded_amount'),
+                    width: 110
+                },
+                {
+                    key: 'channel',
+                    label: $t('proPage.table_user_payment_order_index_vue_channel'),
+                    width: 100
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_user_payment_order_index_vue_status'),
+                    width: 110
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_user_payment_order_index_vue_created_at'),
+                    width: 170
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_user_payment_order_index_vue_action'),
+                    width: 160,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #user="{ row }">
+                {{ row.user_nickname || row.user_id }}
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['payment.order.detail']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="openDetail(row.order_no)"
+                >
+                    {{ t('common.detail') }}
+                </el-button>
+                <el-button
+                    v-if="row.status === 'paid'"
+                    v-has-perm="['payment.order.refund']"
+                    type="warning"
+                    size="small"
+                    text
+                    @click="openRefund(row as PaymentOrderItem)"
+                >
+                    {{ t('paymentOrder.refund') }}
+                </el-button>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <el-drawer v-model="detailVisible" :title="t('paymentOrder.detailTitle')" size="480px">
             <template v-if="detail">
@@ -83,7 +129,11 @@
                 <p>{{ t('paymentOrder.refunded') }}：{{ detail.refunded_amount }}</p>
                 <p>{{ t('paymentOrder.status') }}：{{ detail.status }}</p>
                 <el-table :data="detail.refunds" class="mt-4">
-                    <el-table-column :label="t('paymentOrder.refundNo')" prop="refund_no" min-width="160" />
+                    <el-table-column
+                        :label="t('paymentOrder.refundNo')"
+                        prop="refund_no"
+                        min-width="160"
+                    />
                     <el-table-column :label="t('paymentOrder.amount')" prop="amount" width="90" />
                     <el-table-column :label="t('paymentOrder.status')" prop="status" width="100" />
                 </el-table>

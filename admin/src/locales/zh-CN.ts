@@ -1,4 +1,7 @@
+import { proPageZh } from './pro-page'
+
 export default {
+    proPage: proPageZh,
     // 菜单国际化
     route: {
         dashboard: '首页',
@@ -76,7 +79,7 @@ export default {
         rememberMe: '记住我',
         forgetPassword: '忘记密码？',
         message: {
-        copyFailed: '复制失败，请选中文本手动复制',
+            copyFailed: '复制失败，请选中文本手动复制',
             username: {
                 required: '请输入用户名'
             },
@@ -685,7 +688,8 @@ export default {
             pay_alipay_app_id: '支付宝开放平台应用AppID',
             pay_alipay_private_key: '支付宝应用私钥(RSA2)',
             pay_alipay_public_key: '支付宝公钥',
-            pay_alipay_notify_url: '默认已填相对路径，域名用「基础配置」的网站地址。要换成别的地址时，填完整的 https 链接',
+            pay_alipay_notify_url:
+                '默认已填相对路径，域名用「基础配置」的网站地址。要换成别的地址时，填完整的 https 链接',
             pay_wechat_enabled: '是否开启微信支付',
             pay_wechat_app_id: '微信公众号或小程序AppID',
             pay_wechat_mch_id: '微信支付商户号',
@@ -697,7 +701,8 @@ export default {
                 '微信支付公钥ID（PUB_KEY_ID_ 开头），与微信支付公钥同时填写；两项都留空则自动下载平台证书',
             pay_wechat_public_key: '微信支付公钥 PEM 正文，与公钥ID同时填写',
             pay_wechat_cert_path: '商户API证书文件路径（apiclient_cert.pem）',
-            pay_wechat_notify_url: '默认已填相对路径，域名用「基础配置」的网站地址。要换成别的地址时，填完整的 https 链接',
+            pay_wechat_notify_url:
+                '默认已填相对路径，域名用「基础配置」的网站地址。要换成别的地址时，填完整的 https 链接',
             storage_driver: '选择文件存储方式',
             storage_upload_max_size: '单个文件最大上传大小，单位MB',
             storage_upload_allowed_ext: '允许上传的文件扩展名，英文逗号分隔',

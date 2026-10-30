@@ -1,191 +1,279 @@
 <template>
-    <div class="channel-config">
-        <!-- 公众号信息 -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><InfoFilled /></el-icon>
-                    <span>{{ $t('channel.official.title') }}</span>
-                </div>
-            </template>
-            <el-form
-                :model="formData"
-                label-width="150px"
-                label-position="left"
-                style="max-width: 600px"
-            >
-                <el-form-item :label="$t('channel.official.name')">
-                    <el-input
-                        v-model="formData.wechat_official_name"
-                        :placeholder="$t('channel.official.namePlaceholder')"
-                    />
-                </el-form-item>
-                <el-form-item :label="$t('channel.official.originalId')">
-                    <el-input
-                        v-model="formData.wechat_official_original_id"
-                        :placeholder="$t('channel.official.originalIdPlaceholder')"
-                    />
-                </el-form-item>
-                <el-form-item :label="$t('channel.official.qrcode')">
-                    <div class="qrcode-upload">
-                        <el-upload
-                            class="qrcode-uploader"
-                            :action="uploadUrl"
-                            :headers="uploadHeaders"
-                            :show-file-list="false"
-                            accept="image/*"
-                            :on-success="
-                                (res: any) => onUploadSuccess(res, 'wechat_official_qrcode')
-                            "
-                        >
-                            <el-image
-                                v-if="formData.wechat_official_qrcode"
-                                :src="getImageUrl(formData.wechat_official_qrcode)"
-                                fit="contain"
-                                class="qrcode-preview"
-                            />
-                            <div v-else class="qrcode-placeholder">
-                                <el-icon :size="24"><Plus /></el-icon>
-                                <span>{{ $t('channel.official.uploadQrcode') }}</span>
-                            </div>
-                        </el-upload>
-                        <div class="upload-tip">{{ $t('channel.official.qrcodeTip') }}</div>
-                    </div>
-                </el-form-item>
-            </el-form>
-        </el-card>
-
-        <!-- 开发信息 -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><Key /></el-icon>
-                    <span>{{ $t('channel.official.devInfo') }}</span>
-                </div>
-            </template>
-            <el-form
-                :model="formData"
-                label-width="150px"
-                label-position="left"
-                style="max-width: 600px"
-            >
-                <el-form-item label="AppID">
-                    <el-input
-                        v-model="formData.wechat_official_app_id"
-                        :placeholder="$t('channel.official.appIdPlaceholder')"
-                    />
-                </el-form-item>
-                <el-form-item label="AppSecret">
-                    <el-input
-                        v-model="formData.wechat_official_app_secret"
-                        type="password"
-                        show-password
-                        :placeholder="$t('channel.official.appSecretPlaceholder')"
-                    />
-                </el-form-item>
-            </el-form>
-        </el-card>
-
-        <!-- 服务器配置 -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><Monitor /></el-icon>
-                    <span>{{ $t('channel.official.serverConfig') }}</span>
-                </div>
-            </template>
-            <el-alert type="info" :closable="false" show-icon class="server-alert">
-                <template #title>{{ $t('channel.official.serverAlertTitle') }}</template>
-                <template #default>
-                    <div class="server-url">
-                        {{ $t('channel.official.serverUrlLabel')
-                        }}<el-text type="primary" tag="code">{{ serverUrl }}</el-text>
-                        <el-button type="primary" text size="small" @click="copyUrl">{{
-                            $t('common.copy')
-                        }}</el-button>
-                    </div>
-                </template>
-            </el-alert>
-            <el-form
-                :model="formData"
-                label-width="150px"
-                label-position="left"
-                style="max-width: 600px"
-                class="mt-16"
-            >
-                <el-form-item label="Token">
-                    <el-input
-                        v-model="formData.wechat_official_token"
-                        :placeholder="$t('channel.official.tokenPlaceholder')"
-                    />
-                </el-form-item>
-                <el-form-item label="EncodingAESKey">
-                    <el-input
-                        v-model="formData.wechat_official_aes_key"
-                        :placeholder="$t('channel.official.aesKeyPlaceholder')"
-                    />
-                    <div class="form-tip">{{ $t('channel.official.aesKeyTip') }}</div>
-                </el-form-item>
-                <el-form-item label="消息加密方式">
-                    <el-radio-group v-model="formData.wechat_official_encrypt_type">
-                        <el-radio value="1">明文模式</el-radio>
-                        <el-radio value="2">兼容模式</el-radio>
-                        <el-radio value="3">安全模式</el-radio>
-                    </el-radio-group>
-                    <div class="form-tip">
-                        需与微信公众号后台「开发 > 基本配置」中的加密方式保持一致
-                    </div>
-                </el-form-item>
-            </el-form>
-        </el-card>
-
-        <!-- 域名信息（只读） -->
-        <el-card shadow="never" class="config-card">
-            <template #header>
-                <div class="card-header">
-                    <el-icon><Link /></el-icon>
-                    <span>域名信息</span>
-                </div>
-            </template>
-            <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 16px">
-                <template #title>请将以下域名配置到微信公众号后台对应位置</template>
-            </el-alert>
-            <el-form label-width="150px" label-position="left" style="max-width: 600px">
-                <el-form-item label="业务域名">
-                    <el-input :model-value="siteDomain" disabled>
-                        <template #append>
-                            <el-button @click="copyText(siteDomain)">复制</el-button>
-                        </template>
-                    </el-input>
-                </el-form-item>
-                <el-form-item label="JS接口安全域名">
-                    <el-input :model-value="siteDomain" disabled>
-                        <template #append>
-                            <el-button @click="copyText(siteDomain)">复制</el-button>
-                        </template>
-                    </el-input>
-                </el-form-item>
-                <el-form-item label="网页授权域名">
-                    <el-input :model-value="siteDomain" disabled>
-                        <template #append>
-                            <el-button @click="copyText(siteDomain)">复制</el-button>
-                        </template>
-                    </el-input>
-                </el-form-item>
-            </el-form>
-        </el-card>
-
-        <!-- 保存按钮 -->
-        <div class="save-bar">
-            <el-button type="primary" :loading="loading" @click="handleSave">{{
-                $t('channel.saveConfig')
-            }}</el-button>
+    <div>
+        <!-- 页头 -->
+        <div class="page-head">
+            <div>
+                <div class="page-title">公众号配置</div>
+                <div class="page-desc">微信公众号基础信息与接口凭证配置</div>
+            </div>
+            <div class="page-actions">
+                <el-button @click="handleReset">{{ $t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="loading" @click="handleSave">{{
+                    $t('channel.saveConfig')
+                }}</el-button>
+            </div>
         </div>
+
+        <el-form :model="formData">
+            <div class="set-sections">
+                <!-- 公众号信息 -->
+                <div class="set-card">
+                    <div class="set-card-head">
+                        <h3>{{ $t('channel.official.title') }}</h3>
+                        <span class="dsc">公众号账号身份信息</span>
+                    </div>
+                    <div class="set-card-body">
+                        <!-- 公众号名称 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">{{ $t('channel.official.name') }}</div>
+                                <div class="set-item-desc">显示在文章底部与推送通知</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_name"
+                                    :placeholder="$t('channel.official.namePlaceholder')"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- 原始 ID -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">
+                                    {{ $t('channel.official.originalId') }}
+                                </div>
+                                <div class="set-item-desc">公众号唯一标识，格式为 gh_xxxxxxxx</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_original_id"
+                                    :placeholder="$t('channel.official.originalIdPlaceholder')"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- 公众号二维码 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">
+                                    {{ $t('channel.official.qrcode') }}
+                                </div>
+                                <div class="set-item-desc">
+                                    {{ $t('channel.official.qrcodeTip') }}
+                                </div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <div class="qrcode-upload">
+                                    <el-upload
+                                        class="qrcode-uploader"
+                                        :action="uploadUrl"
+                                        :headers="uploadHeaders"
+                                        :show-file-list="false"
+                                        accept="image/*"
+                                        :on-success="
+                                            (res: any) =>
+                                                onUploadSuccess(res, 'wechat_official_qrcode')
+                                        "
+                                    >
+                                        <el-image
+                                            v-if="formData.wechat_official_qrcode"
+                                            :src="getImageUrl(formData.wechat_official_qrcode)"
+                                            fit="contain"
+                                            class="qrcode-preview"
+                                        />
+                                        <div v-else class="qrcode-placeholder">
+                                            <el-icon :size="24"><Plus /></el-icon>
+                                            <span>{{ $t('channel.official.uploadQrcode') }}</span>
+                                        </div>
+                                    </el-upload>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 开发信息 -->
+                <div class="set-card">
+                    <div class="set-card-head">
+                        <h3>{{ $t('channel.official.devInfo') }}</h3>
+                        <span class="dsc">用于调用微信公众号开放接口的凭证</span>
+                    </div>
+                    <div class="set-card-body">
+                        <!-- AppID -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">AppID</div>
+                                <div class="set-item-desc">公众号开发者 ID</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_app_id"
+                                    :placeholder="$t('channel.official.appIdPlaceholder')"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- AppSecret -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">AppSecret</div>
+                                <div class="set-item-desc">公众号开发者密钥，请妥善保管</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_app_secret"
+                                    type="password"
+                                    show-password
+                                    :placeholder="$t('channel.official.appSecretPlaceholder')"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 服务器配置 -->
+                <div class="set-card">
+                    <div class="set-card-head">
+                        <h3>{{ $t('channel.official.serverConfig') }}</h3>
+                        <span class="dsc">配置微信公众号消息接收服务器</span>
+                    </div>
+                    <div class="set-card-body">
+                        <!-- 服务器地址提示 -->
+                        <el-alert type="info" :closable="false" show-icon class="server-alert">
+                            <template #title>{{
+                                $t('channel.official.serverAlertTitle')
+                            }}</template>
+                            <template #default>
+                                <div class="server-url">
+                                    {{ $t('channel.official.serverUrlLabel')
+                                    }}<el-text type="primary" tag="code">{{ serverUrl }}</el-text>
+                                    <el-button type="primary" text size="small" @click="copyUrl">{{
+                                        $t('common.copy')
+                                    }}</el-button>
+                                </div>
+                            </template>
+                        </el-alert>
+
+                        <!-- Token -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">Token</div>
+                                <div class="set-item-desc">用于验证消息真实性的令牌</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_token"
+                                    :placeholder="$t('channel.official.tokenPlaceholder')"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- EncodingAESKey -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">EncodingAESKey</div>
+                                <div class="set-item-desc">
+                                    {{ $t('channel.official.aesKeyTip') }}
+                                </div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input
+                                    style="width: 320px"
+                                    v-model="formData.wechat_official_aes_key"
+                                    :placeholder="$t('channel.official.aesKeyPlaceholder')"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- 消息加密方式 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">消息加密方式</div>
+                                <div class="set-item-desc">
+                                    需与微信公众号后台「开发 > 基本配置」中的加密方式保持一致
+                                </div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-radio-group v-model="formData.wechat_official_encrypt_type">
+                                    <el-radio value="1">明文模式</el-radio>
+                                    <el-radio value="2">兼容模式</el-radio>
+                                    <el-radio value="3">安全模式</el-radio>
+                                </el-radio-group>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 域名信息（只读） -->
+                <div class="set-card">
+                    <div class="set-card-head">
+                        <h3>域名信息</h3>
+                        <span class="dsc">需配置到微信公众号后台对应位置</span>
+                    </div>
+                    <div class="set-card-body">
+                        <el-alert type="warning" :closable="false" show-icon class="domain-alert">
+                            <template #title>请将以下域名配置到微信公众号后台对应位置</template>
+                        </el-alert>
+
+                        <!-- 业务域名 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">业务域名</div>
+                                <div class="set-item-desc">在此域名下可使用微信 JS-SDK</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input :model-value="siteDomain" disabled style="width: 320px">
+                                    <template #append>
+                                        <el-button @click="copyText(siteDomain)">复制</el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </div>
+
+                        <!-- JS接口安全域名 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">JS接口安全域名</div>
+                                <div class="set-item-desc">可调用微信 JS-SDK 接口的域名</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input :model-value="siteDomain" disabled style="width: 320px">
+                                    <template #append>
+                                        <el-button @click="copyText(siteDomain)">复制</el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </div>
+
+                        <!-- 网页授权域名 -->
+                        <div class="set-item">
+                            <div>
+                                <div class="set-item-label">网页授权域名</div>
+                                <div class="set-item-desc">用于网页授权获取用户信息的域名</div>
+                            </div>
+                            <div class="set-item-ctrl">
+                                <el-input :model-value="siteDomain" disabled style="width: 320px">
+                                    <template #append>
+                                        <el-button @click="copyText(siteDomain)">复制</el-button>
+                                    </template>
+                                </el-input>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </el-form>
     </div>
 </template>
 
 <script setup lang="ts" name="ChannelOfficialConfig">
-import { InfoFilled, Key, Link, Monitor, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -253,6 +341,9 @@ const copyUrl = () => {
     })
 }
 
+const originalFormData = reactive<Record<string, any>>({})
+const handleReset = () => Object.assign(formData, originalFormData)
+
 onMounted(async () => {
     try {
         loading.value = true
@@ -263,6 +354,7 @@ onMounted(async () => {
                 formData[c.config_key] = c.config_value || ''
             }
         })
+        Object.assign(originalFormData, formData)
     } catch {
         ElMessage.error(t('message.fetchFailed'))
     } finally {
@@ -288,78 +380,58 @@ const handleSave = async () => {
 </script>
 
 <style lang="scss" scoped>
-.channel-config {
-    .config-card {
-        margin-bottom: 16px;
+.server-alert {
+    margin-bottom: 16px;
+}
+
+.domain-alert {
+    margin-bottom: 16px;
+}
+
+.server-url {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.8;
+
+    code {
+        padding: 2px 6px;
+        background: var(--el-fill-color-light);
+        border-radius: 3px;
     }
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 600;
-    }
-    .server-alert {
-        margin-bottom: 0;
-    }
-    .mt-16 {
-        margin-top: 16px;
-    }
-    .server-url {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        line-height: 1.8;
-        code {
-            padding: 2px 6px;
-            background: var(--el-fill-color-light);
-            border-radius: 3px;
-        }
-    }
-    .form-tip {
-        font-size: 12px;
-        color: var(--el-text-color-placeholder);
-        margin-top: 4px;
-    }
-    .qrcode-upload {
-        .qrcode-uploader {
-            :deep(.el-upload) {
-                border: 1px dashed var(--el-border-color);
-                border-radius: 8px;
-                cursor: pointer;
-                overflow: hidden;
-                transition: border-color 0.2s;
-                &:hover {
-                    border-color: var(--el-color-primary);
-                }
+}
+
+.qrcode-upload {
+    .qrcode-uploader {
+        :deep(.el-upload) {
+            border: 1px dashed var(--el-border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: border-color 0.2s;
+
+            &:hover {
+                border-color: var(--el-color-primary);
             }
         }
-        .qrcode-preview {
-            width: 120px;
-            height: 120px;
-            display: block;
-        }
-        .qrcode-placeholder {
-            width: 120px;
-            height: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            color: var(--el-text-color-placeholder);
-            font-size: 12px;
-        }
-        .upload-tip {
-            font-size: 12px;
-            color: var(--el-text-color-placeholder);
-            margin-top: 6px;
-        }
     }
-    .save-bar {
-        padding: 12px 0;
+
+    .qrcode-preview {
+        width: 120px;
+        height: 120px;
+        display: block;
+    }
+
+    .qrcode-placeholder {
+        width: 120px;
+        height: 120px;
         display: flex;
-        justify-content: flex-start;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
     }
 }
 </style>

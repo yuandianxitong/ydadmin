@@ -46,7 +46,7 @@
                             class="cover-image"
                             :alt="t('articleMgmt.coverAlt')"
                         />
-                        <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
+                        <i v-else class="i-svg:plus cover-uploader-icon" />
                     </el-upload>
                     <div class="upload-tip">{{ t('articleMgmt.coverUploadTip') }}</div>
                 </div>
@@ -133,7 +133,6 @@
 </template>
 
 <script setup lang="ts">
-import { Plus } from '@element-plus/icons-vue'
 import type { FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { computed, nextTick, ref } from 'vue'
@@ -301,7 +300,7 @@ const handleTagConfirm = () => {
 
     .cover-uploader-icon {
         font-size: 28px;
-        color: var(--color-text-disabled);
+        color: var(--ink-400);
     }
 }
 

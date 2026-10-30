@@ -1,5 +1,11 @@
 <template>
     <div class="log-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('loginLog.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_log_login') }}</div>
+            </div>
+        </div>
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
                 <el-form-item :label="$t('admin.username')">
@@ -31,69 +37,86 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
             </el-form>
         </el-card>
 
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('loginLog.title') }}</div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('common.id')" prop="id" width="80" />
-                <el-table-column :label="$t('admin.username')" prop="username" width="120" />
-                <el-table-column :label="$t('loginLog.loginIp')" prop="ip" width="140" />
-                <el-table-column
-                    :label="$t('loginLog.browser')"
-                    prop="browser"
-                    width="160"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('loginLog.os')" prop="os" width="130" />
-                <el-table-column :label="$t('loginLog.loginResult')" width="100">
-                    <template #default="{ row }">
-                        <el-tag :type="row.login_result ? 'success' : 'danger'" size="small">
-                            {{
-                                row.login_result
-                                    ? $t('loginLog.resultOptions.success')
-                                    : $t('loginLog.resultOptions.failed')
-                            }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('loginLog.loginMessage')"
-                    prop="login_message"
-                    min-width="160"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('loginLog.loginTime')" prop="login_time" width="170" />
-            </el-table>
-
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="$t('loginLog.title')"
+            storage-key="system-log-login-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_system_log_login_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                {
+                    key: 'username',
+                    label: $t('proPage.table_system_log_login_vue_username'),
+                    width: 120
+                },
+                { key: 'ip', label: $t('proPage.table_system_log_login_vue_ip'), width: 140 },
+                {
+                    key: 'browser',
+                    label: $t('proPage.table_system_log_login_vue_browser'),
+                    width: 160,
+                    showOverflowTooltip: true
+                },
+                { key: 'os', label: $t('proPage.table_system_log_login_vue_os'), width: 130 },
+                {
+                    key: 'login_result',
+                    label: $t('proPage.table_system_log_login_vue_login_result'),
+                    width: 120
+                },
+                {
+                    key: 'login_message',
+                    label: $t('proPage.table_system_log_login_vue_login_message'),
+                    minWidth: 160,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'login_time',
+                    label: $t('proPage.table_system_log_login_vue_login_time'),
+                    width: 200
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #login_result="{ row }">
+                <el-tag :type="row.login_result ? 'success' : 'danger'" size="small">
+                    {{
+                        row.login_result
+                            ? $t('loginLog.resultOptions.success')
+                            : $t('loginLog.resultOptions.failed')
+                    }}
+                </el-tag>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
+
 
 import { logApi } from '@/api/log'
 import { useListPage } from '@/hooks/useListPage'

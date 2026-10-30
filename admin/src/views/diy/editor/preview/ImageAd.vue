@@ -3,7 +3,7 @@
     <template v-if="items.length">
       <!-- 无图条目渲染占位块而非空 src 的 0 高 img，避免组件在画布上不可见被遗漏 -->
       <template v-for="(it, i) in items" :key="i">
-        <img v-if="it.image" :src="it.image" class="pv-ad__img" />
+        <img v-if="it.image" :src="appStore.getImageUrl(it.image)" class="pv-ad__img" />
         <div v-else class="pv-empty">图片广告</div>
       </template>
     </template>
@@ -12,6 +12,10 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const items = computed(() => props.props?.items || [])
 const layout = computed(() => props.props?.layout || 'single')

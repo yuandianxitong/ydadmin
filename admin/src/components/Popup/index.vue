@@ -14,7 +14,9 @@
             @closed="close"
         >
             <!-- 弹窗内容 -->
-            <template v-if="title" #header>{{ title }}</template>
+            <template v-if="title" #header="{ titleId, titleClass }">
+                <span :id="titleId" :class="titleClass">{{ title }}</span>
+            </template>
 
             <!-- 自定义内容 -->
             <slot>{{ content }}</slot>
@@ -27,6 +29,7 @@
                     <el-button
                         v-if="actualConfirmText"
                         type="primary"
+                        :loading="confirmLoading"
                         @click="handleEvent('confirm')"
                     >
                         {{ actualConfirmText }}
@@ -42,6 +45,10 @@ import { useI18n } from 'vue-i18n'
 
 export default defineComponent({
     props: {
+        confirmLoading: {
+            type: Boolean,
+            default: false
+        },
         title: {
             // 弹窗标题
             type: String,

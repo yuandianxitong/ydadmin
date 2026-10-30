@@ -1,5 +1,15 @@
 import colors from 'css-color-function'
 
+const PRO_PRIMARY_PALETTES: Record<string, [string, string, string, string]> = {
+    '#4f6bff': ['#3f58e6', '#7a8dff', '#dde3ff', '#eef1ff'],
+    '#0ea5e9': ['#0284c7', '#38bdf8', '#bae6fd', '#e0f2fe'],
+    '#14b8a6': ['#0d9488', '#5eead4', '#ccf5ed', '#e6fbf7'],
+    '#8b5cf6': ['#7c3aed', '#a78bfa', '#e9dcff', '#f3edff'],
+    '#f97316': ['#ea580c', '#fb923c', '#ffe1c6', '#fff4e9']
+}
+
+export const PRO_PRESET_COLORS = Object.keys(PRO_PRIMARY_PALETTES)
+
 /** Toggle html.dark class */
 export const applyDarkClass = (isDark: boolean) => {
     document.documentElement.classList.toggle('dark', isDark)
@@ -68,6 +78,19 @@ export const setTheme = (options: Record<string, string>, isDark = false) => {
     const varsMap: Record<string, string> = Object.keys(options).reduce((prev, key) => {
         return Object.assign(prev, generateVars(options[key], key, isDark))
     }, {})
+
+    // Pro presets use hand-tuned tints; custom colors and dark themes keep the existing generator.
+    const preset = PRO_PRIMARY_PALETTES[options.primary?.toLowerCase()]
+    if (!isDark && preset) {
+        Object.assign(varsMap, {
+            '--el-color-primary-dark-2': preset[0],
+            '--el-color-primary-light-3': preset[1],
+            '--el-color-primary-light-5': preset[2],
+            '--el-color-primary-light-7': preset[2],
+            '--el-color-primary-light-8': preset[3],
+            '--el-color-primary-light-9': preset[3]
+        })
+    }
 
     // 行内变量优先于 html.dark 及懒加载组件样式，刷新后也使用已保存的主色。
     for (const [key, value] of Object.entries(varsMap)) {

@@ -3,7 +3,7 @@
   <div class="pv-nav">
     <div v-for="(it, i) in items" :key="i" class="pv-nav__item" :style="{ width: itemWidth }">
       <div class="pv-nav__icon-wrap">
-        <img v-if="it.icon" :src="it.icon" class="pv-nav__icon" />
+        <img v-if="it.icon" :src="appStore.getImageUrl(it.icon)" class="pv-nav__icon" />
         <div v-else class="pv-nav__icon pv-ph"></div>
         <span v-if="it.badge_key" class="pv-badge-dot" />
       </div>
@@ -14,6 +14,10 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const items = computed(() => props.props?.items || [])
 const cols = computed(() => props.props?.columns || 4)

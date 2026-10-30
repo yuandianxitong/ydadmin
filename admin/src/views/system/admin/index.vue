@@ -1,5 +1,17 @@
 <template>
     <div class="admin-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('admin.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_admin_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button v-has-perm="['system.admin.create']" type="primary" @click="handleAdd">
+                    <i class="i-svg:plus" />
+                    {{ $t('admin.addAdmin') }}
+                </el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -32,11 +44,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -44,150 +56,173 @@
         </el-card>
 
         <!-- 操作区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('admin.title') }}</div>
-                <div class="table-actions">
-                    <el-button
-                        v-has-perm="['system.admin.create']"
-                        type="primary"
-                        @click="handleAdd"
-                    >
-                        <el-icon><Plus /></el-icon>
-                        {{ $t('admin.addAdmin') }}
-                    </el-button>
-                    <el-button
-                        v-has-perm="['system.admin.delete']"
-                        type="danger"
-                        :disabled="!multipleSelection.length"
-                        @click="handleBatchDelete(multipleSelection.map((item) => item.id))"
-                    >
-                        <el-icon><Delete /></el-icon>
-                        {{ $t('common.batchDelete') }}
-                    </el-button>
-                </div>
-            </div>
-
-            <!-- 表格 -->
-            <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
-                <el-table-column type="selection" width="55" />
-
-                <el-table-column label="ID" prop="id" width="80" />
-
-                <el-table-column :label="$t('admin.avatar')" width="80">
-                    <template #default="{ row }">
-                        <el-avatar
-                            :size="40"
-                            :src="appStore.getImageUrl(row.avatar)"
-                            :alt="row.nickname || row.username"
-                        >
-                            {{ (row.nickname || row.username)?.[0] }}
-                        </el-avatar>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('admin.username')" prop="username" width="120" />
-
-                <el-table-column :label="$t('admin.nickname')" prop="nickname" width="120" />
-
-                <el-table-column
-                    :label="$t('admin.email')"
-                    prop="email"
-                    width="180"
-                    show-overflow-tooltip
+        <ProTable
+            :title="$t('admin.title')"
+            storage-key="system-admin-list"
+            :columns="[
+                {
+                    key: 'id',
+                    label: $t('proPage.table_system_admin_index_vue_id'),
+                    width: 80,
+                    required: true
+                },
+                {
+                    key: 'avatar',
+                    label: $t('proPage.table_system_admin_index_vue_avatar'),
+                    width: 100
+                },
+                {
+                    key: 'username',
+                    label: $t('proPage.table_system_admin_index_vue_username'),
+                    minWidth: 120
+                },
+                {
+                    key: 'nickname',
+                    label: $t('proPage.table_system_admin_index_vue_nickname'),
+                    width: 140
+                },
+                {
+                    key: 'email',
+                    label: $t('proPage.table_system_admin_index_vue_email'),
+                    width: 180,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'mobile',
+                    label: $t('proPage.table_system_admin_index_vue_mobile'),
+                    width: 160
+                },
+                {
+                    key: 'department',
+                    label: $t('proPage.table_system_admin_index_vue_department'),
+                    width: 140
+                },
+                {
+                    key: 'position',
+                    label: $t('proPage.table_system_admin_index_vue_position'),
+                    width: 120,
+                    defaultVisible: false
+                },
+                {
+                    key: 'roles',
+                    label: $t('proPage.table_system_admin_index_vue_roles'),
+                    width: 200
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_system_admin_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'last_login_time',
+                    label: $t('proPage.table_system_admin_index_vue_last_login_time'),
+                    width: 160,
+                    defaultVisible: false
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_system_admin_index_vue_created_at'),
+                    width: 160,
+                    defaultVisible: false
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_system_admin_index_vue_action'),
+                    width: 220,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            selection
+            @selection-change="handleSelectionChange"
+            ><template #avatar="{ row }">
+                <el-avatar
+                    :size="40"
+                    :src="appStore.getImageUrl(row.avatar)"
+                    :alt="row.nickname || row.username"
+                >
+                    {{ (row.nickname || row.username)?.[0] }}
+                </el-avatar>
+            </template>
+            <template #roles="{ row }">
+                <el-tag
+                    v-for="role in row.roles"
+                    :key="role.id"
+                    size="small"
+                    effect="light"
+                    class="role-tag"
+                >
+                    {{ role.title }}
+                </el-tag>
+                <span v-if="!row.roles?.length" class="text-gray-400">{{
+                    $t('common.noRole')
+                }}</span>
+            </template>
+            <template #status="{ row }">
+                <el-switch
+                    v-model="row.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                    :disabled="row.id == 1 || !userStore.hasPermission('system.admin.update')"
+                    @change="handleStatusChange(row)"
                 />
-
-                <el-table-column :label="$t('admin.mobile')" prop="mobile" width="140" />
-
-                <el-table-column :label="$t('admin.department')" prop="department" width="120" />
-
-                <el-table-column :label="$t('admin.position')" prop="position" width="120" />
-
-                <el-table-column :label="$t('admin.role')" width="200">
-                    <template #default="{ row }">
-                        <el-tag
-                            v-for="role in row.roles"
-                            :key="role.id"
-                            size="small"
-                            effect="light"
-                            class="role-tag"
-                        >
-                            {{ role.title }}
-                        </el-tag>
-                        <span v-if="!row.roles?.length" class="text-gray-400">{{
-                            $t('common.noRole')
-                        }}</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('common.status')" width="100">
-                    <template #default="{ row }">
-                        <el-switch
-                            v-model="row.status"
-                            :active-value="1"
-                            :inactive-value="0"
-                            :disabled="
-                                row.id == 1 || !userStore.hasPermission('system.admin.update')
-                            "
-                            @change="handleStatusChange(row)"
-                        />
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('common.lastLogin')"
-                    prop="last_login_time"
-                    width="180"
-                />
-
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="180" />
-
-                <el-table-column :label="$t('common.operation')" width="220" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['system.admin.update']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleEdit(row as AdminInfo)"
-                        >
-                            {{ $t('common.edit') }}
-                        </el-button>
-                        <el-button
-                            v-has-perm="['system.admin.update']"
-                            type="warning"
-                            size="small"
-                            text
-                            @click="handleResetPassword(row as AdminInfo)"
-                        >
-                            {{ $t('common.resetPassword') }}
-                        </el-button>
-                        <el-button
-                            v-if="row.id != 1"
-                            v-has-perm="['system.admin.delete']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDelete(row.id, row.username)"
-                        >
-                            {{ $t('common.delete') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['system.admin.update']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="handleEdit(row as AdminInfo)"
+                >
+                    {{ $t('common.edit') }}
+                </el-button>
+                <el-button
+                    v-has-perm="['system.admin.update']"
+                    type="warning"
+                    size="small"
+                    text
+                    @click="handleResetPassword(row as AdminInfo)"
+                >
+                    {{ $t('common.resetPassword') }}
+                </el-button>
+                <el-button
+                    v-if="row.id != 1"
+                    v-has-perm="['system.admin.delete']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDelete(row.id, row.username)"
+                >
+                    {{ $t('common.delete') }}
+                </el-button>
+            </template>
+            <template #batchActions
+                ><el-button
+                    v-has-perm="['system.admin.delete']"
+                    type="danger"
+                    :disabled="!multipleSelection.length"
+                    @click="handleBatchDelete(multipleSelection.map((item) => item.id))"
+                >
+                    <i class="i-svg:trash-2" />
+                    {{ $t('common.batchDelete') }}
+                </el-button></template
+            >
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 新增/编辑弹窗 -->
         <AdminForm
@@ -208,7 +243,7 @@
 </template>
 
 <script setup lang="ts" name="AdminList">
-import { Delete, Plus, Refresh, Search } from '@element-plus/icons-vue'
+
 import { onMounted, ref } from 'vue'
 
 import { adminApi } from '@/api/admin'

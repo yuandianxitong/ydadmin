@@ -90,6 +90,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // 手机模拟器状态栏图（375×44 浅底深字变体，来自设计套件；显示高度收为 28px 见样式）
 import STATUSBAR_IMG from '@/assets/images/sim-statusbar.svg'
+import { useAppStore } from '@/store/modules/app.store'
 
 import Banner from './preview/Banner.vue'
 import CategoryNav from './preview/CategoryNav.vue'
@@ -120,6 +121,7 @@ const props = defineProps<{
 }>()
 
 const { isPlugin, metaOf } = usePluginWidgets()
+const appStore = useAppStore()
 const emit = defineEmits<{
     /** 传空字符串表示取消选中 */
     (e: 'select', id: string): void
@@ -150,7 +152,7 @@ function renderer(t: string) {
     return MAP[t]
 }
 function styleOf(c: any) {
-    return wrapComponentStyle(c.type, c.props?.componentStyle)
+    return wrapComponentStyle(c.type, c.props?.componentStyle, (url) => appStore.getImageUrl(url))
 }
 const listEl = ref<HTMLElement>()
 let sortable: Sortable | null = null
@@ -276,6 +278,21 @@ onBeforeUnmount(() => {
 }
 /* 对齐 Shop：机身固定高度（clamp 自适应视口），内容在 .sim-list 内部滚动 */
 .phone {
+    /* Preserve content typography while the surrounding admin uses Pro density. */
+    font-size: 16px;
+    font-family:
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        'Segoe UI',
+        Roboto,
+        'Helvetica Neue',
+        Arial,
+        'Noto Sans',
+        'PingFang SC',
+        'Hiragino Sans GB',
+        'Microsoft Yahei',
+        sans-serif;
     width: 375px;
     height: clamp(600px, calc(100vh - 120px), 844px);
     background: var(--color-surface);
@@ -283,6 +300,13 @@ onBeforeUnmount(() => {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
     display: flex;
     flex-direction: column;
+}
+/* Keep the content canvas on its existing palette, independently of the admin skin. */
+:global(html:not(.dark)) .phone {
+    --color-text-primary: #1f2328;
+    --color-text-secondary: #4b5563;
+    --color-text-tertiary: #6b7280;
+    --color-divider: #eeeeee;
 }
 /* SVG 原生 375×44，按用户要求收到 28px 高；cover 垂直裁掉上下留白避免图标拉伸变形 */
 .sim-statusbar {

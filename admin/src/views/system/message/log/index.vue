@@ -1,5 +1,11 @@
 <template>
     <div class="message-log">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('messageLog.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_message_log_index') }}</div>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -48,58 +54,76 @@
         </el-card>
 
         <!-- 表格 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('messageLog.title') }}</div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column
-                    :label="$t('messageTemplate.templateCode')"
-                    prop="template_code"
-                    width="160"
-                />
-                <el-table-column :label="$t('messageLog.channel')" width="100" align="center">
-                    <template #default="{ row }">
-                        <el-tag size="small" :type="channelTagType[row.channel]">
-                            {{ channelTextMap[row.channel] || row.channel }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('messageLog.receiver')"
-                    prop="receiver"
-                    min-width="180"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('common.status')" width="90" align="center">
-                    <template #default="{ row }">
-                        <el-tag :type="statusTagType[row.status]" size="small">
-                            {{ statusTextMap[row.status] }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('messageLog.errorMessage')"
-                    prop="error_msg"
-                    min-width="200"
-                    show-overflow-tooltip
-                />
-                <el-table-column :label="$t('messageLog.sendTime')" prop="sent_at" width="160" />
-                <el-table-column :label="$t('common.createdAt')" prop="created_at" width="160" />
-            </el-table>
-
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+        <ProTable
+            :title="$t('messageLog.title')"
+            storage-key="system-message-log-list"
+            :columns="[
+                {
+                    key: 'template_code',
+                    label: $t('proPage.table_system_message_log_index_vue_template_code'),
+                    width: 160,
+                    required: true
+                },
+                {
+                    key: 'channel',
+                    label: $t('proPage.table_system_message_log_index_vue_channel'),
+                    width: 120,
+                    align: 'center'
+                },
+                {
+                    key: 'receiver',
+                    label: $t('proPage.table_system_message_log_index_vue_receiver'),
+                    minWidth: 180,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_system_message_log_index_vue_status'),
+                    width: 90,
+                    align: 'center'
+                },
+                {
+                    key: 'error_msg',
+                    label: $t('proPage.table_system_message_log_index_vue_error_msg'),
+                    minWidth: 200,
+                    showOverflowTooltip: true
+                },
+                {
+                    key: 'sent_at',
+                    label: $t('proPage.table_system_message_log_index_vue_sent_at'),
+                    width: 160
+                },
+                {
+                    key: 'created_at',
+                    label: $t('proPage.table_system_message_log_index_vue_created_at'),
+                    width: 160
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #channel="{ row }">
+                <el-tag size="small" :type="channelTagType[row.channel]">
+                    {{ channelTextMap[row.channel] || row.channel }}
+                </el-tag>
+            </template>
+            <template #status="{ row }">
+                <el-tag :type="statusTagType[row.status]" size="small">
+                    {{ statusTextMap[row.status] }}
+                </el-tag>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
     </div>
 </template>
 

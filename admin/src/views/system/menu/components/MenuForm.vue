@@ -1,13 +1,34 @@
 <template>
-    <el-dialog
+    <component
+        :is="inline ? 'section' : 'el-dialog'"
+        :class="{ 'pro-inline-menu-form': inline }"
         v-model="visible"
         :title="form.id ? $t('menu.editMenu') : $t('menu.addMenu')"
         width="600px"
         :close-on-click-modal="false"
         @closed="handleDialogClosed"
     >
-        <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-            <!-- 上级菜单 -->
+        <div v-if="inline" class="form-sec-title">{{ $t('proPage.menuBasicInfo') }}</div>
+        <el-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            :label-width="inline ? 'auto' : '100px'"
+            :label-position="inline ? 'top' : 'right'"
+            :disabled="
+                inline &&
+                !(form.id
+                    ? menuUser.hasPermission('system.menu.update')
+                    : menuUser.hasPermission('system.menu.create'))
+            "
+        >
+            <el-form-item :label="$t('menu.menuType')" prop="type">
+                <el-radio-group v-model="form.type" @change="handleTypeChange">
+                    <el-radio :value="1">{{ $t('menu.typeOptions.directory') }}</el-radio>
+                    <el-radio :value="2">{{ $t('menu.typeOptions.menu') }}</el-radio>
+                    <el-radio :value="3">{{ $t('menu.typeOptions.button') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
             <el-form-item :label="$t('menu.parentMenu')" prop="parent_id">
                 <el-tree-select
                     v-model="form.parent_id"
@@ -21,60 +42,24 @@
                     style="width: 100%"
                 />
             </el-form-item>
-
-            <!-- 菜单类型 -->
-            <el-form-item :label="$t('menu.menuType')" prop="type">
-                <el-radio-group v-model="form.type" @change="handleTypeChange">
-                    <el-radio :value="1">{{ $t('menu.typeOptions.directory') }}</el-radio>
-                    <el-radio :value="2">{{ $t('menu.typeOptions.menu') }}</el-radio>
-                    <el-radio :value="3">{{ $t('menu.typeOptions.button') }}</el-radio>
-                </el-radio-group>
-            </el-form-item>
-
-            <!-- 菜单名称 -->
             <el-form-item :label="$t('menu.menuName')" prop="title">
                 <el-input v-model="form.title" :placeholder="$t('menu.namePlaceholder')" />
             </el-form-item>
-
-            <!-- 路由名称（按钮类型不显示） -->
-            <el-form-item v-if="form.type !== 3" :label="$t('menu.routeName')" prop="name">
-                <el-input v-model="form.name" :placeholder="$t('menu.routeNamePlaceholder')" />
+            <el-form-item :label="$t('menu.permCode')" prop="permission">
+                <el-input v-model="form.permission" :placeholder="$t('menu.permPlaceholder')" />
             </el-form-item>
-
-            <!-- 路由路径（按钮类型不显示） -->
             <el-form-item v-if="form.type !== 3" :label="$t('menu.routePath')" prop="path">
                 <el-input v-model="form.path" :placeholder="$t('menu.routePathPlaceholder')" />
             </el-form-item>
-
-            <!-- 组件路径（仅菜单类型显示） -->
-            <el-form-item
-                v-if="form.type === 2"
-                :label="$t('menu.componentPath')"
-                prop="component"
-            >
-                <el-input
-                    v-model="form.component"
-                    :placeholder="$t('menu.componentPlaceholder')"
-                >
+            <el-form-item v-if="form.type === 2" :label="$t('menu.componentPath')" prop="component">
+                <el-input v-model="form.component" :placeholder="$t('menu.componentPlaceholder')">
                     <template #prepend>src/views/</template>
                     <template #append>.vue</template>
                 </el-input>
             </el-form-item>
-
-            <!-- 图标（按钮类型不显示） -->
-            <el-form-item v-if="form.type !== 3" :label="$t('menu.icon')" prop="icon">
-                <IconSelect v-model="form.icon" width="100%" />
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.routeName')" prop="name">
+                <el-input v-model="form.name" :placeholder="$t('menu.routeNamePlaceholder')" />
             </el-form-item>
-
-            <!-- 权限标识 -->
-            <el-form-item :label="$t('menu.permCode')" prop="permission">
-                <el-input
-                    v-model="form.permission"
-                    :placeholder="$t('menu.permPlaceholder')"
-                />
-            </el-form-item>
-
-            <!-- 排序 -->
             <el-form-item :label="$t('common.sort')" prop="sort">
                 <el-input-number
                     v-model="form.sort"
@@ -84,50 +69,55 @@
                     style="width: 100%"
                 />
             </el-form-item>
-
-            <!-- 状态 -->
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.externalLink')">
+                <el-input
+                    v-model="metaForm.iframe"
+                    :placeholder="$t('menu.externalLinkPlaceholder')"
+                />
+            </el-form-item>
+            <div v-if="inline" class="form-sec-title inline-behavior-title">
+                {{ $t('proPage.menuDisplayBehavior') }}
+            </div>
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.icon')" prop="icon">
+                <IconSelect v-model="form.icon" width="100%" />
+            </el-form-item>
             <el-form-item :label="$t('common.status')" prop="status">
-                <el-radio-group v-model="form.status">
+                <el-switch
+                    v-if="inline"
+                    v-model="form.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                />
+                <el-radio-group v-else v-model="form.status">
                     <el-radio :value="1">{{ $t('common.enable') }}</el-radio>
                     <el-radio :value="0">{{ $t('common.disable') }}</el-radio>
                 </el-radio-group>
             </el-form-item>
-
-            <!-- ============ 高级选项（按钮类型不显示） ============ -->
-            <template v-if="form.type !== 3">
-                <el-divider content-position="left">
-                    <span class="section-title">{{ $t('menu.advancedOptions') }}</span>
-                </el-divider>
-
-                <el-form-item :label="$t('menu.isHidden')">
-                    <el-switch v-model="metaForm.hidden" />
-                </el-form-item>
-
-                <el-form-item :label="$t('menu.isCache')">
-                    <el-switch v-model="metaForm.cache" />
-                </el-form-item>
-
-                <el-form-item :label="$t('menu.isAffix')">
-                    <el-switch v-model="metaForm.affix" />
-                </el-form-item>
-
-                <el-form-item :label="$t('menu.badgeText')">
-                    <el-input
-                        v-model="metaForm.badge"
-                        :placeholder="$t('menu.badgeText')"
-                    />
-                </el-form-item>
-
-                <el-form-item :label="$t('menu.externalLink')">
-                    <el-input
-                        v-model="metaForm.iframe"
-                        :placeholder="$t('menu.externalLinkPlaceholder')"
-                    />
-                </el-form-item>
-            </template>
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.isCache')">
+                <el-switch v-model="metaForm.cache" />
+            </el-form-item>
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.isAffix')">
+                <el-switch v-model="metaForm.affix" />
+            </el-form-item>
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.isHidden')">
+                <el-switch v-model="metaForm.hidden" />
+            </el-form-item>
+            <el-form-item v-if="form.type !== 3" :label="$t('menu.badgeText')">
+                <el-input v-model="metaForm.badge" :placeholder="$t('menu.badgeText')" />
+            </el-form-item>
         </el-form>
 
-        <template #footer>
+        <div v-if="inline" class="form-foot">
+            <el-button @click="emit('cancel')">{{ $t('common.cancel') }}</el-button>
+            <el-button
+                v-has-perm="form.id ? 'system.menu.update' : 'system.menu.create'"
+                type="primary"
+                :loading="submitting"
+                @click="handleSubmit"
+                >{{ $t('common.save') }}</el-button
+            >
+        </div>
+        <template v-if="!inline" #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose">{{ $t('common.cancel') }}</el-button>
                 <el-button type="primary" :loading="submitting" @click="handleSubmit">
@@ -135,7 +125,7 @@
                 </el-button>
             </span>
         </template>
-    </el-dialog>
+    </component>
 </template>
 
 <script setup lang="ts" name="MenuForm">
@@ -143,16 +133,19 @@ import type { FormRules } from 'element-plus'
 import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import IconSelect from '@/components/IconSelect/index.vue'
 import { menuApi } from '@/api/menu'
+import IconSelect from '@/components/IconSelect/index.vue'
 import { useFormDialog } from '@/hooks/useFormDialog'
+import { useUserStore } from '@/store'
 import type { MenuInfo, MenuMeta, MenuReq } from '@/types/system'
 
 const { t } = useI18n()
+const menuUser = useUserStore()
 
 type MenuFormData = MenuReq & { id?: number }
 
 interface Props {
+    inline?: boolean
     modelValue: boolean
     formData: Partial<MenuInfo>
     /**
@@ -167,6 +160,7 @@ interface Props {
 interface Emits {
     (e: 'update:modelValue', value: boolean): void
     (e: 'success'): void
+    (e: 'cancel'): void
 }
 
 const props = defineProps<Props>()
@@ -216,6 +210,7 @@ const { form, formRef, submitting, visible, handleSubmit, handleClose, resetForm
                 meta: payload.type !== 3 ? { ...metaForm } : undefined
             } as MenuReq)
         },
+        resetOnClose: !props.inline,
         sourceData: () => props.formData as Partial<MenuFormData>
     })
 
@@ -334,5 +329,39 @@ const handleDialogClosed = () => {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+}
+
+.pro-inline-menu-form {
+    :deep(.el-form) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: 24px;
+    }
+    :deep(.el-form-item) {
+        min-width: 0;
+        margin-bottom: 18px;
+    }
+    :deep(.el-form-item__label) {
+        line-height: 1.5;
+        height: auto;
+        margin-bottom: 6px;
+        font-weight: 400;
+        font-size: 12.5px;
+    }
+    :deep(.el-divider) {
+        grid-column: 1 / -1;
+    }
+    .form-sec-title {
+        margin-top: 0;
+    }
+    .inline-behavior-title {
+        grid-column: 1 / -1;
+        margin: 4px 0 14px;
+    }
+}
+@media (max-width: 768px) {
+    .pro-inline-menu-form :deep(.el-form) {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 </style>

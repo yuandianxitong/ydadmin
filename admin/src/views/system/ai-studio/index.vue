@@ -491,4 +491,15 @@ onMounted(fetchTables)
         }
     }
 }
+
+@media (max-width: 1100px) {
+    .ai-studio-page {
+        flex-direction: column;
+    }
+
+    .left-panel,
+    .right-panel {
+        width: 100%;
+    }
+}
 </style>

@@ -1,24 +1,53 @@
 <template>
-    <div class="app-tabs flex bg-body">
-        <div class="flex-1 min-w-0">
-            <el-tabs
-                v-model="currentTab"
-                :closable="tabsLists.length > 1"
-                @tab-change="handleChange"
-                @tab-remove="removeTab"
+    <div class="tabs-wrap flex relative bg-[var(--card-bg)] border-b border-ink-100">
+        <div
+            class="tabs flex flex-1 items-center px-4 gap-1.5 min-w-0 whitespace-nowrap overflow-x-auto overflow-y-hidden"
+        >
+            <div
+                v-for="item in tabsLists"
+                :key="item.fullPath"
+                class="tab inline-flex items-center gap-1.5 px-3 py-1.5 rounded flex-shrink-0 cursor-pointer select-none"
+                :class="{ active: currentTab === item.fullPath }"
+                @click="handleChange(item.fullPath)"
             >
-                <template v-for="item in tabsLists" :key="item.fullPath">
-                    <el-tab-pane
-                        :label="translateRouteTitle(item.title, item.name)"
-                        :name="item.fullPath"
-                    ></el-tab-pane>
-                </template>
-            </el-tabs>
+                <span class="tab-dot flex-shrink-0" />
+                <span class="tab-label flex-1 truncate">{{
+                    translateRouteTitle(item.title, item.name)
+                }}</span>
+                <span
+                    v-if="tabsLists.length > 1"
+                    class="tab-close flex-shrink-0 rounded-full"
+                    @click.stop="removeTab(item.fullPath)"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    >
+                        <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                </span>
+            </div>
         </div>
+
         <el-dropdown @command="handleCommand">
-            <span class="flex items-center px-3">
-                <div class="i-svg:arrow-down"></div>
-            </span>
+            <div class="tabs-actions flex-center px-2.5 flex-shrink-0 border-l border-ink-100">
+                <span class="tabs-act-btn flex-center w-26px h-26px rounded cursor-pointer">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="width: 14px; height: 14px; transform: rotate(90deg)"
+                    >
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </span>
+            </div>
             <template #dropdown>
                 <el-dropdown-menu>
                     <el-dropdown-item command="closeCurrent">{{
@@ -82,106 +111,102 @@ const handleCommand = (command: string) => {
 </script>
 
 <style lang="scss" scoped>
-.app-tabs {
-    :deep(.el-tabs) {
-        height: 40px;
+.tabs-wrap {
+    height: var(--tabs-h);
+    z-index: 1;
+    box-shadow: var(--shadow-md);
+    clip-path: inset(0 0 -40px);
+}
 
-        .el-tabs {
-            &__header {
-                margin-bottom: 0;
-            }
-
-            &__content {
-                display: none;
-            }
-
-            &__nav-next,
-            &__nav-prev {
-                height: 40px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 24px;
-
-                // 隐藏默认 Element Plus 箭头图标
-                .el-icon {
-                    display: none;
-                }
-
-                // 用本地 SVG 替代
-                &::after {
-                    content: '';
-                    display: block;
-                    width: 16px;
-                    height: 16px;
-                    background-color: var(--el-text-color-primary);
-                }
-
-                &:hover::after {
-                    background-color: var(--el-color-primary);
-                }
-            }
-
-            &__nav-prev::after {
-                mask: url('@/assets/icons/chevron-left.svg') no-repeat center / contain;
-                -webkit-mask: url('@/assets/icons/chevron-left.svg') no-repeat center / contain;
-            }
-
-            &__nav-next::after {
-                mask: url('@/assets/icons/chevron-right.svg') no-repeat center / contain;
-                -webkit-mask: url('@/assets/icons/chevron-right.svg') no-repeat center / contain;
-            }
-
-            &__nav-wrap::after {
-                height: 0;
-            }
-
-            &__item {
-                font-weight: normal;
-                padding: 0 15px !important;
-                box-sizing: border-box;
-
-                &.is-active {
-                    background-color: var(--color-brand-ghost);
-
-                    &::before {
-                        content: '';
-                        display: inline-block;
-                        width: 6px;
-                        height: 6px;
-                        background-color: var(--el-color-primary);
-                        margin-right: 6px;
-                        border-radius: 50%;
-                        vertical-align: 2px;
-                    }
-
-                    &::after {
-                        position: absolute;
-                        content: '';
-                        display: block;
-                        top: 0;
-                        height: 2px;
-                        left: 0;
-                        width: 100%;
-                        background-color: var(--el-color-primary);
-                    }
-                }
-
-                .is-icon-close {
-                    color: var(--el-text-color-regular);
-                    vertical-align: -2px;
-
-                    &:hover {
-                        color: var(--color-white);
-                        background-color: var(--el-color-danger);
-                    }
-                }
-            }
-
-            &__active-bar {
-                display: none;
-            }
+.tabs {
+    scrollbar-width: thin;
+    &::-webkit-scrollbar {
+        height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: var(--ink-200);
+        border-radius: 2px;
+        &:hover {
+            background: var(--ink-300);
         }
+    }
+}
+
+.tab {
+    font-size: 12.5px;
+    color: var(--ink-500);
+    border: 1px solid transparent;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
+
+    .tab-close {
+        display: none;
+    }
+
+    &:hover {
+        background: var(--ink-50);
+        color: var(--ink-700);
+        .tab-close {
+            display: flex;
+        }
+    }
+
+    &.active {
+        background: var(--brand-50);
+        color: var(--brand-500);
+        border-color: var(--brand-100);
+        .tab-dot {
+            background: var(--brand-500);
+        }
+        .tab-close {
+            display: flex;
+        }
+    }
+}
+
+.tab-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ink-300);
+}
+
+.tab-close {
+    width: 14px;
+    height: 14px;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-400);
+    transition:
+        background 0.15s,
+        color 0.15s;
+
+    svg {
+        width: 10px;
+        height: 10px;
+    }
+
+    &:hover {
+        background: var(--brand-500);
+        color: #fff;
+    }
+}
+
+.tabs-actions {
+    height: var(--tabs-h);
+}
+
+.tabs-act-btn {
+    color: var(--ink-500);
+    transition:
+        background 0.15s,
+        color 0.15s;
+
+    &:hover {
+        background: var(--ink-100);
+        color: var(--ink-800);
     }
 }
 </style>

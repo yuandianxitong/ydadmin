@@ -1,88 +1,84 @@
 <template>
-    <!-- 一级菜单 -->
-    <aside class="flex-shrink-0 w-[76px] h-full bg-sidebar flex flex-col items-center pt-2">
-        <Logo />
-        <ul class="w-full space-y-2 text-white px-1.5 pt-4">
-            <li
+    <!-- 一级菜单（图标栏） -->
+    <aside class="sidebar-main flex-shrink-0 h-full flex flex-col">
+        <div class="sidebar-logo flex-center flex-shrink-0">
+            <div class="logo-mark flex-center">
+                <Logo />
+            </div>
+        </div>
+        <nav class="nav flex flex-col flex-1 px-2.5 py-3 gap-0.5 overflow-y-auto">
+            <div
                 v-for="item in topRoutes"
                 :key="item.path"
                 :class="[
-                    'menu-item relative w-full flex flex-col justify-center items-center cursor-pointer rounded-lg transition-all duration-300 py-2.5',
-                    selectedFirst === item.path ? 'is-active bg-white/15' : 'hover:bg-white/10'
+                    'nav-item flex flex-col items-center justify-center gap-3 py-4.5 px-1.5 rounded-10px cursor-pointer relative',
+                    selectedFirst === item.path ? 'active' : ''
                 ]"
                 @click="onFirstSelect(item.path)"
             >
-                <Icon
-                    :name="item.meta?.icon ?? ''"
-                    :size="item.meta?.icon?.startsWith('i-svg:') ? 18 : 20"
-                    class="text-white"
-                />
-                <span class="menu-label">{{
+                <Icon :name="item.meta?.icon ?? ''" class="nav-ic" />
+                <span class="nav-label">{{
                     translateRouteTitle(item.meta?.title, item.name)
                 }}</span>
-            </li>
-        </ul>
+            </div>
+        </nav>
     </aside>
 
-    <!-- 二级菜单 -->
-    <aside
-        v-if="secondRoutes.length"
-        class="flex-shrink-0 w-[180px] h-full bg-surface shadow-[1px_1px_4px_rgba(0,21,41,0.08)] flex flex-col"
-    >
-        <div v-if="selectedFirstRoute" class="second-menu-header">
-            <Icon
-                v-if="selectedFirstRoute.meta?.icon"
-                :name="selectedFirstRoute.meta.icon"
-                size="18"
-                class="text-[var(--el-color-primary)]"
-            />
+    <!-- 二级菜单（子菜单面板） -->
+    <aside v-if="secondRoutes.length" class="sidebar-sub flex-shrink-0 h-full flex flex-col">
+        <div v-if="selectedFirstRoute" class="sub-head flex items-center px-3.5 flex-shrink-0">
             <span>{{
                 translateRouteTitle(selectedFirstRoute.meta?.title, selectedFirstRoute.name)
             }}</span>
         </div>
         <el-scrollbar class="flex-1">
-            <el-menu
-                :default-active="currentFullPath"
-                router
-                unique-opened
-                class="h-full !border-none"
-                background-color="transparent"
-                text-color="var(--color-text-primary)"
-                @select="onSecondSelect"
-            >
-                <template v-for="item in secondRoutes">
-                    <el-menu-item
-                        v-if="!item.children?.length"
-                        :key="`item-${resolvePath(item.path)}`"
-                        :index="resolvePath(item.path)"
-                        class="flex items-center"
-                    >
-                        <Icon v-if="item.meta?.icon" :name="item.meta.icon" size="20" />
-                        <span class="ml-2">{{
-                            translateRouteTitle(item.meta?.title, item.name)
-                        }}</span>
-                    </el-menu-item>
-                    <el-sub-menu
-                        v-else
-                        :key="`submenu-${resolvePath(item.path)}`"
-                        :index="resolvePath(item.path)"
-                    >
-                        <template #title>
-                            <Icon v-if="item.meta?.icon" :name="item.meta.icon" size="20" />
-                            <span class="ml-2">{{
+            <div class="sub-list">
+                <el-menu
+                    :default-active="currentFullPath"
+                    router
+                    :unique-opened="settingStore.isUniqueOpened"
+                    class="h-full !border-none"
+                    background-color="transparent"
+                    text-color="var(--ink-600)"
+                    @select="onSecondSelect"
+                >
+                    <template v-for="item in secondRoutes">
+                        <el-menu-item
+                            v-if="!item.children?.length"
+                            :key="`item-${resolvePath(item.path)}`"
+                            :index="resolvePath(item.path)"
+                            class="sub-item"
+                        >
+                            <span class="sub-dot" />
+                            <span class="sub-label">{{
                                 translateRouteTitle(item.meta?.title, item.name)
                             }}</span>
-                        </template>
-                        <el-menu-item
-                            v-for="sub in item.children"
-                            :key="`item-${resolvePath(sub.path)}`"
-                            :index="resolvePath(sub.path)"
-                        >
-                            <span>{{ translateRouteTitle(sub.meta?.title, sub.name) }}</span>
                         </el-menu-item>
-                    </el-sub-menu>
-                </template>
-            </el-menu>
+                        <el-sub-menu
+                            v-else
+                            :key="`submenu-${resolvePath(item.path)}`"
+                            :index="resolvePath(item.path)"
+                        >
+                            <template #title>
+                                <span class="sub-label">{{
+                                    translateRouteTitle(item.meta?.title, item.name)
+                                }}</span>
+                            </template>
+                            <el-menu-item
+                                v-for="sub in item.children"
+                                :key="`item-${resolvePath(sub.path)}`"
+                                :index="resolvePath(sub.path)"
+                                class="sub-item"
+                            >
+                                <span class="sub-dot" />
+                                <span class="sub-label">{{
+                                    translateRouteTitle(sub.meta?.title, sub.name)
+                                }}</span>
+                            </el-menu-item>
+                        </el-sub-menu>
+                    </template>
+                </el-menu>
+            </div>
         </el-scrollbar>
     </aside>
 </template>
@@ -90,6 +86,7 @@
 <script setup lang="ts">
 import { type RouteRecordRaw, useRoute, useRouter } from 'vue-router'
 
+import useSettingStore from '@/store/modules/settings.store'
 import useUserStore from '@/store/modules/user.store'
 import { translateRouteTitle } from '@/utils/i18n'
 
@@ -98,6 +95,7 @@ import Logo from './logo.vue'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const settingStore = useSettingStore()
 // 使用 computed 保持响应式，当 userStore.setRoutes() 替换数组时自动更新
 const routes = computed(() => userStore.routes as RouteRecordRaw[])
 
@@ -167,43 +165,167 @@ function resolvePath(p: string) {
 </script>
 
 <style lang="scss" scoped>
-.second-menu-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 16px 20px;
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--el-text-color-primary);
-    border-bottom: 1px solid var(--el-border-color-light);
+/* ── 第一列：图标栏 ── */
+.sidebar-main {
+    width: var(--sidebar-w);
+    background: #0f172a;
+}
+
+.sidebar-logo {
+    height: var(--header-h);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.logo-mark {
+    :deep(> div) {
+        padding: 0 !important;
+        height: auto !important;
+    }
+
+    :deep(img) {
+        width: 42px;
+        height: 42px;
+        object-fit: contain;
+        display: block;
+    }
+}
+
+.nav {
+    &::-webkit-scrollbar {
+        width: 0;
+    }
+}
+
+.nav-item {
+    color: rgba(255, 255, 255, 0.45);
+    transition: all 0.18s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    &.active {
+        background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+        box-shadow: 0 6px 18px var(--brand-shadow);
+        color: #fff;
+    }
+}
+
+.nav-ic {
+    width: 22px;
+    height: 22px;
+    display: block;
     flex-shrink: 0;
 }
 
-.menu-label {
-    font-size: 11px;
-    line-height: 1.2;
-    margin-top: 8px;
-    max-width: 100%;
+.nav-label {
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.2px;
     text-align: center;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
+    color: inherit;
+}
+
+/* ── 第二列：子菜单面板 ── */
+.sidebar-sub {
+    width: var(--sidebar-sub-w, 180px);
+    background: var(--card-bg);
+    border-right: 1px solid var(--ink-100);
+    height: 100vh;
+}
+
+.sub-head {
+    height: var(--header-h);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-900);
+    border-bottom: 1px solid var(--ink-100);
+    letter-spacing: 0.5px;
+}
+
+.sub-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--ink-200);
+        border-radius: 2px;
+    }
+}
+
+/* Override el-menu-item to use sub-item styling */
+:deep(.el-menu-item.sub-item) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px !important;
+    font-size: 13px;
+    color: var(--ink-600);
+    border-radius: 4px;
+    height: auto;
+    line-height: normal;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: var(--ink-50) !important;
+        color: var(--ink-800) !important;
+    }
+
+    &.is-active {
+        background: var(--brand-50) !important;
+        color: var(--brand-600) !important;
+        font-weight: 500;
+
+        .sub-dot {
+            background: var(--brand-500);
+            box-shadow: 0 0 0 2px var(--brand-100);
+        }
+    }
+}
+
+.sub-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ink-300);
+    flex-shrink: 0;
+}
+
+.sub-label {
+    flex: 1;
     white-space: nowrap;
-    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.menu-item.is-active .menu-label {
-    opacity: 1;
+/* el-sub-menu title styling */
+:deep(.el-sub-menu .el-sub-menu__title) {
+    padding: 8px 12px !important;
+    font-size: 13px;
+    color: var(--ink-700);
     font-weight: 500;
+    height: auto;
+    line-height: normal;
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--ink-50) !important;
+        color: var(--ink-800) !important;
+    }
 }
 
-.menu-item.is-active::before {
-    content: '';
-    position: absolute;
-    right: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-right: 8px solid var(--color-surface);
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
+:deep(.el-menu--inline) {
+    background: transparent !important;
 }
 </style>

@@ -1,5 +1,21 @@
 <template>
     <div class="cron-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('cronJob.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_cron-job_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button
+                    v-has-perm="['system.cron_job.create']"
+                    type="primary"
+                    @click="handleAdd"
+                >
+                    <i class="i-svg:plus" />
+                    {{ $t('cronJob.addTask') }}
+                </el-button>
+            </div>
+        </div>
         <!-- 搜索区域 -->
         <el-card class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
@@ -24,11 +40,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -36,136 +52,133 @@
         </el-card>
 
         <!-- 操作区域 -->
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('cronJob.title') }}</div>
-                <div class="table-actions">
-                    <el-button
-                        v-has-perm="['system.cron_job.create']"
-                        type="primary"
-                        @click="handleAdd"
-                    >
-                        <el-icon><Plus /></el-icon>
-                        {{ $t('cronJob.addTask') }}
-                    </el-button>
+        <ProTable
+            :title="$t('cronJob.title')"
+            storage-key="system-cron-job-list"
+            :columns="[
+                {
+                    key: 'name',
+                    label: $t('proPage.table_system_cron_job_index_vue_name'),
+                    minWidth: 140,
+                    required: true
+                },
+                {
+                    key: 'command',
+                    label: $t('proPage.table_system_cron_job_index_vue_command'),
+                    width: 180
+                },
+                {
+                    key: 'expression',
+                    label: $t('proPage.table_system_cron_job_index_vue_expression'),
+                    minWidth: 200
+                },
+                {
+                    key: 'status',
+                    label: $t('proPage.table_system_cron_job_index_vue_status'),
+                    width: 100
+                },
+                {
+                    key: 'last_run_at',
+                    label: $t('proPage.table_system_cron_job_index_vue_last_run_at'),
+                    width: 180
+                },
+                {
+                    key: 'run_count',
+                    label: $t('proPage.table_system_cron_job_index_vue_run_count'),
+                    width: 120
+                },
+                {
+                    key: 'action',
+                    label: $t('proPage.table_system_cron_job_index_vue_action'),
+                    width: 280,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            ><template #name="{ row }">
+                <div>
+                    <div>{{ row.name }}</div>
+                    <div v-if="row.description" class="text-xs text-gray-400">
+                        {{ row.description }}
+                    </div>
                 </div>
-            </div>
-
-            <el-table v-loading="loading" :data="list">
-                <el-table-column :label="$t('cronJob.taskName')" prop="name" min-width="140">
-                    <template #default="{ row }">
-                        <div>
-                            <div>{{ row.name }}</div>
-                            <div v-if="row.description" class="text-xs text-gray-400">
-                                {{ row.description }}
-                            </div>
-                        </div>
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('cronJob.command')" prop="command" width="180">
-                    <template #default="{ row }">
-                        <el-tag size="small" effect="plain" type="info">{{ row.command }}</el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('cronJob.executionCycle')"
-                    prop="expression"
-                    width="180"
-                >
-                    <template #default="{ row }">
-                        {{ cronToText(row.expression) || row.expression }}
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('common.status')" prop="status" width="100">
-                    <template #default="{ row }">
-                        <el-switch
-                            v-model="row.status"
-                            :active-value="1"
-                            :inactive-value="0"
-                            :disabled="!userStore.hasPermission('system.cron_job.update')"
-                            @change="handleStatusChange(row)"
-                        />
-                    </template>
-                </el-table-column>
-
-                <el-table-column :label="$t('cronJob.lastExecution')" width="180">
-                    <template #default="{ row }">
-                        <template v-if="row.last_run_at">
-                            <span>{{ row.last_run_at }}</span>
-                            <el-tag
-                                :type="row.last_status === 1 ? 'success' : 'danger'"
-                                size="small"
-                                class="ml-2"
-                            >
-                                {{
-                                    row.last_status === 1
-                                        ? $t('common.success')
-                                        : $t('common.error')
-                                }}
-                            </el-tag>
-                        </template>
-                        <span v-else>-</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column
-                    :label="$t('cronJob.executionCount')"
-                    prop="run_count"
-                    width="90"
+            </template>
+            <template #command="{ row }">
+                <el-tag size="small" effect="plain" type="info">{{ row.command }}</el-tag>
+            </template>
+            <template #expression="{ row }">
+                {{ cronToText(row.expression) || row.expression }}
+            </template>
+            <template #status="{ row }">
+                <el-switch
+                    v-model="row.status"
+                    :active-value="1"
+                    :inactive-value="0"
+                    :disabled="!userStore.hasPermission('system.cron_job.update')"
+                    @change="handleStatusChange(row)"
                 />
-
-                <el-table-column :label="$t('common.operation')" width="280" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['system.cron_job.run']"
-                            type="warning"
-                            size="small"
-                            text
-                            :loading="row._running"
-                            @click="handleRun(row)"
-                        >
-                            {{ $t('cronJob.execute') }}
-                        </el-button>
-                        <el-button type="primary" size="small" text @click="handleLogs(row)">
-                            {{ $t('cronJob.executionLog') }}
-                        </el-button>
-                        <el-button
-                            v-has-perm="['system.cron_job.update']"
-                            type="primary"
-                            size="small"
-                            text
-                            @click="handleEdit(row)"
-                        >
-                            {{ $t('common.edit') }}
-                        </el-button>
-                        <el-button
-                            v-has-perm="['system.cron_job.delete']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleDelete(row.id, row.name)"
-                        >
-                            {{ $t('common.delete') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+            </template>
+            <template #last_run_at="{ row }">
+                <template v-if="row.last_run_at">
+                    <span>{{ row.last_run_at }}</span>
+                    <el-tag
+                        :type="row.last_status === 1 ? 'success' : 'danger'"
+                        size="small"
+                        class="ml-2"
+                    >
+                        {{ row.last_status === 1 ? $t('common.success') : $t('common.error') }}
+                    </el-tag>
+                </template>
+                <span v-else>-</span>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['system.cron_job.run']"
+                    type="warning"
+                    size="small"
+                    text
+                    :loading="row._running"
+                    @click="handleRun(row)"
+                >
+                    {{ $t('cronJob.execute') }}
+                </el-button>
+                <el-button type="primary" size="small" text @click="handleLogs(row)">
+                    {{ $t('cronJob.executionLog') }}
+                </el-button>
+                <el-button
+                    v-has-perm="['system.cron_job.update']"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="handleEdit(row)"
+                >
+                    {{ $t('common.edit') }}
+                </el-button>
+                <el-button
+                    v-has-perm="['system.cron_job.delete']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleDelete(row.id, row.name)"
+                >
+                    {{ $t('common.delete') }}
+                </el-button>
+            </template>
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
 
         <!-- 表单弹窗 -->
         <CronJobForm v-model="formVisible" :form-data="formData" @success="getList" />
@@ -238,7 +251,7 @@
 </template>
 
 <script setup lang="ts" name="CronJobList">
-import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'

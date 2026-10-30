@@ -1,6 +1,8 @@
 // src/constants/appSetting.ts
 
 export const defaultSetting = {
+    compact: false, // Pro 紧凑模式
+    sidebarLabels: true, // 一级菜单图标下显示名称
     showCrumb: true, // 是否显示面包屑
     showLogo: true, // 是否显示 logo
     isUniqueOpened: false, // 只展开一个一级菜单
@@ -10,12 +12,12 @@ export const defaultSetting = {
     layoutMode: 'classic' as 'classic' | 'sidebar', // 布局模式
     themeMode: 'light' as 'system' | 'light' | 'dark', // 主题模式，默认亮色
     darkTheme: 'cinder', // 暗色主题配色名
-    theme: '#1f4fff', // 主题色
-    successTheme: '#67c23a',
-    warningTheme: '#e6a23c',
-    dangerTheme: '#f56c6c',
-    errorTheme: '#f56c6c',
-    infoTheme: '#909399' // 信息主题色
+    theme: '#4f6bff', // Pro 主题色
+    successTheme: '#10b981',
+    warningTheme: '#f59e0b',
+    dangerTheme: '#ef4444',
+    errorTheme: '#ef4444',
+    infoTheme: '#38bdf8' // 信息主题色
 }
 
 export const appConfig = {

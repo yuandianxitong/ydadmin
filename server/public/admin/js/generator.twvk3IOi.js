@@ -1,0 +1,1 @@
+import{T as e}from"./index.B8Uxy2_g.js";const a={getTables:()=>e.get("/adminapi/system/generator/tables"),getColumns:a=>e.get("/adminapi/system/generator/columns",{params:{table:a}}),preview:a=>e.post("/adminapi/system/generator/preview",a),generate:a=>e.post("/adminapi/system/generator/generate",a)};export{a as g};

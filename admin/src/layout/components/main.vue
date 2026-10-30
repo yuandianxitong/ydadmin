@@ -1,7 +1,7 @@
 <template>
     <main class="main-wrap h-full">
         <el-scrollbar>
-            <div class="p-4">
+            <div class="main-content">
                 <router-view v-if="isRouteShow" v-slot="{ Component, route }">
                     <transition name="fade" mode="out-in">
                         <keep-alive :include="includeList" :max="20">

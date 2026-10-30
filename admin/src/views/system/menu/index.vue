@@ -1,7 +1,100 @@
 <template>
     <div class="menu-container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('menu.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_menu_index') }}</div>
+            </div>
+            <div class="page-actions">
+                <el-button @click="toggleTreeAll">{{
+                    $t(treeExpanded ? 'common.collapseAll' : 'common.expandAll')
+                }}</el-button>
+                <el-button @click="menuView = menuView === 'tree' ? 'table' : 'tree'">{{
+                    $t(menuView === 'tree' ? 'proPage.menuTableView' : 'proPage.menuTreeView')
+                }}</el-button>
+                <el-button
+                    v-has-perm="['system.menu.create']"
+                    type="primary"
+                    @click="createInTree()"
+                    ><i class="i-svg:plus" />{{ $t('menu.addMenu') }}</el-button
+                >
+            </div>
+        </div>
+
+        <div v-if="menuView === 'tree'" class="split" v-loading="loading">
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">{{ $t('proPage.menuStructure') }}</div>
+                    <el-button
+                        v-has-perm="['system.menu.create']"
+                        text
+                        size="small"
+                        type="primary"
+                        @click="createInTree()"
+                        ><i class="i-svg:plus" />{{ $t('common.add') }}</el-button
+                    >
+                </div>
+                <div class="tree-search">
+                    <el-input
+                        v-model="searchForm.title"
+                        clearable
+                        :placeholder="$t('menu.searchPlaceholder')"
+                        ><template #prefix><i class="i-svg:search" /></template
+                    ></el-input>
+                </div>
+                <div class="tree">
+                    <MenuTreeNode
+                        v-for="node in filteredMenuTree"
+                        :key="node.id"
+                        :node="node"
+                        :depth="0"
+                        :selected-id="selectedMenu?.id || null"
+                        :open-map="treeOpenMap"
+                        @select="selectMenu"
+                        @toggle="(id) => (treeOpenMap[id] = !treeOpenMap[id])"
+                    />
+                    <el-empty v-if="!filteredMenuTree.length" :image-size="60" />
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        {{ $t('proPage.menuDetail') }}
+                    </div>
+                    <div class="table-actions" v-if="selectedMenu">
+                        <el-button
+                            v-has-perm="['system.menu.create']"
+                            size="small"
+                            @click="createInTree(selectedMenu)"
+                            ><i class="i-svg:plus" />{{ $t('proPage.menuAddChild') }}</el-button
+                        >
+                        <el-button
+                            v-has-perm="['system.menu.delete']"
+                            size="small"
+                            type="danger"
+                            @click="handleDelete(selectedMenu)"
+                            >{{ $t('common.delete') }}</el-button
+                        >
+                    </div>
+                </div>
+                <div v-if="selectedMenu" class="panel-body">
+                    <MenuForm
+                        inline
+                        v-model="formVisible"
+                        :form-data="formData"
+                        :parent-options="parentOptions"
+                        @success="getMenuList"
+                        @cancel="resetTreeForm"
+                    />
+                </div>
+                <div v-else class="panel-body menu-empty-detail">
+                    {{ $t('proPage.menuSelectTip') }}
+                </div>
+            </div>
+        </div>
+
         <!-- 搜索区域 -->
-        <el-card class="search-card" shadow="never">
+        <el-card v-if="menuView === 'table'" class="search-card" shadow="never">
             <el-form :model="searchForm" inline class="search-form">
                 <el-form-item :label="$t('menu.menuName')">
                     <el-input
@@ -36,11 +129,11 @@
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="getMenuList">
-                        <el-icon><Search /></el-icon>
+                        <i class="i-svg:search" />
                         {{ $t('common.search') }}
                     </el-button>
                     <el-button @click="resetSearch">
-                        <el-icon><Refresh /></el-icon>
+                        <i class="i-svg:refresh-cw" />
                         {{ $t('common.reset') }}
                     </el-button>
                 </el-form-item>
@@ -48,7 +141,7 @@
         </el-card>
 
         <!-- 操作区域 -->
-        <el-card class="table-card" shadow="never">
+        <el-card v-if="menuView === 'table'" class="table-card" shadow="never">
             <div class="table-header">
                 <div class="table-title">{{ $t('menu.title') }}</div>
                 <div class="table-actions">
@@ -60,7 +153,7 @@
                         type="primary"
                         @click="handleAdd()"
                     >
-                        <el-icon><Plus /></el-icon>
+                        <i class="i-svg:plus" />
                         {{ $t('menu.addMenu') }}
                     </el-button>
                     <el-button
@@ -69,7 +162,7 @@
                         :disabled="!multipleSelection.length"
                         @click="handleBatchDelete"
                     >
-                        <el-icon><Delete /></el-icon>
+                        <i class="i-svg:trash-2" />
                         {{ $t('common.batchDelete') }}
                     </el-button>
                 </div>
@@ -166,6 +259,7 @@
 
         <!-- 新增/编辑弹窗 -->
         <MenuForm
+            v-if="menuView === 'table' || !selectedMenu"
             v-model="formVisible"
             :form-data="formData"
             :parent-options="parentOptions"
@@ -175,7 +269,7 @@
 </template>
 
 <script setup lang="ts" name="MenuList">
-import { Delete, Edit, Plus, Refresh, Search } from '@element-plus/icons-vue'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Sortable from 'sortablejs'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
@@ -186,6 +280,7 @@ import { useUserStore } from '@/store'
 import type { MenuInfo, MenuQuery } from '@/types/system'
 
 import MenuForm from './components/MenuForm.vue'
+import MenuTreeNode from './components/MenuTreeNode.vue'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -568,9 +663,58 @@ const getTypeTagType = (type: number): 'primary' | 'success' | 'warning' | 'info
 onMounted(async () => {
     await getMenuList()
 })
+
+// Pro tree/editor presentation, backed by the existing menu methods and payloads.
+const menuView = ref<'tree' | 'table'>('tree')
+const selectedMenu = ref<MenuInfo | null>(null)
+const treeOpenMap = reactive<Record<number, boolean>>({})
+const treeExpanded = computed(() => Object.values(treeOpenMap).some(Boolean))
+const filteredMenuTree = computed(() => {
+    const keyword = searchForm.title?.trim().toLowerCase()
+    if (!keyword) return menuList.value
+    const filter = (nodes: MenuInfo[]): MenuInfo[] => nodes.flatMap(node => {
+        const children = filter(node.children || [])
+        return node.title.toLowerCase().includes(keyword) || children.length ? [{ ...node, children }] : []
+    })
+    return filter(menuList.value)
+})
+function selectMenu(row: MenuInfo) {
+    selectedMenu.value = row
+    if (userStore.hasPermission('system.menu.update')) handleEdit(row)
+    else { formData.value = { ...row }; formVisible.value = true }
+}
+function createInTree(parent?: MenuInfo) { selectedMenu.value = null; handleAdd(parent) }
+function resetTreeForm() { const row = selectedMenu.value || menuList.value[0]; if (row) selectMenu(row) }
+function toggleTreeAll() {
+    const open = !Object.values(treeOpenMap).some(Boolean)
+    Object.keys(idMap.value).forEach(id => { treeOpenMap[Number(id)] = open })
+}
+watch(menuList, () => {
+    if (menuView.value === 'tree' && selectedMenu.value) {
+        const row = idMap.value[selectedMenu.value.id]
+        if (row) selectMenu(row)
+        else selectedMenu.value = null
+    }
+})
+watch(menuView, async view => {
+    if (view === 'table') {
+        formVisible.value = false
+        await nextTick()
+        initRowDrag()
+    }
+})
+
 </script>
 
 <style lang="scss" scoped>
+.menu-empty-detail {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--ink-400);
+    font-size: 13px;
+}
 .menu-container {
     .search-card {
         margin-bottom: 16px;

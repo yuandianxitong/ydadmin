@@ -1,81 +1,81 @@
 <template>
     <div class="online-container">
-        <el-card class="table-card" shadow="never">
-            <div class="table-header">
-                <div class="table-title">{{ $t('onlineAdmin.title') }}</div>
-                <div class="table-actions">
-                    <el-button :loading="loading" @click="getList">
-                        <el-icon><Refresh /></el-icon>
-                        {{ $t('common.refresh') }}
-                    </el-button>
-                </div>
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">{{ $t('onlineAdmin.title') }}</h1>
+                <div class="page-desc">{{ $t('proPage.system_online_index') }}</div>
             </div>
-
-            <el-table v-loading="loading" :data="list" row-key="admin_id">
-                <el-table-column
-                    :label="$t('onlineAdmin.username')"
-                    prop="username"
-                    min-width="120"
-                />
-                <el-table-column
-                    :label="$t('onlineAdmin.nickname')"
-                    prop="nickname"
-                    min-width="120"
-                />
-                <el-table-column
-                    :label="$t('onlineAdmin.connections')"
-                    prop="connections"
-                    width="90"
-                    align="center"
-                />
-                <el-table-column :label="$t('onlineAdmin.ip')" prop="ip" width="140" />
-                <el-table-column
-                    :label="$t('onlineAdmin.userAgent')"
-                    min-width="180"
-                    show-overflow-tooltip
+        </div>
+        <ProTable
+            :title="$t('onlineAdmin.title')"
+            storage-key="system-online-list"
+            :columns="[
+                { key: 'username', label: $t('onlineAdmin.username'), minWidth: 120 },
+                { key: 'nickname', label: $t('onlineAdmin.nickname'), minWidth: 120 },
+                {
+                    key: 'connections',
+                    label: $t('onlineAdmin.connections'),
+                    width: 90,
+                    align: 'center'
+                },
+                { key: 'ip', label: $t('onlineAdmin.ip'), width: 140 },
+                {
+                    key: 'ua',
+                    label: $t('onlineAdmin.userAgent'),
+                    minWidth: 180,
+                    showOverflowTooltip: true
+                },
+                { key: 'connected_at', label: $t('onlineAdmin.connectedAt'), width: 170 },
+                { key: 'last_seen', label: $t('onlineAdmin.lastSeen'), width: 170 },
+                {
+                    key: 'action',
+                    label: $t('common.operation'),
+                    width: 120,
+                    fixed: 'right',
+                    required: true
+                }
+            ]"
+            :data="list"
+            :loading="loading"
+            :pagination="pagination"
+            row-key="admin_id"
+            ><template #ua="{ row }">
+                <span :title="row.ua">{{ summarizeUserAgent(row.ua) }}</span>
+            </template>
+            <template #action="{ row }">
+                <el-button
+                    v-has-perm="['system.online.logout']"
+                    type="danger"
+                    size="small"
+                    text
+                    @click="handleForceLogout(row as OnlineAdminInfo)"
                 >
-                    <template #default="{ row }">
-                        <span :title="row.ua">{{ summarizeUserAgent(row.ua) }}</span>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    :label="$t('onlineAdmin.connectedAt')"
-                    prop="connected_at"
-                    width="170"
-                />
-                <el-table-column :label="$t('onlineAdmin.lastSeen')" prop="last_seen" width="170" />
-                <el-table-column :label="$t('common.operation')" width="120" fixed="right">
-                    <template #default="{ row }">
-                        <el-button
-                            v-has-perm="['system.online.logout']"
-                            type="danger"
-                            size="small"
-                            text
-                            @click="handleForceLogout(row as OnlineAdminInfo)"
-                        >
-                            {{ $t('onlineAdmin.forceLogout') }}
-                        </el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.limit"
-                :total="pagination.total"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                class="pagination"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-            />
-        </el-card>
+                    {{ $t('onlineAdmin.forceLogout') }}
+                </el-button>
+            </template>
+            <template #headerExtra
+                ><el-button :loading="loading" @click="getList">
+                    <i class="i-svg:refresh-cw" />
+                    {{ $t('common.refresh') }}
+                </el-button></template
+            >
+            <template #pagination
+                ><el-pagination
+                    small
+                    v-model:current-page="pagination.page"
+                    v-model:page-size="pagination.limit"
+                    :total="pagination.total"
+                    :page-sizes="[10, 20, 50, 100]"
+                    layout="prev, pager, next, sizes"
+                    class="pro-pagination"
+                    @size-change="handleSizeChange"
+                    @current-change="handlePageChange" /></template
+        ></ProTable>
     </div>
 </template>
 
 <script setup lang="ts" name="OnlineAdminList">
-import { Refresh } from '@element-plus/icons-vue'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 

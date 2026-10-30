@@ -1,7 +1,7 @@
 <template>
   <div class="pv-cube">
     <div v-for="(it, i) in items" :key="i" class="pv-cube__item" :style="itemStyle">
-      <img v-if="it.image" :src="it.image" class="pv-cube__img" />
+      <img v-if="it.image" :src="appStore.getImageUrl(it.image)" class="pv-cube__img" />
       <div v-else class="pv-cube__ph"></div>
     </div>
     <div v-if="!items.length" class="pv-empty">图片魔方</div>
@@ -9,6 +9,10 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import { useAppStore } from '@/store/modules/app.store'
+
+const appStore = useAppStore()
 const props = defineProps<{ props: Record<string, any> }>()
 const items = computed(() => props.props?.items || [])
 const cols = computed(() => props.props?.cols || 2)
