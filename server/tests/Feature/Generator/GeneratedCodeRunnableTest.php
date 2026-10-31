@@ -185,6 +185,10 @@ final class GeneratedCodeRunnableTest extends TestCase
         $this->assertCount(3, $body['data']['list']);
         $this->assertArrayHasKey('title', $body['data']['list'][0]);
         $this->assertArrayHasKey('status_text', $body['data']['list'][0], '有 status 列应生成 status_text 访问器');
+        foreach ($body['data']['list'] as $row) {
+            $key = (int) $row['status'] === 1 ? 'status_enabled' : 'status_disabled';
+            $this->assertSame(lang(self::MODULE . '/gen_article.' . $key), $row['status_text']);
+        }
     }
 
     public function test_generated_store_show_and_delete_round_trip(): void
@@ -333,6 +337,9 @@ final class GeneratedCodeRunnableTest extends TestCase
             'slug_exists',
             'ids_require',
             'ids_integer',
+            // Model 的 status_text 访问器直接引用，非控制器验证消息。
+            'status_enabled',
+            'status_disabled',
         ];
         $missingKnownKeys = array_values(array_diff($knownNonMessageKeys, $langKeys));
         $this->assertSame(

@@ -3,6 +3,7 @@
 // 代码生成器（spec §10）。本任务只用到 table_require / table_not_found；
 // 其余键先在此登记，供 preview()/generate() 的后续任务直接引用，避免语言包文件被多个任务并发新建。
 return [
+    'invalid_comment_encoding' => '字段 :field 的注释疑似乱码，请用 utf8mb4 连接检查并修正数据库 COMMENT 后重试（不会自动转换注释）',
     'invalid_select_option' => '字段 :field 的下拉选项值与数据库类型或枚举值不一致',
     'frontend_mount_missing' => '请先将宿主机 admin/ 源码挂载到 /var/www/admin，再生成代码',
     'select_options_required' => '请先为字段 :field 配置下拉选项，再预览或生成',
@@ -19,7 +20,7 @@ return [
     'module_busy' => '同一模块正在生成，请稍后重试',
     'table_require'           => '请选择数据表',
     'table_not_found'         => '数据表不存在',
-    'disabled_in_production'  => '生产环境已禁用代码生成器',
+    'disabled_in_production'  => 'APP_DEBUG=false，代码生成器的预览、生成及增量更新已关闭；请在独立开发环境开启 APP_DEBUG 并重启服务',
     'file_exists'             => '目标文件已存在',
     'write_failed'            => '文件写入失败',
     'render_failed'           => '模板渲染失败',

@@ -4,6 +4,8 @@
 // 调用方用 lang('demo/gen_article.键名')，同模块的下一个模型落到另一个文件。
 return [
     'not_found' => 'GenArticle not found',
+    'status_enabled' => 'Enabled',
+    'status_disabled' => 'Disabled',
     'slug_exists' => 'Slug already exists',
     'title_require' => 'Title is required',
     'title_length' => 'Title must not exceed 200 characters',

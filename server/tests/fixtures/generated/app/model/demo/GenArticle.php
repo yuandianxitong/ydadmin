@@ -39,6 +39,6 @@ class GenArticle extends Model
             return '';
         }
 
-        return (int) $this->attributes['status'] === 1 ? '正常' : '禁用';
+        return lang((int) $this->attributes['status'] === 1 ? 'demo/gen_article.status_enabled' : 'demo/gen_article.status_disabled');
     }
 }

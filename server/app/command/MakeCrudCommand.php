@@ -7,6 +7,7 @@ namespace app\command;
 use app\service\system\GeneratorService;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
+use core\generator\GenerationGuide;
 use core\generator\GeneratorRequest;
 use core\generator\NameConvention;
 use support\Container;
@@ -98,6 +99,15 @@ final class MakeCrudCommand extends Command
         }
 
         $service = Container::get(GeneratorService::class);
+        $capabilities = $service->capabilities();
+        if (!$capabilities['writes_enabled']) {
+            $output->writeln('<error>' . lang('generator.disabled_in_production') . '</error>');
+            return self::FAILURE;
+        }
+        if (in_array($module, $capabilities['reserved_modules'], true)) {
+            $output->writeln('<error>' . lang('generator.module_name_reserved') . '</error>');
+            return self::FAILURE;
+        }
 
         $tableRow = null;
         foreach ($service->getTables() as $row) {
@@ -112,7 +122,7 @@ final class MakeCrudCommand extends Command
             return self::FAILURE;
         }
 
-        $model = $modelOption !== '' ? $modelOption : (new NameConvention())->modelFromTable($table);
+        $model = $modelOption !== '' ? $modelOption : (new NameConvention($capabilities['table_prefix']))->modelFromTable($table);
         if (preg_match(self::MODEL_PATTERN, $model) !== 1) {
             $output->writeln("<error>--model 不合法：{$model}（须匹配 ^[A-Z][A-Za-z0-9]{0,40}\$）</error>");
 
@@ -163,8 +173,9 @@ final class MakeCrudCommand extends Command
                 // 复用后面的显式 --reload 处理。
                 $result = ['files' => []];
             } elseif ($input->getOption('preview')) {
+                $artifacts = $service->preview($request);
                 $output->writeln('<info>产物清单（预览，未落盘）：</info>');
-                foreach ($service->preview($request) as $key => $artifact) {
+                foreach ($artifacts as $key => $artifact) {
                     $output->writeln(sprintf('  %-12s %s', $key, $artifact['path']));
                 }
 
@@ -201,7 +212,24 @@ final class MakeCrudCommand extends Command
             }
             $output->writeln($line);
         }
+        if (($result['has_conflicts'] ?? false)
+            || array_filter($result['files'], static fn (array $file): bool => $file['status'] === 'failed') !== []) {
+            $output->writeln('<error>' . lang('generator.generate_incomplete') . '</error>');
+            return self::FAILURE;
+        }
         $output->writeln('<info>控制器路由在 php start.php reload 后生效。</info>');
+        $guide = GenerationGuide::forRequest($request);
+        $output->writeln('生成范围：后端 + Admin；不生成 PC / UniApp。');
+        $output->writeln('后续步骤（从项目根目录执行；菜单 SQL 仅在首次添加菜单时审核执行，勿重复导入）：');
+        foreach (['manual' => '手动部署', 'docker' => 'Docker 部署'] as $mode => $label) {
+            $output->writeln($label . '：');
+            foreach ($guide[$mode] as $command) {
+                $output->writeln('  ' . $command, OutputInterface::OUTPUT_RAW);
+            }
+        }
+        $output->writeln('USER / DATABASE 替换为实际账号和库名；普通角色需授权菜单及按钮，超管重新登录后可见。');
+        $output->writeln('页面地址：' . $guide['route'] . '（history 路由，无 #）', OutputInterface::OUTPUT_RAW);
+        $output->writeln('完成后恢复 APP_DEBUG=false 并重启服务；构建在宿主机或 CI 的 Node/pnpm 环境执行。');
 
         if ($input->getOption('reload')) {
             $output->writeln('<info>正在执行 php start.php reload……</info>');

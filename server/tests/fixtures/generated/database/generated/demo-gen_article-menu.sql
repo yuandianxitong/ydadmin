@@ -1,5 +1,6 @@
 -- 由代码生成器生成，未自动执行。
 -- parent_id 默认 0（顶级菜单）。要挂到已有目录下，把它改成那个目录的 id。
+SET NAMES utf8mb4;
 INSERT INTO `menus`
   (`parent_id`, `type`, `title`, `name`, `path`, `component`, `icon`, `permission`, `status`, `sort`, `created_at`, `updated_at`)
 VALUES

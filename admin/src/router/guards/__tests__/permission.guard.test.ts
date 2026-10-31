@@ -62,6 +62,19 @@ beforeEach(() => {
 })
 
 describe('异步鉴权导航', () => {
+    it('挂载动态路由后按路径重新匹配，不沿用旧的工作台或 404 路由名称', async () => {
+        state.store.getUserInfo.mockResolvedValue({})
+        state.store.fetchMenus.mockResolvedValue([])
+        const { run, next } = registeredGuard()
+        await run()
+        expect(next).toHaveBeenCalledWith({
+            path: '/system/admin',
+            query: undefined,
+            hash: undefined,
+            replace: true
+        })
+        expect(next.mock.calls[0][0]).not.toHaveProperty('name')
+    })
     it('旧请求取消不会再次清理登录', async () => {
         state.store.getUserInfo.mockRejectedValue(new CanceledError('stale request'))
         const { run, next } = registeredGuard()

@@ -113,7 +113,7 @@ export default function createPermissionGuard(router: Router): void {
                     }
 
                     // 导航到原目标，并 replace，避免多余的历史记录
-                    next({ ...to, replace: true })
+                    next({ path: to.path, query: to.query, hash: to.hash, replace: true })
                 } catch (error) {
                     if (
                         axios.isCancel(error) ||

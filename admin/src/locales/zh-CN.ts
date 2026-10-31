@@ -933,11 +933,28 @@ export default {
     },
     // 代码生成器
     generator: {
+        adminOnly: '仅生成后端 + Admin',
+        readOnly:
+            '当前服务未开启代码生成（APP_DEBUG=false，或能力信息不可用）。可查看数据表；请在独立开发环境开启 APP_DEBUG 并重启服务后预览或生成。',
+        commentNotice:
+            '表与字段 COMMENT 会成为菜单、表单及列表标签。请确认数据库连接使用 utf8mb4；检测到疑似乱码会阻止生成，不会自动改写数据库。',
+        reservedModules: '不可使用的模块名',
+        moduleReserved: '该模块名已被系统或语言分组占用，请更换独立业务模块名',
+        nextSteps: '生成后还需完成以下步骤',
+        menuInstruction:
+            '命令均从项目根目录执行。首次添加菜单前先审核 SQL；USER / DATABASE 替换为实际账号和库名。菜单 SQL 不会自动执行，请勿重复导入。',
+        permissionInstruction:
+            '执行菜单 SQL 后，超管重新登录即可看到菜单；普通角色还需在角色管理中授权菜单和按钮，再重新登录。',
+        buildInstruction:
+            '第 3 步构建必须在有 Node/pnpm 的宿主机或 CI 中执行，Docker 的 PHP 容器不含这些工具。完成开发后恢复 APP_DEBUG=false 并重启服务。',
+        manualDeployment: '手动部署',
+        pageAddress: '页面地址（无需 #）',
+        statusFailed: '写入失败',
         title: '代码生成器',
         step1: '选择数据表',
         step2: '配置字段',
         step3: '预览 & 生成',
-        searchTable: '搜索表名',
+        searchTable: '搜索表名或注释',
         tableName: '表名',
         tableComment: '注释',
         engine: '引擎',
@@ -947,7 +964,7 @@ export default {
         generate: '生成代码',
         basicConfig: '基础配置',
         moduleName: '模块名',
-        moduleNamePlaceholder: '如 system, content',
+        moduleNamePlaceholder: '如 demo、biz',
         modelName: '模型名（大驼峰）',
         modelNamePlaceholder: '如 Article, Product',
         cnName: '中文说明',

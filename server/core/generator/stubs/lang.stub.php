@@ -58,6 +58,10 @@ $lines = [];
 // 表说明用剥过换行的那个变量：这一行最终会被 addslashes() 塞进单引号字面量，换行虽然合法但会
 // 把语言包排版打散；$tableComment 的原值一律不直接进产物（见 ModuleBlueprint::vars()）。
 $lines[$key('not_found')] = $locale === 'en' ? "{$model} not found" : "{$tableCommentPhpDoc}不存在";
+if ($hasStatus) {
+    $lines['status_enabled'] = $locale === 'en' ? 'Enabled' : '正常';
+    $lines['status_disabled'] = $locale === 'en' ? 'Disabled' : '禁用';
+}
 
 foreach ($uniqueColumns as $uniqueColumn) {
     $col = $table->column($uniqueColumn);

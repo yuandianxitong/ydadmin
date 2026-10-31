@@ -67,7 +67,7 @@ class <?= $model ?> extends Model
             return '';
         }
 
-        return (int) $this->attributes['status'] === 1 ? '正常' : '禁用';
+        return lang((int) $this->attributes['status'] === 1 ? '<?= $module ?>/<?= $modelSnake ?>.status_enabled' : '<?= $module ?>/<?= $modelSnake ?>.status_disabled');
     }
 <?php endif; ?>
 }

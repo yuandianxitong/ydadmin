@@ -9,6 +9,8 @@ use core\base\Service;
 use core\exception\BusinessException;
 use core\exception\ValidationException;
 use core\generator\ColumnDescriptor;
+use core\generator\CommentEncoding;
+use core\generator\GenerationGuide;
 use core\generator\GeneratorRequest;
 use core\generator\ManagedArtifacts;
 use core\generator\ModuleBlueprint;
@@ -56,6 +58,17 @@ class GeneratorService extends Service
         return $this->schemaRepository->listTables();
     }
 
+    /** @return array{writes_enabled: bool, table_prefix: string, reserved_modules: list<string>, scope: string} */
+    public function capabilities(): array
+    {
+        return [
+            'writes_enabled' => (bool) config('app.debug'),
+            'table_prefix' => (string) config('database.connections.mysql.prefix', ''),
+            'reserved_modules' => $this->reservedModules(),
+            'scope' => 'admin',
+        ];
+    }
+
     /**
      * 十二字段的 ColumnDescriptor::toArray() 列表（契约 §4.2）。表不存在时抛业务异常。
      *
@@ -95,7 +108,7 @@ class GeneratorService extends Service
      * 生成：buildArtifacts() 再落盘，没有第二条渲染路径（spec §5.3）。
      * 「预览即所得」（spec §11.3）靠的就是两个端点渲染的是同一份字节。
      *
-     * @return array{files: list<array{path: string, status: string, reason?: string}>, has_conflicts: bool}
+     * @return array{files: list<array{path: string, status: string, reason?: string}>, has_conflicts: bool, next_steps: array<string, mixed>}
      */
     public function generate(GeneratorRequest $request): array
     {
@@ -120,6 +133,7 @@ class GeneratorService extends Service
         return [
             'files' => $files,
             'has_conflicts' => count(array_filter($files, static fn (array $file): bool => $file['status'] !== 'created')) > 0,
+            'next_steps' => GenerationGuide::forRequest($request),
         ];
     }
 
@@ -240,8 +254,22 @@ class GeneratorService extends Service
 
         // 表前缀由这一层读配置传进去：core\generator 保持纯逻辑、不碰 config()，配置读取是编排层的职责。
         // 生成的 Model::$table 必须是裸表名——Eloquent 的连接层会再套一次前缀，写物理表名会被加两次。
+        $table = $this->describeTable($request);
+        $errors = [];
+        $comment = $request->tableComment !== '' ? $request->tableComment : $table->comment;
+        if (CommentEncoding::isSuspicious($comment)) {
+            $errors['table_comment'] = lang('generator.invalid_comment_encoding', ['field' => $table->name]);
+        }
+        foreach ($table->columns as $column) {
+            if (CommentEncoding::isSuspicious($column->comment)) {
+                $errors['columns.' . $column->name] = lang('generator.invalid_comment_encoding', ['field' => $column->name]);
+            }
+        }
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
         $blueprint = new ModuleBlueprint(
-            $this->describeTable($request),
+            $table,
             $request,
             (string) config('database.connections.mysql.prefix', ''),
         );

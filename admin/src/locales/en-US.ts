@@ -946,11 +946,28 @@ export default {
     },
     // Code generator
     generator: {
+        adminOnly: 'Backend + Admin only',
+        readOnly:
+            'Generation is disabled (APP_DEBUG=false or capabilities unavailable). Tables remain readable. Enable APP_DEBUG and restart in a separate development environment to preview or generate.',
+        commentNotice:
+            'Table and column comments become UI labels. Use utf8mb4; suspicious comment encoding blocks generation without altering the database.',
+        reservedModules: 'Reserved module names',
+        moduleReserved: 'This module name is reserved. Choose a separate business module name.',
+        nextSteps: 'Complete these steps after generation',
+        menuInstruction:
+            'Run commands from the repository root. Review menu SQL before its first import; replace USER / DATABASE. SQL is never applied automatically. Do not import it twice.',
+        permissionInstruction:
+            'After importing menu SQL, sign in again. Ordinary roles also need menu and button permissions assigned in Role Management.',
+        buildInstruction:
+            'Run step 3 on a host or CI with Node/pnpm, not the PHP container. Restore APP_DEBUG=false and restart after development.',
+        manualDeployment: 'Manual deployment',
+        pageAddress: 'Page address (no #)',
+        statusFailed: 'Failed',
         title: 'Code Generator',
         step1: 'Select Table',
         step2: 'Configure Fields',
         step3: 'Preview & Generate',
-        searchTable: 'Search table name',
+        searchTable: 'Search table name or comment',
         tableName: 'Table Name',
         tableComment: 'Comment',
         engine: 'Engine',
@@ -960,7 +977,7 @@ export default {
         generate: 'Generate Code',
         basicConfig: 'Basic Configuration',
         moduleName: 'Module Name',
-        moduleNamePlaceholder: 'e.g. system, content',
+        moduleNamePlaceholder: 'e.g. demo, biz',
         modelName: 'Model Name (PascalCase)',
         modelNamePlaceholder: 'e.g. Article, Product',
         cnName: 'Description',

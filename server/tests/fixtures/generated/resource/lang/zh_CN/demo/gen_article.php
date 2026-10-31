@@ -4,6 +4,8 @@
 // 调用方用 lang('demo/gen_article.键名')，同模块的下一个模型落到另一个文件。
 return [
     'not_found' => '生成器夹具表不存在',
+    'status_enabled' => '正常',
+    'status_disabled' => '禁用',
     'slug_exists' => '别名已存在',
     'title_require' => '标题不能为空',
     'title_length' => '标题长度不能超过200个字符',

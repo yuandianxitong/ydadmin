@@ -4,6 +4,7 @@
 // the rest are registered here up front for the later preview()/generate() tasks to reuse,
 // so the language file is not created twice by concurrent tasks.
 return [
+    'invalid_comment_encoding' => 'Comment for :field appears corrupted. Check and repair the database COMMENT using utf8mb4 before retrying; no automatic conversion is performed.',
     'invalid_select_option' => 'Option values do not match the database type for :field',
     'frontend_mount_missing' => 'Mount the host admin/ source at /var/www/admin before generating code',
     'select_options_required' => 'Configure options for :field before generating a select',
@@ -20,7 +21,7 @@ return [
     'module_busy' => 'This module is being generated; try again later',
     'table_require'           => 'Please select a table',
     'table_not_found'         => 'Table not found',
-    'disabled_in_production'  => 'Code generator is disabled in production',
+    'disabled_in_production'  => 'APP_DEBUG=false: generator preview, generation and incremental updates are disabled. Enable APP_DEBUG and restart in a separate development environment.',
     'file_exists'             => 'Target file already exists',
     'write_failed'            => 'Failed to write file',
     'render_failed'           => 'Failed to render template',

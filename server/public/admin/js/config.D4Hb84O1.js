@@ -1,1 +1,0 @@
-import{T as n}from"./index.B8Uxy2_g.js";function i(){return n.get("/adminapi/system/config/groups")}function t(i="basic"){return n.get(`/adminapi/system/config?group=${i}`)}function a(i){return n.post("/adminapi/system/config/batch-update",{configs:i})}function s(){return n.post("/adminapi/system/config/clear-cache")}export{i as a,a as b,s as c,t as g};

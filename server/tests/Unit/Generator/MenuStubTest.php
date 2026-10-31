@@ -34,10 +34,12 @@ final class MenuStubTest extends TestCase
             array_map('trim', explode(";\n", $sql)),
             static fn (string $s): bool => $s !== ''
         ));
-        $this->assertCount(3, $statements, '生成的菜单 SQL 应为 3 条语句（插入父菜单、取 LAST_INSERT_ID、插入按钮）');
+        $this->assertCount(4, $statements, '先设置 utf8mb4，再插入菜单、取 LAST_INSERT_ID、插入按钮');
 
         $insertedIds = [];
         try {
+            // 即使客户端原本使用 latin1，生成 SQL 自带 SET NAMES 也应保住中文标题。
+            Db::statement('SET NAMES latin1');
             foreach ($statements as $statement) {
                 Db::statement($statement);
             }
@@ -66,6 +68,7 @@ final class MenuStubTest extends TestCase
                 $this->assertSame(3, (int) $child->type);
             }
         } finally {
+            Db::statement('SET NAMES utf8mb4');
             if ($insertedIds !== []) {
                 Db::table('menus')->whereIn('id', $insertedIds)->delete();
             }

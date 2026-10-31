@@ -32,6 +32,13 @@ class GeneratorController extends AuthenticatedController
     #[Inject]
     protected GeneratorService $generatorService;
 
+    #[Get('/capabilities')]
+    #[Permission('system.generator.list')]
+    public function capabilities(): Response
+    {
+        return $this->success($this->generatorService->capabilities(), lang('messages.get_success'));
+    }
+
     #[Get('/tables')]
     #[Permission('system.generator.list')]
     public function tables(): Response

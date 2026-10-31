@@ -16,9 +16,41 @@ use tests\Support\ApiTestCase;
  */
 final class GeneratorApiTest extends ApiTestCase
 {
+    use \tests\Support\ConfigOverride;
+
     private const BASE = '/adminapi/system/generator';
 
     private const FIXTURE_TABLE = 'gen_articles';
+
+    public function test_capabilities_are_readable_with_debug_disabled_but_generation_is_blocked(): void
+    {
+        $admin = $this->actingAsAdmin(['system.generator.list', 'system.generator.generate']);
+        $this->overrideConfig('app.debug', false);
+        try {
+            $data = $this->get(self::BASE . '/capabilities', [], $admin->token)->assertOk()->data();
+            $this->assertFalse($data['writes_enabled']);
+            $this->assertSame('admin', $data['scope']);
+            $this->assertContains('article', $data['reserved_modules']);
+            $this->get(self::BASE . '/tables', [], $admin->token)->assertOk();
+            $this->post(self::BASE . '/preview', [
+                'table_name' => self::FIXTURE_TABLE, 'module_name' => 'demo', 'model_name' => 'GenArticle',
+            ], $admin->token)->assertCode(400);
+        } finally {
+            $this->restoreConfig();
+        }
+        $unprivileged = $this->actingAsAdmin(['system.admin.list']);
+        $this->get(self::BASE . '/capabilities', [], $unprivileged->token)->assertCode(403);
+    }
+
+    public function test_corrupt_column_comment_blocks_preview_instead_of_generating_broken_labels(): void
+    {
+        $admin = $this->actingAsAdmin('super');
+        Db::statement("ALTER TABLE gen_articles MODIFY title varchar(200) NOT NULL COMMENT '????'");
+        $response = $this->post(self::BASE . '/preview', [
+            'table_name' => self::FIXTURE_TABLE, 'module_name' => 'demo', 'model_name' => 'GenArticle',
+        ], $admin->token)->assertCode(422);
+        $this->assertStringContainsString('utf8mb4', json_encode($response->data(), JSON_THROW_ON_ERROR));
+    }
 
     public function test_conflicting_generation_is_not_reported_as_success(): void
     {

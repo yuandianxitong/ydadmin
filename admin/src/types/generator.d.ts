@@ -30,6 +30,20 @@ export interface GeneratorConfig {
     columns?: GeneratorColumnInfo[]
 }
 
+export interface GeneratorCapabilities {
+    writes_enabled: boolean
+    table_prefix: string
+    reserved_modules: string[]
+    scope: 'admin'
+}
+
+export interface GeneratorNextSteps {
+    menu_sql: string
+    route: string
+    manual: string[]
+    docker: string[]
+}
+
 export interface GeneratorPreviewFile {
     path: string
     content: string

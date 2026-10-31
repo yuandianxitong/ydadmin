@@ -127,6 +127,10 @@ final class MakeCrudCommandTest extends TestCase
         $this->assertSame(Command::SUCCESS, $tester->getStatusCode(), $tester->getDisplay());
         $this->assertStringContainsString('created', $tester->getDisplay());
         $this->assertStringContainsString('reload', $tester->getDisplay());
+        $this->assertStringContainsString('--default-character-set=utf8mb4', $tester->getDisplay());
+        $this->assertStringContainsString('pnpm --dir admin build', $tester->getDisplay());
+        $this->assertStringContainsString('exec -T webman php start.php reload', $tester->getDisplay());
+        $this->assertStringContainsString('server/database/generated/demo-crud_cmd_create-menu.sql', $tester->getDisplay());
         foreach ($artifacts as $key => $artifact) {
             $this->assertFileExists($this->absolutePathOf($artifact['path']), "{$key} 没有落盘");
         }
@@ -162,6 +166,7 @@ final class MakeCrudCommandTest extends TestCase
         file_put_contents($modelPath, (string) file_get_contents($modelPath) . "\n// {$marker}\n");
 
         $withoutForce = $this->runCommand(['table' => self::GOLDEN_TABLE, '--module' => self::GOLDEN_MODULE, '--model' => $model]);
+        $this->assertSame(Command::FAILURE, $withoutForce->getStatusCode(), '跳过已有文件应明确返回非零码，不能把不完整生成当成成功');
         $this->assertStringContainsString('skipped', $withoutForce->getDisplay());
         foreach ($protected as $key => $file) {
             $this->assertSame($file['content'], file_get_contents($file['path']), "不加 --force 时手改的 {$key} 不受影响");

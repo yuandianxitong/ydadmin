@@ -1,1 +1,0 @@
-import{T as i}from"./index.B8Uxy2_g.js";const e={get:()=>i.get("/adminapi/mobile/config"),update:e=>i.put("/adminapi/mobile/config",e),eligible:()=>i.get("/adminapi/mobile/config/eligible")};export{e as m};
