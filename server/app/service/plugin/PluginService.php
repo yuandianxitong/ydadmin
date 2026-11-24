@@ -11,7 +11,10 @@ use core\base\Service;
 use core\exception\BusinessException;
 use core\plugin\ManifestReader;
 use core\plugin\PluginPaths;
+use core\plugin\PluginRequirements;
 use core\plugin\PluginStatus;
+use core\plugin\ReloadSignal;
+use core\plugin\WorkerFingerprintRegistry;
 use core\plugin\saga\PluginSagaRunner;
 use core\plugin\saga\PluginSagaState;
 use DI\Attribute\Inject;
@@ -39,6 +42,8 @@ class PluginService extends Service
     /** @return array{id: int, code: string, version: string, status: int} */
     public function install(string $code): array
     {
+        $this->assertWorkersRegisteredWhenMasterRuns();
+
         $row = $this->plugins->findByCode($code);
         if ($row !== null && $this->sagas->hasActive((int) $row['id'])) {
             throw new BusinessException('该插件有正在执行的操作，请稍后再试', 409);
@@ -60,8 +65,16 @@ class PluginService extends Service
             if (!in_array($previous, [PluginStatus::INSTALLING, PluginStatus::FAILED, PluginStatus::UNINSTALLED], true)) {
                 throw new BusinessException("插件当前状态不可安装（status={$previous}）", 409);
             }
-            $this->readManifest($code);
-            $this->plugins->update((int) $row['id'], ['status' => PluginStatus::INSTALLING]);
+            $manifest = $this->readManifest($code);
+            $fresh = [
+                'name' => (string) ($manifest['name'] ?? $code),
+                'version' => (string) ($manifest['version'] ?? ''),
+                'kind' => (string) ($manifest['kind'] ?? 'plugin'),
+                'manifest' => json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                'status' => PluginStatus::INSTALLING,
+            ];
+            $this->plugins->update((int) $row['id'], $fresh);
+            $row = array_merge($row, $fresh, ['manifest' => $manifest]);
         }
 
         $id = (int) $row['id'];
@@ -93,6 +106,8 @@ class PluginService extends Service
     /** @return array{id: int, code: string, status: int} */
     public function disable(string $code): array
     {
+        $this->assertWorkersRegisteredWhenMasterRuns();
+
         $row = $this->requireIdle($code);
         $status = (int) $row['status'];
         if ($status !== PluginStatus::ENABLED) {
@@ -110,6 +125,8 @@ class PluginService extends Service
     /** @return array{id: int, code: string, status: int} */
     public function enable(string $code): array
     {
+        $this->assertWorkersRegisteredWhenMasterRuns();
+
         $row = $this->requireIdle($code);
         $status = (int) $row['status'];
         if ($status !== PluginStatus::DISABLED) {
@@ -119,7 +136,31 @@ class PluginService extends Service
             throw new BusinessException("插件代码目录缺失（plugins/{$code}），请重新安装", 409);
         }
 
+        PluginRequirements::assertPlatform(
+            ManifestReader::decodeColumn($row['manifest'] ?? null),
+            (string) config('version.version'),
+            PluginRequirements::enabledCodes($this->plugins)
+        );
+
         return $this->transition($row, PluginStatus::DISABLED, PluginStatus::ENABLED, PluginSagaState::OP_ENABLE);
+    }
+
+    /**
+     * 有 master 在跑、却没有任何 worker 登记过插件指纹时，reload 永远等不到收敛：
+     * 信号会真发出去，随后两轮各等 60 秒并把插件置为失败。这里在任何写入之前直接拒绝。
+     * master 没在跑时（masterPid 抛错）不拦，照常往下走。
+     */
+    private function assertWorkersRegisteredWhenMasterRuns(): void
+    {
+        try {
+            ReloadSignal::masterPid();
+        } catch (BusinessException) {
+            return;
+        }
+
+        if (WorkerFingerprintRegistry::liveWorkers() === []) {
+            throw new BusinessException('未登记插件指纹的 worker，不能对运行中的 master 执行插件操作', 409);
+        }
     }
 
     /**

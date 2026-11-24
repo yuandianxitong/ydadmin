@@ -13,22 +13,24 @@ use core\plugin\saga\PluginSagaRunner;
 use support\Container;
 use support\Db;
 use tests\Feature\Plugin\Support\ImmediatePluginSagaRunner;
+use tests\Feature\Plugin\Support\ProbeLedger;
 use tests\TestCase;
 
 final class PluginInstallEnableTest extends TestCase
 {
     private string $pluginDir;
 
+    private string $dependentDir;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->pluginDir = base_path('plugins/probe');
+        $this->dependentDir = base_path('plugins/needs-probe');
         $this->cleanup();
         $this->writeFixture();
 
-        \Plugin\Probe\InstallHook::$installs = 0;
-        \Plugin\Probe\InstallHook::$enables = 0;
-        \Plugin\Probe\InstallHook::$disables = 0;
+        ProbeLedger::reset();
     }
 
     protected function tearDown(): void
@@ -48,7 +50,8 @@ final class PluginInstallEnableTest extends TestCase
         $this->assertSame('probe', $installed['code']);
         $this->assertSame('1.0.0', $installed['version']);
         $this->assertSame(PluginStatus::ENABLED, $this->statusOf('probe'));
-        $this->assertSame(1, \Plugin\Probe\InstallHook::$installs);
+        // 钩子类没有被预加载：计数为 1 说明 saga 经 ClassLoader 登记的 psr4 找到了它。
+        $this->assertSame(1, ProbeLedger::$installs);
 
         $disabled = $service->disable('probe');
         $this->assertSame(PluginStatus::DISABLED, $disabled['status']);
@@ -58,9 +61,9 @@ final class PluginInstallEnableTest extends TestCase
         $this->assertSame(PluginStatus::ENABLED, $enabled['status']);
         $this->assertSame(PluginStatus::ENABLED, $this->statusOf('probe'));
 
-        $this->assertSame(1, \Plugin\Probe\InstallHook::$installs);
-        $this->assertSame(0, \Plugin\Probe\InstallHook::$enables);
-        $this->assertSame(0, \Plugin\Probe\InstallHook::$disables);
+        $this->assertSame(1, ProbeLedger::$installs);
+        $this->assertSame(0, ProbeLedger::$enables);
+        $this->assertSame(0, ProbeLedger::$disables);
         $this->assertSame($menus, Db::table('menus')->count());
     }
 
@@ -90,8 +93,8 @@ final class PluginInstallEnableTest extends TestCase
         }
 
         $this->assertSame(PluginStatus::ENABLED, $this->statusOf('probe'));
-        $this->assertSame(0, \Plugin\Probe\InstallHook::$enables);
-        $this->assertSame(0, \Plugin\Probe\InstallHook::$disables);
+        $this->assertSame(0, ProbeLedger::$enables);
+        $this->assertSame(0, ProbeLedger::$disables);
     }
 
     public function test_enable_rejects_a_plugin_that_is_not_disabled(): void
@@ -106,8 +109,41 @@ final class PluginInstallEnableTest extends TestCase
             $this->assertSame(409, $e->getCode());
         }
 
-        $this->assertSame(1, \Plugin\Probe\InstallHook::$installs);
-        $this->assertSame(0, \Plugin\Probe\InstallHook::$enables);
+        $this->assertSame(1, ProbeLedger::$installs);
+        $this->assertSame(0, ProbeLedger::$enables);
+    }
+
+    public function test_enable_rechecks_that_the_dependencies_are_enabled(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $service->install('probe');
+
+        $this->writeDependentFixture();
+        (new PluginRepository())->create([
+            'code' => 'needs-probe',
+            'name' => 'needs-probe',
+            'version' => '1.0.0',
+            'kind' => 'plugin',
+            'depends' => ['probe'],
+            'manifest' => ['code' => 'needs-probe', 'depends' => ['probe']],
+            'status' => PluginStatus::ENABLED,
+        ]);
+
+        $service->disable('needs-probe');
+        $service->disable('probe');
+        $this->assertSame(PluginStatus::DISABLED, $this->statusOf('needs-probe'));
+        $this->assertSame(PluginStatus::DISABLED, $this->statusOf('probe'));
+
+        try {
+            $service->enable('needs-probe');
+            $this->fail('依赖未启用时不应启用依赖它的插件');
+        } catch (BusinessException $e) {
+            $this->assertSame(409, $e->getCode());
+            $this->assertStringContainsString('依赖', $e->getMessage());
+        }
+
+        $this->assertSame(PluginStatus::DISABLED, $this->statusOf('needs-probe'));
+        $this->assertSame(0, ProbeLedger::$enables);
     }
 
     public function test_install_rejects_a_missing_manifest_before_inserting(): void
@@ -118,8 +154,8 @@ final class PluginInstallEnableTest extends TestCase
         try {
             $service->install('probe');
             $this->fail('缺少 plugin.json 时不应安装');
-        } catch (BusinessException) {
-            $this->addToAssertionCount(1);
+        } catch (BusinessException $e) {
+            $this->assertSame(409, $e->getCode());
         }
 
         $this->assertSame(0, Db::table('plugins')->where('code', 'probe')->count());
@@ -137,7 +173,31 @@ final class PluginInstallEnableTest extends TestCase
             $this->assertSame(409, $e->getCode());
         }
 
-        $this->assertSame(1, \Plugin\Probe\InstallHook::$installs);
+        $this->assertSame(1, ProbeLedger::$installs);
+    }
+
+    public function test_reinstalling_a_failed_plugin_refreshes_name_version_and_manifest(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $service->install('probe');
+        $this->assertSame(1, ProbeLedger::$installs);
+
+        Db::table('plugins')->where('code', 'probe')->update(['status' => PluginStatus::FAILED]);
+        $this->writeManifest(['name' => 'Probe Two', 'version' => '1.0.1']);
+
+        $reinstalled = $service->install('probe');
+
+        $this->assertSame(PluginStatus::ENABLED, $reinstalled['status']);
+        $this->assertSame('1.0.1', $reinstalled['version']);
+        $this->assertSame(2, ProbeLedger::$installs);
+
+        $row = (array) Db::table('plugins')->where('code', 'probe')->first();
+        $this->assertSame(PluginStatus::ENABLED, (int) $row['status']);
+        $this->assertSame('Probe Two', $row['name']);
+        $this->assertSame('1.0.1', $row['version']);
+        $manifest = json_decode((string) $row['manifest'], true);
+        $this->assertSame('1.0.1', $manifest['version']);
+        $this->assertSame('Probe Two', $manifest['name']);
     }
 
     private function serviceWithImmediateRunner(): PluginService
@@ -153,18 +213,25 @@ final class PluginInstallEnableTest extends TestCase
         return (int) Db::table('plugins')->where('code', $code)->value('status');
     }
 
-    private function writeFixture(): void
+    /** @param array<string, mixed> $override */
+    private function writeManifest(array $override = []): void
     {
-        mkdir($this->pluginDir . '/src', 0o755, true);
-        file_put_contents($this->pluginDir . '/plugin.json', json_encode([
+        file_put_contents($this->pluginDir . '/plugin.json', json_encode(array_merge([
             'code' => 'probe',
             'name' => 'Probe',
             'version' => '1.0.0',
             'kind' => 'plugin',
             'psr4' => ['Plugin\\Probe\\' => 'src/'],
             'lifecycle' => 'Plugin\\Probe\\InstallHook',
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        ], $override), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
 
+    private function writeFixture(): void
+    {
+        mkdir($this->pluginDir . '/src', 0o755, true);
+        $this->writeManifest();
+
+        // 钩子类只在插件目录里，测试不预加载它；计数写进 ProbeLedger。
         file_put_contents($this->pluginDir . '/src/InstallHook.php', <<<'PHP'
 <?php
 
@@ -173,16 +240,13 @@ declare(strict_types=1);
 namespace Plugin\Probe;
 
 use core\plugin\contracts\LifecycleHook;
+use tests\Feature\Plugin\Support\ProbeLedger;
 
 final class InstallHook implements LifecycleHook
 {
-    public static int $installs = 0;
-    public static int $enables = 0;
-    public static int $disables = 0;
-
     public function install(): void
     {
-        self::$installs++;
+        ProbeLedger::$installs++;
     }
 
     public function uninstall(): void
@@ -195,19 +259,27 @@ final class InstallHook implements LifecycleHook
 
     public function enable(int $tenantId): void
     {
-        self::$enables++;
+        ProbeLedger::$enables++;
     }
 
     public function disable(int $tenantId): void
     {
-        self::$disables++;
+        ProbeLedger::$disables++;
     }
 }
 PHP);
-        // 钩子类只在本用例期间存在，直接 require，不依赖自动加载器是否已登记 psr4。
-        if (!class_exists(\Plugin\Probe\InstallHook::class, false)) {
-            require $this->pluginDir . '/src/InstallHook.php';
-        }
+    }
+
+    private function writeDependentFixture(): void
+    {
+        mkdir($this->dependentDir, 0o755, true);
+        file_put_contents($this->dependentDir . '/plugin.json', json_encode([
+            'code' => 'needs-probe',
+            'name' => 'needs-probe',
+            'version' => '1.0.0',
+            'kind' => 'plugin',
+            'depends' => ['probe'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     private function cleanup(): void
@@ -216,10 +288,11 @@ PHP);
         if ($ids !== []) {
             Db::table('plugin_sagas')->whereIn('plugin_id', $ids)->delete();
         }
-        Db::table('plugin_sagas')->where('code', 'probe')->delete();
+        Db::table('plugin_sagas')->whereIn('code', ['probe', 'needs-probe'])->delete();
         Db::table('plugins')->whereIn('code', ['probe', 'needs-probe'])->delete();
         Db::table('system_configs')->where('config_key', PluginRouteGeneration::KEY)->delete();
         $this->removeDir($this->pluginDir);
+        $this->removeDir($this->dependentDir);
         @rmdir(dirname($this->pluginDir));
     }
 
