@@ -14,10 +14,13 @@ use support\Container;
 use support\Db;
 use tests\Feature\Plugin\Support\ImmediatePluginSagaRunner;
 use tests\Feature\Plugin\Support\ProbeLedger;
+use tests\Support\ConfigOverride;
 use tests\TestCase;
 
 final class PluginInstallEnableTest extends TestCase
 {
+    use ConfigOverride;
+
     private string $pluginDir;
 
     private string $dependentDir;
@@ -198,6 +201,36 @@ final class PluginInstallEnableTest extends TestCase
         $manifest = json_decode((string) $row['manifest'], true);
         $this->assertSame('1.0.1', $manifest['version']);
         $this->assertSame('Probe Two', $manifest['name']);
+    }
+
+    public function test_operations_are_refused_when_a_master_runs_but_no_worker_registered_a_fingerprint(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $pidFile = tempnam(sys_get_temp_dir(), 'plugin-master-pid-');
+        $this->assertNotFalse($pidFile);
+        file_put_contents($pidFile, (string) getmypid());
+        $this->overrideConfig('server.pid_file', $pidFile);
+
+        try {
+            foreach (['install', 'enable', 'disable'] as $method) {
+                try {
+                    $service->{$method}('probe');
+                    $this->fail("{$method} 应当被拒绝");
+                } catch (BusinessException $e) {
+                    $this->assertSame(409, $e->getCode(), $method);
+                    $this->assertSame(
+                        '未登记插件指纹的 worker，不能对运行中的 master 执行插件操作',
+                        $e->getMessage(),
+                        $method
+                    );
+                }
+            }
+
+            $this->assertSame(0, Db::table('plugins')->where('code', 'probe')->count());
+        } finally {
+            $this->restoreConfig();
+            @unlink($pidFile);
+        }
     }
 
     private function serviceWithImmediateRunner(): PluginService
