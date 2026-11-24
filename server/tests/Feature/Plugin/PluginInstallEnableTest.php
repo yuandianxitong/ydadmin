@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\Feature\Plugin;
 
 use app\repository\plugin\PluginRepository;
+use app\service\plugin\adapter\PluginRouteGeneration;
 use app\service\plugin\PluginService;
 use core\exception\BusinessException;
 use core\plugin\PluginStatus;
@@ -217,6 +218,7 @@ PHP);
         }
         Db::table('plugin_sagas')->where('code', 'probe')->delete();
         Db::table('plugins')->whereIn('code', ['probe', 'needs-probe'])->delete();
+        Db::table('system_configs')->where('config_key', PluginRouteGeneration::KEY)->delete();
         $this->removeDir($this->pluginDir);
         @rmdir(dirname($this->pluginDir));
     }
