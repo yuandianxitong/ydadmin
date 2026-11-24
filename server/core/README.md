@@ -5,7 +5,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 
 ## 目录定义
 
-一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 24 个一级目录：
+一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 28 个一级目录：
 
 | 目录 | 职责与归属 |
 |---|---|
@@ -17,6 +17,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `cron` | 调度表达式、命令执行和执行结果；具体任务管理留在应用层 |
 | `database` | SQL 脚本、数据库安装辅助、开发库检查和 SQL LIKE 转义 |
 | `datascope` | 数据范围计算、快照和 ORM 查询作用域 |
+| `diy` | 插件装修协议的归一化输出。页面装修业务仍在 `app/service/diy` |
 | `exception` | 跨模块通用业务异常；渠道专有异常留在渠道模块 |
 | `generator` | 命名规则、表结构推导、模板、产物写入和增量合并 |
 | `http` | HTTP 请求辅助和接口幂等声明；业务幂等持久化留在应用层 |
@@ -24,10 +25,13 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `message` | 消息契约、模板、渠道和投递失败分类；SMTP 适配器放 `message/mail` |
 | `observability` | 通用进程心跳；业务监控聚合留在应用层 |
 | `payment` | 支付网关、金额、请求与结果 DTO、配置及渠道异常 |
+| `plugin` | 插件内核。宿主差异走 `core/plugin/contracts`，由 `config/container.php` 绑定 |
 | `query` | 查询参数归一化、分页和排序规则；具体筛选 SQL 留在仓储 |
 | `queue` | 队列投递入口和消费者、可靠投递接口；Outbox 持久化留在应用层 |
 | `realtime` | 连接注册与实时消息发布；具体通知业务留在应用层 |
 | `response` | API 响应、资源字段契约、响应注解与通用响应 Schema |
+| `runtime` | server 下可写运行目录的路径 |
+| `saga` | 可补偿步骤的执行器。插件编排在 `core/plugin/saga` |
 | `sms` | 短信接口、配置驱动解析和供应商驱动 |
 | `storage` | 文件存储接口、供应商驱动和上传扩展名安全规则 |
 | `support` | 无业务归属的脱敏、路径防护、载荷指纹和引导函数 |
