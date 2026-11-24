@@ -58,6 +58,9 @@ final class DevDatabaseGuard
         'diy_links'          => ['path', 'deleted_at'],
         'mobile_configs'     => ['theme_color', 'tabbar_json'],
         'system_upgrades'    => ['version', 'applied_at'],
+        'plugins'            => ['code', 'status', 'depends', 'manifest'],
+        'plugin_migrations'  => ['plugin_id', 'migration_name', 'direction', 'status'],
+        'plugin_sagas'       => ['plugin_id', 'operation', 'status', 'payload'],
     ];
 
     /**

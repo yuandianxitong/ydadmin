@@ -726,7 +726,7 @@ final class SchemaTest extends TestCase
 
     public function test_release_version_is_2_0_7(): void
     {
-        $this->assertSame('2.0.9', (string) config('version.version'));
+        $this->assertSame('2.0.10', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void
