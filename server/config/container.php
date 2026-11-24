@@ -28,6 +28,7 @@ $builder->addDefinitions([
     core\payment\GatewayResolver::class => \DI\get(core\payment\PaymentManager::class),
     // 邮件：SmtpMailer 每次 send() 现读 smtp_*，改配置不需要 reload。
     core\message\mail\MailerInterface::class => \DI\get(core\message\mail\SmtpMailer::class),
+    \core\plugin\contracts\PluginHostProfile::class => \DI\get(\app\service\plugin\adapter\HostProfile::class),
 ]);
 
 return $builder->build();
