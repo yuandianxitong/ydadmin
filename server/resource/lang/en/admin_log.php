@@ -251,4 +251,17 @@ return [
 
     'mobile_config_update'         => 'Update mobile config',
     'mobile_config_update_desc'    => 'Update mobile theme and tab bar configuration',
+
+    'plugin_install'               => 'Install plugin',
+    'plugin_install_desc'          => 'Install a site plugin',
+    'plugin_enable'                => 'Enable plugin',
+    'plugin_enable_desc'           => 'Enable a site plugin',
+    'plugin_disable'               => 'Disable plugin',
+    'plugin_disable_desc'          => 'Disable a site plugin',
+    'plugin_upgrade'               => 'Upgrade plugin',
+    'plugin_upgrade_desc'          => 'Upgrade a site plugin from a zip package',
+    'plugin_uninstall'             => 'Uninstall plugin',
+    'plugin_uninstall_desc'        => 'Uninstall a site plugin and keep its data',
+    'plugin_purge'                 => 'Purge plugin data',
+    'plugin_purge_desc'            => 'Run the plugin uninstall.sql and keep its directory',
 ];

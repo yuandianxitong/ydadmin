@@ -251,4 +251,17 @@ return [
 
     'mobile_config_update'         => '更新移动端配置',
     'mobile_config_update_desc'    => '更新移动端主题与底部导航配置',
+
+    'plugin_install'               => '安装插件',
+    'plugin_install_desc'          => '安装站点插件',
+    'plugin_enable'                => '启用插件',
+    'plugin_enable_desc'           => '启用站点插件',
+    'plugin_disable'               => '停用插件',
+    'plugin_disable_desc'          => '停用站点插件',
+    'plugin_upgrade'               => '升级插件',
+    'plugin_upgrade_desc'          => '用 zip 升级站点插件',
+    'plugin_uninstall'             => '卸载插件',
+    'plugin_uninstall_desc'        => '卸载站点插件并保留数据',
+    'plugin_purge'                 => '清除插件数据',
+    'plugin_purge_desc'            => '执行插件 uninstall.sql 并保留目录',
 ];

@@ -16,7 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * 卸载插件。只转调 PluginService，不重启 worker。只有显式 --purge 才传 purge: true（执行 database/uninstall.sql 删数据，
- * 且要求插件已停用）；HTTP 接口永远不 purge。不进定时任务白名单（config/cron.php）。
+ * 且要求插件已停用）。后台清除数据走 plugin.purge，同样要求先停用。不进定时任务白名单（config/cron.php）。
  */
 #[AsCommand('plugin:uninstall', '卸载站点插件（保留 server/plugins/<code> 目录；--purge 需先停用，并执行 uninstall.sql）')]
 final class PluginUninstallCommand extends Command

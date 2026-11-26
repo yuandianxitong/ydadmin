@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * 操作日志动作文案（spec §6.2）。
  *
@@ -181,6 +183,13 @@ return [
 
         // 移动端配置（M7c）。仅写接口登记。
         'MobileConfigController@update' => ['admin_log.mobile_config_update', 'admin_log.mobile_config_update_desc'],
+
+        'PluginController@install'   => ['admin_log.plugin_install', 'admin_log.plugin_install_desc'],
+        'PluginController@enable'    => ['admin_log.plugin_enable', 'admin_log.plugin_enable_desc'],
+        'PluginController@disable'   => ['admin_log.plugin_disable', 'admin_log.plugin_disable_desc'],
+        'PluginController@upgrade'   => ['admin_log.plugin_upgrade', 'admin_log.plugin_upgrade_desc'],
+        'PluginController@uninstall' => ['admin_log.plugin_uninstall', 'admin_log.plugin_uninstall_desc'],
+        'PluginController@purge'     => ['admin_log.plugin_purge', 'admin_log.plugin_purge_desc'],
     ],
 
     // 不记操作日志的写接口（短类名@方法）：WS 握手票据——前端每次重连都会取一次，记下来只是刷屏，也不改变任何业务数据。

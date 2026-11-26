@@ -12,9 +12,11 @@ use core\base\Service;
 use core\exception\BusinessException;
 use core\plugin\ManifestReader;
 use core\plugin\PluginAssetPublisher;
+use core\plugin\PluginCategory;
 use core\plugin\PluginLifecycleInvoker;
 use core\plugin\PluginLoader;
 use core\plugin\PluginManifestValidator;
+use core\plugin\PluginPackageInstaller;
 use core\plugin\PluginPaths;
 use core\plugin\PluginRequirements;
 use core\plugin\PluginSqlRunner;
@@ -24,6 +26,7 @@ use core\plugin\ReloadSignal;
 use core\plugin\saga\PluginSagaRunner;
 use core\plugin\saga\PluginSagaState;
 use core\plugin\WorkerFingerprintRegistry;
+use core\runtime\RuntimePaths;
 use DI\Attribute\Inject;
 
 /**
@@ -64,25 +67,107 @@ class PluginService extends Service
     #[Inject]
     protected PluginManifestValidator $validator;
 
+    #[Inject]
+    protected PluginPackageInstaller $packages;
+
+    /**
+     * @return array{categories: list<array{key: string, label: string, sort: int}>, list: list<array<string, mixed>>}
+     */
+    public function catalog(): array
+    {
+        $categories = $this->categoryCatalog();
+        $listed = [];
+        foreach ($this->plugins->allForCatalog() as $row) {
+            $manifest = ManifestReader::decodeColumn($row['manifest'] ?? null);
+            $code = (string) $row['code'];
+            $listed[$code] = $this->present($code, $manifest, $row, $categories);
+        }
+
+        foreach (glob(PluginPaths::root() . '/*/plugin.json') ?: [] as $file) {
+            $dir = dirname($file);
+            $code = basename($dir);
+            if (isset($listed[$code])) {
+                continue;
+            }
+            $manifest = ManifestReader::tryRead($dir);
+            if ($manifest === null || (string) ($manifest['code'] ?? '') !== $code) {
+                continue;
+            }
+            $listed[$code] = $this->present($code, $manifest, null, $categories);
+        }
+
+        return [
+            'categories' => array_values($categories),
+            'list' => array_values($listed),
+        ];
+    }
+
     /** @return array{id: int, code: string, version: string, status: int} */
     public function install(string $code): array
     {
         $this->assertWorkersRegisteredWhenMasterRuns();
 
+        return $this->installPrepared($code, $this->readManifest($code), [
+            'skip_extract' => true,
+            'package_path' => '',
+            'package_hash' => '',
+        ]);
+    }
+
+    /** @return array{id: int, code: string, version: string, status: int} */
+    public function installFromZip(string $zipPath): array
+    {
+        $this->assertWorkersRegisteredWhenMasterRuns();
+        $manifest = $this->packages->inspect($zipPath);
+        $errors = $this->validator->validate($manifest);
+        if ($errors !== []) {
+            throw new BusinessException(implode('；', $errors), 422);
+        }
+        $this->menus->assertManifestMenus($manifest);
+        $manifest = $this->validator->normalize($manifest);
+        $code = (string) $manifest['code'];
+        PluginRequirements::assertPlatform(
+            $manifest,
+            (string) config('version.version'),
+            PluginRequirements::enabledCodes($this->plugins)
+        );
+        if (is_dir(PluginPaths::dir($code))) {
+            throw new BusinessException('插件目录已存在，请按 code 安装，或先移走目录：' . PluginPaths::dir($code), 409);
+        }
+        $staged = $this->stageZip($code, $zipPath);
+
+        return $this->installPrepared($code, $manifest, [
+            'skip_extract' => false,
+            'package_path' => $staged['path'],
+            'package_hash' => $staged['hash'],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $manifest
+     * @param array{skip_extract: bool, package_path: string, package_hash: string} $package
+     * @return array{id: int, code: string, version: string, status: int}
+     */
+    private function installPrepared(string $code, array $manifest, array $package): array
+    {
         $row = $this->plugins->findByCode($code);
         if ($row !== null && $this->sagas->hasActive((int) $row['id'])) {
             throw new BusinessException('该插件有正在执行的操作，请稍后再试', 409);
         }
 
+        $columns = [
+            'name' => (string) ($manifest['name'] ?? $code),
+            'version' => (string) ($manifest['version'] ?? ''),
+            'kind' => (string) ($manifest['kind'] ?? 'plugin'),
+            'description' => (string) ($manifest['description'] ?? ''),
+            'author' => (string) ($manifest['author'] ?? ''),
+            'icon' => isset($manifest['icon']) ? (string) $manifest['icon'] : null,
+            'status' => PluginStatus::INSTALLING,
+        ];
         if ($row === null) {
-            $manifest = $this->readManifest($code);
-            $row = $this->plugins->create([
+            $row = $this->plugins->create($columns + [
                 'code' => $code,
-                'name' => (string) ($manifest['name'] ?? $code),
-                'version' => (string) ($manifest['version'] ?? ''),
-                'kind' => (string) ($manifest['kind'] ?? 'plugin'),
                 'manifest' => $manifest,
-                'status' => PluginStatus::INSTALLING,
             ]);
             $previous = PluginStatus::INSTALLING;
         } else {
@@ -90,24 +175,18 @@ class PluginService extends Service
             if (!in_array($previous, [PluginStatus::INSTALLING, PluginStatus::FAILED, PluginStatus::UNINSTALLED], true)) {
                 throw new BusinessException("插件当前状态不可安装（status={$previous}）", 409);
             }
-            $manifest = $this->readManifest($code);
-            $fresh = [
-                'name' => (string) ($manifest['name'] ?? $code),
-                'version' => (string) ($manifest['version'] ?? ''),
-                'kind' => (string) ($manifest['kind'] ?? 'plugin'),
-                'manifest' => json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
-                'status' => PluginStatus::INSTALLING,
-            ];
-            $this->plugins->update((int) $row['id'], $fresh);
-            $row = array_merge($row, $fresh, ['manifest' => $manifest]);
+            $stored = $columns;
+            $stored['manifest'] = json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $this->plugins->update((int) $row['id'], $stored);
+            $row = array_merge($row, $columns, ['manifest' => $manifest]);
         }
 
         $id = (int) $row['id'];
         $saga = $this->sagas->createPending($id, $code, PluginSagaState::OP_INSTALL, [
             'previous_status' => $previous,
-            'skip_extract' => true,
-            'package_path' => '',
-            'package_hash' => '',
+            'skip_extract' => $package['skip_extract'],
+            'package_path' => $package['package_path'],
+            'package_hash' => $package['package_hash'],
             'host_sdk_version' => (string) config('version.host_sdk'),
             'core_version' => (string) config('version.version'),
             'version' => (string) $row['version'],
@@ -328,5 +407,71 @@ class PluginService extends Service
         PluginAssetPublisher::assertDistIfNeeded(PluginPaths::dir($code));
 
         return $this->validator->normalize($manifest);
+    }
+
+    /**
+     * @return list<array{key: string, label: string, sort: int}>
+     */
+    private function categoryCatalog(): array
+    {
+        $categories = [];
+        foreach ((array) config('plugin_host.categories', []) as $key => $meta) {
+            if (!is_string($key) || !is_array($meta)) {
+                continue;
+            }
+            $categories[] = [
+                'key' => $key,
+                'label' => (string) ($meta['label'] ?? $key),
+                'sort' => (int) ($meta['sort'] ?? 0),
+            ];
+        }
+        usort($categories, static fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
+
+        return $categories;
+    }
+
+    /**
+     * @param array<string, mixed> $manifest
+     * @param array<string, mixed>|null $row
+     * @param list<array{key: string, label: string, sort: int}> $categories
+     * @return array<string, mixed>
+     */
+    private function present(string $code, array $manifest, ?array $row, array $categories): array
+    {
+        $table = [];
+        foreach ($categories as $category) {
+            $table[$category['key']] = [
+                'label' => $category['label'],
+                'sort' => $category['sort'],
+            ];
+        }
+
+        return [
+            'code' => $code,
+            'name' => (string) ($row['name'] ?? $manifest['name'] ?? $code),
+            'version' => (string) ($row['version'] ?? $manifest['version'] ?? ''),
+            'description' => (string) ($row['description'] ?? $manifest['description'] ?? ''),
+            'icon' => (string) ($row['icon'] ?? $manifest['icon'] ?? ''),
+            'kind' => (string) ($row['kind'] ?? $manifest['kind'] ?? 'plugin'),
+            'category' => PluginCategory::normalize(isset($manifest['category']) ? (string) $manifest['category'] : null, $table),
+            'status' => $row === null ? 0 : (int) $row['status'],
+            'last_error' => (string) ($row['last_error'] ?? ''),
+        ];
+    }
+
+    /** @return array{path: string, hash: string} */
+    private function stageZip(string $code, string $zipPath): array
+    {
+        $folder = RuntimePaths::pluginPackagesDir(base_path()) . '/staging';
+        if (!is_dir($folder) && !@mkdir($folder, 0755, true) && !is_dir($folder)) {
+            throw new BusinessException('无法创建插件包暂存目录', 500);
+        }
+        $staged = $folder . '/' . $code . '-' . bin2hex(random_bytes(12)) . '.zip';
+        if (!@copy($zipPath, $staged) || ($hash = hash_file('sha256', $staged)) === false) {
+            @unlink($staged);
+            throw new BusinessException('无法暂存并计算插件包的校验值', 500);
+        }
+
+        return ['path' => $staged, 'hash' => $hash];
     }
 }

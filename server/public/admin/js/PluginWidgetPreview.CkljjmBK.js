@@ -1,0 +1,1 @@
+import{H as e,aB as s,r as a}from"./runtime-core.esm-bundler.BAOO1_pr.js";import{_ as p}from"./_plugin-vue_export-helper.BCo6x5W8.js";const r={class:"plugin-stub"},t=p(e({__name:"PluginWidgetPreview",props:{type:{},props:{},meta:{}},setup:e=>(e,p)=>(s(),a("div",r,"插件组件未启用"))}),[["__scopeId","data-v-017aaa18"]]);export{t as default};

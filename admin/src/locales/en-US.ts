@@ -1614,5 +1614,34 @@ export default {
         componentCount: '{count} components',
         updatedAt: 'Updated {time}',
         decorate: 'Decorate'
+    },
+    pluginManage: {
+        all: 'All',
+        keyword: 'Enter a keyword',
+        uploadInstall: 'Upload and install',
+        more: 'View more',
+        loading: 'Loading',
+        empty: 'No matching plugins',
+        install: 'Install',
+        enable: 'Enable',
+        disable: 'Disable',
+        upgrade: 'Upgrade',
+        uninstall: 'Uninstall',
+        purge: 'Purge data',
+        done: 'Done',
+        kindApp: 'App',
+        kindPlugin: 'Plugin',
+        uninstallConfirm: 'Uninstalling "{name}" keeps its tables and directory.',
+        purgeConfirm:
+            'This runs uninstall.sql for "{name}". The directory stays, and the plugin must already be disabled.',
+        status: {
+            0: 'Not installed',
+            1: 'Enabled',
+            2: 'Disabled',
+            3: 'Installing',
+            4: 'Upgrading',
+            5: 'Failed',
+            6: 'Uninstalled'
+        }
     }
 }

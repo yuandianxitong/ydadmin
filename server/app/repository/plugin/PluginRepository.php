@@ -22,6 +22,12 @@ final class PluginRepository extends Repository implements PluginStore
         return new Plugin();
     }
 
+    /** @return list<array<string, mixed>> */
+    public function allForCatalog(): array
+    {
+        return $this->query()->orderBy('id')->get()->toArray();
+    }
+
     public function findByCode(string $code): ?array
     {
         return $this->findWhere(['code' => $code]);

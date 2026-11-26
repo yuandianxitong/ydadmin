@@ -648,7 +648,7 @@ final class SchemaTest extends TestCase
 
     public function test_m7b_app_menu_seeds(): void
     {
-        $ids = [8, 800, 801, 802, 803, 810, 811, 812, 813];
+        $ids = [8, 800, 801, 802, 803, 810, 811, 812, 813, 821, 822, 823, 824, 825, 826];
         $menus = Db::table('menus')->whereIn('id', $ids)->orderBy('id')->get()->all();
         $this->assertCount(count($ids), $menus);
         $byId = [];
@@ -656,12 +656,24 @@ final class SchemaTest extends TestCase
             $byId[(int) $m->id] = $m;
         }
         $this->assertSame(0, (int) $byId[8]->parent_id);
+        $this->assertSame(2, (int) $byId[8]->type);
         $this->assertSame('Application', $byId[8]->name);
-        $this->assertSame('region.list', $byId[8]->permission);
+        $this->assertSame('plugin.list', $byId[8]->permission);
+        $this->assertSame('/app/index', $byId[8]->component);
+        $this->assertNull($byId[8]->redirect);
         $this->assertSame(650, (int) $byId[8]->sort);
-        $this->assertSame('/app/region', $byId[8]->redirect);
+        $this->assertSame(2, (int) $byId[800]->parent_id);
+        $this->assertSame('/system/region', $byId[800]->path);
+        $this->assertSame(2, (int) $byId[810]->parent_id);
+        $this->assertSame('/system/version', $byId[810]->path);
         $this->assertSame('/content/region/index', $byId[800]->component);
         $this->assertSame('/content/version/index', $byId[810]->component);
+        $this->assertSame(0, (int) Db::table('menus')->where('title', '应用市场')->count());
+        foreach ([821 => 'plugin.install', 822 => 'plugin.enable', 823 => 'plugin.disable', 824 => 'plugin.upgrade', 825 => 'plugin.uninstall', 826 => 'plugin.purge'] as $id => $permission) {
+            $this->assertSame(3, (int) $byId[$id]->type);
+            $this->assertSame(8, (int) $byId[$id]->parent_id);
+            $this->assertSame($permission, $byId[$id]->permission);
+        }
         $this->assertSame('region.create', $byId[801]->permission);
         $this->assertSame('version.delete', $byId[813]->permission);
         $this->assertSame(0, Db::table('menus')->where('permission', 'like', 'dataimport.%')->count());
@@ -726,7 +738,7 @@ final class SchemaTest extends TestCase
 
     public function test_release_version_is_2_0_7(): void
     {
-        $this->assertSame('2.0.10', (string) config('version.version'));
+        $this->assertSame('2.0.11', (string) config('version.version'));
     }
 
     public function test_m7c_diy_menu_seeds(): void

@@ -1604,5 +1604,33 @@ export default {
         componentCount: '{count} 个组件',
         updatedAt: '更新于 {time}',
         decorate: '去装修'
+    },
+    pluginManage: {
+        all: '全部',
+        keyword: '请输入关键词',
+        uploadInstall: '上传安装',
+        more: '查看更多',
+        loading: '加载中',
+        empty: '没有匹配的插件',
+        install: '安装',
+        enable: '启用',
+        disable: '停用',
+        upgrade: '升级',
+        uninstall: '卸载',
+        purge: '清除数据',
+        done: '操作完成',
+        kindApp: '应用',
+        kindPlugin: '插件',
+        uninstallConfirm: '卸载「{name}」后数据表和目录仍会保留。',
+        purgeConfirm: '将执行「{name}」的 uninstall.sql 清除数据。目录仍会保留，且插件必须已经停用。',
+        status: {
+            0: '未安装',
+            1: '已启用',
+            2: '已停用',
+            3: '安装中',
+            4: '升级中',
+            5: '失败',
+            6: '已卸载'
+        }
     }
 }
