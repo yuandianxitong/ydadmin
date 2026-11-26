@@ -6857,16 +6857,16 @@
         },
         {
             "name": "yuandianxitong/plugin-kernel",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/yuandianxitong/plugin-kernel.git",
-                "reference": "4bf18c91c19ac4c6ea8238f645c36b58192027bd"
+                "url": "git@github.com:yuandianxitong/plugin-kernel.git",
+                "reference": "831e5bc8981edcdf392a767cf07fd2e3b02571c7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/yuandianxitong/plugin-kernel/zipball/4bf18c91c19ac4c6ea8238f645c36b58192027bd",
-                "reference": "4bf18c91c19ac4c6ea8238f645c36b58192027bd",
+                "url": "https://api.github.com/repos/yuandianxitong/plugin-kernel/zipball/831e5bc8981edcdf392a767cf07fd2e3b02571c7",
+                "reference": "831e5bc8981edcdf392a767cf07fd2e3b02571c7",
                 "shasum": ""
             },
             "require": {
@@ -6886,7 +6886,7 @@
                 "MIT"
             ],
             "description": "Shared plugin kernel for Yuandian Webman applications",
-            "time": "2026-11-26T04:42:17+00:00"
+            "time": "2026-11-26T11:33:50+00:00"
         }
     ],
     "packages-dev": [
