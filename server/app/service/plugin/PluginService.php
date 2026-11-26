@@ -76,11 +76,12 @@ class PluginService extends Service
     public function catalog(): array
     {
         $categories = $this->categoryCatalog();
+        $busy = array_fill_keys($this->sagas->activePluginIds(), true);
         $listed = [];
         foreach ($this->plugins->allForCatalog() as $row) {
             $manifest = ManifestReader::decodeColumn($row['manifest'] ?? null);
             $code = (string) $row['code'];
-            $listed[$code] = $this->present($code, $manifest, $row, $categories);
+            $listed[$code] = $this->present($code, $manifest, $row, $categories, isset($busy[(int) $row['id']]));
         }
 
         foreach (glob(PluginPaths::root() . '/*/plugin.json') ?: [] as $file) {
@@ -93,7 +94,7 @@ class PluginService extends Service
             if ($manifest === null || (string) ($manifest['code'] ?? '') !== $code) {
                 continue;
             }
-            $listed[$code] = $this->present($code, $manifest, null, $categories);
+            $listed[$code] = $this->present($code, $manifest, null, $categories, false);
         }
 
         return [
@@ -192,9 +193,18 @@ class PluginService extends Service
             'version' => (string) $row['version'],
         ]);
 
-        $exit = $this->runner->handle((int) $saga['id']);
+        $run = $this->executeSaga((int) $saga['id']);
+        if (!$run['settled']) {
+            return [
+                'id' => $id,
+                'code' => $code,
+                'version' => (string) $row['version'],
+                'status' => PluginStatus::INSTALLING,
+                'settled' => false,
+            ];
+        }
         $after = $this->plugins->find($id) ?? [];
-        if ($exit !== 0 || (int) ($after['status'] ?? 0) !== PluginStatus::ENABLED) {
+        if ($run['exit'] !== 0 || (int) ($after['status'] ?? 0) !== PluginStatus::ENABLED) {
             $error = (string) ($after['last_error'] ?? '');
             throw new BusinessException($error !== '' ? $error : '插件安装失败', 500);
         }
@@ -204,6 +214,7 @@ class PluginService extends Service
             'code' => $code,
             'version' => (string) $after['version'],
             'status' => (int) $after['status'],
+            'settled' => true,
         ];
     }
 
@@ -235,13 +246,26 @@ class PluginService extends Service
             throw $e;
         }
 
-        $exit = $this->runner->handle((int) $saga['id']);
+        $run = $this->executeSaga((int) $saga['id']);
+        if (!$run['settled']) {
+            return [
+                'code' => $code,
+                'version' => (string) $row['version'],
+                'status' => PluginStatus::UPGRADING,
+                'settled' => false,
+            ];
+        }
         $after = $this->plugins->find($id) ?? [];
-        if ($exit !== 0 || ($after['version'] ?? null) !== $payload['to_version']) {
+        if ($run['exit'] !== 0 || ($after['version'] ?? null) !== $payload['to_version']) {
             throw new BusinessException((string) (($after['last_error'] ?? '') ?: '插件升级失败'), 500);
         }
 
-        return ['code' => $code, 'version' => $payload['to_version'], 'status' => (int) $after['status']];
+        return [
+            'code' => $code,
+            'version' => $payload['to_version'],
+            'status' => (int) $after['status'],
+            'settled' => true,
+        ];
     }
 
     /** @return array{id: int, code: string, status: int} */
@@ -302,26 +326,19 @@ class PluginService extends Service
             throw new BusinessException('插件当前状态不可卸载，清理数据前请先停用', 409);
         }
         if ($status === PluginStatus::ENABLED) {
+            $this->assertWorkersRegisteredWhenMasterRuns();
+            if ($this->deferReload()) {
+                $this->transition($plugin, PluginStatus::ENABLED, PluginStatus::DISABLED, PluginSagaState::OP_DISABLE, [
+                    'continue_uninstall' => true,
+                    'purge' => $purge,
+                ]);
+
+                return ['code' => $code, 'status' => 'uninstalled', 'settled' => false];
+            }
             $this->disable($code);
         }
 
-        $id = (int) $plugin['id'];
-        $dir = PluginPaths::dir($code);
-        $manifest = ManifestReader::decodeColumn($plugin['manifest'] ?? null);
-        $this->loader->registerPsr4($manifest, $dir);
-        $this->lifecycle->invoke($manifest, 'uninstall');
-        if ($purge) {
-            $this->sqlRunner->uninstallData($dir, $id, $code, (string) $plugin['version']);
-        }
-        $this->runInTransaction(function () use ($id, $code): void {
-            $this->menus->remove($code);
-            $this->plugins->update($id, [
-                'status' => PluginStatus::UNINSTALLED,
-                'last_error' => '',
-            ]);
-        });
-
-        return ['code' => $code, 'status' => 'uninstalled'];
+        return $this->completeUninstall($plugin, $code, $purge);
     }
 
     /**
@@ -346,14 +363,15 @@ class PluginService extends Service
      * 状态与路由版本号在同一事务里写好，再交给 saga 让路由生效。
      *
      * @param array<string, mixed> $row
-     * @return array{id: int, code: string, status: int}
+     * @param array<string, mixed> $extra
+     * @return array{id: int, code: string, status: int, settled: bool}
      */
-    private function transition(array $row, int $from, int $to, string $operation): array
+    private function transition(array $row, int $from, int $to, string $operation, array $extra = []): array
     {
         $id = (int) $row['id'];
         $code = (string) $row['code'];
 
-        $saga = $this->runInTransaction(function () use ($id, $code, $from, $to, $operation): array {
+        $saga = $this->runInTransaction(function () use ($id, $code, $from, $to, $operation, $extra): array {
             $affected = $this->plugins->updateWhere(['id' => $id, 'status' => $from], ['status' => $to]);
             if ($affected !== 1 || $this->sagas->hasActive($id)) {
                 throw new BusinessException('插件状态已变化，请重试', 409);
@@ -362,19 +380,19 @@ class PluginService extends Service
                 $this->generation->bump();
             }
 
-            return $this->sagas->createPending($id, $code, $operation, ['previous_status' => $from]);
+            return $this->sagas->createPending($id, $code, $operation, ['previous_status' => $from] + $extra);
         });
-        $exit = $this->runner->handle((int) $saga['id']);
+        $run = $this->executeSaga((int) $saga['id']);
+        if (!$run['settled']) {
+            return ['id' => $id, 'code' => $code, 'status' => $to, 'settled' => false];
+        }
         $after = $this->plugins->find($id) ?? [];
-        if ($exit !== 0) {
+        if ($run['exit'] !== 0) {
             $error = (string) ($after['last_error'] ?? '');
             throw new BusinessException($error !== '' ? $error : '插件操作失败', 500);
         }
 
-        $this->plugins->update($id, ['last_error' => '']);
-        $this->menus->setStatus($code, $to === PluginStatus::ENABLED ? 1 : 0);
-
-        return ['id' => $id, 'code' => $code, 'status' => (int) ($after['status'] ?? $to)];
+        return ['id' => $id, 'code' => $code, 'status' => (int) ($after['status'] ?? $to), 'settled' => true];
     }
 
     /** @return array<string, mixed> */
@@ -436,7 +454,7 @@ class PluginService extends Service
      * @param list<array{key: string, label: string, sort: int}> $categories
      * @return array<string, mixed>
      */
-    private function present(string $code, array $manifest, ?array $row, array $categories): array
+    private function present(string $code, array $manifest, ?array $row, array $categories, bool $busy): array
     {
         $table = [];
         foreach ($categories as $category) {
@@ -456,7 +474,160 @@ class PluginService extends Service
             'category' => PluginCategory::normalize(isset($manifest['category']) ? (string) $manifest['category'] : null, $table),
             'status' => $row === null ? 0 : (int) $row['status'],
             'last_error' => (string) ($row['last_error'] ?? ''),
+            'busy' => $busy,
         ];
+    }
+
+    /**
+     * HTTP worker 不能自己等重载：master 会在 stop_timeout 后把它杀掉，响应和 saga 收尾都丢了。
+     * 这种请求只留下 pending，交给不参与重载的派单进程。命令行和测试进程仍就地执行。
+     *
+     * @return array{settled: bool, exit: int}
+     */
+    private function executeSaga(int $sagaId): array
+    {
+        if ($this->deferReload()) {
+            return ['settled' => false, 'exit' => 0];
+        }
+        if (!$this->sagas->claim($sagaId, (int) getmypid())) {
+            return ['settled' => true, 'exit' => $this->waitForSaga($sagaId)];
+        }
+        $exit = $this->runner->handle($sagaId);
+        if ($exit === 0) {
+            $this->finalizeSaga($sagaId);
+        }
+
+        return ['settled' => true, 'exit' => $exit];
+    }
+
+    private function deferReload(): bool
+    {
+        if (!$this->masterRunning()) {
+            return false;
+        }
+        foreach ((array) ($_SERVER['argv'] ?? []) as $arg) {
+            if (is_string($arg) && str_starts_with($arg, 'plugin:')) {
+                return false;
+            }
+        }
+
+        try {
+            return posix_getppid() === ReloadSignal::masterPid();
+        } catch (BusinessException) {
+            return false;
+        }
+    }
+
+    private function masterRunning(): bool
+    {
+        try {
+            ReloadSignal::masterPid();
+
+            return true;
+        } catch (BusinessException) {
+            return false;
+        }
+    }
+
+    private function waitForSaga(int $sagaId): int
+    {
+        $deadline = microtime(true) + 90;
+        while (microtime(true) < $deadline) {
+            $row = $this->sagas->find($sagaId);
+            $status = (string) ($row['status'] ?? '');
+            if ($status === PluginSagaState::ST_COMPLETED) {
+                return 0;
+            }
+            if ($status === PluginSagaState::ST_FAILED) {
+                return 1;
+            }
+            usleep(200_000);
+        }
+
+        throw new BusinessException('插件操作超时', 500);
+    }
+
+    /** 子进程或就地执行成功后的宿主收尾。saga 还没到 completed 时什么都不做。 */
+    public function finalizeSaga(int $sagaId): void
+    {
+        $saga = $this->sagas->find($sagaId);
+        if ($saga === null || (string) ($saga['status'] ?? '') !== PluginSagaState::ST_COMPLETED) {
+            return;
+        }
+        $payload = json_decode((string) ($saga['payload'] ?? '{}'), true);
+        $payload = is_array($payload) ? $payload : [];
+        $code = (string) $saga['code'];
+        $operation = (string) $saga['operation'];
+        $plugin = $this->plugins->find((int) $saga['plugin_id']);
+        if ($plugin === null) {
+            return;
+        }
+        if ((int) $plugin['status'] !== PluginStatus::UNINSTALLED) {
+            $this->plugins->update((int) $plugin['id'], ['last_error' => '']);
+        }
+        if ($operation === PluginSagaState::OP_ENABLE && (int) $plugin['status'] === PluginStatus::ENABLED) {
+            $this->menus->setStatus($code, 1);
+        }
+        if ($operation === PluginSagaState::OP_DISABLE && (int) $plugin['status'] === PluginStatus::DISABLED) {
+            $this->menus->setStatus($code, 0);
+        }
+        if ($operation === PluginSagaState::OP_DISABLE && !empty($payload['continue_uninstall'])) {
+            $fresh = $this->plugins->findByCode($code);
+            if ($fresh !== null && (int) $fresh['status'] === PluginStatus::DISABLED) {
+                $this->completeUninstall($fresh, $code, (bool) ($payload['purge'] ?? false));
+            }
+        }
+    }
+
+    /**
+     * 子进程没能把 saga 收到终态时，安装中和升级中没有别的出口，改成失败。
+     */
+    public function releaseStuck(int $pluginId, string $operation, string $reason): void
+    {
+        $stuck = match ($operation) {
+            PluginSagaState::OP_INSTALL => PluginStatus::INSTALLING,
+            PluginSagaState::OP_UPGRADE => PluginStatus::UPGRADING,
+            default => null,
+        };
+        if ($stuck === null) {
+            return;
+        }
+        $this->runInTransaction(function () use ($pluginId, $stuck, $reason): void {
+            $rows = $this->plugins->updateWhere(
+                ['id' => $pluginId, 'status' => $stuck],
+                ['status' => PluginStatus::FAILED, 'last_error' => mb_substr('编排者侧收尾：' . $reason, 0, 1000)]
+            );
+            if ($rows === 1
+                && $stuck === PluginStatus::INSTALLING
+                && $this->generation->shouldBump($stuck, PluginStatus::FAILED, true)) {
+                $this->generation->bump();
+            }
+        });
+    }
+
+    /**
+     * @param array<string, mixed> $plugin
+     * @return array{code: string, status: string, settled: bool}
+     */
+    private function completeUninstall(array $plugin, string $code, bool $purge): array
+    {
+        $id = (int) $plugin['id'];
+        $dir = PluginPaths::dir($code);
+        $manifest = ManifestReader::decodeColumn($plugin['manifest'] ?? null);
+        $this->loader->registerPsr4($manifest, $dir);
+        $this->lifecycle->invoke($manifest, 'uninstall');
+        if ($purge) {
+            $this->sqlRunner->uninstallData($dir, $id, $code, (string) $plugin['version']);
+        }
+        $this->runInTransaction(function () use ($id, $code): void {
+            $this->menus->remove($code);
+            $this->plugins->update($id, [
+                'status' => PluginStatus::UNINSTALLED,
+                'last_error' => '',
+            ]);
+        });
+
+        return ['code' => $code, 'status' => 'uninstalled', 'settled' => true];
     }
 
     /** @return array{path: string, hash: string} */

@@ -63,6 +63,7 @@
                             <p>{{ item.description || item.code }}</p>
                             <div class="tags">
                                 <span class="tag">{{ statusLabel(item.status) }}</span>
+                                <span v-if="item.busy" class="tag">{{ t('pluginManage.working') }}</span>
                                 <span v-if="item.version" class="tag">v{{ item.version }}</span>
                                 <span class="tag">{{ kindLabel(item.kind) }}</span>
                             </div>
@@ -75,7 +76,7 @@
                             v-has-perm="['plugin.install']"
                             link
                             type="primary"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="run(item.code, () => pluginApi.install(item.code))"
                         >
                             {{ t('pluginManage.install') }}
@@ -85,7 +86,7 @@
                             v-has-perm="['plugin.disable']"
                             link
                             type="primary"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="run(item.code, () => pluginApi.disable(item.code))"
                         >
                             {{ t('pluginManage.disable') }}
@@ -95,7 +96,7 @@
                             v-has-perm="['plugin.enable']"
                             link
                             type="primary"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="run(item.code, () => pluginApi.enable(item.code))"
                         >
                             {{ t('pluginManage.enable') }}
@@ -105,7 +106,7 @@
                             v-has-perm="['plugin.upgrade']"
                             link
                             type="primary"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="pickUpgrade(item.code)"
                         >
                             {{ t('pluginManage.upgrade') }}
@@ -115,7 +116,7 @@
                             v-has-perm="['plugin.uninstall']"
                             link
                             type="danger"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="confirmUninstall(item)"
                         >
                             {{ t('pluginManage.uninstall') }}
@@ -125,7 +126,7 @@
                             v-has-perm="['plugin.purge']"
                             link
                             type="danger"
-                            :disabled="busy === item.code"
+                            :disabled="locked(item)"
                             @click="confirmPurge(item)"
                         >
                             {{ t('pluginManage.purge') }}
@@ -222,8 +223,12 @@ function canInstall(status: number) {
     return status === 0 || status === 5 || status === 6
 }
 
-async function load() {
-    loading.value = true
+function locked(item: PluginCard) {
+    return busy.value === item.code || item.busy
+}
+
+async function load(silent = false) {
+    if (!silent) loading.value = true
     try {
         const res = await pluginApi.catalog()
         categories.value = res.data?.categories ?? []
@@ -233,12 +238,24 @@ async function load() {
     }
 }
 
+async function waitUntilSettled(code: string) {
+    const deadline = Date.now() + 90000
+    while (Date.now() < deadline) {
+        const item = list.value.find((row) => row.code === code)
+        if (item && !item.busy && item.status !== 3 && item.status !== 4) return
+        if (!item) return
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await load(true)
+    }
+}
+
 async function run(code: string, action: () => Promise<{ message?: string }>) {
     busy.value = code
     try {
         const res = await action()
         ElMessage.success(res.message || t('pluginManage.done'))
-        await load()
+        await load(true)
+        await waitUntilSettled(code)
     } finally {
         busy.value = ''
     }
@@ -309,7 +326,7 @@ onMounted(load)
     gap: 16px;
     margin-bottom: 20px;
     padding: 14px 16px;
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 12px;
 }
 .chips {
@@ -322,13 +339,13 @@ onMounted(load)
     padding: 6px 14px;
     border: 0;
     border-radius: 999px;
-    background: #f3f5f8;
-    color: #3a4252;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-regular);
     cursor: pointer;
 }
 .chip.is-active {
-    background: #e8f1ff;
-    color: #1677ff;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
 }
 .keyword {
     width: 240px;
@@ -338,7 +355,7 @@ onMounted(load)
 }
 .empty {
     padding: 48px 0;
-    color: #8a93a3;
+    color: var(--el-text-color-secondary);
     text-align: center;
 }
 .section {
@@ -352,13 +369,14 @@ onMounted(load)
 }
 .section-head h2 {
     margin: 0;
+    color: var(--el-text-color-primary);
     font-size: 16px;
     font-weight: 600;
 }
 .more {
     border: 0;
     background: transparent;
-    color: #1677ff;
+    color: var(--el-color-primary);
     cursor: pointer;
 }
 .grid {
@@ -372,7 +390,7 @@ onMounted(load)
     justify-content: space-between;
     min-height: 148px;
     padding: 16px;
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 12px;
 }
 .card-main {
@@ -390,8 +408,8 @@ onMounted(load)
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e8f1ff;
-    color: #1677ff;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
     font-weight: 600;
 }
 .card-copy {
@@ -400,6 +418,7 @@ onMounted(load)
 .card-copy h3 {
     margin: 0 0 4px;
     overflow: hidden;
+    color: var(--el-text-color-primary);
     font-size: 15px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -407,7 +426,7 @@ onMounted(load)
 .card-copy p {
     margin: 0;
     overflow: hidden;
-    color: #6b7280;
+    color: var(--el-text-color-secondary);
     font-size: 13px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -420,13 +439,13 @@ onMounted(load)
 .tag {
     padding: 1px 8px;
     border-radius: 999px;
-    background: #f3f5f8;
-    color: #5b6472;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-regular);
     font-size: 12px;
 }
 .error {
     margin-top: 6px;
-    color: #e5484d;
+    color: var(--el-color-danger);
 }
 .actions {
     display: flex;

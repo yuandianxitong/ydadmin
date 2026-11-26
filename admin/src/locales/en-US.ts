@@ -1629,6 +1629,7 @@ export default {
         uninstall: 'Uninstall',
         purge: 'Purge data',
         done: 'Done',
+        working: 'Working',
         kindApp: 'App',
         kindPlugin: 'Plugin',
         uninstallConfirm: 'Uninstalling "{name}" keeps its tables and directory.',

@@ -45,6 +45,65 @@ final class PluginSagaRepository extends Repository implements PluginSagaStore
             ->exists();
     }
 
+    /** @return list<int> */
+    public function activePluginIds(): array
+    {
+        return array_map(
+            'intval',
+            $this->query()->whereIn('status', PluginSaga::ACTIVE_STATUSES)->pluck('plugin_id')->all()
+        );
+    }
+
+    /** 只有还停在 pending 的行能被认领。影响行数为 1 才算抢到。 */
+    public function claim(int $sagaId, int $pid): bool
+    {
+        return $this->updateWhere(
+            ['id' => $sagaId, 'status' => PluginSaga::ST_PENDING],
+            [
+                'status' => PluginSaga::ST_RUNNING,
+                'claimed_pid' => $pid,
+                'claimed_at' => date('Y-m-d H:i:s'),
+            ]
+        ) === 1;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function claimNext(int $pid): ?array
+    {
+        $candidate = $this->query()->where('status', PluginSaga::ST_PENDING)->orderBy('id')->first();
+        if ($candidate === null) {
+            return null;
+        }
+        $id = (int) $candidate->id;
+        if (!$this->claim($id, $pid)) {
+            return null;
+        }
+
+        return $this->find($id);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function findRunning(): array
+    {
+        return $this->query()->where('status', PluginSaga::ST_RUNNING)->orderBy('id')->get()->toArray();
+    }
+
+    /**
+     * 把认领者已死的 running 行换到本进程名下。改完再读一次，避免「值没变所以影响行数是 0」误判。
+     */
+    public function reclaimOrphan(int $sagaId, int $deadPid, int $myPid): bool
+    {
+        $this->updateWhere(
+            ['id' => $sagaId, 'status' => PluginSaga::ST_RUNNING, 'claimed_pid' => $deadPid],
+            ['claimed_pid' => $myPid, 'claimed_at' => date('Y-m-d H:i:s')]
+        );
+        $fresh = $this->find($sagaId);
+
+        return $fresh !== null
+            && (int) ($fresh['claimed_pid'] ?? -1) === $myPid
+            && (string) ($fresh['status'] ?? '') === PluginSaga::ST_RUNNING;
+    }
+
     public function setExpectedFingerprint(int $sagaId, string $fingerprint): bool
     {
         return $this->update($sagaId, ['expected_fingerprint' => $fingerprint]);

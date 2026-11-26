@@ -1619,6 +1619,7 @@ export default {
         uninstall: '卸载',
         purge: '清除数据',
         done: '操作完成',
+        working: '处理中',
         kindApp: '应用',
         kindPlugin: '插件',
         uninstallConfirm: '卸载「{name}」后数据表和目录仍会保留。',

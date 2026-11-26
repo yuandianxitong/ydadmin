@@ -18,6 +18,7 @@ export interface PluginCard {
     category: string
     status: number
     last_error: string
+    busy: boolean
 }
 
 export interface PluginCatalog {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace tests\Feature\Plugin;
 
+use app\repository\plugin\PluginRepository;
+use app\repository\plugin\PluginSagaRepository;
 use core\auth\TokenManager;
 use core\plugin\PluginPaths;
 use core\plugin\PluginStatus;
@@ -56,12 +58,14 @@ final class PluginManageApiTest extends ApiTestCase
         $before = $this->get('/adminapi/plugin/list', token: $admin->token)->assertCode(200)->json();
         $disk = $this->item($before);
         $this->assertSame(0, $disk['status']);
+        $this->assertFalse($disk['busy']);
         $this->assertSame('other', $disk['category']);
         $this->assertSame('货架探针', $disk['name']);
 
         $this->post('/adminapi/plugin/install', ['code' => $this->code], $admin->token)->assertCode(200);
         $installed = $this->item($this->get('/adminapi/plugin/list', token: $admin->token)->assertCode(200)->json());
         $this->assertSame(PluginStatus::ENABLED, $installed['status']);
+        $this->assertFalse($installed['busy']);
         $this->assertSame('', $installed['last_error']);
 
         Db::table('plugins')->where('code', $this->code)->update(['last_error' => '上一轮失败']);
@@ -80,6 +84,23 @@ final class PluginManageApiTest extends ApiTestCase
         $purged->assertCode(409);
         $this->assertStringContainsString('plugin:disable', (string) ($purged->json()['message'] ?? ''));
         $this->assertSame(PluginStatus::ENABLED, (int) Db::table('plugins')->where('code', $this->code)->value('status'));
+    }
+
+    public function test_pending_saga_can_be_claimed_once(): void
+    {
+        $plugin = (new PluginRepository())->create([
+            'code' => $this->code,
+            'name' => '货架探针',
+            'version' => '1.0.0',
+            'kind' => 'plugin',
+            'status' => PluginStatus::DISABLED,
+            'manifest' => [],
+        ]);
+        $repo = new PluginSagaRepository();
+        $saga = $repo->createPending((int) $plugin['id'], $this->code, 'disable', []);
+
+        $this->assertTrue($repo->claim((int) $saga['id'], 11));
+        $this->assertFalse($repo->claim((int) $saga['id'], 22));
     }
 
     /** @param array<string, mixed> $body */

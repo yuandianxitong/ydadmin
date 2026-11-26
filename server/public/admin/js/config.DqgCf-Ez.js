@@ -1,0 +1,1 @@
+import{m as n}from"./router.5RzyMuYl.js";function t(){return n.get("/adminapi/system/config/groups")}function a(t="basic"){return n.get(`/adminapi/system/config?group=${t}`)}function i(t){return n.post("/adminapi/system/config/batch-update",{configs:t})}function s(){return n.post("/adminapi/system/config/clear-cache")}export{t as a,i as b,s as c,a as g};

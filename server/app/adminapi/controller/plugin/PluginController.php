@@ -46,11 +46,14 @@ final class PluginController extends AuthenticatedController
     {
         $file = $request->file('file');
         if ($file instanceof UploadFile && $file->isValid()) {
-            return $this->success($this->plugins->installFromZip($file->getPathname()), '插件已安装。插件菜单会在重新进入后台后出现');
+            $result = $this->plugins->installFromZip($file->getPathname());
+
+            return $this->success($result, $this->settledMessage($result, '插件已安装。插件菜单会在重新进入后台后出现', '插件正在安装，完成后请重新进入后台'));
         }
         $data = $this->validate($this->body($request), $this->installRules());
+        $result = $this->plugins->install($data['code']);
 
-        return $this->success($this->plugins->install($data['code']), '插件已安装。插件菜单会在重新进入后台后出现');
+        return $this->success($result, $this->settledMessage($result, '插件已安装。插件菜单会在重新进入后台后出现', '插件正在安装，完成后请重新进入后台'));
     }
 
     #[Post('/enable')]
@@ -58,8 +61,9 @@ final class PluginController extends AuthenticatedController
     public function enable(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->enableRules());
+        $result = $this->plugins->enable($data['code']);
 
-        return $this->success($this->plugins->enable($data['code']), '插件已启用。插件菜单会在重新进入后台后出现');
+        return $this->success($result, $this->settledMessage($result, '插件已启用。插件菜单会在重新进入后台后出现', '插件正在启用'));
     }
 
     #[Post('/disable')]
@@ -67,8 +71,9 @@ final class PluginController extends AuthenticatedController
     public function disable(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->disableRules());
+        $result = $this->plugins->disable($data['code']);
 
-        return $this->success($this->plugins->disable($data['code']));
+        return $this->success($result, $this->settledMessage($result, '插件已停用', '插件正在停用'));
     }
 
     #[Post('/upgrade')]
@@ -81,7 +86,9 @@ final class PluginController extends AuthenticatedController
             throw new BusinessException('请上传 zip 升级包', 422);
         }
 
-        return $this->success($this->plugins->upgrade($data['code'], $file->getPathname()), '插件已升级。插件菜单会在重新进入后台后出现');
+        $result = $this->plugins->upgrade($data['code'], $file->getPathname());
+
+        return $this->success($result, $this->settledMessage($result, '插件已升级。插件菜单会在重新进入后台后出现', '插件正在升级'));
     }
 
     #[Post('/uninstall')]
@@ -89,8 +96,9 @@ final class PluginController extends AuthenticatedController
     public function uninstall(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->uninstallRules());
+        $result = $this->plugins->uninstall($data['code']);
 
-        return $this->success($this->plugins->uninstall($data['code']), '插件已卸载，数据表和目录仍保留');
+        return $this->success($result, $this->settledMessage($result, '插件已卸载，数据表和目录仍保留', '插件正在卸载，数据表和目录仍会保留'));
     }
 
     #[Post('/purge')]
@@ -98,8 +106,15 @@ final class PluginController extends AuthenticatedController
     public function purge(Request $request): Response
     {
         $data = $this->validate($this->body($request), $this->purgeRules());
+        $result = $this->plugins->uninstall($data['code'], true);
 
-        return $this->success($this->plugins->uninstall($data['code'], true), '插件数据已清除，目录仍保留');
+        return $this->success($result, $this->settledMessage($result, '插件数据已清除，目录仍保留', '插件正在清除数据，目录仍会保留'));
+    }
+
+    /** @param array<string, mixed> $result */
+    private function settledMessage(array $result, string $done, string $pending): string
+    {
+        return ($result['settled'] ?? true) ? $done : $pending;
     }
 
     /** @return array<string, string> */

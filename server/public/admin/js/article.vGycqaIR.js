@@ -1,1 +1,0 @@
-import{m as t}from"./router.FG7JU8uG.js";const a={getList:a=>t.get("/adminapi/article/list",{params:a}),getDetail:a=>t.get(`/adminapi/article/detail/${a}`),create:a=>t.post("/adminapi/article",a),update:(a,e)=>t.put(`/adminapi/article/${a}`,e),delete:a=>t.delete(`/adminapi/article/${a}`),updateStatus:(a,e)=>t.put(`/adminapi/article/${a}/status`,{status:e})};export{a};

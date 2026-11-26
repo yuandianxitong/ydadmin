@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use app\process\Http;
 use support\Log;
 use support\Request;
@@ -50,6 +52,12 @@ return [
     'scheduler' => [
         'handler' => app\process\Scheduler::class,
         'count'   => 1,
+    ],
+    // 插件生效编排。不能参与 reload：SIGUSR1 是它自己发出去的，它必须活着等指纹收敛。
+    'plugin-saga' => [
+        'handler'     => app\process\PluginSagaDispatcher::class,
+        'count'       => 1,
+        'reloadable'  => false,
     ],
     // 管理员 WebSocket 实时通道（M4）：一次性票据握手，订阅 Redis 频道 realtime:admin 并只投递本进程内的连接。
     // 可开多个进程、多台部署：每个进程都订阅同一频道、各自过滤，不需要中心进程。nginx 把 /ws 反向代理到这里。
