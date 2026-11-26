@@ -6,13 +6,20 @@ namespace app\service\plugin;
 
 use app\repository\plugin\PluginRepository;
 use app\repository\plugin\PluginSagaRepository;
+use app\service\plugin\adapter\PluginMenuAdapter;
 use app\service\plugin\adapter\PluginRouteGeneration;
 use core\base\Service;
 use core\exception\BusinessException;
 use core\plugin\ManifestReader;
+use core\plugin\PluginAssetPublisher;
+use core\plugin\PluginManifestValidator;
+use core\plugin\PluginLifecycleInvoker;
+use core\plugin\PluginLoader;
+use core\plugin\PluginSqlRunner;
 use core\plugin\PluginPaths;
 use core\plugin\PluginRequirements;
 use core\plugin\PluginStatus;
+use core\plugin\PluginUpgradePackage;
 use core\plugin\ReloadSignal;
 use core\plugin\WorkerFingerprintRegistry;
 use core\plugin\saga\PluginSagaRunner;
@@ -38,6 +45,24 @@ class PluginService extends Service
 
     #[Inject]
     protected PluginSagaRunner $runner;
+
+    #[Inject]
+    protected PluginUpgradePackage $upgradePackage;
+
+    #[Inject]
+    protected PluginLoader $loader;
+
+    #[Inject]
+    protected PluginLifecycleInvoker $lifecycle;
+
+    #[Inject]
+    protected PluginSqlRunner $sqlRunner;
+
+    #[Inject]
+    protected PluginMenuAdapter $menus;
+
+    #[Inject]
+    protected PluginManifestValidator $validator;
 
     /** @return array{id: int, code: string, version: string, status: int} */
     public function install(string $code): array
@@ -103,6 +128,43 @@ class PluginService extends Service
         ];
     }
 
+    /** @return array{code:string, version:string, status:int} */
+    public function upgrade(string $code, string $zipPath): array
+    {
+        $this->assertWorkersRegisteredWhenMasterRuns();
+        $row = $this->requireIdle($code);
+        if ((int) $row['status'] !== PluginStatus::ENABLED) {
+            throw new BusinessException('仅已启用插件可升级', 409);
+        }
+
+        $id = (int) $row['id'];
+        $payload = $this->upgradePackage->prepare($code, (string) $row['version'], $zipPath);
+        try {
+            $saga = $this->runInTransaction(function () use ($id, $code, $payload): array {
+                $affected = $this->plugins->updateWhere(
+                    ['id' => $id, 'status' => PluginStatus::ENABLED, 'version' => $payload['from_version']],
+                    ['status' => PluginStatus::UPGRADING],
+                );
+                if ($affected !== 1 || $this->sagas->hasActive($id)) {
+                    throw new BusinessException('插件状态已变化，请重试', 409);
+                }
+                $this->generation->bump();
+                return $this->sagas->createPending($id, $code, PluginSagaState::OP_UPGRADE, $payload);
+            });
+        } catch (\Throwable $e) {
+            @unlink($payload['staged_zip']);
+            throw $e;
+        }
+
+        $exit = $this->runner->handle((int) $saga['id']);
+        $after = $this->plugins->find($id) ?? [];
+        if ($exit !== 0 || ($after['version'] ?? null) !== $payload['to_version']) {
+            throw new BusinessException((string) (($after['last_error'] ?? '') ?: '插件升级失败'), 500);
+        }
+
+        return ['code' => $code, 'version' => $payload['to_version'], 'status' => (int) $after['status']];
+    }
+
     /** @return array{id: int, code: string, status: int} */
     public function disable(string $code): array
     {
@@ -145,6 +207,35 @@ class PluginService extends Service
         return $this->transition($row, PluginStatus::DISABLED, PluginStatus::ENABLED, PluginSagaState::OP_ENABLE);
     }
 
+    /** @return array{code:string, status:string} */
+    public function uninstall(string $code, bool $purge = false): array
+    {
+        $plugin = $this->requireIdle($code);
+        $status = (int) $plugin['status'];
+        if (!in_array($status, [PluginStatus::DISABLED, PluginStatus::FAILED, PluginStatus::ENABLED], true)
+            || ($purge && $status !== PluginStatus::DISABLED)) {
+            throw new BusinessException('插件当前状态不可卸载，清理数据前请先停用', 409);
+        }
+        if ($status === PluginStatus::ENABLED) {
+            $this->disable($code);
+        }
+
+        $id = (int) $plugin['id'];
+        $dir = PluginPaths::dir($code);
+        $manifest = ManifestReader::decodeColumn($plugin['manifest'] ?? null);
+        $this->loader->registerPsr4($manifest, $dir);
+        $this->lifecycle->invoke($manifest, 'uninstall');
+        if ($purge) {
+            $this->sqlRunner->uninstallData($dir, $id, $code, (string) $plugin['version']);
+        }
+        $this->runInTransaction(function () use ($id, $code): void {
+            $this->menus->remove($code);
+            $this->plugins->update($id, ['status' => PluginStatus::UNINSTALLED]);
+        });
+
+        return ['code' => $code, 'status' => 'uninstalled'];
+    }
+
     /**
      * 有 master 在跑、却没有任何 worker 登记过插件指纹时，reload 永远等不到收敛：
      * 信号会真发出去，随后两轮各等 60 秒并把插件置为失败。这里在任何写入之前直接拒绝。
@@ -174,20 +265,25 @@ class PluginService extends Service
         $id = (int) $row['id'];
         $code = (string) $row['code'];
 
-        $this->runInTransaction(function () use ($id, $from, $to): void {
-            $this->plugins->update($id, ['status' => $to]);
+        $saga = $this->runInTransaction(function () use ($id, $code, $from, $to, $operation): array {
+            $affected = $this->plugins->updateWhere(['id' => $id, 'status' => $from], ['status' => $to]);
+            if ($affected !== 1 || $this->sagas->hasActive($id)) {
+                throw new BusinessException('插件状态已变化，请重试', 409);
+            }
             if ($this->generation->shouldBump($from, $to, false)) {
                 $this->generation->bump();
             }
-        });
 
-        $saga = $this->sagas->createPending($id, $code, $operation, ['previous_status' => $from]);
+            return $this->sagas->createPending($id, $code, $operation, ['previous_status' => $from]);
+        });
         $exit = $this->runner->handle((int) $saga['id']);
         $after = $this->plugins->find($id) ?? [];
         if ($exit !== 0) {
             $error = (string) ($after['last_error'] ?? '');
             throw new BusinessException($error !== '' ? $error : '插件操作失败', 500);
         }
+
+        $this->menus->setStatus($code, $to === PluginStatus::ENABLED ? 1 : 0);
 
         return ['id' => $id, 'code' => $code, 'status' => (int) ($after['status'] ?? $to)];
     }
@@ -214,6 +310,13 @@ class PluginService extends Service
             throw new BusinessException('插件目录不存在：' . PluginPaths::dir($code), 409);
         }
 
-        return $manifest;
+        $errors = $this->validator->validate($manifest);
+        if ($errors !== []) {
+            throw new BusinessException(implode('；', $errors), 422);
+        }
+        $this->menus->assertManifestMenus($manifest);
+        PluginAssetPublisher::assertDistIfNeeded(PluginPaths::dir($code));
+
+        return $this->validator->normalize($manifest);
     }
 }

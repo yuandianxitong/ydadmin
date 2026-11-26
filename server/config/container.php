@@ -60,6 +60,7 @@ $builder->addDefinitions([
             $c->get(\core\plugin\PluginLoader::class),
             $c->get(\core\plugin\contracts\PluginStore::class),
             $c->get(\core\plugin\PluginEventRegistrar::class),
+            $c->get(\core\plugin\PluginRouteScanner::class),
         );
     },
 ]);

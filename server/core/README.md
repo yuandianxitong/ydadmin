@@ -5,7 +5,7 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 
 ## 目录定义
 
-一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 28 个一级目录：
+一级目录按能力划分，接口、值对象和实现归属于同一个能力。当前定义 27 个一级目录：
 
 | 目录 | 职责与归属 |
 |---|---|
@@ -25,13 +25,12 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 | `message` | 消息契约、模板、渠道和投递失败分类；SMTP 适配器放 `message/mail` |
 | `observability` | 通用进程心跳；业务监控聚合留在应用层 |
 | `payment` | 支付网关、金额、请求与结果 DTO、配置及渠道异常 |
-| `plugin` | 插件内核。宿主差异走 `core/plugin/contracts`，由 `config/container.php` 绑定 |
 | `query` | 查询参数归一化、分页和排序规则；具体筛选 SQL 留在仓储 |
 | `queue` | 队列投递入口和消费者、可靠投递接口；Outbox 持久化留在应用层 |
 | `realtime` | 连接注册与实时消息发布；具体通知业务留在应用层 |
 | `response` | API 响应、资源字段契约、响应注解与通用响应 Schema |
 | `runtime` | server 下可写运行目录的路径 |
-| `saga` | 可补偿步骤的执行器。插件编排在 `core/plugin/saga` |
+| `saga` | 可补偿步骤的执行器 |
 | `sms` | 短信接口、配置驱动解析和供应商驱动 |
 | `storage` | 文件存储接口、供应商驱动和上传扩展名安全规则 |
 | `support` | 无业务归属的脱敏、路径防护、载荷指纹和引导函数 |
@@ -46,6 +45,8 @@ Controller → Service → Repository → Model，具体业务规则放在 `app/
 `message/channel` 和 `generator/stubs`。不为每个能力统一套上 service、interface、dto 层。
 
 ## 依赖方向
+
+插件内核由 Composer 安装。宿主在 `config/container.php` 绑定 `core\plugin\contracts` 下的接口。[插件规范](../../docs/backend/plugin-contract.md)
 
 - 核心不得依赖 `app`。跨边界需求通过所属能力的接口表达，由 `config/container.php` 绑定实现。
 - 基类组合上下文、数据权限、验证、查询和响应能力；这些能力不得反向依赖基类。

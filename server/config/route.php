@@ -4,7 +4,10 @@ use app\adminapi\controller\system\ApiDocController;
 use app\controller\InstallController;
 use app\controller\SpaController;
 use app\middleware\CorsMiddleware;
+use core\plugin\PluginRouteDispatcher;
 use core\response\Api;
+use support\Container;
+use support\Request;
 use Webman\Route;
 
 // 管理端业务路由使用控制器路由属性。API 文档固定路径在此注册，
@@ -34,6 +37,9 @@ Route::get('/mobile[/{path:.*}]', [SpaController::class, 'mobile']);
 // 注意与「记录不存在」区分：后者是业务错误，HTTP 200 + code 404。
 // 框架组装 fallback 时关掉全局中间件。浏览器预检是 OPTIONS，对不上只登记了实际动词的业务路由，会落到这里。
 // 只挂 CORS：允许的来源在进 404 之前返回 204，其余来源 403；普通未命中请求在来源允许时带上同一套跨域头。
-Route::fallback(fn () => Api::errorWithStatus(lang('messages.api_not_found'), 404))
+Route::fallback(static function (Request $request) {
+    return Container::get(PluginRouteDispatcher::class)->dispatch($request)
+        ?? Api::errorWithStatus(lang('messages.api_not_found'), 404);
+})
     ->middleware([CorsMiddleware::class]);
 Route::disableDefaultRoute();

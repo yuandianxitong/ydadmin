@@ -10,6 +10,7 @@ $dotenv->safeLoad();
 // 开发库名（.env 的原值）：下面几行会把 DB_NAME 改成测试库，先留一份给第 4.5 步的开发库过期检查
 $devDatabase = (string) ($_ENV['DB_NAME'] ?? 'dev007_ydadmin');
 $overrides = [
+    'APP_KEY'   => 'framework-webman-plugin-test-key',
     'DB_NAME'   => ($_ENV['DB_NAME'] ?? 'dev007_ydadmin') . '_test',
     'DB_PREFIX' => '',
     'REDIS_DB'  => '15',

@@ -14,9 +14,9 @@ final class PluginSchemaTest extends TestCase
         foreach (['plugins', 'plugin_migrations', 'plugin_sagas'] as $table) {
             $this->assertTrue(Db::schema()->hasTable($table), "缺少表 {$table}");
         }
+        $this->assertTrue(Db::schema()->hasTable('plugin_menus'));
         $this->assertFalse(Db::schema()->hasTable('tenant_plugins'));
         $this->assertFalse(Db::schema()->hasTable('plugin_grants'));
-        $this->assertFalse(Db::schema()->hasTable('plugin_menus'));
 
         $pluginColumns = Db::schema()->getColumnListing('plugins');
         foreach (['code', 'depends', 'read_safe_routes', 'package_path', 'package_hash', 'manifest', 'status', 'last_error', 'installed_at'] as $column) {

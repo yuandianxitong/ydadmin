@@ -882,3 +882,12 @@ CREATE TABLE IF NOT EXISTS `plugin_sagas` (
   KEY `idx_status_id` (`status`, `id`),
   KEY `idx_plugin_status` (`plugin_id`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件 saga 状态';
+
+CREATE TABLE IF NOT EXISTS `plugin_menus` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `plugin_code` varchar(64) NOT NULL COMMENT '插件编码',
+  `menu_id` int unsigned NOT NULL COMMENT '本插件插入的菜单ID（menus.id）',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_plugin_menu` (`plugin_code`,`menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件菜单归属（停用和卸载时据此找到菜单）';

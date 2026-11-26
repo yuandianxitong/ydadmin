@@ -15,7 +15,14 @@
     "issues": "https://github.com/yuandianxitong/ydadmin/issues",
     "source": "https://github.com/yuandianxitong/ydadmin"
   },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/yuandianxitong/plugin-kernel"
+    }
+  ],
   "require": {
+    "yuandianxitong/plugin-kernel": "^1.0",
     "php": "^8.4",
     "workerman/webman-framework": "^2.2",
     "monolog/monolog": "^2.0",

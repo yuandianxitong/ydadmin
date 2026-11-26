@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "41c9ca3282636ebc16cf5237aebdb806",
+    "content-hash": "060cca8dcc4f39c693f25abbaae16359",
     "packages": [
         {
             "name": "adbario/php-dot-notation",
@@ -6854,6 +6854,39 @@
                 }
             ],
             "time": "2026-06-04T07:31:34+00:00"
+        },
+        {
+            "name": "yuandianxitong/plugin-kernel",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/yuandianxitong/plugin-kernel.git",
+                "reference": "4bf18c91c19ac4c6ea8238f645c36b58192027bd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/yuandianxitong/plugin-kernel/zipball/4bf18c91c19ac4c6ea8238f645c36b58192027bd",
+                "reference": "4bf18c91c19ac4c6ea8238f645c36b58192027bd",
+                "shasum": ""
+            },
+            "require": {
+                "ext-zip": "*",
+                "php": "^8.4",
+                "webman/console": "^2.2",
+                "webman/database": "^2.1",
+                "workerman/webman-framework": "^2.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "core\\plugin\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Shared plugin kernel for Yuandian Webman applications",
+            "time": "2026-11-26T04:42:17+00:00"
         }
     ],
     "packages-dev": [

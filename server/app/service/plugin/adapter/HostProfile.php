@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace app\service\plugin\adapter;
 
-use core\plugin\contracts\PluginHostProfile;
+use core\plugin\contracts\IdentifiedPluginHostProfile;
 
-final class HostProfile implements PluginHostProfile
+final class HostProfile implements IdentifiedPluginHostProfile
 {
+    public function hostId(): string
+    {
+        return 'framework-webman';
+    }
+
     public function strictMigrationHash(): bool
     {
         return (bool) config('plugin_host.migration_strict_hash', false);
@@ -37,20 +42,15 @@ final class HostProfile implements PluginHostProfile
                     'element-plus', '@element-plus/icons-vue', 'axios',
                 ],
                 'prefix' => '@yd/admin-host',
-                'modules' => ['http'],
+                // 与 admin/build/host-sdk.ts 的 HOST_MODULES、build-plugin-admin.mjs 的 EXTERNALS 同一份
+                'modules' => ['http', 'i18n', 'router', 'store'],
                 'sdkSource' => 'admin/build/host-sdk.ts',
-            ],
-            'pc' => [
-                'vendors' => ['vue', 'pinia', 'naive-ui'],
-                'prefix' => '@yd/pc-host',
-                'modules' => ['http'],
-                'sdkSource' => 'pc/build/host-sdk.ts',
             ],
         ];
     }
 
     public function sourceEnds(): array
     {
-        return ['admin', 'uniapp', 'pc'];
+        return ['admin'];
     }
 }

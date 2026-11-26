@@ -6,6 +6,7 @@ import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 import UnoCSS from "unocss/vite";
+import { injectAdminImportMap } from "./build/host-sdk";
 import { resolve } from "path";
 import { readdirSync, existsSync } from "fs";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
@@ -78,6 +79,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
                     changeOrigin: true,
                     secure: false,
                 },
+                '/plugin-assets': {
+                    target: env.VITE_APP_API_URL || 'http://test.com',
+                    changeOrigin: true,
+                    secure: false,
+                },
                 // 装修默认素材等 public/static 资源
                 '/static': {
                     target: env.VITE_APP_API_URL || 'http://test.com',
@@ -96,6 +102,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         plugins: [
             vue(),
             UnoCSS(),
+            injectAdminImportMap(),
 
             // ========== API 自动导入 ==========
             AutoImport({

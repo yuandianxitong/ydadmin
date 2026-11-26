@@ -11,7 +11,7 @@ final class EnvFile
     public const MANAGED_KEYS = [
         'APP_DEBUG', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_PREFIX',
         'REDIS_HOST', 'REDIS_PORT', 'REDIS_PASSWORD', 'REDIS_DB',
-        'JWT_ADMIN_SECRET', 'JWT_USER_SECRET',
+        'JWT_ADMIN_SECRET', 'JWT_USER_SECRET', 'APP_KEY',
     ];
 
     /**

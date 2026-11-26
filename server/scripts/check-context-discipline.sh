@@ -44,10 +44,6 @@ STATIC_WHITELIST=(
   'core/validation/ValidatorFactory.php:$factory'                  # 只读校验工厂
   'app/middleware/AdminPermissionMiddleware.php:$permissionCache'  # 注解反射结果：key=类@方法，部署期固定
   'app/service/system/ApiDocService.php:$documentCache'            # 路由元数据：每个 type 仅缓存当前配置版本与语言，旧版本整体替换
-  'core/plugin/PluginRouteDispatcher.php:$table'                   # 插件路由内存表：只依赖已启用插件与代码，不含请求态；版本号变化时整体重建
-  'core/plugin/PluginRouteDispatcher.php:$builtGeneration'         # 上述内存表对应的路由版本号，与表一起整体替换
-  'core/plugin/WorkerFingerprintRegistry.php:$current'             # worker 启动时写入一次的插件指纹，此后只读
-  'core/plugin/WorkerFingerprintRegistry.php:$bootedAt'            # worker 启动时间，启动时写入一次，此后只读
 )
 
 fail=0

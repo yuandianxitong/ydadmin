@@ -20,7 +20,6 @@ $dependencies = [
     'message' => ['config', 'sms', 'wechat'],
     'observability' => [],
     'payment' => ['config', 'exception'],
-    'plugin' => ['context', 'diy', 'exception', 'runtime', 'saga', 'support'],
     'query' => ['exception'],
     'queue' => [],
     'realtime' => [],

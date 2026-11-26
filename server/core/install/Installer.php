@@ -178,6 +178,7 @@ final class Installer
             'REDIS_DB'          => (string) $input['redis_db'],
             'JWT_ADMIN_SECRET'  => $adminSecret,
             'JWT_USER_SECRET'   => $userSecret,
+            'APP_KEY'           => bin2hex(random_bytes(32)),
         ]);
 
         $this->injectMysqlConfig([

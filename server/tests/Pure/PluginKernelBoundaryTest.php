@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace tests\Pure;
 
+use core\plugin\PluginPaths;
 use PHPUnit\Framework\TestCase;
 
 final class PluginKernelBoundaryTest extends TestCase
 {
-    public function test_copied_kernel_is_a_known_core_module_and_names_no_saas_config(): void
+    public function test_composer_kernel_is_outside_host_core_and_names_no_saas_config(): void
     {
         $core = dirname(__DIR__, 2) . '/core';
-        $this->assertDirectoryExists($core . '/plugin');
+        $this->assertDirectoryDoesNotExist($core . '/plugin');
         $this->assertDirectoryExists($core . '/saga');
         $this->assertFileExists($core . '/diy/NormalizedWidget.php');
         $this->assertFileExists($core . '/runtime/RuntimePaths.php');
@@ -23,8 +24,9 @@ final class PluginKernelBoundaryTest extends TestCase
         exec($command . ' 2>&1', $output, $status);
         $this->assertSame(0, $status, implode("\n", $output));
 
+        $kernel = dirname((new \ReflectionClass(PluginPaths::class))->getFileName());
         $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($core . '/plugin', \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($kernel, \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($iterator as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {

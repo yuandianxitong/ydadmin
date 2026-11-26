@@ -1,3 +1,5 @@
+import { loadPluginModule } from '@/plugin-runtime/loader'
+import { resolvePage } from '@/plugin-runtime/registry'
 // src/router/index.ts
 import { createRouter, createWebHistory, type RouteRecordRaw, RouterView } from 'vue-router'
 
@@ -22,6 +24,12 @@ export function getModulesKey(): string[] {
  * 找不到时返回 404 组件而不是 RouterView（空白透传），让菜单配置错误可被立刻发现。
  */
 export function loadRouteView(component: string) {
+    if (component.startsWith('plugins/')) {
+        const asset = resolvePage(component)
+        if (asset) return () => loadPluginModule(asset)
+        const notFoundKey = Object.keys(modules).find((key) => key.endsWith('/error/404.vue'))
+        return notFoundKey ? modules[notFoundKey] : RouterView
+    }
     const key = Object.keys(modules).find((key) => key.includes(`/${component}.vue`))
     if (key) return modules[key]
 

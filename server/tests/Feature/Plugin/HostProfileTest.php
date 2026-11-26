@@ -20,25 +20,13 @@ final class HostProfileTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_names_admin_uniapp_and_pc_without_a_tenant_host(): void
+    public function test_host_only_advertises_implemented_frontends(): void
     {
         $profile = new HostProfile();
-
-        $this->assertSame(['admin', 'uniapp', 'pc'], $profile->sourceEnds());
-        $this->assertSame(['admin', 'pc'], array_keys($profile->publishableFrontends()));
-        $admin = $profile->publishableFrontends()['admin'];
-        $this->assertSame('@yd/admin-host', $admin['prefix']);
-        $this->assertSame('admin/build/host-sdk.ts', $admin['sdkSource']);
-        $this->assertSame(
-            ['vue', 'vue-router', 'pinia', 'vue-i18n', '@vueuse/core', 'element-plus', '@element-plus/icons-vue', 'axios'],
-            $admin['vendors']
-        );
-        $this->assertSame(['http'], $admin['modules']);
-        $pc = $profile->publishableFrontends()['pc'];
-        $this->assertSame(['vue', 'pinia', 'naive-ui'], $pc['vendors']);
-        $this->assertSame('@yd/pc-host', $pc['prefix']);
-        $this->assertSame(['http'], $pc['modules']);
-        $this->assertSame('pc/build/host-sdk.ts', $pc['sdkSource']);
+        $this->assertSame('framework-webman', $profile->hostId());
+        $this->assertSame(['admin'], $profile->sourceEnds());
+        $this->assertSame(['admin'], array_keys($profile->publishableFrontends()));
+        $this->assertSame(['http', 'i18n', 'router', 'store'], $profile->publishableFrontends()['admin']['modules']);
     }
 
     public function test_missing_categories_config_returns_an_array(): void

@@ -3,6 +3,7 @@
 use support\Request;
 
 return [
+    'app_key'           => (string) env('APP_KEY', ''),
     'debug'             => (bool) env('APP_DEBUG', false),
     'error_reporting'   => E_ALL,
     'default_timezone'  => 'Asia/Shanghai',

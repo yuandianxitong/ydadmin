@@ -19,6 +19,9 @@ import { translateRouteTitle } from '@/utils/i18n'
 import { getAuthRevision } from '@/utils/request-context'
 import { isExternal } from '@/utils/validate' // 工具：判断 URL 是否外部链接
 
+import { setPluginAssets, type PluginAssetEntry } from '@/plugin-runtime/registry'
+import { myRequest } from '@/utils/request'
+
 /**
  * 创建并注册“登录鉴权与动态路由”守卫
  */
@@ -75,11 +78,16 @@ export default function createPermissionGuard(router: Router): void {
                     }
                     // 登录后首次导航与刷新页面都走这里：身份确认后建立实时通道（connect 幂等）
                     useRealtimeStore().connect()
-                    const rawRoutes = await userStore.fetchMenus()
+                    const [rawRoutes, assets] = await Promise.all([
+                        userStore.fetchMenus(),
+                        myRequest.get<PluginAssetEntry[]>('/adminapi/plugin/assets').catch(() => undefined)
+                    ])
                     if (revision !== getAuthRevision()) {
                         next(false)
                         return
                     }
+
+                    setPluginAssets(assets?.data ?? [])
 
                     // 先根据 rawRoutes 生成 RouteRecordRaw[]（包含 component 动态加载）
                     const accessedRoutes: RouteRecordRaw[] = filterAsyncRoutes(rawRoutes)
