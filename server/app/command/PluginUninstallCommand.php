@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\command;
 
-use core\exception\BusinessException;
 use app\service\plugin\PluginService;
+use core\exception\BusinessException;
 use support\Container;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * 卸载插件。只转调 PluginService，不重启 worker。只有显式 --purge 才传 purge: true（执行 database/uninstall.sql 删数据，
  * 且要求插件已停用）；HTTP 接口永远不 purge。不进定时任务白名单（config/cron.php）。
  */
-#[AsCommand('plugin:uninstall', '卸载插件；加 --purge 同时执行 database/uninstall.sql 删除插件数据（需先停用）')]
+#[AsCommand('plugin:uninstall', '卸载站点插件（保留 server/plugins/<code> 目录；--purge 需先停用，并执行 uninstall.sql）')]
 final class PluginUninstallCommand extends Command
 {
     protected function configure(): void
@@ -38,7 +38,12 @@ final class PluginUninstallCommand extends Command
             return self::FAILURE;
         }
 
-        $output->writeln(sprintf('<info>插件 %s 已卸载%s。</info>', $result['code'], $purge ? '，数据已清除' : '，数据已保留'));
+        $output->writeln(sprintf(
+            '<info>插件 %s 已卸载%s。目录 server/plugins/%s 仍保留。</info>',
+            $result['code'],
+            $purge ? '，数据已清除' : '，数据已保留',
+            $result['code']
+        ));
 
         return self::SUCCESS;
     }

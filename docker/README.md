@@ -63,8 +63,20 @@ docker compose up -d --force-recreate webman
 - nginx 把 `/` 反代到 webman `8000`，把 `/ws` 反代到 `8001`，并设置 `client_max_body_size 50m`。
 - MySQL 与 Redis 默认只绑定宿主机回环地址；需要外连时再改 `docker/.env` 里的绑定项，并自行评估暴露面。
 - Nginx 的固定容器 IP 默认为 `172.30.84.2`，启动脚本将其写入应用的 `TRUSTED_PROXIES`，登录日志与操作日志由此记录实际客户端 IP。若子网冲突，同时修改 `DOCKER_SUBNET`、`DOCKER_IP_RANGE` 与 `NGINX_INTERNAL_IP`（固定 IP 必须在子网内、动态地址池外），然后 `docker compose up -d --force-recreate` 重建容器。不要把整个私网或所有来源设为可信代理。
-- 镜像包含验证码所需 GD（PNG / JPEG / WebP / FreeType）以及上传检测所需 fileinfo。
+- 镜像包含验证码所需 GD（PNG / JPEG / WebP / FreeType）、上传检测所需 fileinfo，以及插件内核所需的 zip 扩展。同时安装 `procps`，供插件 reload 后用 `pgrep` 核对 master 的子进程，避免过期 worker 指纹拖住启停。
 - 安装器默认设置 `APP_DEBUG=false`，生成器写操作在生产模式下关闭。仅在独立开发环境将 `server/.env` 改为 `APP_DEBUG=true` 并执行 `docker compose restart webman`，详见[代码生成器](../README.md#代码生成)。
+
+## 站点插件
+
+站点插件放在 `server/plugins/<code>/`，目录里要有 `plugin.json`。在 webman 容器里操作：
+
+- `php webman plugin:install <code>`：安装磁盘上已经放好的插件。
+- `php webman plugin:enable <code>` / `php webman plugin:disable <code>`：启用或停用。
+- `php webman plugin:upgrade <code> <zip>`：用 zip 升级。zip 根目录必须有 `plugin.json`。
+- `php webman plugin:uninstall <code>`：卸载并保留数据表。目录 `server/plugins/<code>/` 仍保留，之后重装依赖它。
+- `php webman plugin:uninstall <code> --purge`：额外执行 `database/uninstall.sql` 清除插件数据。插件必须已经停用，顺序是先 `plugin:disable`，再带 `--purge` 卸载。
+
+`plugin:create` 是 webman 自带的 Composer 插件命令，生成的是 `vendor/` 下的包，不能交给 `plugin:install`。
 
 ## 前端构建与更新
 

@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /** 命令只做参数解析与输出，逻辑在 PluginService::install()；BusinessException 交给命令运行器。 */
-#[AsCommand('plugin:install', '安装插件（站点级）')]
+#[AsCommand('plugin:install', '安装站点插件（目录 server/plugins/<code> 且已有 plugin.json，不是 webman 的 plugin:create）')]
 final class PluginInstallCommand extends Command
 {
     protected function configure(): void

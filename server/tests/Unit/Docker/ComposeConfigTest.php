@@ -15,6 +15,11 @@ final class ComposeConfigTest extends TestCase
         $this->assertFileExists($compose);
         $this->assertFileExists($envExample);
 
+        $dockerfile = (string) file_get_contents(dirname(__DIR__, 4) . '/docker/webman/Dockerfile');
+        $this->assertStringContainsString('procps', $dockerfile);
+        $this->assertStringContainsString('libzip-dev', $dockerfile);
+        $this->assertMatchesRegularExpression('/docker-php-ext-install\s+[^\n]*\bzip\b/', $dockerfile);
+
         $raw = (string) file_get_contents($compose);
         $this->assertStringNotContainsString('dev007_ydadmin', $raw);
         $this->assertStringNotContainsString('DROP DATABASE', $raw);

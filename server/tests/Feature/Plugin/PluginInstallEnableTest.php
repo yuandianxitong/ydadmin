@@ -233,6 +233,57 @@ final class PluginInstallEnableTest extends TestCase
         }
     }
 
+    public function test_successful_enable_and_disable_clear_the_previous_last_error(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $service->install('probe');
+        $stale = 'reload 未在 60s 内生效：仍有存活 worker 报告与期望不一致的指纹';
+
+        Db::table('plugins')->where('code', 'probe')->update(['last_error' => $stale]);
+        $service->disable('probe');
+        $this->assertSame('', (string) Db::table('plugins')->where('code', 'probe')->value('last_error'));
+
+        Db::table('plugins')->where('code', 'probe')->update(['last_error' => $stale]);
+        $service->enable('probe');
+        $this->assertSame('', (string) Db::table('plugins')->where('code', 'probe')->value('last_error'));
+        $this->assertSame(PluginStatus::ENABLED, $this->statusOf('probe'));
+    }
+
+    public function test_uninstall_clears_last_error_and_keeps_the_plugin_directory(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $service->install('probe');
+        $service->disable('probe');
+        Db::table('plugins')->where('code', 'probe')->update([
+            'last_error' => 'reload 未在 60s 内生效',
+        ]);
+
+        $result = $service->uninstall('probe');
+
+        $this->assertSame('uninstalled', $result['status']);
+        $this->assertSame(PluginStatus::UNINSTALLED, $this->statusOf('probe'));
+        $this->assertSame('', (string) Db::table('plugins')->where('code', 'probe')->value('last_error'));
+        $this->assertFileExists($this->pluginDir . '/plugin.json');
+    }
+
+    public function test_purge_of_an_enabled_plugin_tells_the_operator_to_disable_first(): void
+    {
+        $service = $this->serviceWithImmediateRunner();
+        $service->install('probe');
+
+        try {
+            $service->uninstall('probe', true);
+            $this->fail('启用状态下不应直接 purge');
+        } catch (BusinessException $e) {
+            $this->assertSame(409, $e->getCode());
+            $this->assertStringContainsString('php webman plugin:disable probe', $e->getMessage());
+            $this->assertStringContainsString('php webman plugin:uninstall probe --purge', $e->getMessage());
+        }
+
+        $this->assertSame(PluginStatus::ENABLED, $this->statusOf('probe'));
+        $this->assertFileExists($this->pluginDir . '/plugin.json');
+    }
+
     private function serviceWithImmediateRunner(): PluginService
     {
         $runner = Container::make(ImmediatePluginSagaRunner::class);

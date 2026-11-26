@@ -12,18 +12,18 @@ use core\base\Service;
 use core\exception\BusinessException;
 use core\plugin\ManifestReader;
 use core\plugin\PluginAssetPublisher;
-use core\plugin\PluginManifestValidator;
 use core\plugin\PluginLifecycleInvoker;
 use core\plugin\PluginLoader;
-use core\plugin\PluginSqlRunner;
+use core\plugin\PluginManifestValidator;
 use core\plugin\PluginPaths;
 use core\plugin\PluginRequirements;
+use core\plugin\PluginSqlRunner;
 use core\plugin\PluginStatus;
 use core\plugin\PluginUpgradePackage;
 use core\plugin\ReloadSignal;
-use core\plugin\WorkerFingerprintRegistry;
 use core\plugin\saga\PluginSagaRunner;
 use core\plugin\saga\PluginSagaState;
+use core\plugin\WorkerFingerprintRegistry;
 use DI\Attribute\Inject;
 
 /**
@@ -212,6 +212,12 @@ class PluginService extends Service
     {
         $plugin = $this->requireIdle($code);
         $status = (int) $plugin['status'];
+        if ($purge && $status === PluginStatus::ENABLED) {
+            throw new BusinessException(
+                "清理数据前请先停用：php webman plugin:disable {$code}，然后再执行 php webman plugin:uninstall {$code} --purge",
+                409
+            );
+        }
         if (!in_array($status, [PluginStatus::DISABLED, PluginStatus::FAILED, PluginStatus::ENABLED], true)
             || ($purge && $status !== PluginStatus::DISABLED)) {
             throw new BusinessException('插件当前状态不可卸载，清理数据前请先停用', 409);
@@ -230,7 +236,10 @@ class PluginService extends Service
         }
         $this->runInTransaction(function () use ($id, $code): void {
             $this->menus->remove($code);
-            $this->plugins->update($id, ['status' => PluginStatus::UNINSTALLED]);
+            $this->plugins->update($id, [
+                'status' => PluginStatus::UNINSTALLED,
+                'last_error' => '',
+            ]);
         });
 
         return ['code' => $code, 'status' => 'uninstalled'];
@@ -283,6 +292,7 @@ class PluginService extends Service
             throw new BusinessException($error !== '' ? $error : '插件操作失败', 500);
         }
 
+        $this->plugins->update($id, ['last_error' => '']);
         $this->menus->setStatus($code, $to === PluginStatus::ENABLED ? 1 : 0);
 
         return ['id' => $id, 'code' => $code, 'status' => (int) ($after['status'] ?? $to)];

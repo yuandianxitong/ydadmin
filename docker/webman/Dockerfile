@@ -1,10 +1,10 @@
 FROM php:8.4-cli-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip libssl-dev libcurl4-openssl-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
+        git unzip procps libssl-dev libcurl4-openssl-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libwebp-dev libzip-dev \
         $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install pdo_mysql pcntl posix gd \
+    && docker-php-ext-install pdo_mysql pcntl posix gd zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
